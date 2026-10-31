@@ -4,19 +4,24 @@ import { redactLog } from '@/lib/logs';
 import { redactText, redactUrl } from '@/lib/redact';
 
 /** Asks the page recorder (if it runs on this site) for its last 60 seconds, and the React component of the picked element. */
-function askRecorder(el: Element | null): Promise<{ logs: LogEntry[]; component?: string; recorder: boolean }> {
+type FromPage = { logs: LogEntry[]; component?: string; components?: string[]; source?: string; recorder: boolean };
+const shortString = (v: unknown, max = 120) => (typeof v === 'string' && v.length <= max ? v : undefined);
+
+function askRecorder(el: Element | null): Promise<FromPage> {
   return new Promise((resolve) => {
     const id = Math.random().toString(36).slice(2);
     el?.setAttribute('data-darnly-picked', '');
-    const done = (r: { logs: LogEntry[]; component?: string; recorder: boolean }) => {
+    const done = (r: FromPage) => {
       removeEventListener('message', onMessage);
       el?.removeAttribute('data-darnly-picked');
       resolve(r);
     };
     const onMessage = (e: MessageEvent) => {
-      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string } | null;
+      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string; components?: unknown; source?: string } | null;
       if (e.source === window && d?.darnly === 'logs' && d.id === id) {
-        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: typeof d.component === 'string' ? d.component : undefined, recorder: true });
+        // The page could send anything here, so keep only short strings.
+        const components = Array.isArray(d.components) ? d.components.map((c) => shortString(c, 60)).filter((c): c is string => !!c).slice(-4) : undefined;
+        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: shortString(d.component, 60), components, source: shortString(d.source, 200), recorder: true });
       }
     };
     addEventListener('message', onMessage);
@@ -30,7 +35,8 @@ function redactElement(info: ElementInfo): ElementInfo {
     ...info,
     text: redactText(info.text),
     html: redactText(info.html),
-    atCursor: info.atCursor && { ...info.atCursor, text: redactText(info.atCursor.text), html: redactText(info.atCursor.html) },
+    labels: info.labels?.map(redactText),
+    atCursor: info.atCursor && { ...info.atCursor, text: redactText(info.atCursor.text), html: redactText(info.atCursor.html), labels: info.atCursor.labels?.map(redactText) },
   };
 }
 
@@ -102,6 +108,8 @@ function start(): () => void {
     masked.forEach((m) => (m.style.filter = 'blur(8px)'));
     const fromPage = await askRecorder(el);
     if (element && fromPage.component) element.component = fromPage.component;
+    if (element && fromPage.components?.length) element.components = fromPage.components;
+    if (element && fromPage.source) element.source = fromPage.source;
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await chrome.runtime.sendMessage({
       type: 'element-picked',

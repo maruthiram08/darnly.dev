@@ -118,7 +118,9 @@ export async function listCaptures(root: FileSystemDirectoryHandle): Promise<Cap
       if (handle.kind !== 'file' || !name.endsWith('.md')) continue;
       const file = await (handle as FileSystemFileHandle).getFile();
       const text = await file.slice(0, 2000).text();
-      const title = text.match(/^# (.+)$/m)?.[1] ?? name;
+      // The note (under "Expected") names a bug best; older files had it as the heading.
+      const expected = text.match(/^\*\*Expected:\*\* (.+)$/m)?.[1];
+      const title = (expected && expected !== '(no note given)' ? expected : undefined) ?? text.match(/^# (.+)$/m)?.[1] ?? name;
       out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified });
     }
   }

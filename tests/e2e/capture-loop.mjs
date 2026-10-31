@@ -113,6 +113,10 @@ try {
   if (!md.includes('pointer-events: none')) fail('styles missing');
   if (!md.includes('**Expected:** Pay now should be clickable')) fail('note missing');
   if (!(png > 1000)) fail('screenshot missing or empty');
+  if (!md.includes('- code: `src/components/PayButton.tsx:12` (start here)')) fail('source file missing');
+  if (!md.includes('- drawn by: `CheckoutPage` > `PayButton`')) fail('component chain missing');
+  if (!md.includes('# Bug on /checkout: PayButton')) fail('heading missing');
+  if (!md.includes('"Pay now"') || !md.includes('page route: `/checkout`')) fail('search hints missing');
   const logsName = names.find((n) => n.endsWith('.logs.json'));
   const all = md + (logsName ? out[logsName] : '');
   for (const secret of ['hunter2', '4242424242424242', ['sk', 'live', '51HqLyjWDarjtT1zdp7dcXYZ'].join('_'), 'abc12345', 's3cr3tsessionvalue']) {

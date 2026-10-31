@@ -24,19 +24,20 @@ describe('captureMarkdown', () => {
         rect: { x: 10, y: 20, width: 120, height: 40 },
       },
     });
-    expect(md).toContain('# Pay now should open the payment form');
+    expect(md).toContain('# Bug on /checkout: button "Pay now"');
     expect(md).toContain('**Expected:** Pay now should open the payment form');
     expect(md).toContain('**Screenshot:** .darnly/inbox/2026-11-01-0140-pay-now-should-open.png');
     expect(md).toContain('- selector: `button[data-testid="pay-now"]`');
     expect(md).toContain('opacity: 0.5; pointer-events: none');
     expect(md).toContain('page_title: "Checkout | My shop"');
     expect(md).toContain('.darnly/done/');
+    expect(md).toContain('ask the user one short question');
     expect(md.indexOf('Expected')).toBeLessThan(md.indexOf('## Element'));
   });
 
   it('handles a whole-page capture with no note', () => {
     const md = captureMarkdown({ ...base, note: '' });
-    expect(md).toContain('# Problem on this page');
+    expect(md).toContain('# Bug on /checkout: whole page');
     expect(md).toContain('(no note given)');
     expect(md).toContain('Whole visible page');
   });
@@ -99,5 +100,32 @@ describe('captureMarkdown cursor', () => {
     expect(md).toContain('## Failed requests (since the page loaded)');
     expect(md).toContain('- /api/frames 404');
     expect(md).toContain("failed requests come from the page's request history");
+  });
+});
+
+describe('captureMarkdown hints', () => {
+  const element = {
+    selector: 'div.card',
+    tag: 'div',
+    text: 'Voice Tone Neutral',
+    html: '<div class="card">…</div>',
+    styles: {},
+    rect: { x: 0, y: 0, width: 100, height: 100 },
+    components: ['StylePage', 'VoiceToneCard'],
+    source: 'src/app/style/VoiceToneCard.tsx:42',
+    labels: ['Voice Tone', 'Neutral'],
+  };
+  it('names the file, the components and strings to search for', () => {
+    const md = captureMarkdown({ ...base, element });
+    expect(md).toContain('# Bug on /checkout: VoiceToneCard');
+    expect(md).toContain('- code: `src/app/style/VoiceToneCard.tsx:42` (start here)');
+    expect(md).toContain('- drawn by: `StylePage` > `VoiceToneCard`');
+    expect(md).toContain('page route: `/checkout`');
+    expect(md).toContain('"Voice Tone", "Neutral"');
+  });
+  it('has no file paths when written for pasting', () => {
+    const md = captureMarkdown({ ...base, element, forPaste: true, logs: [{ t: Date.now(), kind: 'error', message: 'boom' }] });
+    expect(md).not.toContain('.darnly/');
+    expect(md).toContain('the screenshot pasted with this message');
   });
 });
