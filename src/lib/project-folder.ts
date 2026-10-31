@@ -102,6 +102,8 @@ export interface CaptureSummary {
   title: string;
   status: 'waiting' | 'fixed';
   modified: number;
+  /** The agent's one line on what it changed (the **Fixed:** line), when it wrote one. */
+  fixedNote?: string;
 }
 
 /** Captures in .darnly/inbox (waiting for the agent) and .darnly/done (the agent moved them there after fixing). */
@@ -117,11 +119,12 @@ export async function listCaptures(root: FileSystemDirectoryHandle): Promise<Cap
     for await (const [name, handle] of (dir as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) {
       if (handle.kind !== 'file' || !name.endsWith('.md')) continue;
       const file = await (handle as FileSystemFileHandle).getFile();
-      const text = await file.slice(0, 2000).text();
+      const text = await file.slice(0, 4000).text();
       // The note (under "Expected") names a bug best; older files had it as the heading.
       const expected = text.match(/^\*\*Expected:\*\* (.+)$/m)?.[1];
       const title = (expected && expected !== '(no note given)' ? expected : undefined) ?? text.match(/^# (.+)$/m)?.[1] ?? name;
-      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified });
+      const fixedNote = text.match(/^\*\*Fixed:\*\* (.+)$/m)?.[1]?.slice(0, 200);
+      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified, fixedNote });
     }
   }
   return out.sort((a, b) => b.modified - a.modified);

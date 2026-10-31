@@ -43,6 +43,14 @@ export function App() {
   const [lastFiles, setLastFiles] = useState<File[]>([]);
   const [site, setSite] = useState<SiteStatus>({ recordable: false });
   const [captures, setCaptures] = useState<CaptureSummary[]>([]);
+  // Bugs the agent fixed since the panel last looked, for the "take a look" nudge.
+  const [justFixed, setJustFixed] = useState<CaptureSummary[]>([]);
+  const seenStatus = useRef<Map<string, string> | null>(null);
+  // Capture times (shortcut to saved), kept on this computer, for the MVP success check.
+  const [stats, setStats] = useState<{ ms: number }[]>([]);
+  useEffect(() => {
+    chrome.storage.local.get('captureTimes').then((r) => setStats(Array.isArray(r.captureTimes) ? r.captureTimes : []), () => {});
+  }, []);
   const [plan, setPlan] = useState<PlannedChange[] | null>(null);
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
@@ -76,7 +84,14 @@ export function App() {
 
   const refreshProject = useCallback(async (f: FileSystemDirectoryHandle | null) => {
     if (!f || (await folderAccess(f)) !== 'granted') return;
-    setCaptures(await listCaptures(f));
+    const list = await listCaptures(f);
+    const before = seenStatus.current;
+    if (before) {
+      const fixedNow = list.filter((c) => c.status === 'fixed' && before.get(c.id) === 'waiting');
+      if (fixedNow.length) setJustFixed((prev) => [...fixedNow, ...prev.filter((p) => !fixedNow.some((n) => n.id === p.id))]);
+    }
+    seenStatus.current = new Map(list.map((c) => [c.id, c.status]));
+    setCaptures(list);
     const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
     const existing = Object.fromEntries(await Promise.all(paths.map(async (p) => [p, await readProjectFile(f, p)] as const)));
     const next = planSetup(existing);
@@ -118,6 +133,8 @@ export function App() {
       if (msg.type === 'picking') {
         setStage('picking');
         setMessage('');
+      } else if (msg.type === 'picker-cancelled') {
+        setStage((s) => (s === 'picking' ? 'idle' : s));
       } else if (msg.type === 'picker-failed') {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
@@ -157,6 +174,12 @@ export function App() {
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setMessage(`Couldn't link that folder: ${(e as Error).message}`);
     }
+  };
+
+  const pickerCommand = async (action: 'cancel' | 'whole') => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab?.id) await chrome.tabs.sendMessage(tab.id, { type: 'picker-command', action }).catch(() => {});
+    if (action === 'cancel') setStage('idle'); // even if the page already lost the picker
   };
 
   const startFromPanel = async () => {
@@ -200,7 +223,18 @@ export function App() {
     const asFiles = Object.entries(files)
       .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
       .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
+    const recordTime = async () => {
+      const { pressedAt } = await chrome.storage.session.get('pressedAt').catch(() => ({ pressedAt: undefined }));
+      if (typeof pressedAt !== 'number') return;
+      const ms = Date.now() - pressedAt;
+      if (ms <= 0 || ms > 10 * 60_000) return; // ignore captures left open for ages
+      const next = [...stats, { ms, at: Date.now() }].slice(-500);
+      setStats(next);
+      chrome.storage.local.set({ captureTimes: next }).catch(() => {});
+      chrome.storage.session.remove('pressedAt').catch(() => {});
+    };
     const done = (file: string) => {
+      recordTime();
       setLastMarkdown(markdown);
       setLastPaste(paste);
       setLastTitle(headingFrom(note, capture.element));
@@ -286,7 +320,15 @@ export function App() {
         </section>
       )}
 
-      {stage === 'picking' && <p className="rounded-lg bg-rose-50 p-3 text-rose-800">Click the broken part of the page. Press Esc to capture the whole page.</p>}
+      {stage === 'picking' && (
+        <section className="space-y-2 rounded-lg bg-rose-50 p-3 text-rose-800">
+          <p>Click the broken part of the page. Press W for the whole page, Esc to cancel.</p>
+          <div className="flex gap-2">
+            <button className="flex-1 rounded-lg border border-rose-200 bg-white py-1.5" onClick={() => pickerCommand('whole')}>Whole page</button>
+            <button className="flex-1 rounded-lg border border-rose-200 bg-white py-1.5" onClick={() => pickerCommand('cancel')}>Cancel</button>
+          </div>
+        </section>
+      )}
 
       {stage === 'note' && capture && (
         <section className="space-y-3">
@@ -373,6 +415,24 @@ export function App() {
         </section>
       )}
 
+      {justFixed.length > 0 && (
+        <section className="rounded-lg bg-emerald-50 p-3 text-emerald-900">
+          <p className="font-medium">{justFixed.length === 1 ? '1 bug fixed' : `${justFixed.length} bugs fixed`}. Take a look.</p>
+          <ul className="mt-1 space-y-1">
+            {justFixed.slice(0, 5).map((c) => (
+              <li key={c.id} className="text-xs">
+                <span className="font-medium">{c.title}</span>
+                {c.fixedNote && <span className="block text-emerald-800">{c.fixedNote}</span>}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 flex gap-2">
+            <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
+            <button className="rounded-lg px-3 text-emerald-800" onClick={() => setJustFixed([])}>Done</button>
+          </div>
+        </section>
+      )}
+
       {captures.length > 0 && (
         <section>
           <p className="font-medium">
@@ -382,7 +442,7 @@ export function App() {
             {captures.slice(0, 20).map((c) => (
               <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed (moved to done)' : 'Waiting for your agent'} />
-                <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.title}>{c.title}</span>
+                <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
               </li>
             ))}
           </ul>
@@ -390,6 +450,12 @@ export function App() {
             <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
           )}
         </section>
+      )}
+      {stats.length >= 3 && (
+        <p className="text-xs text-gray-500">
+          Average capture: {Math.round(stats.reduce((a, b) => a + b.ms, 0) / stats.length / 1000)}s over {stats.length} bugs
+          {captures.length ? ` · ${captures.filter((c) => c.status === 'fixed').length} of ${captures.length} fixed` : ''}
+        </p>
       )}
     </main>
   );

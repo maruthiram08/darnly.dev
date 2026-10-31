@@ -67,7 +67,7 @@ function start(): () => void {
       .hint { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #111827; color: #fff; font: 13px/1.4 system-ui, sans-serif; padding: 8px 14px; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
     </style>
     <div class="box"></div><div class="label"></div>
-    <div class="hint">Click the broken part · ↑ ↓ bigger or smaller · Esc for the whole page</div>`;
+    <div class="hint">Click the broken part · ↑ ↓ bigger or smaller · W for the whole page · Esc to cancel</div>`;
   document.documentElement.appendChild(host);
   const box = shadow.querySelector<HTMLDivElement>('.box')!;
   const label = shadow.querySelector<HTMLDivElement>('.label')!;
@@ -141,6 +141,9 @@ function start(): () => void {
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       swallow(e);
+      cancel();
+    } else if ((e.key === 'w' || e.key === 'W') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      swallow(e);
       finish(null);
     } else if (e.key === 'ArrowUp' && current?.parentElement && current.parentElement !== document.documentElement) {
       swallow(e);
@@ -154,6 +157,19 @@ function start(): () => void {
       finish(current);
     }
   };
+
+  const cancel = () => {
+    stop();
+    chrome.runtime.sendMessage({ type: 'picker-cancelled' }).catch(() => {});
+  };
+
+  // The side panel's "Whole page" and "Cancel" buttons.
+  const onPanel = (msg: { type?: string; action?: string }) => {
+    if (msg?.type !== 'picker-command') return;
+    if (msg.action === 'cancel') cancel();
+    else if (msg.action === 'whole') finish(null);
+  };
+  chrome.runtime.onMessage.addListener(onPanel);
 
   const opts = { capture: true } as const;
   addEventListener('mousemove', onMove, opts);
@@ -169,6 +185,7 @@ function start(): () => void {
     removeEventListener('mouseup', swallow, opts);
     removeEventListener('keydown', onKey, opts);
     host.remove();
+    chrome.runtime.onMessage.removeListener(onPanel);
     delete (window as unknown as { __darnlyPicker?: unknown }).__darnlyPicker;
   }
   return stop;
