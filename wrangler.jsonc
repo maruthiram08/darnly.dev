@@ -1,0 +1,6 @@
+{
+  "name": "darnly-dev",
+  "compatibility_date": "2026-10-31",
+  "assets": { "directory": "./site" },
+  "observability": { "enabled": true }
+}
