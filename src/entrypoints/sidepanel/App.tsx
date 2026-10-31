@@ -212,21 +212,21 @@ export function App() {
     }
   };
 
-  // Claude's desktop app keeps only the text when the clipboard holds both, so copy in two steps:
-  // the picture first (the note is written on it), then the full details.
-  const [copyStep, setCopyStep] = useState<'picture' | 'details' | 'done'>('picture');
-  useEffect(() => setCopyStep('picture'), [lastMarkdown]);
-  const copyBug = async (markdown: string, files: File[]) => {
+  // Claude's desktop app keeps only the text when the clipboard holds both, so picture and details are copied separately.
+  // Both buttons stay, so either can be copied again.
+  const [copied, setCopied] = useState<{ picture?: boolean; details?: boolean }>({});
+  useEffect(() => setCopied({}), [lastMarkdown]);
+  const copyPicture = async (files: File[]) => {
     const png = files.find((f) => f.type === 'image/png');
-    if (png && copyStep === 'picture') {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-      setCopyStep('details');
-      setMessage('Picture copied. Paste it into your agent (Cmd+V), then click "Copy details".');
-      return;
-    }
+    if (!png) return;
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    setCopied((c) => ({ ...c, picture: true }));
+    setMessage('Picture copied. Paste it into your agent (Cmd+V), then copy the details.');
+  };
+  const copyDetails = async (markdown: string) => {
     await navigator.clipboard.writeText(markdown);
-    setCopyStep('done');
-    setMessage('Details copied. Paste them into your agent too.');
+    setCopied((c) => ({ ...c, details: true }));
+    setMessage('Details copied. Paste them into your agent.');
   };
 
   const copyPrompt = async (markdown: string) => {
@@ -313,13 +313,16 @@ export function App() {
               <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
             </>
           ) : (
-            <p className="text-gray-600">Bug ready. Drag it into your agent's chat (Claude Code on the web, Codex, Cursor).</p>
+            <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
           )}
           <DragCard files={lastFiles} title={headingFrom(lastMarkdown.split('\n# ')[1] ?? '')} linked={!!lastFile} />
           <div className="flex gap-2">
-            <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
-            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyBug(lastMarkdown, lastFiles)}>{copyStep === 'details' ? 'Copy details' : copyStep === 'done' ? 'Copied ✓' : 'Copy picture'}</button>
+            {lastFiles.some((f) => f.type === 'image/png') && (
+              <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyPicture(lastFiles)}>1. Copy picture{copied.picture ? ' ✓' : ''}</button>
+            )}
+            <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyDetails(lastMarkdown)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
           </div>
+          <button className="w-full rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
         </section>
       )}
 
@@ -443,7 +446,7 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
       )}
       <div className="min-w-0">
         <p className="truncate font-medium">{title || 'Bug report'}</p>
-        <p className="text-xs text-gray-500">Copy the picture, paste it in your agent, then copy the details and paste. The note is written on the picture.</p>
+        <p className="text-xs text-gray-500">Your note is written on the picture.</p>
       </div>
     </div>
   );
