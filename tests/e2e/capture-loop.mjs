@@ -155,12 +155,16 @@ try {
     for await (const [name, h] of inbox.entries()) {
       const f = await h.getFile();
       const w = await (await done.getFileHandle(name, { create: true })).createWritable();
-      await w.write(f);
+      // Like the skill asks: one **Fixed:** line under **Expected**.
+      if (name.endsWith('.md')) await w.write((await f.text()).replace(/^(\*\*Expected:\*\*.*)$/m, '$1\n**Fixed:** made Pay now clickable in src/components/PayButton.tsx'));
+      else await w.write(f);
       await w.close();
       await inbox.removeEntry(name);
     }
   });
   await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
+  await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 3000 }).catch(() => fail('fixed nudge missing'));
+  await panel.getByText('made Pay now clickable in src/components/PayButton.tsx').waitFor({ timeout: 3000 }).catch(() => fail('agent fix note missing'));
   // Sprint 4: picking a big container still records the card under the cursor.
   const framesUrl = url.replace('/checkout', '/frames');
   await page.goto(framesUrl);
@@ -187,6 +191,16 @@ try {
   });
   if (!md2?.includes('## Exactly under the cursor')) fail('cursor element missing for a big box');
   if (!md2?.includes('article[data-testid="card-2"]')) fail('card under the cursor not identified');
+  // Esc cancels the picker: the overlay goes away and nothing is captured.
+  await sw.evaluate(async (u) => {
+    const [tab] = await chrome.tabs.query({ url: u + '*' });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/picker.js'] });
+  }, framesUrl);
+  await page.waitForTimeout(300);
+  if (!(await page.evaluate(() => !!document.querySelector('darnly-picker')))) fail('picker did not start');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  if (await page.evaluate(() => !!document.querySelector('darnly-picker'))) fail('Esc did not cancel the picker');
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {

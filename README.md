@@ -12,7 +12,7 @@ Captures land as plain files in `.darnly/inbox/` inside your project, so Claude 
 
 ## Use
 
-1. On any page, press the shortcut and click the broken part (↑ ↓ for a bigger or smaller box, Esc for the whole page).
+1. On any page, press the shortcut and click the broken part (↑ ↓ for a bigger or smaller box, W for the whole page, Esc to cancel).
 2. Type what you expected and press Enter.
 3. Project on this computer: click **Set up this project** once, then tell your agent "fix my bugs".
    Cloud project: click **1. Copy picture**, paste into your agent, then **2. Copy details** and paste.

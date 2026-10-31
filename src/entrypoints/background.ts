@@ -83,6 +83,8 @@ export default defineBackground(() => {
   chrome.commands.onCommand.addListener((command, tab) => {
     if (command !== 'start-capture' || !tab?.id || !tab.windowId) return;
     chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {}); // first, no await before it
+    // When the shortcut was pressed, so the panel can time each capture (shortcut to saved).
+    chrome.storage.session.set({ pressedAt: Date.now() }).catch(() => {});
     keepAlivePage().catch(() => {});
     startPicker(tab.id).then(
       () => chrome.runtime.sendMessage({ type: 'picking' }).catch(() => {}),
@@ -96,6 +98,7 @@ export default defineBackground(() => {
       return true;
     }
     if (msg.type === 'start-picker-from-panel') {
+      chrome.storage.session.set({ pressedAt: Date.now() }).catch(() => {});
       chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(async ([tab]) => {
         try {
           if (!tab?.id) throw new Error('No active tab');
