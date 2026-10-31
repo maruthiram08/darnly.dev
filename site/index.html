@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Darnly</title>
+<meta name="description" content="Spot a bug, press a key, click it. Darnly hands your AI coding agent everything it needs to fix it on the first try.">
+<meta property="og:title" content="Darnly">
+<meta property="og:description" content="Spot a bug, press a key, click it. Your AI coding agent gets everything it needs to fix it.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a blurred blue-to-pink "bug flash" hero, then a quiet white page that reads top to bottom: loop, report, privacy, install. */
+:root {
+  --sky: #0593C6;
+  --pink: #D83995;
+  --white: #FCFFFF;
+  --ink: #0B2230;
+  --ink-soft: #4A6472;
+  --line: #D7E9F0;
+  --wash: #EEF8FB;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 17px/1.6 var(--body); }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+.eyebrow { font: 500 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sky); }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 6px; }
+
+/* Hero */
+.hero { position: relative; overflow: hidden; background: var(--sky); color: var(--white); padding-block: 22px 96px; isolation: isolate; }
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); }
+.hero::before { width: 560px; height: 560px; right: -80px; top: 60px; background: radial-gradient(circle at 40% 40%, var(--pink), rgba(216, 57, 149, 0) 70%); animation: drift 14s ease-in-out infinite alternate; }
+.hero::after { width: 420px; height: 420px; right: 260px; top: 200px; background: radial-gradient(circle, #FF9A7A, rgba(255, 154, 122, 0) 70%); opacity: 0.7; animation: drift 18s ease-in-out infinite alternate-reverse; }
+.hero .stripes { position: absolute; inset: 0; z-index: -1; background: repeating-linear-gradient(90deg, rgba(252, 255, 255, 0.07) 0 1px, transparent 1px 22px); }
+@keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(-60px, 40px) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .hero::before, .hero::after { animation: none; } }
+nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--display); text-decoration: none; }
+.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.nav-links { display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(252, 255, 255, 0.14); backdrop-filter: blur(8px); }
+.nav-links a { text-decoration: none; font-size: 15px; padding: 6px 14px; border-radius: 999px; }
+.nav-links a:hover { background: rgba(252, 255, 255, 0.18); }
+.hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; margin-top: 72px; }
+.hero h1 { font-size: clamp(42px, 6.4vw, 78px); line-height: 0.98; font-weight: 800; }
+.hero h1 em { font-style: normal; color: var(--white); background: linear-gradient(transparent 62%, rgba(216, 57, 149, 0.85) 62%); padding: 0 4px; }
+.hero p.lede { font-size: 20px; max-width: 34ch; margin: 24px 0 32px; color: rgba(252, 255, 255, 0.9); }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px/1 var(--body); padding: 15px 22px; border-radius: 999px; text-decoration: none; border: 0; }
+.btn-primary { background: var(--white); color: var(--ink); }
+.btn-primary:hover { background: #fff; box-shadow: 0 6px 24px rgba(11, 34, 48, 0.25); }
+.btn-ghost { color: var(--white); border: 1px solid rgba(252, 255, 255, 0.5); }
+.btn-ghost:hover { background: rgba(252, 255, 255, 0.12); }
+.soon { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(252, 255, 255, 0.8); }
+.shot { border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(11, 34, 48, 0.35); border: 1px solid rgba(252, 255, 255, 0.4); transform: rotate(1.2deg); }
+.agents { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 40px; font-size: 15px; color: rgba(252, 255, 255, 0.85); }
+.agents strong { color: var(--white); font-weight: 600; }
+
+/* Sections */
+section.band { padding-block: 96px; }
+.band h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.05; font-weight: 700; margin-top: 12px; max-width: 20ch; }
+.band p.intro { color: var(--ink-soft); max-width: 60ch; margin: 16px 0 0; }
+
+.loop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+.step { padding: 28px; border-radius: 18px; background: var(--wash); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.step .n { font: 500 14px/1 var(--mono); color: var(--pink); }
+.step h3 { font-size: 24px; font-weight: 700; }
+.step p { margin: 0; color: var(--ink-soft); }
+kbd { font: 500 14px/1 var(--mono); padding: 4px 8px; border-radius: 6px; background: var(--white); border: 1px solid var(--line); border-bottom-width: 2px; color: var(--ink); }
+
+.report { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: start; }
+.report ul { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; }
+.report li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; }
+.report li::before { content: ""; width: 10px; height: 10px; margin-top: 8px; border-radius: 50%; border: 2.5px solid var(--pink); }
+.file { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+.file-head { display: flex; justify-content: space-between; gap: 12px; padding: 12px 18px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+.file pre { margin: 0; padding: 20px 18px; overflow-x: auto; font: 400 13.5px/1.7 var(--mono); }
+.file .k { color: #7FD3F2; } .file .p { color: #FF8FC8; } .file .c { color: #6F93A3; }
+
+.privacy { background: var(--ink); color: var(--white); border-radius: 28px; padding: 64px clamp(24px, 5vw, 64px); display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.privacy .eyebrow { color: #7FD3F2; }
+.privacy h2 { color: var(--white); }
+.privacy dl { margin: 0; display: grid; gap: 22px; }
+.privacy dt { font-weight: 600; }
+.privacy dd { margin: 4px 0 0; color: #A9C6D2; }
+
+.name { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; padding: 36px; border: 1px solid var(--line); border-radius: 20px; }
+.name .word { font: 800 clamp(40px, 6vw, 64px)/1 var(--display); color: var(--pink); }
+.name p { margin: 0; color: var(--ink-soft); max-width: 58ch; }
+.name p strong { color: var(--ink); }
+
+.final { text-align: left; padding-block: 96px 120px; }
+.final .box { position: relative; overflow: hidden; border-radius: 28px; background: var(--sky); color: var(--white); padding: 56px clamp(24px, 5vw, 64px); isolation: isolate; }
+.final .box::after { content: ""; position: absolute; z-index: -1; width: 420px; height: 420px; right: -100px; bottom: -160px; border-radius: 50%; background: radial-gradient(circle, var(--pink), rgba(216, 57, 149, 0) 70%); filter: blur(50px); }
+.final h2 { color: var(--white); max-width: 18ch; font-size: clamp(30px, 4vw, 46px); line-height: 1.05; font-weight: 700; margin-top: 12px; }
+.final p { color: rgba(252, 255, 255, 0.9); max-width: 52ch; }
+.mail { font: 500 16px/1 var(--mono); user-select: all; background: rgba(252, 255, 255, 0.16); padding: 10px 14px; border-radius: 10px; }
+
+footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+@media (max-width: 860px) {
+  .hero-grid, .report, .privacy { grid-template-columns: 1fr; }
+  .loop { grid-template-columns: 1fr; }
+  .name { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .hero-grid { margin-top: 48px; }
+  .shot { transform: none; }
+  section.band { padding-block: 64px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="stripes" aria-hidden="true"></div>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top"><img src="icon.png" alt="">Darnly</a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#report">The report</a>
+        <a href="#privacy">Privacy</a>
+      </div>
+    </nav>
+    <div class="hero-grid" id="top">
+      <div>
+        <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
+        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it on the first try.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#install">Add to Chrome</a>
+          <a class="btn btn-ghost" href="https://github.com/maruthiram08/darnly.dev">View on GitHub</a>
+        </div>
+        <div class="agents" aria-label="Works with">
+          <span>Works with</span><strong>Claude Code</strong><strong>Codex</strong><strong>Cursor</strong>
+        </div>
+      </div>
+      <div class="shot">
+        <img src="darnly-panel.png" width="1280" height="800" alt="Darnly's side panel next to a web app: the bug is saved, and a note says the agent fixed it in PlanBar.tsx.">
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="band" id="how">
+    <div class="wrap">
+      <span class="eyebrow">How it works</span>
+      <h2>No screenshots to drag. No explaining twice.</h2>
+      <p class="intro">Today a bug costs you a screenshot, an app switch, a hunt for the right file and a paragraph of description. With Darnly it is three moves, and you never leave the page.</p>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Press the key</h3>
+          <p><kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>B</kbd> on any page, on localhost or your live site.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Click the broken part</h3>
+          <p>A red box follows your cursor. Arrow keys make it bigger or smaller. Esc cancels.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>Say what you expected</h3>
+          <p>One sentence, then Enter. Tell your agent "fix my bugs", or paste it into a cloud agent.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="report" style="padding-top: 0">
+    <div class="wrap report">
+      <div>
+        <span class="eyebrow">What your agent gets</span>
+        <h2>The context a screenshot can't carry.</h2>
+        <ul>
+          <li><span>A screenshot with the element boxed in red and your note written on it.</span></li>
+          <li><span>The exact file and component that drew it, on your local project.</span></li>
+          <li><span>The element's selector, text, HTML and styles.</span></li>
+          <li><span>Console errors and failed requests from the last 60 seconds.</span></li>
+          <li><span>Clear rules: fix it, say what changed, ask if the note is vague.</span></li>
+        </ul>
+      </div>
+      <div class="file" role="figure" aria-label="Example bug report">
+        <div class="file-head"><span>.darnly/inbox/2026-11-01-0940-save-plan.md</span><span>markdown</span></div>
+<pre><span class="k"># Bug on /plan: PlanBar</span>
+
+<span class="p">**Expected:**</span> Save plan should be clickable
+and save my week
+
+<span class="k">## Element (the red box)</span>
+- selector: `button[data-testid="save-plan"]`
+- code: `src/components/PlanBar.tsx:18` <span class="c">(start here)</span>
+- drawn by: `PlanPage` &gt; `PlanBar`
+- styles: opacity: 0.45; pointer-events: none
+
+<span class="k">## Errors (last 60s)</span>
+- console.error: Save failed: plan is undefined
+
+<span class="k">## Failed requests (last 60s)</span>
+- POST /api/plan?token=[hidden] 500 (41 ms)</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="privacy" style="padding-top: 0">
+    <div class="wrap">
+      <div class="privacy">
+        <div>
+          <span class="eyebrow">Private by default</span>
+          <h2>Your bugs never leave your computer.</h2>
+        </div>
+        <dl>
+          <div><dt>No account, no server</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us.</dd></div>
+          <div><dt>Secrets hidden automatically</dt><dd>Passwords, card numbers, tokens, API keys and cookies become [hidden] before anything is saved.</dd></div>
+          <div><dt>You choose the sites</dt><dd>Errors are recorded on localhost. Live sites only when you switch them on, one at a time.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-label="About the name">
+    <div class="name">
+      <span class="word">darn·ly</span>
+      <p><strong>"Darn it"</strong> is what you say when you spot the bug. <strong>Darning</strong> is how you mend the hole. Darnly sits between the two.</p>
+    </div>
+  </section>
+
+  <section class="final" id="install">
+    <div class="wrap">
+      <div class="box">
+        <span class="eyebrow" style="color: var(--white)">Coming to the Chrome Web Store</span>
+        <h2>Be one of the first to try it.</h2>
+        <p>Darnly is in review for Chrome, Edge, Brave and Arc. Write to us and we'll send you the install link the day it's live.</p>
+        <div class="cta">
+          <span class="mail">hello@darnly.dev</span>
+          <a class="btn btn-ghost" href="https://x.com/darnlyhq">Follow @darnlyhq</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Darnly. Made for people who build with AI coding agents.</span>
+    <span><a href="https://github.com/maruthiram08/darnly.dev/blob/main/PRIVACY.md">Privacy policy</a> · <a href="https://github.com/maruthiram08/darnly.dev">GitHub</a></span>
+  </div>
+</footer>
+</body>
+</html>
