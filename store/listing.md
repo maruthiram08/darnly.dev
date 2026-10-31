@@ -42,7 +42,9 @@ Capture a bug on the current web page (screenshot, element details, recent error
 - webRequest: notice failed requests on localhost and sites the user switched on.
 - Host permissions (localhost) and optional host permissions: record console errors on localhost, and on other sites only after the user clicks "Record errors on this site" for that site.
 
-**Data use disclosures:** Darnly collects website content (screenshots, page details) only to create the bug report the user asked for, keeps it on the user's device, does not sell or transfer it, and does not use it for anything else.
+**Remote code:** No, I am not using remote code.
+
+**Data use disclosures:** tick Website content (screenshot, element text and HTML), User activity (console errors and failed requests on switched-on sites, the picking click) and Web history (address and title of the captured page). Leave the others unticked. Tick all three certifications. Darnly uses this only to create the bug report the user asked for, keeps it on the user's device, and does not sell or transfer it.
 
 **Privacy policy URL:** https://github.com/maruthiram08/darnly.dev/blob/main/PRIVACY.md
 
