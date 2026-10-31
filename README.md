@@ -19,6 +19,7 @@ The extension name, the `.<slug>/` folder, the AGENTS.md markers and the skill p
 ## Folders
 
 - `src/config/product.ts`: product name
-- `src/entrypoints/`: background (hotkey), side panel (note box); picker and recorder come next
+- `src/entrypoints/`: background (hotkey, screenshot), picker (content script), side panel (note box, saving), keepalive (holds folder access)
+- `tests/e2e/`: `npm run e2e` captures a planted bug on a sample page and checks the files
 - `src/lib/`: pure helpers with unit tests
 - `spike/folder-test/`: day-one folder-write test (no build step; load the folder unpacked)
