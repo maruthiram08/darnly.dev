@@ -183,7 +183,7 @@ export function App() {
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
-      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect, capture.element?.point);
+      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point);
     }
     try {
       await writeToProject(folder, 'inbox', files);
@@ -354,7 +354,7 @@ function MarkedPreview({ capture }: { capture: PendingCapture }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
     let revoked = '';
-    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect, capture.element?.point).then((b) => {
+    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point).then((b) => {
       revoked = URL.createObjectURL(b);
       setUrl(revoked);
     });
