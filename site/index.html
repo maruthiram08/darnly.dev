@@ -108,13 +108,50 @@ kbd { font: 500 14px/1 var(--mono); padding: 4px 8px; border-radius: 6px; backgr
 footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 
+/* Hero scene: a crisp mock of the capture moment, drawn in HTML so it stays sharp */
+.scene { position: relative; padding: 24px 0 80px; min-width: 0; }
+.browser { background: var(--white); border-radius: 16px; box-shadow: 0 30px 80px rgba(11, 34, 48, 0.35); overflow: hidden; color: var(--ink); transform: rotate(-1.5deg); }
+.bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #E9F4F8; }
+.bar i { width: 10px; height: 10px; border-radius: 50%; background: #C5DCE5; }
+.url { margin-left: 10px; font: 500 12px/1 var(--mono); color: var(--ink-soft); background: var(--white); padding: 6px 12px; border-radius: 999px; }
+.app { position: relative; padding: 18px 22px 70px; background: #F6FAFC; }
+.app-top { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.app-top .dot { width: 18px; height: 18px; border-radius: 6px; background: #7C83F0; }
+.app-h { font: 700 22px/1.2 var(--display); margin: 16px 0 12px; }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.card { background: var(--white); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(11, 34, 48, 0.06); font-size: 13px; min-width: 0; }
+.card span { align-self: flex-start; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #E9EAFE; color: #4148B8; }
+.row { position: relative; display: flex; gap: 10px; align-items: center; margin-top: 30px; }
+.fakebtn { display: inline-block; font-size: 14px; padding: 9px 16px; border-radius: 9px; background: #7C83F0; color: #fff; opacity: 0.5; }
+.fakebtn.ghost { background: var(--white); color: var(--ink); opacity: 1; border: 1px solid var(--line); }
+.target { position: relative; padding: 4px; border: 2.5px solid #E11D48; border-radius: 4px; background: rgba(225, 29, 72, 0.08); }
+.tag { position: absolute; left: -2px; top: -22px; font: 600 11px/1.6 var(--body); color: #fff; background: #E11D48; padding: 0 6px; border-radius: 3px; white-space: nowrap; }
+.cursor { position: absolute; width: 24px; height: 24px; left: 64px; top: 22px; }
+.hint { position: absolute; left: 22px; bottom: 16px; font-size: 12px; color: #fff; background: var(--ink); padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+.note { position: absolute; right: -14px; bottom: 0; width: min(300px, 78%); background: var(--white); color: var(--ink); border-radius: 16px; padding: 16px 18px; box-shadow: 0 24px 60px rgba(11, 34, 48, 0.35); transform: rotate(1.5deg); display: grid; gap: 6px; }
+.note-label { font: 500 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sky); }
+.note p { margin: 0; font-size: 15px; line-height: 1.4; }
+.caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -2px; background: var(--pink); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.enter { justify-self: end; font: 600 12px/1 var(--body); color: #fff; background: var(--pink); padding: 7px 12px; border-radius: 8px; }
+.toast { position: absolute; left: -18px; top: 0; display: flex; gap: 10px; align-items: center; background: var(--white); color: var(--ink); border-radius: 14px; padding: 10px 14px; box-shadow: 0 16px 40px rgba(11, 34, 48, 0.3); font-size: 13px; }
+.toast div { display: grid; }
+.toast span:not(.tick) { color: var(--ink-soft); font: 500 11.5px/1.4 var(--mono); }
+.tick { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: #fff; font-weight: 700; flex: none; }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+@media (max-width: 860px) {
+  .browser { transform: none; }
+  .note { right: 0; transform: none; }
+  .toast { left: 0; }
+  .card span { display: none; }
+}
+
 @media (max-width: 860px) {
   .hero-grid, .report, .privacy { grid-template-columns: 1fr; }
   .loop { grid-template-columns: 1fr; }
   .name { grid-template-columns: 1fr; }
   .nav-links { display: none; }
   .hero-grid { margin-top: 48px; }
-  .shot { transform: none; }
   section.band { padding-block: 64px; }
 }
 </style>
@@ -144,8 +181,31 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
           <span>Works with</span><strong>Claude Code</strong><strong>Codex</strong><strong>Cursor</strong>
         </div>
       </div>
-      <div class="shot">
-        <img src="darnly-panel.png" width="1280" height="800" alt="Darnly's side panel next to a web app: the bug is saved, and a note says the agent fixed it in PlanBar.tsx.">
+      <div class="scene" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">localhost:3000/plan</span></div>
+          <div class="app">
+            <div class="app-top"><b class="dot"></b><b>Acme Planner</b></div>
+            <div class="app-h">This week</div>
+            <div class="cards">
+              <div class="card"><b>Write launch post</b><span>Content</span></div>
+              <div class="card"><b>Record demo</b><span>Video</span></div>
+              <div class="card"><b>Invite testers</b><span>Community</span></div>
+            </div>
+            <div class="row">
+              <div class="target"><span class="tag">button · 103×39</span><span class="fakebtn">Save plan</span></div>
+              <span class="fakebtn ghost">Share</span>
+              <svg class="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l15 10-7 1.5L8.5 21z" fill="#0B2230" stroke="#FCFFFF" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="hint">Click the broken part · Esc to cancel</div>
+          </div>
+        </div>
+        <div class="note">
+          <span class="note-label">What did you expect?</span>
+          <p>Save plan should be clickable and save my week<span class="caret"></span></p>
+          <span class="enter">Enter ↵</span>
+        </div>
+        <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
       </div>
     </div>
   </div>
