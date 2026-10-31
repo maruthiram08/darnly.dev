@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Checkout | Test shop</title>
+<style>
+  body { font: 16px system-ui, sans-serif; margin: 40px; }
+  .pay { display: flex; padding: 12px 20px; background: #2563eb; color: #fff; border: 0; border-radius: 8px; opacity: .5; pointer-events: none; }
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <!-- Planted bug: the button looks disabled and ignores clicks -->
+  <button class="pay" data-testid="pay-now">Pay now</button>
+  <label>Password <input type="password" name="password" value="hunter2"></label>
+</body>
+</html>
