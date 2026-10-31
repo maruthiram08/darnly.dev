@@ -35,6 +35,9 @@ export function App() {
   const [access, setAccess] = useState<string>('none');
   const [message, setMessage] = useState('');
   const [lastMarkdown, setLastMarkdown] = useState('');
+  // The same report worded for pasting into a chat (no file paths a cloud agent can't open).
+  const [lastPaste, setLastPaste] = useState('');
+  const [lastTitle, setLastTitle] = useState('');
   const [lastFile, setLastFile] = useState('');
   // The saved bug as real files, so it can be dragged straight into an agent's chat (cloud projects have no local folder).
   const [lastFiles, setLastFiles] = useState<File[]>([]);
@@ -165,7 +168,7 @@ export function App() {
   const build = (c: PendingCapture) => {
     const when = new Date();
     const id = captureId(when, headingFrom(note, c.element));
-    const markdown = captureMarkdown({
+    const input = {
       id,
       note,
       url: c.page.url,
@@ -176,13 +179,13 @@ export function App() {
       element: c.element,
       logs: c.logs,
       recorder: c.recorder,
-    });
-    return { id, markdown };
+    };
+    return { id, markdown: captureMarkdown(input), paste: captureMarkdown({ ...input, forPaste: true }) };
   };
 
   const save = async () => {
     if (!capture) return;
-    const { id, markdown } = build(capture);
+    const { id, markdown, paste } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
@@ -199,6 +202,8 @@ export function App() {
       .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
     const done = (file: string) => {
       setLastMarkdown(markdown);
+      setLastPaste(paste);
+      setLastTitle(headingFrom(note, capture.element));
       setLastFiles(asFiles);
       setLastFile(file);
       setStage('saved');
@@ -315,7 +320,7 @@ export function App() {
           />
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white" onClick={save}>Save (Enter)</button>
-            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(build(capture).markdown)}>Copy as prompt</button>
+            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(build(capture).paste)}>Copy as prompt</button>
             <button className="rounded-lg px-3 text-gray-500" onClick={() => { setStage('idle'); setCapture(null); }}>Cancel</button>
           </div>
           <p className="text-xs text-gray-500">Shift+Enter for a new line.</p>
@@ -332,12 +337,12 @@ export function App() {
           ) : (
             <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
           )}
-          <DragCard files={lastFiles} title={headingFrom(lastMarkdown.split('\n# ')[1] ?? '')} linked={!!lastFile} />
+          <DragCard files={lastFiles} title={lastTitle} linked={!!lastFile} />
           <div className="flex gap-2">
             {lastFiles.some((f) => f.type === 'image/png') && (
               <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyPicture(lastFiles)}>1. Copy picture{copied.picture ? ' ✓' : ''}</button>
             )}
-            <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyDetails(lastMarkdown)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
+            <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyDetails(lastPaste)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
           </div>
           <button className="w-full rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
         </section>

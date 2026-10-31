@@ -14,6 +14,12 @@
   <!-- Planted bug 2: a missing image (only the browser sees this one) -->
   <img src="/missing-logo.png" width="1" height="1" alt="">
   <script>
+    // Planted React dev info, shaped like React 18's internal fiber, so the e2e can check "code:" and "drawn by:".
+    document.querySelector('[data-testid="pay-now"]')['__reactFiber$test'] = {
+      type: 'button',
+      return: { type: { name: 'PayButton' }, _debugSource: { fileName: '/Users/demo/shop/src/components/PayButton.tsx', lineNumber: 12 },
+        return: { type: { name: 'CheckoutPage' }, return: null } },
+    };
     // Planted bug 3: a console error that contains a secret
     // The fake key is split so GitHub's secret scanner doesn't flag it.
     console.error('Payment init failed for key ' + ['sk', 'live', '51HqLyjWDarjtT1zdp7dcXYZ'].join('_'));

@@ -119,25 +119,55 @@ function record() {
     const d = e.data as { darnly?: string; id?: string } | null;
     if (e.source !== window || d?.darnly !== 'get-logs' || !d.id) return;
     const picked = document.querySelector('[data-darnly-picked]');
-    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: picked ? componentName(picked) : undefined }, '*');
+    const info = picked ? componentInfo(picked) : undefined;
+    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source }, '*');
   });
 }
 
-/** In React dev builds, the nearest component name, read from React's internal fiber. */
-function componentName(el: Element): string | undefined {
+type Fiber = { type?: unknown; return?: Fiber; _debugSource?: { fileName?: string; lineNumber?: number }; _debugStack?: { stack?: string } };
+
+function fiberName(f: Fiber): string | undefined {
+  const t = f.type as { displayName?: string; name?: string } | string | undefined;
+  const name = t && typeof t !== 'string' ? t.displayName || t.name : undefined;
+  return name && /^[A-Z]/.test(name) && !/^(Fragment|Suspense|StrictMode|Provider|Consumer|Context|ErrorBoundary|Router|Layout(Router)?|InnerLayoutRouter|OuterLayoutRouter|RenderFromTemplateContext|ScrollAndFocusHandler|RedirectBoundary|NotFoundBoundary|LoadingBoundary|HTTPAccessFallbackBoundary)/.test(name) ? name : undefined;
+}
+
+/** A path inside the user's own code, from React's dev info (React 18: _debugSource, React 19: _debugStack). */
+function sourceOf(f: Fiber): string | undefined {
+  const ds = f._debugSource;
+  if (ds?.fileName) return `${ds.fileName.replace(/^.*?\/(src|app|components|pages)\//, '$1/')}${ds.lineNumber ? `:${ds.lineNumber}` : ''}`;
+  for (const line of (f._debugStack?.stack ?? '').split('\n').slice(1)) {
+    if (/node_modules|react-dom|react-server|next\/dist|chunk-/.test(line)) continue;
+    const m = line.match(/((?:src|app|components|pages|lib)\/[\w./@\[\]()-]+\.(?:tsx|jsx|ts|js))(?:\?[^:)]*)?(?::(\d+))?/);
+    if (m) return m[2] ? `${m[1]}:${m[2]}` : m[1];
+  }
+  return undefined;
+}
+
+/**
+ * In React dev builds: the components that drew the element (outermost first, at most 4)
+ * and the file of the nearest one. Production builds strip all of this, so it is simply absent there.
+ */
+function componentInfo(el: Element): { chain: string[]; source?: string } | undefined {
+  // Some dev tools (react-dev-inspector, LocatorJS-style plugins) write the file path on the element itself.
+  const attr = el.closest('[data-inspector-relative-path],[data-source-file]');
+  const attrSource = attr
+    ? `${attr.getAttribute('data-inspector-relative-path') ?? attr.getAttribute('data-source-file')}${attr.getAttribute('data-inspector-line') ? `:${attr.getAttribute('data-inspector-line')}` : ''}`
+    : undefined;
   let node: Element | null = el;
   for (let i = 0; node && i < 10; i++, node = node.parentElement) {
     const key = Object.keys(node).find((k) => k.startsWith('__reactFiber$'));
     if (!key) continue;
-    let fiber = (node as unknown as Record<string, { type?: unknown; return?: unknown }>)[key] as
-      | { type?: { displayName?: string; name?: string } | string; return?: unknown }
-      | undefined;
-    while (fiber) {
-      const t = fiber.type;
-      const name = typeof t === 'object' || typeof t === 'function' ? (t as { displayName?: string; name?: string })?.displayName || (t as { name?: string })?.name : undefined;
-      if (name && /^[A-Z]/.test(name)) return name;
-      fiber = fiber.return as typeof fiber;
+    let fiber = (node as unknown as Record<string, Fiber>)[key] as Fiber | undefined;
+    const chain: string[] = [];
+    let source: string | undefined;
+    for (let guard = 0; fiber && guard < 200 && chain.length < 4; guard++, fiber = fiber.return) {
+      const name = fiberName(fiber);
+      if (!name) continue;
+      if (chain[0] !== name) chain.unshift(name);
+      source ??= sourceOf(fiber);
     }
+    return chain.length ? { chain, source: attrSource ?? source } : attrSource ? { chain: [], source: attrSource } : undefined;
   }
-  return undefined;
+  return attrSource ? { chain: [], source: attrSource } : undefined;
 }

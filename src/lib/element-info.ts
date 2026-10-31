@@ -8,10 +8,16 @@ export interface ElementInfo {
   /** Box on screen in CSS pixels, relative to the viewport. */
   rect: { x: number; y: number; width: number; height: number };
   component?: string;
+  /** React components that drew it, outermost first (dev builds only). */
+  components?: string[];
+  /** File (and line) of the nearest component, from React's dev info. */
+  source?: string;
+  /** Short visible labels inside it ("Voice Tone"), good strings to search the code for. */
+  labels?: string[];
   /** Where the user clicked, in CSS pixels. */
   point?: { x: number; y: number };
   /** When the picked box is a big container, the small element exactly under the cursor (often what was meant). */
-  atCursor?: { selector: string; tag: string; text: string; html: string; rect: ElementInfo['rect'] };
+  atCursor?: { selector: string; tag: string; text: string; html: string; rect: ElementInfo['rect']; labels?: string[] };
 }
 
 /** The ~20 computed styles that explain most visual bugs. */
@@ -149,9 +155,27 @@ export function keyStyles(el: Element): Record<string, string> {
   return out;
 }
 
+/** Up to 4 short text pieces (2 to 40 characters) inside the element, in reading order. */
+export function shortLabels(el: Element, max = 4): string[] {
+  const out: string[] = [];
+  const walk = (n: Node) => {
+    if (out.length >= max) return;
+    if (n.nodeType === 3) {
+      const t = (n.textContent ?? '').replace(/\s+/g, ' ').trim();
+      if (t.length >= 2 && t.length <= 40 && /[a-zA-Z]/.test(t) && !out.includes(t)) out.push(t);
+      return;
+    }
+    if (n.nodeType === 1 && ['SCRIPT', 'STYLE', 'NOSCRIPT', 'svg'].includes((n as Element).tagName)) return;
+    n.childNodes.forEach(walk);
+  };
+  walk(el);
+  return out;
+}
+
 export function describeElement(el: Element): ElementInfo {
   const r = el.getBoundingClientRect();
   return {
+    labels: shortLabels(el),
     selector: selectorFor(el),
     tag: el.tagName.toLowerCase(),
     text: visibleText(el),
@@ -224,6 +248,7 @@ export function withCursor(info: ElementInfo, picked: Element, point: { x: numbe
       tag: under.tagName.toLowerCase(),
       text: visibleText(under),
       html: trimmedHtml(under, 1).slice(0, 800),
+      labels: shortLabels(under, 2),
       rect: { x: r.x, y: r.y, width: r.width, height: r.height },
     };
   }
