@@ -19,14 +19,30 @@ export interface LogEntry {
   fromHistory?: boolean;
 }
 
+/** Page-supplied entries can hold anything, so keep only short strings and plain numbers. */
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+
 export function redactLog(e: LogEntry): LogEntry {
+  const message = str(e.message, 1000);
+  const stack = str(e.stack, 2000);
+  const url = str(e.url, 1000);
+  const snippet = str(e.snippet, 300);
   return {
-    ...e,
-    message: e.message && redactText(e.message),
-    stack: e.stack && redactText(e.stack),
-    url: e.url && redactUrl(e.url),
-    snippet: e.snippet && redactText(e.snippet),
-  };
+    t: num(e.t) ?? Date.now(),
+    kind: (['console', 'error', 'rejection', 'request'] as const).includes(e.kind) ? e.kind : 'error',
+    ...((e.level === 'error' || e.level === 'warn') && { level: e.level }),
+    ...(str(e.method, 10) && { method: str(e.method, 10) }),
+    ...(num(e.status) !== undefined && { status: num(e.status) }),
+    ...(num(e.ms) !== undefined && { ms: num(e.ms) }),
+    ...(str(e.resourceType, 30) && { resourceType: str(e.resourceType, 30) }),
+    ...((e.source === 'page' || e.source === 'browser') && { source: e.source }),
+    ...(e.fromHistory === true && { fromHistory: true }),
+    ...(message && { message: redactText(message) }),
+    ...(stack && { stack: redactText(stack) }),
+    ...(url && { url: redactUrl(url) }),
+    ...(snippet && { snippet: redactText(snippet) }),
+  } as LogEntry;
 }
 
 /** Keeps the last 60 seconds, drops duplicates of the same failed request seen by both page and browser. */
