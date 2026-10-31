@@ -41,6 +41,8 @@ export function App() {
   const [plan, setPlan] = useState<PlannedChange[] | null>(null);
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
+  // Chrome leaves the shortcut empty when another extension already uses the same keys.
+  const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
   const refreshSite = useCallback(async () => {
@@ -89,6 +91,10 @@ export function App() {
     chrome.runtime.sendMessage({ type: 'keepalive' }).catch(() => {});
     refreshFolder();
     refreshSite();
+    const checkShortcut = () =>
+      chrome.commands.getAll().then((all) => setShortcut(all.find((c) => c.name === 'start-capture')?.shortcut || null));
+    checkShortcut();
+    addEventListener('focus', checkShortcut);
     const poll = setInterval(() => loadFolder().then(refreshProject), 5000);
     const onTab = () => refreshSite();
     chrome.tabs.onActivated.addListener(onTab);
@@ -119,6 +125,7 @@ export function App() {
     chrome.runtime.onMessage.addListener(listener);
     return () => {
       clearInterval(poll);
+      removeEventListener('focus', checkShortcut);
       chrome.runtime.onMessage.removeListener(listener);
       chrome.tabs.onActivated.removeListener(onTab);
       chrome.tabs.onUpdated.removeListener(onTab);
@@ -140,7 +147,7 @@ export function App() {
   const startFromPanel = async () => {
     const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
     if (r?.ok) setStage('picking');
-    else setMessage('Press Option+Shift+B on the page instead. This button only works on localhost.');
+    else setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page instead. This button only works on localhost.`);
   };
 
   const build = (c: PendingCapture) => {
@@ -213,7 +220,16 @@ export function App() {
 
       {stage === 'idle' && (
         <section className="space-y-2">
-          <p className="text-gray-600">Press <Kbd>Option</Kbd>+<Kbd>Shift</Kbd>+<Kbd>B</Kbd> on any page, then click the broken part.</p>
+          {shortcut ? (
+            <p className="text-gray-600">Press <Kbd>{shortcut}</Kbd> on any page, then click the broken part.</p>
+          ) : (
+            <div className="rounded-lg bg-amber-50 p-3 text-amber-900">
+              <p>The keyboard shortcut isn't set, usually because another extension uses the same keys.</p>
+              <button className="mt-2 w-full rounded-lg border border-amber-300 bg-white py-1.5" onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}>
+                Set a shortcut
+              </button>
+            </div>
+          )}
           <button className="w-full rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture a bug</button>
         </section>
       )}
