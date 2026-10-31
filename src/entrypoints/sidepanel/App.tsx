@@ -46,6 +46,15 @@ export function App() {
   // Chrome leaves the shortcut empty when another extension already uses the same keys.
   const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  // First run: is the code on this computer (link a folder) or in the cloud (copy bugs into the agent)?
+  const [cloud, setCloud] = useState<boolean | null>(null);
+  useEffect(() => {
+    chrome.storage.local.get('cloudProject').then((r) => setCloud(r.cloudProject === true ? true : false), () => setCloud(false));
+  }, []);
+  const chooseCloud = (v: boolean) => {
+    setCloud(v);
+    chrome.storage.local.set({ cloudProject: v }).catch(() => {});
+  };
 
   const refreshSite = useCallback(async () => {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -139,6 +148,7 @@ export function App() {
       const handle = await (window as unknown as { showDirectoryPicker(o: object): Promise<FileSystemDirectoryHandle> })
         .showDirectoryPicker({ id: 'project', mode: 'readwrite' });
       await saveFolder(handle);
+      chooseCloud(false);
       await refreshFolder();
       setMessage('');
     } catch (e) {
@@ -238,7 +248,14 @@ export function App() {
     <main className="space-y-4 p-4 text-sm text-gray-900">
       <header>
         <h1 className="text-base font-semibold">{PRODUCT.NAME}</h1>
-        <FolderLine folder={folder} access={access} onLink={linkFolder} />
+        {!folder && cloud === false && <Welcome onLink={linkFolder} onCloud={() => chooseCloud(true)} />}
+        {!folder && cloud && (
+          <p className="mt-1 text-xs text-gray-500">
+            Cloud project: you copy each bug into your agent ·{' '}
+            <button className="underline" onClick={linkFolder}>link a folder instead</button>
+          </p>
+        )}
+        {folder && <FolderLine folder={folder} access={access} onLink={linkFolder} />}
       </header>
 
       {site.recordable && !site.builtIn && !site.on && (
@@ -370,6 +387,18 @@ export function App() {
         </section>
       )}
     </main>
+  );
+}
+
+function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void }) {
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
+      <p className="font-medium">Where does your project's code live?</p>
+      <button className="w-full rounded-lg bg-gray-900 py-2 text-white" onClick={onLink}>On this computer: link the folder</button>
+      <p className="text-xs text-gray-500">Bugs are saved into the project, and your agent finds them there.</p>
+      <button className="w-full rounded-lg border border-gray-300 py-2" onClick={onCloud}>In the cloud (Claude, Codex or Cursor online)</button>
+      <p className="text-xs text-gray-500">Each bug stays here, and you copy it into your agent's chat.</p>
+    </div>
   );
 }
 
