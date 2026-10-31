@@ -73,3 +73,22 @@ describe('deepestElementAt', () => {
     expect(deepestElementAt(doc, 20, 20)).toBe(button);
   });
 });
+
+describe('failedRequestsFromHistory', () => {
+  it('keeps only 4xx/5xx entries from the browser request history', async () => {
+    const { failedRequestsFromHistory } = await import('./element-info');
+    const win = {
+      performance: {
+        timeOrigin: 1000,
+        getEntriesByType: () => [
+          { name: 'https://x.com/ok.js', responseStatus: 200, responseEnd: 5, duration: 5, initiatorType: 'script' },
+          { name: 'https://x.com/api/frames', responseStatus: 404, responseEnd: 10, duration: 8, initiatorType: 'fetch' },
+          { name: 'https://cdn.other.com/a.png', responseStatus: 0, responseEnd: 12, duration: 3, initiatorType: 'img' },
+        ],
+      },
+    } as unknown as Window;
+    const out = failedRequestsFromHistory(win);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ url: 'https://x.com/api/frames', status: 404, fromHistory: true, t: 1010 });
+  });
+});

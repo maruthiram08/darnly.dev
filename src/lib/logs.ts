@@ -15,6 +15,8 @@ export interface LogEntry {
   /** 'page' = seen by the page recorder, 'browser' = only the browser saw it (blocked image, CORS). */
   source?: 'page' | 'browser';
   resourceType?: string;
+  /** Read from the browser's request history (any site, no recorder); the HTTP method isn't known. */
+  fromHistory?: boolean;
 }
 
 export function redactLog(e: LogEntry): LogEntry {
@@ -30,10 +32,12 @@ export function redactLog(e: LogEntry): LogEntry {
 /** Keeps the last 60 seconds, drops duplicates of the same failed request seen by both page and browser. */
 export function mergeLogs(page: LogEntry[], browser: LogEntry[], now = Date.now()): LogEntry[] {
   const cutoff = now - 60_000;
-  const seen = new Set(page.filter((e) => e.kind === 'request').map((e) => `${e.method} ${e.url} ${e.status}`));
-  const extra = browser.filter((e) => !seen.has(`${e.method} ${e.url} ${e.status}`));
+  const sig = (e: LogEntry) => `${e.url} ${e.status}`;
+  const seen = new Set(page.filter((e) => e.kind === 'request').map(sig));
+  const extra = browser.filter((e) => !seen.has(sig(e)) && (seen.add(sig(e)), true));
   return [...page.map((e) => ({ ...e, source: 'page' as const })), ...extra.map((e) => ({ ...e, source: 'browser' as const }))]
-    .filter((e) => e.t >= cutoff)
+    // Request history covers the whole page visit, not just the last minute.
+    .filter((e) => e.t >= cutoff || e.fromHistory)
     .sort((a, b) => a.t - b.t);
 }
 
@@ -65,6 +69,6 @@ export function requestLines(logs: LogEntry[], max = 10): string[] {
       const status = e.status ? String(e.status) : `failed${e.message ? ` (${e.message})` : ''}`;
       const snippet = e.snippet ? ` — ${e.snippet.replace(/\s+/g, ' ').slice(0, 120)}` : '';
       const type = e.resourceType && e.resourceType !== 'xmlhttprequest' ? ` [${e.resourceType}]` : '';
-      return `- ${e.method ?? 'GET'} ${short(e.url)} ${status}${e.ms != null ? ` (${e.ms} ms)` : ''}${type}${snippet}`;
+      return `- ${e.method ? `${e.method} ` : ''}${short(e.url)} ${status}${e.ms != null ? ` (${e.ms} ms)` : ''}${type}${snippet}`;
     });
 }

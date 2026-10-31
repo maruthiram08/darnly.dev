@@ -1,4 +1,4 @@
-import { deepestElementAt, describeElement, isSensitiveField, type ElementInfo } from '@/lib/element-info';
+import { describeElement, failedRequestsFromHistory, isSensitiveField, smallestElementAt, withCursor, type ElementInfo } from '@/lib/element-info';
 import type { LogEntry } from '@/lib/logs';
 import { redactLog } from '@/lib/logs';
 import { redactText, redactUrl } from '@/lib/redact';
@@ -26,7 +26,12 @@ function askRecorder(el: Element | null): Promise<{ logs: LogEntry[]; component?
 }
 
 function redactElement(info: ElementInfo): ElementInfo {
-  return { ...info, text: redactText(info.text), html: redactText(info.html) };
+  return {
+    ...info,
+    text: redactText(info.text),
+    html: redactText(info.html),
+    atCursor: info.atCursor && { ...info.atCursor, text: redactText(info.atCursor.text), html: redactText(info.atCursor.html) },
+  };
 }
 
 /**
@@ -76,8 +81,10 @@ function start(): () => void {
     Object.assign(label.style, { display: 'block', left: `${Math.max(0, r.left)}px`, top: `${r.top > 22 ? r.top - 20 : r.bottom + 4}px` });
   };
 
+  let pointer: { x: number; y: number } | null = null;
   const onMove = (e: MouseEvent) => {
-    const el = deepestElementAt(document, e.clientX, e.clientY, host);
+    pointer = { x: e.clientX, y: e.clientY };
+    const el = smallestElementAt(document, e.clientX, e.clientY, host);
     if (el && el !== current) {
       trail.length = 0;
       show(el);
@@ -88,7 +95,7 @@ function start(): () => void {
     stop();
     // Let the overlay disappear from the screen before the screenshot is taken.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const element = el ? describeElement(el) : undefined;
+    const element = el ? withCursor(describeElement(el), el, pointer, document) : undefined;
     // Cover password and card fields for the moment the screenshot is taken.
     const masked = Array.from(document.querySelectorAll('input')).filter(isSensitiveField) as HTMLElement[];
     const before = masked.map((m) => m.style.filter);
@@ -99,7 +106,8 @@ function start(): () => void {
     await chrome.runtime.sendMessage({
       type: 'element-picked',
       element: element && redactElement(element),
-      pageLogs: fromPage.logs.map(redactLog),
+      // Without the recorder, failed requests still come from the browser's request history.
+      pageLogs: (fromPage.recorder ? fromPage.logs : failedRequestsFromHistory(window)).map(redactLog),
       recorder: fromPage.recorder,
       page: {
         url: redactUrl(location.href),
@@ -118,7 +126,8 @@ function start(): () => void {
 
   const onClick = (e: MouseEvent) => {
     swallow(e);
-    finish(current ?? deepestElementAt(document, e.clientX, e.clientY, host));
+    pointer = { x: e.clientX, y: e.clientY };
+    finish(current ?? smallestElementAt(document, e.clientX, e.clientY, host));
   };
 
   const onKey = (e: KeyboardEvent) => {

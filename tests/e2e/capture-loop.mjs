@@ -17,6 +17,10 @@ const server = http.createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     return res.end('{"error":"cart is empty","session":"s3cr3tsessionvalue"}');
   }
+  if (req.url.startsWith('/frames')) {
+    res.setHeader('content-type', 'text/html');
+    return res.end(fs.readFileSync(path.join(root, 'tests/fixtures/frames.html')));
+  }
   if (req.url.startsWith('/missing-logo.png')) {
     res.statusCode = 404;
     return res.end('not found');
@@ -153,6 +157,32 @@ try {
     }
   });
   await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
+  // Sprint 4: picking a big container still records the card under the cursor.
+  const framesUrl = url.replace('/checkout', '/frames');
+  await page.goto(framesUrl);
+  await page.bringToFront();
+  await panel.getByRole('button', { name: 'Capture another' }).count(); // panel stays as is
+  await sw.evaluate(async (u) => {
+    const [tab] = await chrome.tabs.query({ url: u + '*' });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/picker.js'] });
+  }, framesUrl);
+  await page.waitForTimeout(300);
+  const card = await page.locator('[data-testid="card-2"]').boundingBox();
+  await page.mouse.move(card.x + 60, card.y + 60);
+  await page.waitForTimeout(100);
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
+  await panel.getByLabel('What did you expect?').fill('Q3 plan should be tagged as a Frame, not a Belief');
+  await panel.getByLabel('What did you expect?').press('Enter');
+  await panel.getByText('Saved to').waitFor({ timeout: 5000 });
+  const md2 = await panel.evaluate(async () => {
+    const inbox = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly')).getDirectoryHandle('inbox');
+    for await (const [name, h] of inbox.entries()) if (name.endsWith('.md')) return (await h.getFile()).text();
+  });
+  if (!md2?.includes('## Exactly under the cursor')) fail('cursor element missing for a big box');
+  if (!md2?.includes('article[data-testid="card-2"]')) fail('card under the cursor not identified');
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {
