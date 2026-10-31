@@ -4,13 +4,25 @@ import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot } from '@/lib/screenshot';
-import { ensureAccess, folderAccess, loadFolder, saveFolder, writeToProject } from '@/lib/project-folder';
+import { mergeLogs, type LogEntry } from '@/lib/logs';
+import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
+import { planSetup, type PlannedChange } from '@/lib/agent-setup';
+
 
 interface PendingCapture {
   element?: ElementInfo;
   page: { url: string; title: string; viewport: { width: number; height: number } };
   screenshot?: string;
   screenshotError?: string;
+  logs: LogEntry[];
+  recorder: boolean;
+}
+
+interface SiteStatus {
+  recordable: boolean;
+  on?: boolean;
+  origin?: string;
+  builtIn?: boolean;
 }
 
 type Stage = 'idle' | 'picking' | 'note' | 'saved';
@@ -24,19 +36,65 @@ export function App() {
   const [message, setMessage] = useState('');
   const [lastMarkdown, setLastMarkdown] = useState('');
   const [lastFile, setLastFile] = useState('');
+  const [site, setSite] = useState<SiteStatus>({ recordable: false });
+  const [captures, setCaptures] = useState<CaptureSummary[]>([]);
+  const [plan, setPlan] = useState<PlannedChange[] | null>(null);
+  const [setupNeeded, setSetupNeeded] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  const refreshSite = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab?.url) setSite(await chrome.runtime.sendMessage({ type: 'recording-status', url: tab.url }));
+  }, []);
+
+  const recordThisSite = async () => {
+    if (!site.origin) return;
+    // Chrome shows its own "allow on this site" prompt here.
+    const ok = await chrome.permissions.request({ origins: [`${site.origin}/*`] });
+    if (!ok) return;
+    await chrome.runtime.sendMessage({ type: 'record-site', origin: site.origin });
+    await refreshSite();
+    setMessage('Recording is on. Reload the page once so Darnly can start listening.');
+  };
+
+  const refreshProject = useCallback(async (f: FileSystemDirectoryHandle | null) => {
+    if (!f || (await folderAccess(f)) !== 'granted') return;
+    setCaptures(await listCaptures(f));
+    const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
+    const existing = Object.fromEntries(await Promise.all(paths.map(async (p) => [p, await readProjectFile(f, p)] as const)));
+    const next = planSetup(existing);
+    setPlan(next);
+    setSetupNeeded(next.length > 0);
+  }, []);
 
   const refreshFolder = useCallback(async () => {
     const f = await loadFolder();
     setFolder(f);
     setAccess(await folderAccess(f));
-  }, []);
+    await refreshProject(f);
+  }, [refreshProject]);
+
+  const applySetup = async () => {
+    if (!folder || !plan) return;
+    if (!(await ensureAccess(folder))) return setMessage('Darnly needs "Allow" to set up your project.');
+    for (const c of plan) await writeProjectFile(folder, c.path, c.content);
+    setShowPlan(false);
+    setMessage(`Project set up. Your agent now knows to look in ${INBOX_FOLDER}/.`);
+    await refreshProject(folder);
+  };
 
   useEffect(() => {
     document.title = PRODUCT.NAME;
     chrome.runtime.sendMessage({ type: 'keepalive' }).catch(() => {});
     refreshFolder();
-    const listener = (msg: { type?: string } & Partial<PendingCapture> & { error?: string }) => {
+    refreshSite();
+    const poll = setInterval(() => loadFolder().then(refreshProject), 5000);
+    const onTab = () => refreshSite();
+    chrome.tabs.onActivated.addListener(onTab);
+    chrome.tabs.onUpdated.addListener(onTab);
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
+    const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
         setMessage('');
@@ -44,15 +102,28 @@ export function App() {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
       } else if (msg.type === 'capture-ready') {
-        setCapture({ element: msg.element, page: msg.page!, screenshot: msg.screenshot, screenshotError: msg.screenshotError });
+        setCapture({
+          element: msg.element,
+          page: msg.page!,
+          screenshot: msg.screenshot,
+          screenshotError: msg.screenshotError,
+          logs: mergeLogs(msg.pageLogs ?? [], msg.browserLogs ?? []),
+          recorder: !!msg.recorder,
+        });
+        if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
-  }, [refreshFolder]);
+    return () => {
+      clearInterval(poll);
+      chrome.runtime.onMessage.removeListener(listener);
+      chrome.tabs.onActivated.removeListener(onTab);
+      chrome.tabs.onUpdated.removeListener(onTab);
+    };
+  }, [refreshFolder, refreshSite, refreshProject]);
 
   const linkFolder = async () => {
     try {
@@ -84,6 +155,8 @@ export function App() {
       browser: navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] ?? 'Chrome',
       capturedAt: when,
       element: c.element,
+      logs: c.logs,
+      recorder: c.recorder,
     });
     return { id, markdown };
   };
@@ -101,6 +174,7 @@ export function App() {
     }
     const { id, markdown } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
+    if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect);
     }
@@ -111,6 +185,7 @@ export function App() {
       setLastFile(`${INBOX_FOLDER}/${id}.md`);
       setStage('saved');
       setCapture(null);
+      refreshProject(folder);
       setMessage('');
     } catch (e) {
       setMessage(`Couldn't save: ${(e as Error).message}`);
@@ -128,6 +203,13 @@ export function App() {
         <h1 className="text-base font-semibold">{PRODUCT.NAME}</h1>
         <FolderLine folder={folder} access={access} onLink={linkFolder} />
       </header>
+
+      {site.recordable && !site.builtIn && !site.on && (
+        <div className="rounded-lg border border-gray-200 p-3">
+          <p className="text-gray-600">Errors and failed requests aren't recorded on <strong>{site.origin?.replace(/^https?:\/\//, '')}</strong>.</p>
+          <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={recordThisSite}>Record errors on this site</button>
+        </div>
+      )}
 
       {stage === 'idle' && (
         <section className="space-y-2">
@@ -147,6 +229,11 @@ export function App() {
               {capture.element.tag}{capture.element.text ? ` "${capture.element.text.slice(0, 50)}"` : ''}
             </p>
           )}
+          <p className="text-xs text-gray-500">
+            {capture.recorder
+              ? `${capture.logs.filter((l) => l.kind !== 'request').length} errors · ${capture.logs.filter((l) => l.kind === 'request').length} failed requests (last 60s), secrets hidden`
+              : 'Errors not recorded on this site'}
+          </p>
           <label className="block font-medium" htmlFor="note">What did you expect?</label>
           <textarea
             id="note"
@@ -184,6 +271,48 @@ export function App() {
       )}
 
       {message && <p className="text-amber-700">{message}</p>}
+
+      {folder && access === 'granted' && setupNeeded && plan && (
+        <section className="rounded-lg border border-gray-200 p-3">
+          <p className="font-medium">Set up this project</p>
+          <p className="mt-1 text-gray-600">Adds a short note so Claude Code, Codex and Cursor know where your bug reports are.</p>
+          {!showPlan ? (
+            <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={() => setShowPlan(true)}>See what it adds</button>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {plan.map((c) => (
+                <details key={c.path} className="rounded border border-gray-200 p-2">
+                  <summary className="cursor-pointer text-xs"><strong>{c.action === 'create' ? 'Create' : 'Update'}</strong> <code>{c.path}</code></summary>
+                  <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-gray-700">{c.content}</pre>
+                </details>
+              ))}
+              <div className="flex gap-2">
+                <button className="flex-1 rounded-lg bg-gray-900 py-1.5 text-white" onClick={applySetup}>Add these</button>
+                <button className="rounded-lg px-3 text-gray-500" onClick={() => setShowPlan(false)}>Not now</button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {captures.length > 0 && (
+        <section>
+          <p className="font-medium">
+            Captured bugs <span className="font-normal text-gray-500">· {captures.filter((c) => c.status === 'waiting').length} waiting, {captures.filter((c) => c.status === 'fixed').length} fixed</span>
+          </p>
+          <ul className="mt-2 divide-y divide-gray-100">
+            {captures.slice(0, 20).map((c) => (
+              <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed (moved to done)' : 'Waiting for your agent'} />
+                <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.title}>{c.title}</span>
+              </li>
+            ))}
+          </ul>
+          {captures.some((c) => c.status === 'waiting') && (
+            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+          )}
+        </section>
+      )}
     </main>
   );
 }

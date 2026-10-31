@@ -11,7 +11,16 @@ const { chromium } = require('playwright');
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const ext = path.join(root, '.output-e2e/chrome-mv3');
 
-const server = http.createServer((_q, res) => {
+const server = http.createServer((req, res) => {
+  if (req.url.startsWith('/api/cart')) {
+    res.statusCode = 500;
+    res.setHeader('content-type', 'application/json');
+    return res.end('{"error":"cart is empty","session":"s3cr3tsessionvalue"}');
+  }
+  if (req.url.startsWith('/missing-logo.png')) {
+    res.statusCode = 404;
+    return res.end('not found');
+  }
   res.setHeader('content-type', 'text/html');
   res.end(fs.readFileSync(path.join(root, 'tests/fixtures/checkout.html')));
 });
@@ -52,6 +61,7 @@ try {
 
   const page = await ctx.newPage();
   await page.goto(url);
+  await page.waitForTimeout(500); // let the planted errors happen
   await page.bringToFront();
 
   // Same call the hotkey makes.
@@ -77,7 +87,7 @@ try {
     const files = {};
     for await (const [name, h] of inbox.entries()) {
       const f = await h.getFile();
-      if (name.endsWith('.md')) files[name] = await f.text();
+      if (!name.endsWith('.png')) files[name] = await f.text();
       else files[name] = { size: f.size, b64: btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer()))) };
     }
     return files;
@@ -99,9 +109,52 @@ try {
   if (!md.includes('pointer-events: none')) fail('styles missing');
   if (!md.includes('**Expected:** Pay now should be clickable')) fail('note missing');
   if (!(png > 1000)) fail('screenshot missing or empty');
-  if (md.includes('hunter2')) fail('password leaked');
+  const logsName = names.find((n) => n.endsWith('.logs.json'));
+  const all = md + (logsName ? out[logsName] : '');
+  for (const secret of ['hunter2', '4242424242424242', ['sk', 'live', '51HqLyjWDarjtT1zdp7dcXYZ'].join('_'), 'abc12345', 's3cr3tsessionvalue']) {
+    if (all.includes(secret)) fail('secret leaked: ' + secret);
+  }
+  if (!logsName) fail('logs.json missing');
+  if (!md.includes('## Errors (last 60s)')) fail('errors section missing');
+  if (!/console\.error: Payment init failed/.test(md)) fail('console error missing');
+  if (!/uncaught error: .*TypeError/.test(md)) fail('uncaught error missing');
+  if (!md.includes('POST /api/cart?token=[hidden]&page=2 500')) fail('failed fetch missing or not redacted');
+  if (!/GET \/missing-logo\.png 404 .*\[image\]/.test(md)) fail('missing image (browser-only failure) missing');
+  // Sprint 3: the inbox list and "Set up this project".
+  await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('inbox list missing'));
+  await panel.getByRole('button', { name: 'See what it adds' }).click();
+  await panel.getByRole('button', { name: 'Add these' }).click();
+  await panel.getByText('Project set up').waitFor({ timeout: 5000 }).catch(() => fail('setup did not finish'));
+  const setup = await panel.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const read = async (path) => {
+      const parts = path.split('/');
+      const name = parts.pop();
+      let d = root;
+      for (const p of parts) d = await d.getDirectoryHandle(p);
+      return (await (await d.getFileHandle(name)).getFile()).text();
+    };
+    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md') };
+  });
+  if (!setup.agents.includes('.darnly/inbox/')) fail('AGENTS.md block missing');
+  if (!setup.skill.startsWith('---\nname: darnly') || setup.skill !== setup.claudeSkill) fail('skill files wrong');
+  if (await panel.getByText('Set up this project').count()) fail('setup card still showing after setup');
+  // Pretend the agent fixed the bug: move it to done/, and the list should notice within 5 seconds.
+  await panel.evaluate(async () => {
+    const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly');
+    const inbox = await root.getDirectoryHandle('inbox');
+    const done = await root.getDirectoryHandle('done', { create: true });
+    for await (const [name, h] of inbox.entries()) {
+      const f = await h.getFile();
+      const w = await (await done.getFileHandle(name, { create: true })).createWritable();
+      await w.write(f);
+      await w.close();
+      await inbox.removeEntry(name);
+    }
+  });
+  await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
   if (errors.length) fail('panel errors: ' + errors.join('; '));
-  if (!process.exitCode) console.log('PASS: capture loop works end to end');
+  if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {
   await ctx.close();
   server.close();

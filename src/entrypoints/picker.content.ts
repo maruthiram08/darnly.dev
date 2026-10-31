@@ -1,4 +1,33 @@
-import { deepestElementAt, describeElement } from '@/lib/element-info';
+import { deepestElementAt, describeElement, isSensitiveField, type ElementInfo } from '@/lib/element-info';
+import type { LogEntry } from '@/lib/logs';
+import { redactLog } from '@/lib/logs';
+import { redactText, redactUrl } from '@/lib/redact';
+
+/** Asks the page recorder (if it runs on this site) for its last 60 seconds, and the React component of the picked element. */
+function askRecorder(el: Element | null): Promise<{ logs: LogEntry[]; component?: string; recorder: boolean }> {
+  return new Promise((resolve) => {
+    const id = Math.random().toString(36).slice(2);
+    el?.setAttribute('data-darnly-picked', '');
+    const done = (r: { logs: LogEntry[]; component?: string; recorder: boolean }) => {
+      removeEventListener('message', onMessage);
+      el?.removeAttribute('data-darnly-picked');
+      resolve(r);
+    };
+    const onMessage = (e: MessageEvent) => {
+      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string } | null;
+      if (e.source === window && d?.darnly === 'logs' && d.id === id) {
+        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: typeof d.component === 'string' ? d.component : undefined, recorder: true });
+      }
+    };
+    addEventListener('message', onMessage);
+    window.postMessage({ darnly: 'get-logs', id }, '*');
+    setTimeout(() => done({ logs: [], recorder: false }), 300);
+  });
+}
+
+function redactElement(info: ElementInfo): ElementInfo {
+  return { ...info, text: redactText(info.text), html: redactText(info.html) };
+}
 
 /**
  * The element picker. Injected into the page only when the hotkey is pressed.
@@ -59,15 +88,26 @@ function start(): () => void {
     stop();
     // Let the overlay disappear from the screen before the screenshot is taken.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    chrome.runtime.sendMessage({
+    const element = el ? describeElement(el) : undefined;
+    // Cover password and card fields for the moment the screenshot is taken.
+    const masked = Array.from(document.querySelectorAll('input')).filter(isSensitiveField) as HTMLElement[];
+    const before = masked.map((m) => m.style.filter);
+    masked.forEach((m) => (m.style.filter = 'blur(8px)'));
+    const fromPage = await askRecorder(el);
+    if (element && fromPage.component) element.component = fromPage.component;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await chrome.runtime.sendMessage({
       type: 'element-picked',
-      element: el ? describeElement(el) : undefined,
+      element: element && redactElement(element),
+      pageLogs: fromPage.logs.map(redactLog),
+      recorder: fromPage.recorder,
       page: {
-        url: location.href,
-        title: document.title,
+        url: redactUrl(location.href),
+        title: redactText(document.title),
         viewport: { width: innerWidth, height: innerHeight },
       },
-    });
+    }).catch(() => {});
+    masked.forEach((m, i) => (m.style.filter = before[i] ?? ''));
   };
 
   const swallow = (e: Event) => {

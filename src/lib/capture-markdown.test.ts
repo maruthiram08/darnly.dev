@@ -49,3 +49,24 @@ describe('headingFrom', () => {
     expect(h.endsWith('…')).toBe(true);
   });
 });
+
+describe('captureMarkdown logs', () => {
+  it('lists errors and failed requests and points to the full log', () => {
+    const now = Date.now();
+    const md = captureMarkdown({
+      ...base,
+      logs: [
+        { t: now, kind: 'error', message: "TypeError: Cannot read properties of undefined (reading 'id')", stack: 'TypeError: x\n    at Checkout (http://localhost:3000/src/Checkout.tsx:42:13)' },
+        { t: now, kind: 'request', method: 'POST', url: 'http://localhost:3000/api/cart?page=1', status: 500, ms: 312, snippet: '{"error":"cart is empty"}' },
+      ],
+    });
+    expect(md).toContain('## Errors (last 60s)');
+    expect(md).toContain("uncaught error: TypeError: Cannot read properties of undefined (reading 'id') (Checkout (http://localhost:3000/src/Checkout.tsx:42:13))");
+    expect(md).toContain('- POST /api/cart?page=1 500 (312 ms) — {"error":"cart is empty"}');
+    expect(md).toContain('Full logs: .darnly/inbox/2026-11-01-0140-pay-now-should-open.logs.json');
+  });
+
+  it('says when recording is off', () => {
+    expect(captureMarkdown({ ...base, recorder: false })).toContain('recording is off for this site');
+  });
+});

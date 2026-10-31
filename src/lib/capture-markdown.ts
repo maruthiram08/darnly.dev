@@ -1,5 +1,6 @@
 import { DONE_FOLDER, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from './element-info';
+import { errorLines, requestLines, type LogEntry } from './logs';
 
 export interface CaptureInput {
   id: string;
@@ -11,6 +12,10 @@ export interface CaptureInput {
   capturedAt: Date;
   /** Missing when the user pressed Esc to capture the whole page. */
   element?: ElementInfo;
+  /** Errors and failed requests from the last 60 seconds, already redacted. */
+  logs?: LogEntry[];
+  /** False when the page recorder isn't switched on for this site. */
+  recorder?: boolean;
 }
 
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
@@ -64,6 +69,14 @@ export function captureMarkdown(c: CaptureInput): string {
   } else {
     lines.push('Whole visible page captured (no single element picked).', '');
   }
+  const logs = c.logs ?? [];
+  const errors = errorLines(logs);
+  const requests = requestLines(logs);
+  if (errors.length) lines.push('## Errors (last 60s)', ...errors, '');
+  if (requests.length) lines.push('## Failed requests (last 60s)', ...requests, '');
+  if (logs.length) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
+  else if (c.recorder === false) lines.push('_Console errors and requests were not recorded: recording is off for this site._', '');
+  else lines.push('No console errors or failed requests in the last 60 seconds.', '');
   lines.push(
     '## How to fix',
     `Find the code with the selector or text above, fix it so the expected behaviour happens, then move this file and its PNG to ${DONE_FOLDER}/.`,
