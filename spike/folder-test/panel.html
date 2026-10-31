@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Folder write test</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; color: #111827; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  p { margin: 4px 0 12px; color: #4b5563; }
+  button { display: block; width: 100%; margin: 6px 0; padding: 10px; font: inherit; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
+  button.primary { background: #111827; color: #fff; border-color: #111827; }
+  .status { padding: 10px; border-radius: 8px; background: #f3f4f6; margin: 12px 0; }
+  .ok { color: #047857; } .bad { color: #b91c1c; }
+  ol { padding-left: 20px; } li { margin-bottom: 6px; }
+  #log { font: 12px ui-monospace, monospace; white-space: pre-wrap; background: #f9fafb; padding: 8px; border-radius: 8px; max-height: 260px; overflow: auto; }
+</style>
+</head>
+<body>
+  <h1>Folder write test</h1>
+  <p>Checks whether this extension can save bug captures straight into your project folder.</p>
+
+  <div class="status">
+    Folder: <strong id="folder">none yet</strong><br />
+    Access: <strong id="perm">unknown</strong>
+  </div>
+
+  <button id="pick" class="primary">1. Pick project folder</button>
+  <button id="write">2. Write test capture</button>
+  <button id="allow">Allow access again</button>
+  <button id="copy">Copy results to send to Claude</button>
+
+  <ol>
+    <li>Pick a project folder, then press Write. Look for <code>.darnly/inbox/</code> in that folder.</li>
+    <li>Quit Chrome fully (Cmd+Q), reopen it, open this panel and press Write again.</li>
+    <li>Close this panel, go to any tab and press <strong>Alt+Shift+B</strong>.</li>
+    <li>Press Copy results and paste them in our chat.</li>
+  </ol>
+
+  <div id="log"></div>
+  <script type="module" src="panel.js"></script>
+</body>
+</html>
