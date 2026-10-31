@@ -183,7 +183,7 @@ export function App() {
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
-      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect);
+      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect, capture.element?.point);
     }
     try {
       await writeToProject(folder, 'inbox', files);
@@ -264,7 +264,7 @@ export function App() {
                 save();
               }
             }}
-            placeholder="Clicking Pay now should open the payment form"
+            placeholder="What should it do or look like? e.g. Should look flat, like the Beliefs pills"
           />
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white" onClick={save}>Save (Enter)</button>
@@ -354,7 +354,7 @@ function MarkedPreview({ capture }: { capture: PendingCapture }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
     let revoked = '';
-    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect).then((b) => {
+    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect, capture.element?.point).then((b) => {
       revoked = URL.createObjectURL(b);
       setUrl(revoked);
     });

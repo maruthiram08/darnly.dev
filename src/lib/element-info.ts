@@ -8,6 +8,10 @@ export interface ElementInfo {
   /** Box on screen in CSS pixels, relative to the viewport. */
   rect: { x: number; y: number; width: number; height: number };
   component?: string;
+  /** Where the user clicked, in CSS pixels. */
+  point?: { x: number; y: number };
+  /** When the picked box is a big container, the small element exactly under the cursor (often what was meant). */
+  atCursor?: { selector: string; tag: string; text: string; html: string; rect: ElementInfo['rect'] };
 }
 
 /** The ~20 computed styles that explain most visual bugs. */
@@ -175,4 +179,74 @@ export function deepestElementAt(doc: Document, x: number, y: number, skip?: Ele
     el = next;
   }
   return el;
+}
+
+function area(el: Element): number {
+  const r = el.getBoundingClientRect();
+  return r.width * r.height;
+}
+
+/**
+ * The smallest visible element under a point. Checks every layer the browser stacks there,
+ * so a transparent overlay or a full-card link doesn't hide the card underneath.
+ */
+export function smallestElementAt(doc: Document, x: number, y: number, skip?: Element): Element | null {
+  const layers = (doc.elementsFromPoint?.(x, y) ?? []).filter(
+    (e) => e !== skip && e !== doc.documentElement && e !== doc.body && !skip?.contains(e),
+  );
+  let best: Element | null = null;
+  for (const layer of layers) {
+    let el: Element = layer;
+    for (let guard = 0; guard < 50; guard++) {
+      let next: Element | null = null;
+      for (const child of Array.from(el.children)) {
+        if (child === skip) continue;
+        const r = child.getBoundingClientRect();
+        if (r.width && r.height && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) next = child;
+      }
+      if (!next) break;
+      el = next;
+    }
+    if (area(el) > 0 && (!best || area(el) < area(best))) best = el;
+  }
+  return best ?? deepestElementAt(doc, x, y, skip);
+}
+
+/** Adds the click point, and the element under it when the picked box is much bigger than that element. */
+export function withCursor(info: ElementInfo, picked: Element, point: { x: number; y: number } | null, doc: Document, skip?: Element): ElementInfo {
+  if (!point) return info;
+  const out: ElementInfo = { ...info, point };
+  const under = smallestElementAt(doc, point.x, point.y, skip);
+  if (under && under !== picked && picked.contains(under) && area(picked) > 4 * area(under)) {
+    const r = under.getBoundingClientRect();
+    out.atCursor = {
+      selector: selectorFor(under),
+      tag: under.tagName.toLowerCase(),
+      text: visibleText(under),
+      html: trimmedHtml(under, 1).slice(0, 800),
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+    };
+  }
+  return out;
+}
+
+/**
+ * Failed requests since the page loaded, from the browser's own request history.
+ * Works on every site with no setup, because it needs no recorder (Chrome 109+ reports the status code).
+ */
+export function failedRequestsFromHistory(win: Window, max = 20) {
+  const entries = win.performance.getEntriesByType('resource') as (PerformanceResourceTiming & { responseStatus?: number })[];
+  return entries
+    .filter((e) => (e.responseStatus ?? 0) >= 400)
+    .slice(-max)
+    .map((e) => ({
+      t: Math.round(win.performance.timeOrigin + e.responseEnd),
+      kind: 'request' as const,
+      method: undefined,
+      url: e.name,
+      status: e.responseStatus,
+      ms: Math.round(e.duration),
+      resourceType: e.initiatorType === 'fetch' || e.initiatorType === 'xmlhttprequest' ? 'xmlhttprequest' : e.initiatorType,
+      fromHistory: true,
+    }));
 }

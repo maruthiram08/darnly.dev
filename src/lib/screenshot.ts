@@ -8,6 +8,7 @@ export async function markScreenshot(
   dataUrl: string,
   viewportWidth: number,
   rect?: ElementInfo['rect'],
+  point?: ElementInfo['point'],
 ): Promise<Blob> {
   const img = await createImageBitmap(await (await fetch(dataUrl)).blob());
   const canvas = new OffscreenCanvas(img.width, img.height);
@@ -19,6 +20,17 @@ export async function markScreenshot(
     ctx.strokeStyle = '#e11d48';
     ctx.lineWidth = Math.max(3, 3 * s);
     ctx.strokeRect(rect.x * s - pad, rect.y * s - pad, rect.width * s + pad * 2, rect.height * s + pad * 2);
+  }
+  if (point) {
+    // A dot where the user clicked, so a big box still shows the exact spot.
+    const s = img.width / viewportWidth;
+    ctx.beginPath();
+    ctx.arc(point.x * s, point.y * s, 7 * s, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(225, 29, 72, 0.9)';
+    ctx.fill();
+    ctx.lineWidth = 2 * s;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
   }
   return canvas.convertToBlob({ type: 'image/png' });
 }

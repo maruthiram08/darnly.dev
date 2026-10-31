@@ -67,6 +67,38 @@ describe('captureMarkdown logs', () => {
   });
 
   it('says when recording is off', () => {
-    expect(captureMarkdown({ ...base, recorder: false })).toContain('recording is off for this site');
+    expect(captureMarkdown({ ...base, recorder: false })).toContain('Console errors are not recorded on this site');
+  });
+});
+
+describe('captureMarkdown cursor', () => {
+  it('adds the element under the cursor when the box is a big container', () => {
+    const md = captureMarkdown({
+      ...base,
+      element: {
+        selector: 'main.grid',
+        tag: 'main',
+        text: 'lots of cards',
+        html: '<main class="grid">…</main>',
+        styles: {},
+        rect: { x: 0, y: 0, width: 1200, height: 900 },
+        point: { x: 310, y: 220 },
+        atCursor: { selector: 'article[data-testid="card-3"]', tag: 'article', text: 'Frames: Q3 plan', html: '<article data-testid="card-3">…</article>', rect: { x: 300, y: 200, width: 280, height: 160 } },
+      },
+    });
+    expect(md).toContain('## Exactly under the cursor');
+    expect(md).toContain('article[data-testid="card-3"]');
+    expect(md.indexOf('## Element (the red box)')).toBeLessThan(md.indexOf('## Exactly under the cursor'));
+  });
+
+  it('labels request history when the recorder is off', () => {
+    const md = captureMarkdown({
+      ...base,
+      recorder: false,
+      logs: [{ t: 0, kind: 'request', url: 'https://counterdraft.com/api/frames', status: 404, fromHistory: true }],
+    });
+    expect(md).toContain('## Failed requests (since the page loaded)');
+    expect(md).toContain('- /api/frames 404');
+    expect(md).toContain("failed requests come from the page's request history");
   });
 });
