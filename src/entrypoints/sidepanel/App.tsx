@@ -176,7 +176,13 @@ export function App() {
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
-      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point);
+      const el = capture.element;
+      const target = el?.atCursor ?? el;
+      const caption = [
+        `Expected: ${note.trim() || '(no note)'}`,
+        `Page: ${capture.page.url}${target ? `   Element: ${target.selector}${target.text ? ` "${target.text.slice(0, 60)}"` : ''}` : ''}`,
+      ];
+      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption);
     }
     const asFiles = Object.entries(files)
       .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
@@ -203,6 +209,19 @@ export function App() {
       refreshProject(folder);
     } catch (e) {
       setMessage(`Couldn't save: ${(e as Error).message}`);
+    }
+  };
+
+  // Picture and text on the clipboard together; apps that take only one get the picture, which has the note written on it.
+  const copyBug = async (markdown: string, files: File[]) => {
+    const png = files.find((f) => f.type === 'image/png');
+    if (!png) return copyPrompt(markdown);
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png, 'text/plain': new Blob([markdown], { type: 'text/plain' }) })]);
+      setMessage('Copied. Paste it into your agent (Cmd+V).');
+    } catch {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      setMessage('Copied the picture (the note is written on it). Paste it into your agent.');
     }
   };
 
@@ -295,7 +314,7 @@ export function App() {
           <DragCard files={lastFiles} title={headingFrom(lastMarkdown.split('\n# ')[1] ?? '')} linked={!!lastFile} />
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
-            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(lastMarkdown)}>Copy as prompt</button>
+            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyBug(lastMarkdown, lastFiles)}>Copy bug</button>
           </div>
         </section>
       )}
@@ -386,9 +405,10 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
   const [thumb, setThumb] = useState('');
   useEffect(() => {
     if (!png) return;
-    const u = URL.createObjectURL(png);
-    setThumb(u);
-    return () => URL.revokeObjectURL(u);
+    // A data URL (not a blob URL) so Chrome can hand the picture to desktop apps as a real file when dragged.
+    const r = new FileReader();
+    r.onload = () => setThumb(String(r.result));
+    r.readAsDataURL(png);
   }, [png]);
   if (!files.length) return null;
   return (
@@ -404,10 +424,22 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
       className="flex cursor-grab items-center gap-3 rounded-lg border border-dashed border-gray-400 bg-gray-50 p-2 active:cursor-grabbing"
       title="Drag into your agent's chat"
     >
-      {thumb && <img src={thumb} alt="" className="h-10 w-14 rounded object-cover" draggable={false} />}
+      {thumb && (
+        <img
+          src={thumb}
+          alt=""
+          className="h-14 w-20 cursor-grab rounded border border-gray-300 object-cover"
+          title="Drag this picture into your agent (works with desktop apps)"
+          onDragStart={(e) => {
+            // Let Chrome's own image drag run: it gives desktop apps a real PNG file.
+            e.stopPropagation();
+            e.dataTransfer.setData('DownloadURL', `image/png:${png!.name}:${thumb}`);
+          }}
+        />
+      )}
       <div className="min-w-0">
         <p className="truncate font-medium">{title || 'Bug report'}</p>
-        <p className="text-xs text-gray-500">{linked ? 'Or drag into a cloud agent' : 'Drag into your agent'} · {files.length} files</p>
+        <p className="text-xs text-gray-500">Drag the picture into your agent, or press Copy bug and paste. The note is written on the picture.</p>
       </div>
     </div>
   );
