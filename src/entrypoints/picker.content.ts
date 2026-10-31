@@ -64,7 +64,7 @@ function start(): () => void {
     <style>
       .box { position: fixed; border: 2px solid #e11d48; background: rgba(225,29,72,.08); border-radius: 2px; pointer-events: none; transition: all 40ms; }
       .label { position: fixed; background: #e11d48; color: #fff; font: 600 11px/1.6 system-ui, sans-serif; padding: 0 6px; border-radius: 3px; pointer-events: none; white-space: nowrap; }
-      .hint { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #111827; color: #fff; font: 13px/1.4 system-ui, sans-serif; padding: 8px 14px; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+      .hint { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #111827; color: #fff; font: 13px/1.4 system-ui, sans-serif; padding: 8px 14px; border-radius: 999px; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
     </style>
     <div class="box"></div><div class="label"></div>
     <div class="hint">Click the broken part · ↑ ↓ bigger or smaller · W for the whole page · Esc to cancel</div>`;

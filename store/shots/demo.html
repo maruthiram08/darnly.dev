@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Acme Planner</title>
+<style>
+body{margin:0;font:15px/1.5 -apple-system,system-ui,sans-serif;background:#f6f7fb;color:#111827}
+.top{display:flex;align-items:center;gap:10px;padding:16px 28px;background:#fff;border-bottom:1px solid #e5e7eb}
+.logo{width:28px;height:28px;border-radius:8px;background:#6366f1}
+h1{font-size:22px;margin:28px 28px 8px}
+p.sub{margin:0 28px 20px;color:#6b7280}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:0 28px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h3{margin:0 0 6px;font-size:16px}.card p{margin:0;color:#6b7280;font-size:14px}
+.tag{display:inline-block;margin-top:10px;font-size:12px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca}
+.bar{margin:24px 28px;display:flex;gap:12px}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-size:15px;background:#6366f1;color:#fff}
+.btn.ghost{background:#fff;color:#111827;border:1px solid #e5e7eb}
+.save{opacity:.45;pointer-events:none}
+</style></head><body>
+<div class="top"><div class="logo"></div><strong>Acme Planner</strong></div>
+<h1>This week</h1><p class="sub">Plan your launch tasks</p>
+<div class="grid">
+<div class="card" data-testid="card-1"><h3>Write launch post</h3><p>Draft the announcement for Monday.</p><span class="tag">Content</span></div>
+<div class="card" data-testid="card-2"><h3>Record demo video</h3><p>Two minutes, show the hotkey.</p><span class="tag">Video</span></div>
+<div class="card" data-testid="card-3"><h3>Invite testers</h3><p>Five vibecoders from the community.</p><span class="tag">Community</span></div>
+</div>
+<div class="bar"><button class="btn save" data-testid="save-plan">Save plan</button><button class="btn ghost">Share</button></div>
+<script>setTimeout(()=>console.error('Save failed: plan is undefined'),100)</script>
+</body></html>
