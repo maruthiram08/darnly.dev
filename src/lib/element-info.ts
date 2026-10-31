@@ -145,23 +145,6 @@ export function keyStyles(el: Element): Record<string, string> {
   return out;
 }
 
-/** In React dev builds, the nearest component name, found through React's internal fiber key. */
-export function reactComponentName(el: Element): string | undefined {
-  let node: Element | null = el;
-  for (let i = 0; node && i < 10; i++, node = node.parentElement) {
-    const key = Object.keys(node).find((k) => k.startsWith('__reactFiber$'));
-    if (!key) continue;
-    let fiber = (node as unknown as Record<string, any>)[key];
-    while (fiber) {
-      const t = fiber.type;
-      const name = typeof t === 'function' ? t.displayName || t.name : t?.displayName;
-      if (name && /^[A-Z]/.test(name)) return name;
-      fiber = fiber.return;
-    }
-  }
-  return undefined;
-}
-
 export function describeElement(el: Element): ElementInfo {
   const r = el.getBoundingClientRect();
   return {
@@ -171,7 +154,6 @@ export function describeElement(el: Element): ElementInfo {
     html: trimmedHtml(el),
     styles: keyStyles(el),
     rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-    component: reactComponentName(el),
   };
 }
 

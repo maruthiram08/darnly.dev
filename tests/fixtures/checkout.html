@@ -7,8 +7,20 @@
 </style></head>
 <body>
   <h1>Checkout</h1>
-  <!-- Planted bug: the button looks disabled and ignores clicks -->
+  <!-- Planted bug 1: the button looks disabled and ignores clicks -->
   <button class="pay" data-testid="pay-now">Pay now</button>
   <label>Password <input type="password" name="password" value="hunter2"></label>
+  <label>Card <input name="cc-number" autocomplete="cc-number" value="4242424242424242"></label>
+  <!-- Planted bug 2: a missing image (only the browser sees this one) -->
+  <img src="/missing-logo.png" width="1" height="1" alt="">
+  <script>
+    // Planted bug 3: a console error that contains a secret
+    // The fake key is split so GitHub's secret scanner doesn't flag it.
+    console.error('Payment init failed for key ' + ['sk', 'live', '51HqLyjWDarjtT1zdp7dcXYZ'].join('_'));
+    // Planted bug 4: a failing API call with a token in the URL and a session in the body
+    fetch('/api/cart?token=abc12345&page=2', { method: 'POST' });
+    // Planted bug 5: an uncaught error
+    setTimeout(() => { const cart = undefined; cart.id; }, 50);
+  </script>
 </body>
 </html>

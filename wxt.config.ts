@@ -10,7 +10,9 @@ export default defineConfig({
   manifest: {
     name: PRODUCT.NAME,
     description: 'Turn a bug you see on screen into a ready-to-fix note for your AI coding agent.',
-    permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen'],
+    permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest'],
+    // Production sites are switched on one at a time from the side panel; Chrome asks to confirm each.
+    optional_host_permissions: ['https://*/*', 'http://*/*'],
     // Localhost works without asking; other sites work through the hotkey (activeTab). Per-site opt-in comes in Sprint 2.
     host_permissions: [
       'http://localhost/*',

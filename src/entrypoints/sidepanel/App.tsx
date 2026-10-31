@@ -4,6 +4,7 @@ import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot } from '@/lib/screenshot';
+import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, loadFolder, saveFolder, writeToProject } from '@/lib/project-folder';
 
 interface PendingCapture {
@@ -11,6 +12,15 @@ interface PendingCapture {
   page: { url: string; title: string; viewport: { width: number; height: number } };
   screenshot?: string;
   screenshotError?: string;
+  logs: LogEntry[];
+  recorder: boolean;
+}
+
+interface SiteStatus {
+  recordable: boolean;
+  on?: boolean;
+  origin?: string;
+  builtIn?: boolean;
 }
 
 type Stage = 'idle' | 'picking' | 'note' | 'saved';
@@ -24,7 +34,23 @@ export function App() {
   const [message, setMessage] = useState('');
   const [lastMarkdown, setLastMarkdown] = useState('');
   const [lastFile, setLastFile] = useState('');
+  const [site, setSite] = useState<SiteStatus>({ recordable: false });
   const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  const refreshSite = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab?.url) setSite(await chrome.runtime.sendMessage({ type: 'recording-status', url: tab.url }));
+  }, []);
+
+  const recordThisSite = async () => {
+    if (!site.origin) return;
+    // Chrome shows its own "allow on this site" prompt here.
+    const ok = await chrome.permissions.request({ origins: [`${site.origin}/*`] });
+    if (!ok) return;
+    await chrome.runtime.sendMessage({ type: 'record-site', origin: site.origin });
+    await refreshSite();
+    setMessage('Recording is on. Reload the page once so Darnly can start listening.');
+  };
 
   const refreshFolder = useCallback(async () => {
     const f = await loadFolder();
@@ -36,7 +62,12 @@ export function App() {
     document.title = PRODUCT.NAME;
     chrome.runtime.sendMessage({ type: 'keepalive' }).catch(() => {});
     refreshFolder();
-    const listener = (msg: { type?: string } & Partial<PendingCapture> & { error?: string }) => {
+    refreshSite();
+    const onTab = () => refreshSite();
+    chrome.tabs.onActivated.addListener(onTab);
+    chrome.tabs.onUpdated.addListener(onTab);
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
+    const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
         setMessage('');
@@ -44,15 +75,27 @@ export function App() {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
       } else if (msg.type === 'capture-ready') {
-        setCapture({ element: msg.element, page: msg.page!, screenshot: msg.screenshot, screenshotError: msg.screenshotError });
+        setCapture({
+          element: msg.element,
+          page: msg.page!,
+          screenshot: msg.screenshot,
+          screenshotError: msg.screenshotError,
+          logs: mergeLogs(msg.pageLogs ?? [], msg.browserLogs ?? []),
+          recorder: !!msg.recorder,
+        });
+        if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
-  }, [refreshFolder]);
+    return () => {
+      chrome.runtime.onMessage.removeListener(listener);
+      chrome.tabs.onActivated.removeListener(onTab);
+      chrome.tabs.onUpdated.removeListener(onTab);
+    };
+  }, [refreshFolder, refreshSite]);
 
   const linkFolder = async () => {
     try {
@@ -84,6 +127,8 @@ export function App() {
       browser: navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] ?? 'Chrome',
       capturedAt: when,
       element: c.element,
+      logs: c.logs,
+      recorder: c.recorder,
     });
     return { id, markdown };
   };
@@ -101,6 +146,7 @@ export function App() {
     }
     const { id, markdown } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
+    if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect);
     }
@@ -129,6 +175,13 @@ export function App() {
         <FolderLine folder={folder} access={access} onLink={linkFolder} />
       </header>
 
+      {site.recordable && !site.builtIn && !site.on && (
+        <div className="rounded-lg border border-gray-200 p-3">
+          <p className="text-gray-600">Errors and failed requests aren't recorded on <strong>{site.origin?.replace(/^https?:\/\//, '')}</strong>.</p>
+          <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={recordThisSite}>Record errors on this site</button>
+        </div>
+      )}
+
       {stage === 'idle' && (
         <section className="space-y-2">
           <p className="text-gray-600">Press <Kbd>Option</Kbd>+<Kbd>Shift</Kbd>+<Kbd>B</Kbd> on any page, then click the broken part.</p>
@@ -147,6 +200,11 @@ export function App() {
               {capture.element.tag}{capture.element.text ? ` "${capture.element.text.slice(0, 50)}"` : ''}
             </p>
           )}
+          <p className="text-xs text-gray-500">
+            {capture.recorder
+              ? `${capture.logs.filter((l) => l.kind !== 'request').length} errors · ${capture.logs.filter((l) => l.kind === 'request').length} failed requests (last 60s), secrets hidden`
+              : 'Errors not recorded on this site'}
+          </p>
           <label className="block font-medium" htmlFor="note">What did you expect?</label>
           <textarea
             id="note"
