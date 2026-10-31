@@ -212,17 +212,21 @@ export function App() {
     }
   };
 
-  // Picture and text on the clipboard together; apps that take only one get the picture, which has the note written on it.
+  // Claude's desktop app keeps only the text when the clipboard holds both, so copy in two steps:
+  // the picture first (the note is written on it), then the full details.
+  const [copyStep, setCopyStep] = useState<'picture' | 'details' | 'done'>('picture');
+  useEffect(() => setCopyStep('picture'), [lastMarkdown]);
   const copyBug = async (markdown: string, files: File[]) => {
     const png = files.find((f) => f.type === 'image/png');
-    if (!png) return copyPrompt(markdown);
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png, 'text/plain': new Blob([markdown], { type: 'text/plain' }) })]);
-      setMessage('Copied. Paste it into your agent (Cmd+V).');
-    } catch {
+    if (png && copyStep === 'picture') {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-      setMessage('Copied the picture (the note is written on it). Paste it into your agent.');
+      setCopyStep('details');
+      setMessage('Picture copied. Paste it into your agent (Cmd+V), then click "Copy details".');
+      return;
     }
+    await navigator.clipboard.writeText(markdown);
+    setCopyStep('done');
+    setMessage('Details copied. Paste them into your agent too.');
   };
 
   const copyPrompt = async (markdown: string) => {
@@ -314,7 +318,7 @@ export function App() {
           <DragCard files={lastFiles} title={headingFrom(lastMarkdown.split('\n# ')[1] ?? '')} linked={!!lastFile} />
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
-            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyBug(lastMarkdown, lastFiles)}>Copy bug</button>
+            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyBug(lastMarkdown, lastFiles)}>{copyStep === 'details' ? 'Copy details' : copyStep === 'done' ? 'Copied ✓' : 'Copy picture'}</button>
           </div>
         </section>
       )}
@@ -439,7 +443,7 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
       )}
       <div className="min-w-0">
         <p className="truncate font-medium">{title || 'Bug report'}</p>
-        <p className="text-xs text-gray-500">Drag the picture into your agent, or press Copy bug and paste. The note is written on the picture.</p>
+        <p className="text-xs text-gray-500">Copy the picture, paste it in your agent, then copy the details and paste. The note is written on the picture.</p>
       </div>
     </div>
   );
