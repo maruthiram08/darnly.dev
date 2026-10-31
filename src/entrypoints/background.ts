@@ -27,12 +27,16 @@ export default defineBackground(() => {
 
   // Failures only the browser sees (blocked images, CORS, DNS). Kept per tab for 60 seconds in session storage.
   const key = (tabId: number) => `net:${tabId}`;
-  async function remember(tabId: number, entry: LogEntry) {
+  // Writes go one at a time: two failures arriving together would otherwise overwrite each other.
+  let queue: Promise<unknown> = Promise.resolve();
+  function remember(tabId: number, entry: LogEntry) {
     if (tabId < 0) return;
     const k = key(tabId);
-    const cutoff = Date.now() - 60_000;
-    const list = ((await chrome.storage.session.get(k))[k] as LogEntry[] | undefined) ?? [];
-    await chrome.storage.session.set({ [k]: [...list.filter((e) => e.t >= cutoff), entry].slice(-100) });
+    queue = queue.then(async () => {
+      const cutoff = Date.now() - 60_000;
+      const list = ((await chrome.storage.session.get(k))[k] as LogEntry[] | undefined) ?? [];
+      await chrome.storage.session.set({ [k]: [...list.filter((e) => e.t >= cutoff), entry].slice(-100) });
+    }).catch(() => {});
   }
   const filter = { urls: ['<all_urls>'] };
   chrome.webRequest.onCompleted.addListener((d) => {
@@ -113,7 +117,7 @@ export default defineBackground(() => {
     }
     if (msg.type === 'element-picked' && sender.tab?.windowId && sender.tab.id != null) {
       const k = key(sender.tab.id);
-      const browserLogs = chrome.storage.session.get(k).then((r) => ((r[k] as LogEntry[] | undefined) ?? []).map(redactLog));
+      const browserLogs = queue.then(() => chrome.storage.session.get(k)).then((r) => ((r[k] as LogEntry[] | undefined) ?? []).map(redactLog));
       const shot = chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' });
       // Tell the picker the screenshot is taken, so it can unmask password and card fields.
       shot.finally(() => reply(true)).catch(() => {});

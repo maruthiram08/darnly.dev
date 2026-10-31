@@ -121,7 +121,7 @@ try {
   if (!md.includes('POST /api/cart?token=[hidden]&page=2 500')) fail('failed fetch missing or not redacted');
   if (!/GET \/missing-logo\.png 404 .*\[image\]/.test(md)) fail('missing image (browser-only failure) missing');
   if (errors.length) fail('panel errors: ' + errors.join('; '));
-  if (!process.exitCode) console.log('PASS: capture loop works end to end');
+  if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {
   await ctx.close();
   server.close();
