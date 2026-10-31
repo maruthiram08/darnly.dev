@@ -120,6 +120,39 @@ try {
   if (!/uncaught error: .*TypeError/.test(md)) fail('uncaught error missing');
   if (!md.includes('POST /api/cart?token=[hidden]&page=2 500')) fail('failed fetch missing or not redacted');
   if (!/GET \/missing-logo\.png 404 .*\[image\]/.test(md)) fail('missing image (browser-only failure) missing');
+  // Sprint 3: the inbox list and "Set up this project".
+  await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('inbox list missing'));
+  await panel.getByRole('button', { name: 'See what it adds' }).click();
+  await panel.getByRole('button', { name: 'Add these' }).click();
+  await panel.getByText('Project set up').waitFor({ timeout: 5000 }).catch(() => fail('setup did not finish'));
+  const setup = await panel.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const read = async (path) => {
+      const parts = path.split('/');
+      const name = parts.pop();
+      let d = root;
+      for (const p of parts) d = await d.getDirectoryHandle(p);
+      return (await (await d.getFileHandle(name)).getFile()).text();
+    };
+    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md') };
+  });
+  if (!setup.agents.includes('.darnly/inbox/')) fail('AGENTS.md block missing');
+  if (!setup.skill.startsWith('---\nname: darnly') || setup.skill !== setup.claudeSkill) fail('skill files wrong');
+  if (await panel.getByText('Set up this project').count()) fail('setup card still showing after setup');
+  // Pretend the agent fixed the bug: move it to done/, and the list should notice within 5 seconds.
+  await panel.evaluate(async () => {
+    const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly');
+    const inbox = await root.getDirectoryHandle('inbox');
+    const done = await root.getDirectoryHandle('done', { create: true });
+    for await (const [name, h] of inbox.entries()) {
+      const f = await h.getFile();
+      const w = await (await done.getFileHandle(name, { create: true })).createWritable();
+      await w.write(f);
+      await w.close();
+      await inbox.removeEntry(name);
+    }
+  });
+  await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {

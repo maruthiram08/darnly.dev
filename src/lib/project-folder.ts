@@ -72,3 +72,55 @@ export async function writeToProject(
   for (const part of sub.split('/').filter(Boolean)) dir = await dir.getDirectoryHandle(part, { create: true });
   for (const [name, data] of Object.entries(files)) await writeFile(dir, name, data);
 }
+
+async function dirAt(root: FileSystemDirectoryHandle, parts: string[], create: boolean) {
+  let dir = root;
+  for (const p of parts) dir = await dir.getDirectoryHandle(p, { create });
+  return dir;
+}
+
+/** Reads a text file by path relative to the project root; null when it doesn't exist. */
+export async function readProjectFile(root: FileSystemDirectoryHandle, path: string): Promise<string | null> {
+  const parts = path.split('/');
+  const name = parts.pop()!;
+  try {
+    const dir = await dirAt(root, parts, false);
+    return await (await (await dir.getFileHandle(name)).getFile()).text();
+  } catch {
+    return null;
+  }
+}
+
+export async function writeProjectFile(root: FileSystemDirectoryHandle, path: string, content: string): Promise<void> {
+  const parts = path.split('/');
+  const name = parts.pop()!;
+  await writeFile(await dirAt(root, parts, true), name, content);
+}
+
+export interface CaptureSummary {
+  id: string;
+  title: string;
+  status: 'waiting' | 'fixed';
+  modified: number;
+}
+
+/** Captures in .darnly/inbox (waiting for the agent) and .darnly/done (the agent moved them there after fixing). */
+export async function listCaptures(root: FileSystemDirectoryHandle): Promise<CaptureSummary[]> {
+  const out: CaptureSummary[] = [];
+  for (const [sub, status] of [['inbox', 'waiting'], ['done', 'fixed']] as const) {
+    let dir: FileSystemDirectoryHandle;
+    try {
+      dir = await dirAt(root, [ROOT_FOLDER, sub], false);
+    } catch {
+      continue;
+    }
+    for await (const [name, handle] of (dir as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) {
+      if (handle.kind !== 'file' || !name.endsWith('.md')) continue;
+      const file = await (handle as FileSystemFileHandle).getFile();
+      const text = await file.slice(0, 2000).text();
+      const title = text.match(/^# (.+)$/m)?.[1] ?? name;
+      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified });
+    }
+  }
+  return out.sort((a, b) => b.modified - a.modified);
+}
