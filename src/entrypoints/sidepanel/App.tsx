@@ -36,6 +36,8 @@ export function App() {
   const [message, setMessage] = useState('');
   const [lastMarkdown, setLastMarkdown] = useState('');
   const [lastFile, setLastFile] = useState('');
+  // The saved bug as real files, so it can be dragged straight into an agent's chat (cloud projects have no local folder).
+  const [lastFiles, setLastFiles] = useState<File[]>([]);
   const [site, setSite] = useState<SiteStatus>({ recordable: false });
   const [captures, setCaptures] = useState<CaptureSummary[]>([]);
   const [plan, setPlan] = useState<PlannedChange[] | null>(null);
@@ -170,30 +172,35 @@ export function App() {
 
   const save = async () => {
     if (!capture) return;
-    if (!folder) {
-      setMessage('Link your project folder first, then press Save again.');
-      return;
-    }
-    // This runs inside the Enter key press, so Chrome may show its once-a-session "Allow" prompt here.
-    if (!(await ensureAccess(folder))) {
-      setMessage('Darnly needs "Allow" to save into your project. Press Save again and choose Allow.');
-      return;
-    }
     const { id, markdown } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point);
     }
+    const asFiles = Object.entries(files)
+      .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
+      .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
+    const done = (file: string) => {
+      setLastMarkdown(markdown);
+      setLastFiles(asFiles);
+      setLastFile(file);
+      setStage('saved');
+      setCapture(null);
+      setMessage('');
+    };
+    // No linked folder (for example a cloud project): keep the bug in the panel, ready to drag into the agent.
+    if (!folder) return done('');
+    // This runs inside the Enter key press, so Chrome may show its once-a-session "Allow" prompt here.
+    if (!(await ensureAccess(folder))) {
+      setMessage('Darnly needs "Allow" to save into your project. Press Save again and choose Allow.');
+      return;
+    }
     try {
       await writeToProject(folder, 'inbox', files);
       setAccess('granted');
-      setLastMarkdown(markdown);
-      setLastFile(`${INBOX_FOLDER}/${id}.md`);
-      setStage('saved');
-      setCapture(null);
+      done(`${INBOX_FOLDER}/${id}.md`);
       refreshProject(folder);
-      setMessage('');
     } catch (e) {
       setMessage(`Couldn't save: ${(e as Error).message}`);
     }
@@ -277,8 +284,15 @@ export function App() {
 
       {stage === 'saved' && (
         <section className="space-y-2">
-          <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
-          <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+          {lastFile ? (
+            <>
+              <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
+              <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+            </>
+          ) : (
+            <p className="text-gray-600">Bug ready. Drag it into your agent's chat (Claude Code on the web, Codex, Cursor).</p>
+          )}
+          <DragCard files={lastFiles} title={headingFrom(lastMarkdown.split('\n# ')[1] ?? '')} linked={!!lastFile} />
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
             <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(lastMarkdown)}>Copy as prompt</button>
@@ -336,9 +350,12 @@ export function App() {
 function FolderLine({ folder, access, onLink }: { folder: FileSystemDirectoryHandle | null; access: string; onLink: () => void }) {
   if (!folder) {
     return (
-      <button className="mt-2 w-full rounded-lg bg-gray-900 py-2 text-white" onClick={onLink}>
-        Link your project folder
-      </button>
+      <>
+        <button className="mt-2 w-full rounded-lg bg-gray-900 py-2 text-white" onClick={onLink}>
+          Link your project folder
+        </button>
+        <p className="mt-1 text-xs text-gray-500">Project lives in the cloud? Skip this. Each bug stays here for you to drag into your agent.</p>
+      </>
     );
   }
   return (
@@ -361,6 +378,39 @@ function MarkedPreview({ capture }: { capture: PendingCapture }) {
     return () => URL.revokeObjectURL(revoked);
   }, [capture]);
   return url ? <img src={url} alt="Screenshot with the picked element outlined" className="w-full rounded-lg border border-gray-200" /> : null;
+}
+
+/** The saved bug as a card you drag into an agent's chat; the drop carries the markdown and the screenshot as files. */
+function DragCard({ files, title, linked }: { files: File[]; title: string; linked: boolean }) {
+  const png = files.find((f) => f.type === 'image/png');
+  const [thumb, setThumb] = useState('');
+  useEffect(() => {
+    if (!png) return;
+    const u = URL.createObjectURL(png);
+    setThumb(u);
+    return () => URL.revokeObjectURL(u);
+  }, [png]);
+  if (!files.length) return null;
+  return (
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'copy';
+        for (const f of files) e.dataTransfer.items.add(f);
+        // Lets a desktop app or Finder take the markdown when it doesn't accept dropped files from a web page.
+        const md = files.find((f) => f.name.endsWith('.md'));
+        if (md) e.dataTransfer.setData('DownloadURL', `text/markdown:${md.name}:${URL.createObjectURL(md)}`);
+      }}
+      className="flex cursor-grab items-center gap-3 rounded-lg border border-dashed border-gray-400 bg-gray-50 p-2 active:cursor-grabbing"
+      title="Drag into your agent's chat"
+    >
+      {thumb && <img src={thumb} alt="" className="h-10 w-14 rounded object-cover" draggable={false} />}
+      <div className="min-w-0">
+        <p className="truncate font-medium">{title || 'Bug report'}</p>
+        <p className="text-xs text-gray-500">{linked ? 'Or drag into a cloud agent' : 'Drag into your agent'} · {files.length} files</p>
+      </div>
+    </div>
+  );
 }
 
 function Kbd({ children }: { children: string }) {

@@ -23,7 +23,7 @@ const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'po
 /** First line of the note, as a short heading. */
 export function headingFrom(note: string, element?: ElementInfo): string {
   const first = (note.split('\n')[0] ?? '').trim();
-  if (first) return first.length > 70 ? first.slice(0, 70).replace(/\s+\S*$/, '') + '…' : first;
+  if (first) return first; // never cut: a chopped heading reads like lost text
   return element ? `Problem with ${element.tag}${element.text ? ` "${element.text.slice(0, 40)}"` : ''}` : 'Problem on this page';
 }
 

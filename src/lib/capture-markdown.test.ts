@@ -43,10 +43,9 @@ describe('captureMarkdown', () => {
 });
 
 describe('headingFrom', () => {
-  it('cuts long notes at a word', () => {
-    const h = headingFrom('When I click the big blue button at the bottom of the checkout page nothing happens at all');
-    expect(h.length).toBeLessThanOrEqual(71);
-    expect(h.endsWith('…')).toBe(true);
+  it('keeps the whole first line of a long note', () => {
+    const note = 'When I click the big blue button at the bottom of the checkout page nothing happens at all';
+    expect(headingFrom(note + '\nmore')).toBe(note);
   });
 });
 
