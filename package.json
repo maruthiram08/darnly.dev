@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "e2e": "DARNLY_E2E=1 wxt build && node tests/e2e/capture-loop.mjs",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "e2e:cloud": "DARNLY_E2E=1 wxt build && node tests/e2e/cloud-loop.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

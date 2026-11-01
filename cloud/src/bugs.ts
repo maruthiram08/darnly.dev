@@ -64,7 +64,8 @@ export interface NewBug {
   title: string;
   pageUrl: string;
   report: string;
-  picture: ArrayBuffer;
+  /** Missing when the browser couldn't take a screenshot (for example on a protected page). */
+  picture?: ArrayBuffer;
   logs?: string;
 }
 
@@ -82,7 +83,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   const report = form.get('report');
   const picture = form.get('picture');
   const logs = form.get('logs');
-  if (typeof meta !== 'string' || !(report instanceof File || typeof report === 'string') || !(picture instanceof File)) {
+  if (typeof meta !== 'string' || !(report instanceof File || typeof report === 'string') || (picture != null && !(picture instanceof File))) {
     throw new HttpError(400, 'missing_parts');
   }
   let parsed: { title?: unknown; pageUrl?: unknown };
@@ -93,11 +94,14 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   }
   const reportText = typeof report === 'string' ? report : await report.text();
   if (reportText.length > LIMITS.reportBytes) throw new HttpError(413, 'report_too_large');
-  if (picture.size > LIMITS.pictureBytes) throw new HttpError(413, 'picture_too_large');
-  const bytes = await picture.arrayBuffer();
-  const head = new Uint8Array(bytes.slice(0, 8));
-  const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
-  if (!isPng) throw new HttpError(415, 'picture_not_png');
+  let bytes: ArrayBuffer | undefined;
+  if (picture instanceof File) {
+    if (picture.size > LIMITS.pictureBytes) throw new HttpError(413, 'picture_too_large');
+    bytes = await picture.arrayBuffer();
+    const head = new Uint8Array(bytes.slice(0, 8));
+    const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+    if (!isPng) throw new HttpError(415, 'picture_not_png');
+  }
   let logsText: string | undefined;
   if (logs != null) {
     logsText = typeof logs === 'string' ? logs : await logs.text();
@@ -127,7 +131,7 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
   const prefix = `u/${userId}/${id}/`;
   await Promise.all([
     env.FILES.put(prefix + 'report.md', bug.report, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } }),
-    env.FILES.put(prefix + 'picture.png', bug.picture, { httpMetadata: { contentType: 'image/png' } }),
+    bug.picture ? env.FILES.put(prefix + 'picture.png', bug.picture, { httpMetadata: { contentType: 'image/png' } }) : null,
     bug.logs ? env.FILES.put(prefix + 'logs.json', bug.logs, { httpMetadata: { contentType: 'application/json' } }) : null,
   ]);
   const row: BugRow = {

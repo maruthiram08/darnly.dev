@@ -18,6 +18,8 @@ export interface CaptureInput {
   recorder?: boolean;
   /** Written for pasting into a chat (cloud projects): no file paths the agent can't open. */
   forPaste?: boolean;
+  /** Written for the cloud inbox: the agent reads it through MCP, which returns the picture with it. */
+  forCloud?: boolean;
 }
 
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
@@ -62,7 +64,7 @@ function yamlValue(v: string): string {
 
 /** The markdown file an agent reads: the intent first, then the facts. */
 export function captureMarkdown(c: CaptureInput): string {
-  const png = c.forPaste ? 'the screenshot pasted with this message' : `${INBOX_FOLDER}/${c.id}.png`;
+  const png = c.forCloud ? 'the screenshot returned with this bug' : c.forPaste ? 'the screenshot pasted with this message' : `${INBOX_FOLDER}/${c.id}.png`;
   const lines = [
     '---',
     `id: ${c.id}`,
@@ -126,7 +128,7 @@ export function captureMarkdown(c: CaptureInput): string {
   if (errors.length) lines.push('## Errors (last 60s)', ...errors, '');
   if (requests.length) lines.push(c.recorder === false ? '## Failed requests (since the page loaded)' : '## Failed requests (last 60s)', ...requests, '');
   if (logs.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
-  if (logs.length && !c.forPaste) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
+  if (logs.length && !c.forPaste && !c.forCloud) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
   else if (c.recorder === false) lines.push('_No failed requests since the page loaded. Console errors are not recorded on this site (recording is off)._', '');
   else lines.push('No console errors or failed requests in the last 60 seconds.', '');
   for (let i = pageDataFrom; i < lines.length; i++) lines[i] = pageSafe(lines[i]!);
@@ -134,7 +136,9 @@ export function captureMarkdown(c: CaptureInput): string {
   lines.push(
     '## How to fix',
     'If the note is vague or compares to something else ("like the other pages", "like the Beliefs pills"), look at that part of the code first and match it. If it is still unclear, ask the user one short question before changing anything.',
-    c.forPaste
+    c.forCloud
+      ? 'Find the code with the hints above, fix it so the expected behaviour happens, then call the Darnly `mark_fixed` tool with this bug\'s id and one line on what you changed.'
+      : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
       : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and its PNG to ${DONE_FOLDER}/.`,
     '',

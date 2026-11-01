@@ -81,6 +81,17 @@ describe('cloud inbox API', () => {
     expect((await SELF.fetch(`${BASE}/v1/bugs/${bug.id}`, auth(alice))).status).toBe(200);
   });
 
+  it('accepts a bug without a picture', async () => {
+    const token = await signIn('nopic@example.com');
+    const form = new FormData();
+    form.set('meta', JSON.stringify({ title: 'No screenshot', pageUrl: 'https://example.com/' }));
+    form.set('report', '# Bug');
+    const res = await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', ...auth(token), body: form });
+    expect(res.status).toBe(201);
+    const bug = (await res.json()) as { id: string };
+    expect((await SELF.fetch(`${BASE}/v1/bugs/${bug.id}/picture`, auth(token))).status).toBe(404);
+  });
+
   it('refuses pictures that are not PNG or are too big', async () => {
     const token = await signIn('limits@example.com');
     expect((await upload(token, { picture: new TextEncoder().encode('<svg>not a png</svg>') })).status).toBe(415);
