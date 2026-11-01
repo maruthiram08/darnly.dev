@@ -13,6 +13,11 @@ export const TOOLS: Item[] = [
     name: 'Favicon generator',
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
+  {
+    slug: 'color-palette-from-image',
+    name: 'Color palette from image',
+    blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
+  },
 ];
 
 // Same for guides.
