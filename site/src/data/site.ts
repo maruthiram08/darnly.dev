@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'icon-finder',
+    category: 'Design',
+    name: 'Icon finder',
+    blurb: 'Search 10,000+ free icons from Lucide, Heroicons, Tabler and Phosphor, then copy as SVG, JSX or React.',
+  },
 ];
 
 // Same for guides.
