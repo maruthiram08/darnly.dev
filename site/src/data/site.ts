@@ -33,6 +33,11 @@ export const TOOLS: Item[] = [
     name: 'Color palette from image',
     blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
   },
+  {
+    slug: 'website-color-finder',
+    name: 'Website color finder',
+    blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
+  },
 ];
 
 // Same for guides.

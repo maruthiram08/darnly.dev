@@ -9,8 +9,13 @@
 // GET /api/fonts?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
+//
+// GET /api/colors?url=https://example.com
+//   Same guards. Reads the page and its stylesheets and returns its color palette, for the
+//   website color finder at /tools/website-color-finder/.
 
 import { findFonts } from './fonts';
+import { findColors } from './colors';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -28,6 +33,7 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -48,6 +54,16 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     finalUrl: p.finalUrl,
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
+// /api/colors: a page's color palette from its CSS.
+function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('colors', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
 }
 
