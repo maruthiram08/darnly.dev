@@ -1,0 +1,212 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick what your app shows: <strong>Users</strong>, <strong>Products</strong>, <strong>Orders</strong> or <strong>Blog posts</strong>. The preview fills with realistic rows right away.',
+  'Choose how many rows you need, from 10 to 1000. Click <strong>Edit fields</strong> to rename, add or remove fields, like a phone number or a city.',
+  'Download it as JSON, CSV, SQL or a TypeScript seed file. Or copy the prompt and paste it into Claude Code, Cursor or Codex so your agent adds the data to your project.',
+];
+
+const faq = [
+  { q: 'Is any of this real data?', a: 'No. Every name, email and address is made up from built-in word lists. Emails use <code>example.com</code> and similar addresses that can never reach a real inbox, and phone numbers use the 555-01xx range kept for fiction.' },
+  { q: 'Is anything sent to a server?', a: 'No. The data is made in your browser. The only things loaded from elsewhere are the preview pictures: avatars from DiceBear and photos from Picsum, which are also the links inside your data.' },
+  { q: 'How do I get it into Supabase?', a: 'Pick <strong>SQL</strong>, copy it, and paste it into the SQL editor in your Supabase dashboard, then click Run. It creates the table if it doesn’t exist and inserts every row. You can also save it as <code>supabase/seed.sql</code> so it loads every time you reset your local database.' },
+  { q: 'Why do I get the same rows every time?', a: 'So your screenshots and tests stay the same while you work. Click <strong>New random data</strong> for a fresh set.' },
+  { q: 'Do the fields go together?', a: 'Yes. In each row the email matches the name, the country matches the city, and a product’s name fits its category. Emails and usernames never repeat.' },
+  { q: 'Can I use it for my tests?', a: 'Yes. The TypeScript seed file gives you a typed list you can import into tests or Storybook. JSON works for mock API responses.' },
+];
+---
+<ToolPage
+  slug="fake-data-generator"
+  title="Fake data generator: mock JSON, CSV and SQL seed data · Darnly"
+  description="Make realistic fake users, products, orders or blog posts for your app. Preview them as cards or a table, then download JSON, CSV, SQL inserts for Postgres and Supabase, or a TypeScript seed file. Free, no sign-up."
+  h1="Fake data generator: mock data for your app"
+  lede="Pick users, products, orders or blog posts and get realistic rows you can see right away. Download them as JSON, CSV, SQL or a TypeScript seed file, so your app looks real before it has real users."
+  steps={steps}
+  faq={faq}
+>
+  <div class="fd">
+    <div class="controls">
+      <fieldset class="seg tpl">
+        <legend class="sr">What data</legend>
+        <label><input type="radio" name="fd-tpl" value="users" checked /> Users</label>
+        <label><input type="radio" name="fd-tpl" value="products" /> Products</label>
+        <label><input type="radio" name="fd-tpl" value="orders" /> Orders</label>
+        <label><input type="radio" name="fd-tpl" value="posts" /> Blog posts</label>
+      </fieldset>
+      <div class="count">
+        <label for="fd-count" class="lab">Rows</label>
+        <div class="count-btns" role="group" aria-label="Quick row counts">
+          <button type="button" data-count="10" aria-pressed="false">10</button>
+          <button type="button" data-count="25" aria-pressed="true">25</button>
+          <button type="button" data-count="100" aria-pressed="false">100</button>
+          <button type="button" data-count="1000" aria-pressed="false">1000</button>
+        </div>
+        <input id="fd-count" type="number" min="1" max="1000" step="1" value="25" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head">
+        <fieldset class="seg view">
+          <legend class="sr">Show as</legend>
+          <label><input type="radio" name="fd-view" value="cards" checked /> Cards</label>
+          <label><input type="radio" name="fd-view" value="table" /> Table</label>
+        </fieldset>
+        <button id="fd-shuffle" type="button" class="ghost">New random data</button>
+      </div>
+      <div id="fd-preview" class="preview" aria-live="polite"></div>
+      <p id="fd-caption" class="caption"></p>
+    </div>
+
+    <details id="fd-fields" class="fields">
+      <summary>Edit fields <span class="badge" id="fd-fields-count">8</span></summary>
+      <div class="fields-body">
+        <ul id="fd-field-list" class="field-list"></ul>
+        <button id="fd-add" type="button" class="ghost">+ Add a field</button>
+      </div>
+    </details>
+
+    <section class="export" aria-labelledby="fd-export-h">
+      <div class="export-head">
+        <h2 id="fd-export-h">Get your data</h2>
+        <span class="size" id="fd-size"></span>
+      </div>
+      <div class="formats" id="fd-formats" role="tablist" aria-label="File type">
+        <button type="button" role="tab" data-format="json" aria-selected="true"><strong>JSON</strong><span>mock API data</span></button>
+        <button type="button" role="tab" data-format="csv" aria-selected="false" tabindex="-1"><strong>CSV</strong><span>spreadsheets, imports</span></button>
+        <button type="button" role="tab" data-format="sql" aria-selected="false" tabindex="-1"><strong>SQL</strong><span>Postgres, Supabase</span></button>
+        <button type="button" role="tab" data-format="ts" aria-selected="false" tabindex="-1"><strong>TypeScript</strong><span>seed file</span></button>
+      </div>
+      <div class="actions">
+        <button id="fd-download" type="button" class="primary">Download JSON</button>
+        <button id="fd-copy" type="button" class="ghost">Copy</button>
+        <button id="fd-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      </div>
+      <details class="more">
+        <summary>See the code and more options</summary>
+        <div class="more-body">
+          <div class="opts">
+            <label class="name">Table name <input id="fd-table" type="text" value="users" maxlength="40" autocomplete="off" spellcheck="false" /></label>
+            <label class="check"><input id="fd-create" type="checkbox" checked /> Add <code>create table</code> to the SQL</label>
+          </div>
+          <div class="code"><pre id="fd-code" tabindex="0"></pre></div>
+          <p id="fd-code-note" class="note" hidden></p>
+        </div>
+      </details>
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/fake-data-generator';
+</script>
+
+<style>
+  .fd { min-width: 0; display: grid; gap: 20px; }
+  .fd [hidden] { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .lab { font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px 20px; }
+  .seg { display: inline-flex; flex-wrap: wrap; margin: 0; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); min-width: 0; }
+  .seg label { position: relative; padding: 8px 16px; border-radius: 999px; font: 600 15px/1.2 var(--body); cursor: pointer; }
+  .seg label:has(input:checked) { background: var(--sky); color: var(--white); }
+  .seg label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .view label { padding: 6px 14px; font-size: 14px; }
+  .count { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .count-btns { display: flex; gap: 4px; }
+  .count-btns button { font: 500 14px/1 var(--mono); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .count-btns button[aria-pressed='true'] { border-color: var(--sky); background: var(--wash); color: var(--sky); }
+  #fd-count { width: 84px; font: 400 15px/1.2 var(--mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+  .ghost { font: 600 14px/1 var(--body); padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .primary { font: 600 15px/1 var(--body); padding: 13px 22px; border-radius: 999px; border: 0; background: var(--pink); color: var(--white); cursor: pointer; }
+
+  .stage { padding: 18px; border-radius: 20px; background: var(--wash); min-width: 0; }
+  .stage-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .preview { min-height: 320px; min-width: 0; }
+  .caption { margin: 14px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .empty { margin: 0; padding: 60px 20px; text-align: center; color: var(--ink-soft); }
+
+  .preview :global(.cards) { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .preview :global(.card) { display: flex; flex-direction: column; border-radius: 14px; background: var(--white); border: 1px solid var(--line); overflow: hidden; min-width: 0; }
+  .preview :global(.card-body) { display: grid; gap: 10px; padding: 14px; min-width: 0; }
+  .preview :global(.card-head) { display: flex; gap: 12px; align-items: center; min-width: 0; }
+  .preview :global(.card-names) { min-width: 0; }
+  .preview :global(.card-title) { margin: 0; font: 700 16px/1.25 var(--body); overflow-wrap: anywhere; }
+  .preview :global(.card-sub) { margin: 2px 0 0; font-size: 14px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview :global(.card-line) { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .preview :global(.price) { font: 700 18px/1 var(--display); color: var(--ink); }
+  .preview :global(.card-facts) { margin: 0; display: grid; gap: 4px; font-size: 13px; }
+  .preview :global(.card-facts div) { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+  .preview :global(.card-facts dt) { color: var(--ink-soft); font-family: var(--mono); font-size: 12px; flex: none; }
+  .preview :global(.card-facts dd) { margin: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .preview :global(.card-facts dd.yes) { color: #1E7A4C; font-weight: 600; }
+  .preview :global(.card-facts dd.no) { color: var(--ink-soft); }
+
+  .preview :global(.pic) { position: relative; aspect-ratio: 16 / 10; background: hsl(var(--h) 70% 88%); overflow: hidden; flex: none; }
+  .preview :global(.pic img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .preview :global(.pic-fallback) { position: absolute; inset: 0; display: grid; place-items: center; font: 700 15px/1 var(--body); color: hsl(var(--h) 60% 30%); padding: 8px; text-align: center; }
+  .preview :global(.pic.round) { width: 48px; height: 48px; aspect-ratio: auto; border-radius: 50%; }
+  .preview :global(.cell-pic .pic.round) { width: 28px; height: 28px; }
+  .preview :global(.cell-pic .pic-fallback) { font-size: 11px; }
+
+  .preview :global(.pill) { display: inline-block; padding: 4px 10px; border-radius: 999px; font: 600 12px/1.2 var(--body); background: var(--wash); color: var(--ink-soft); text-transform: capitalize; }
+  .preview :global(.st-paid), .preview :global(.st-shipped) { background: #E3F2FB; color: #04648A; }
+  .preview :global(.st-delivered) { background: #E2F5EA; color: #1E7A4C; }
+  .preview :global(.st-pending) { background: #FFF4DB; color: #8A5A00; }
+  .preview :global(.st-cancelled), .preview :global(.st-refunded) { background: #FDEEF4; color: #8A1A3D; }
+
+  .preview :global(.table-wrap) { overflow: auto; max-height: 560px; border-radius: 14px; border: 1px solid var(--line); background: var(--white); }
+  .preview :global(.table-wrap:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .preview :global(.data) { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+  .preview :global(.data th) { position: sticky; top: 0; background: var(--white); text-align: left; font: 600 12px/1.2 var(--mono); color: var(--ink-soft); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .preview :global(.data td) { padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+  .preview :global(.data tr:last-child td) { border-bottom: 0; }
+  .preview :global(.data .num) { color: var(--ink-soft); font: 400 12px/1 var(--mono); text-align: right; }
+  .preview :global(.data td.n) { font-family: var(--mono); font-size: 13px; text-align: right; }
+  .preview :global(.data td.long) { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+  .preview :global(.bool) { font: 500 12px/1 var(--mono); }
+  .preview :global(.bool.yes) { color: #1E7A4C; }
+  .preview :global(.bool.no) { color: var(--ink-soft); }
+  .preview :global(.swatch) { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; border: 1px solid rgba(0, 0, 0, 0.1); }
+
+  .fields, .more { border: 1px solid var(--line); border-radius: 14px; background: var(--white); min-width: 0; }
+  .fields summary, .more summary { cursor: pointer; padding: 14px 16px; font-weight: 600; }
+  .badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--wash); font: 500 12px/1.4 var(--mono); color: var(--ink-soft); }
+  .fields-body, .more-body { display: grid; gap: 12px; padding: 0 16px 16px; min-width: 0; }
+  .field-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+  .fields-body .ghost { justify-self: start; }
+  .field-list :global(.field) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .field-list :global(input), .field-list :global(select) { width: 100%; min-width: 0; font: 400 14px/1.2 var(--body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+  .field-list :global(input) { font-family: var(--mono); font-size: 13px; }
+  .field-list :global(.remove) { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--white); color: var(--ink-soft); font-size: 18px; line-height: 1; cursor: pointer; }
+  .field-list :global(.remove:hover) { border-color: var(--pink); color: var(--pink); }
+
+  .export { display: grid; gap: 14px; min-width: 0; }
+  .export-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .export h2 { margin: 0; font-size: 24px; }
+  .size { font: 400 13px/1 var(--mono); color: var(--ink-soft); }
+  .formats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .formats button { display: grid; gap: 4px; text-align: left; padding: 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; font: inherit; min-width: 0; }
+  .formats button strong { font: 700 16px/1.2 var(--body); }
+  .formats button span { font-size: 13px; color: var(--ink-soft); }
+  .formats button[aria-selected='true'] { border-color: var(--sky); background: var(--wash); }
+  .formats button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .opts { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+  .name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+  .name input { width: 160px; font: 400 14px/1.2 var(--mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .code { border-radius: 14px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code pre { margin: 0; padding: 16px; max-height: 440px; overflow: auto; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 720px) {
+    .formats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stage { padding: 12px; }
+    .seg label { padding: 7px 12px; font-size: 14px; }
+    .field-list { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
