@@ -45,7 +45,7 @@ When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or
    xcrun notarytool store-credentials darnly --apple-id you@example.com --team-id ABCDE12345 --password abcd-efgh-ijkl-mnop
    ```
 
-Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.2.1 ./scripts/make-dmg.sh` for a new version). It also writes `build/Darnly.dmg`: upload that to a new GitHub release (Releases → Draft a new release → tag `mac-v<version>` → attach `Darnly.dmg` → Publish), and darnly.dev's **Download for Mac** button (`/releases/latest/download/Darnly.dmg`) serves it. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
+Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.2.1 ./scripts/make-dmg.sh` for a new version). It also copies the DMG to `site/download/Darnly.dmg`; commit and push that file, and darnly.dev's **Download for Mac** button (`/download/Darnly.dmg`) serves the new version. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
 
 ## Keys while picking
 
