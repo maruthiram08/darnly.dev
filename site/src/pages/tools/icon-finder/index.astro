@@ -1,0 +1,167 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const hasSvgOptimizer = TOOLS.some((t) => t.slug === 'svg-optimizer');
+
+const steps = [
+  'Type what you need, like <code>home</code>, <code>settings</code> or <code>arrow</code>. We search icon names and tags across Lucide, Heroicons, Tabler and Phosphor at once.',
+  'Change the size, line thickness and color. Every icon in the grid updates as you drag, so you can see which set fits your design.',
+  'Click an icon to see it big, then copy it as SVG, as JSX for React, as an import line for the set’s React package, or as a data URI for CSS.',
+];
+
+const faq = [
+  { q: 'Can I use these icons in a paid product?', a: 'Yes. Lucide is ISC and Heroicons, Tabler and Phosphor are MIT. Both licenses let you use the icons in personal and commercial projects for free. Keep the license text if you ship the icon package itself.' },
+  { q: 'Should I paste the SVG or install the package?', a: 'If you need a few icons, paste the SVG or JSX. It adds nothing to your bundle. If you use many icons from one set, install its React package (the import line tells you which) and your AI agent can reuse it everywhere.' },
+  { q: 'What do I tell my AI coding agent?', a: 'Copy the import line and paste it with a note like “use this icon for the settings button”. It has the package name, the icon name and the size, so the agent doesn’t have to guess.' },
+  { q: 'Why doesn’t line thickness change some icons?', a: 'Filled icons and all Phosphor icons are drawn as solid shapes, not lines, so they have no line thickness. Lucide, Tabler and Heroicons outline icons are lines, so the slider changes them.' },
+  { q: 'Which icon set should I pick?', a: 'Pick one and stick with it, so your app looks consistent. Lucide is the default in shadcn/ui. Heroicons comes from the Tailwind team. Tabler has the most icons. Phosphor has a softer, rounder style.' },
+  { q: 'Is anything uploaded?', a: 'No. The icon lists load from this site and the search runs in your browser.' },
+];
+---
+<ToolPage
+  slug="icon-finder"
+  title="Free icon finder: Lucide, Heroicons, Tabler & Phosphor · Darnly"
+  description="Search 10,000+ free open-source icons from Lucide, Heroicons, Tabler and Phosphor in one place. Change size, stroke and color live, then copy as SVG, JSX, a React import or a data URI."
+  h1="Icon finder: free icons for your project"
+  lede="Search four popular free icon sets at once. Change the size, line thickness and color and watch every icon update, then copy the one you like as SVG, JSX or a React import."
+  steps={steps}
+  faq={faq}
+>
+  <div class="if">
+    <div class="bar">
+      <label class="search">
+        <span class="sr">Search icons</span>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="if-q" type="search" value="home" placeholder="Search icons, like home, user or arrow" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Icon set">
+          <button type="button" data-set="all" aria-pressed="true">All sets</button>
+          <button type="button" data-set="lucide" aria-pressed="false">Lucide</button>
+          <button type="button" data-set="heroicons" aria-pressed="false">Heroicons</button>
+          <button type="button" data-set="tabler" aria-pressed="false">Tabler</button>
+          <button type="button" data-set="phosphor" aria-pressed="false">Phosphor</button>
+        </div>
+        <div class="seg" role="group" aria-label="Style">
+          <button type="button" data-style="outline" aria-pressed="true">Outline</button>
+          <button type="button" data-style="filled" aria-pressed="false">Filled</button>
+        </div>
+      </div>
+      <div class="sliders">
+        <label>Size <output id="if-size-out">32 px</output><input id="if-size" type="range" min="16" max="64" step="2" value="32" /></label>
+        <label>Line thickness <output id="if-stroke-out">2</output><input id="if-stroke" type="range" min="0.5" max="3" step="0.25" value="2" /></label>
+        <label class="color">Color <input id="if-color" type="color" value="#0b2230" /></label>
+      </div>
+    </div>
+
+    <div class="stage">
+      <aside class="pick" aria-label="Selected icon">
+        <div class="big" id="if-big"></div>
+        <p class="name"><strong id="if-name">house</strong> <span id="if-set" class="badge">Lucide</span></p>
+        <p class="lic" id="if-lic">Free for commercial use (ISC license)</p>
+        <div class="copies">
+          <button type="button" class="primary" data-copy="svg">Copy SVG</button>
+          <button type="button" data-copy="jsx">Copy JSX</button>
+          <button type="button" data-copy="import">Copy React import</button>
+          <button type="button" data-copy="uri">Copy data URI</button>
+          <button type="button" data-copy="download">Download .svg</button>
+        </div>
+        <p class="status" id="if-status" role="status" aria-live="polite"></p>
+        <p class="note" id="if-note" hidden></p>
+        <details class="more">
+          <summary>See the code</summary>
+          <pre id="if-code"></pre>
+        </details>
+      </aside>
+
+      <div class="results">
+        <p class="count" id="if-count" role="status" aria-live="polite">Loading icons…</p>
+        <div class="grid" id="if-grid"></div>
+        <button type="button" id="if-more" class="ghost" hidden>Show more icons</button>
+        <p class="empty" id="if-empty" hidden>No icons match. Try a simpler word, like <em>user</em> instead of <em>profile picture</em>, or pick “All sets”.</p>
+      </div>
+    </div>
+
+    <div class="licenses" aria-label="Icon sets and licenses">
+      <div><strong>Lucide</strong><span id="if-n-lucide">2,000+ icons</span><a href="https://lucide.dev/license" rel="noopener" target="_blank">ISC license</a></div>
+      <div><strong>Heroicons</strong><span id="if-n-heroicons">300+ icons</span><a href="https://github.com/tailwindlabs/heroicons/blob/master/LICENSE" rel="noopener" target="_blank">MIT license</a></div>
+      <div><strong>Tabler</strong><span id="if-n-tabler">5,000+ icons</span><a href="https://github.com/tabler/tabler-icons/blob/main/LICENSE" rel="noopener" target="_blank">MIT license</a></div>
+      <div><strong>Phosphor</strong><span id="if-n-phosphor">1,500+ icons</span><a href="https://github.com/phosphor-icons/core/blob/main/LICENSE" rel="noopener" target="_blank">MIT license</a></div>
+    </div>
+
+    <div class="actions">
+      <button id="if-link" type="button" class="ghost">Copy link</button>
+      <a class="ghost" href="/tools/logo-maker/">Make a logo with an icon</a>
+      {hasSvgOptimizer && <a class="ghost" href="/tools/svg-optimizer/">Shrink an SVG</a>}
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/icon-finder';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .if { display: grid; gap: 18px; min-width: 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .bar { display: grid; gap: 12px; padding: 16px; border-radius: 20px; background: var(--wash); }
+  .search { display: flex; align-items: center; gap: 10px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink-soft); }
+  .search:focus-within { border-color: var(--sky); }
+  .search input { flex: 1; min-width: 0; font: 500 19px/1.2 var(--body); padding: 10px 0; border: 0; background: none; color: var(--ink); }
+  .search input:focus { outline: none; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); }
+  .seg button { font: 600 14px/1 var(--body); padding: 9px 12px; border: 0; border-radius: 999px; background: none; color: var(--ink); cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .seg button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sliders { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+  .sliders label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+  .sliders output { min-width: 42px; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+  .sliders input[type='range'] { width: 140px; accent-color: var(--sky); }
+  .color input { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
+  .stage { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .pick { position: sticky; top: 16px; display: grid; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 24px; background: var(--white); }
+  .big { display: grid; place-items: center; aspect-ratio: 1; border-radius: 16px; background: var(--wash); background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 24px 24px; background-position: center; }
+  .big :global(svg) { width: 62%; height: 62%; }
+  .name { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .name strong { font: 700 20px/1.2 var(--mono); overflow-wrap: anywhere; }
+  .badge { font: 600 12px/1 var(--body); padding: 5px 9px; border-radius: 999px; background: var(--wash); color: var(--ink-soft); }
+  .lic { margin: 0; font-size: 14px; color: #0B6B3A; font-weight: 600; }
+  .copies { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .copies button { font: 600 14px/1.1 var(--body); padding: 11px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .copies button:hover { border-color: var(--sky); }
+  .copies .primary { grid-column: 1 / -1; background: var(--ink); color: var(--white); border-color: var(--ink); font-size: 15px; }
+  .status { margin: 0; min-height: 1.4em; font-size: 14px; color: #0B6B3A; font-weight: 600; }
+  .note { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .more { padding: 2px 12px; border-radius: 12px; background: var(--wash); }
+  .more summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 10px 0; }
+  .more pre { margin: 0 0 12px; max-height: 260px; overflow: auto; font: 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; }
+  .results { display: grid; gap: 12px; min-width: 0; }
+  .count { margin: 0; font-weight: 600; }
+  .grid { --s: 32px; --sw: 2; --c: #0b2230; display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--s) + 52px), 1fr)); gap: 8px; color: var(--c); }
+  .grid :global(button) { display: grid; justify-items: center; align-content: center; gap: 8px; min-width: 0; padding: 14px 4px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: inherit; cursor: pointer; }
+  .grid :global(button:hover) { border-color: var(--sky); }
+  .grid :global(button[aria-pressed='true']) { border-color: var(--sky); box-shadow: 0 0 0 2px var(--sky); }
+  .grid :global(svg) { width: var(--s); height: var(--s); }
+  .grid :global(svg.st), .big :global(svg.st) { stroke-width: var(--sw); }
+  .grid :global(span) { max-width: 100%; font: 11px/1.2 var(--mono); color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grid :global(i) { font: normal 600 9px/1 var(--body); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); opacity: 0.7; }
+  .empty { margin: 0; padding: 20px; border-radius: 16px; background: var(--wash); }
+  .licenses { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .licenses div { display: grid; gap: 4px; padding: 14px 16px; border-radius: 16px; background: var(--wash); font-size: 14px; }
+  .licenses span { color: var(--ink-soft); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; justify-self: start; }
+  .ghost:hover { border-color: var(--sky); }
+  @media (max-width: 760px) {
+    .stage { grid-template-columns: minmax(0, 1fr); }
+    .pick { position: static; grid-template-columns: 120px minmax(0, 1fr); }
+    .pick > :not(.big) { grid-column: 2; }
+    .pick .big { grid-row: 1 / span 3; }
+    .pick .copies, .pick .status, .pick .note, .pick .more { grid-column: 1 / -1; }
+    .licenses { grid-template-columns: 1fr 1fr; }
+    .sliders input[type='range'] { width: 110px; }
+  }
+</style>

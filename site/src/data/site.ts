@@ -169,6 +169,12 @@ export const TOOLS: Item[] = [
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
   },
+  {
+    slug: 'icon-finder',
+    category: 'Design',
+    name: 'Icon finder',
+    blurb: 'Search 10,000+ free icons from Lucide, Heroicons, Tabler and Phosphor, then copy as SVG, JSX or React.',
+  },
 ];
 
 // Same for guides.
