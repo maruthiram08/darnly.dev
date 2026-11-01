@@ -98,6 +98,11 @@ export const TOOLS: Item[] = [
     name: 'Sitemap generator',
     blurb: 'A sitemap.xml and robots.txt for your site in seconds, plus the broken links we found.',
   },
+  {
+    slug: 'px-to-rem',
+    name: 'px to rem converter',
+    blurb: 'px to rem and back, live, with the matching Tailwind class and a ruler at real size.',
+  },
 ];
 
 // Same for guides.
