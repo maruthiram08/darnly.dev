@@ -163,6 +163,11 @@ export const TOOLS: Item[] = [
     name: 'Regex tester',
     blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
   },
+  {
+    slug: 'background-generator',
+    name: 'Background generator',
+    blurb: 'Waves, blobs, mesh gradients and patterns for your hero. Shuffle, then download SVG or PNG or copy CSS.',
+  },
 ];
 
 // Same for guides.
