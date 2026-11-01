@@ -33,6 +33,11 @@ export const TOOLS: Item[] = [
     name: 'Color palette from image',
     blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
   },
+  {
+    slug: 'tech-stack-finder',
+    name: 'Tech stack finder',
+    blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
+  },
 ];
 
 // Same for guides.

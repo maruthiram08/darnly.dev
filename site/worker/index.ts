@@ -9,8 +9,13 @@
 // GET /api/fonts?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
+//
+// GET /api/stack?url=https://example.com
+//   Same guards. Reads the page, its response headers and a few of its own files and returns
+//   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
 
 import { findFonts } from './fonts';
+import { findStack } from './stack';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -28,13 +33,14 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
 type Ctx = { waitUntil(p: Promise<unknown>): void };
-type Page = { target: URL; finalUrl: string; status: number; html: string };
+type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 
 // /api/og: the share tags of one page.
 function og(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
@@ -48,6 +54,16 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     finalUrl: p.finalUrl,
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
+// /api/stack: what a page was built with, hosted on and tracked by.
+function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('stack', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
   }));
 }
 
@@ -89,7 +105,7 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
   }
 
   const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html }), 200, CACHE_SECONDS);
+  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
