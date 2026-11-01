@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'button-generator',
+    category: 'Design',
+    name: 'CSS button generator',
+    blurb: 'Design a button with hover and press, see it on light and dark pages, copy CSS, Tailwind, React or shadcn.',
+  },
 ];
 
 // Same for guides.
