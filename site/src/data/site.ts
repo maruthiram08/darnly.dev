@@ -168,6 +168,9 @@ export const TOOLS: Item[] = [
     category: 'Design',
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
+    slug: 'page-speed-checker',
+    name: 'Page speed checker',
+    blurb: 'Why is my site slow? Phone and laptop scores, a load filmstrip and the top 3 fixes as prompts.',
   },
   {
     slug: 'cron-builder',
