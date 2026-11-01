@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'fluid-type-generator',
+    category: 'Design',
+    name: 'Fluid type scale generator',
+    blurb: 'Font sizes that grow smoothly from phone to desktop. Drag the screen width, then copy clamp() CSS or a Tailwind config.',
+  },
 ];
 
 // Same for guides.
