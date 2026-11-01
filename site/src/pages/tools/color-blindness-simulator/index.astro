@@ -1,0 +1,132 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in a screenshot of your site or app. You can also paste one straight from your clipboard. Until you do, we show a sample dashboard.',
+  'Pick a type of color blindness, then drag the slider across the picture to swipe between what you see and what they see.',
+  'Look at the warning box. It lists colors in your screenshot that turn into the same color, like a red error and a green success badge. Fix those by adding an icon, a label or a stronger difference in lightness.',
+];
+
+const faq = [
+  { q: 'Is my screenshot uploaded anywhere?', a: 'No. Everything happens in your browser. Your screenshot never leaves your computer.' },
+  { q: 'How many people are color-blind?', a: 'About 1 in 12 men and 1 in 200 women. Most of them have trouble telling red and green apart (deuteranopia and protanopia, or milder forms of them). Blue and yellow trouble (tritanopia) and seeing no color at all (achromatopsia) are rare.' },
+  { q: 'How accurate is the simulation?', a: 'We use the Machado, Oliveira and Fernandes model (2009), the one Chrome’s DevTools and most design tools use, at full strength. Real people vary, and many have a milder form, so treat it as the worst case.' },
+  { q: 'Two of my colors look the same. How do I fix it?', a: 'Don’t rely on color alone. Add an icon (✓ or ✕), a text label, or a pattern. Or make one color clearly lighter or darker than the other: lightness survives every type of color blindness. Then check your text with the <a href="/tools/contrast-checker/">contrast checker</a>.' },
+  { q: 'Can my AI coding agent fix it for me?', a: 'Yes. Tell Claude Code, Codex or Cursor something like “Our red error and green success states look the same to color-blind users. Add an icon to each and make the error color darker.” The hex codes in the warning box help.' },
+];
+---
+<ToolPage
+  slug="color-blindness-simulator"
+  title="Color blindness simulator: see your site as color-blind users do · Darnly"
+  description="Drop a screenshot and see it through protanopia, deuteranopia, tritanopia and achromatopsia, with a swipe slider and a list of colors that turn into the same color. Free, and nothing is uploaded."
+  h1="Color blindness simulator: see your site the way color-blind users do"
+  lede="Drop a screenshot and swipe between your view and theirs. We point out colors that turn into the same color, like a red and a green that a color-blind user can’t tell apart. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cb">
+    <label class="drop" id="cb-drop">
+      <input id="cb-file" type="file" accept="image/*" />
+      <strong>Drop your screenshot here</strong>
+      <span id="cb-drop-text">or click to choose one, or paste it. Below is a sample until you do.</span>
+    </label>
+    <p class="error" id="cb-error" role="alert" hidden></p>
+
+    <div class="modes" role="radiogroup" aria-label="Type of color blindness" id="cb-modes">
+      <button type="button" role="radio" data-mode="deutan" aria-checked="true"><strong>Deuteranopia</strong><span>Red and green look alike · most common</span><em data-count="deutan"></em></button>
+      <button type="button" role="radio" data-mode="protan" aria-checked="false"><strong>Protanopia</strong><span>Reds look dark and muddy</span><em data-count="protan"></em></button>
+      <button type="button" role="radio" data-mode="tritan" aria-checked="false"><strong>Tritanopia</strong><span>Blue and yellow look alike · rare</span><em data-count="tritan"></em></button>
+      <button type="button" role="radio" data-mode="achroma" aria-checked="false"><strong>Achromatopsia</strong><span>No color at all · very rare</span><em data-count="achroma"></em></button>
+    </div>
+
+    <div class="stage" id="cb-stage">
+      <canvas id="cb-original" aria-hidden="true"></canvas>
+      <canvas id="cb-sim" class="sim" aria-hidden="true"></canvas>
+      <div class="handle" id="cb-handle" aria-hidden="true"><span>⟷</span></div>
+      <span class="tag left">You see</span>
+      <span class="tag right" id="cb-tag">Deuteranopia</span>
+      <input type="range" id="cb-swipe" min="0" max="100" value="50" aria-label="Swipe between your view and the color-blind view" />
+    </div>
+
+    <div class="verdict" id="cb-verdict" role="status" aria-live="polite"></div>
+    <ul class="pairs" id="cb-pairs"></ul>
+
+    <div class="actions">
+      <button type="button" class="ghost" id="cb-sample" hidden>Show the sample again</button>
+      <button type="button" class="ghost" id="cb-download">Download this view</button>
+    </div>
+
+    <details class="more-info">
+      <summary>How this works</summary>
+      <p>Your screenshot is drawn onto a canvas in your browser, and every pixel is run through the Machado, Oliveira and Fernandes (2009) color-vision model at full strength, in linear RGB. Achromatopsia uses the screen’s brightness (Rec. 709 luminance) only.</p>
+      <p>To find colors that turn into the same color, we take the main colors of your screenshot, then flag any two that are clearly different to you but nearly identical after the simulation. Big screenshots are scaled to at most 1600 pixels wide first so it stays fast.</p>
+      <p>Many color-blind people have a milder form than shown here, so this is the worst case. Colors that differ in lightness, not just hue, stay apart for everyone.</p>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/color-blindness-simulator';
+</script>
+
+<style>
+  .cb { display: grid; gap: 18px; min-width: 0; }
+  .cb [hidden] { display: none !important; }
+  .modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .modes button { display: grid; align-content: start; gap: 2px; text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); font: inherit; cursor: pointer; }
+  .modes button:hover { border-color: var(--sky); }
+  .modes button[aria-checked='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--wash); }
+  .modes strong { font: 700 16px/1.2 var(--display); }
+  .modes span { font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+  .modes em { justify-self: start; margin-top: 6px; font: 700 12px/1 var(--body); font-style: normal; padding: 4px 8px; border-radius: 999px; }
+  .modes em:empty { display: none; }
+  .modes em.bad { background: #FDE2E9; color: #B4234F; }
+  .modes em.ok { background: #DDF5E6; color: #17663A; }
+
+  .stage { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--wash); touch-action: pan-y; user-select: none; }
+  .stage canvas { display: block; width: 100%; height: auto; }
+  .stage .sim { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
+  .handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 0 1px rgba(11, 34, 48, 0.35); pointer-events: none; }
+  .handle span { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--ink); font-size: 18px; box-shadow: 0 2px 10px rgba(11, 34, 48, 0.3); }
+  .tag { position: absolute; bottom: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(11, 34, 48, 0.78); color: #fff; font: 600 13px/1.2 var(--body); pointer-events: none; }
+  .tag.left { left: 12px; }
+  .tag.right { right: 12px; }
+  .stage input[type='range'] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+  .stage:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+
+  .verdict { padding: 14px 18px; border-radius: 14px; font-size: 16px; line-height: 1.5; }
+  .verdict.bad { background: #FDE2E9; color: #7A1533; }
+  .verdict.ok { background: #DDF5E6; color: #134F2D; }
+  .verdict a { color: inherit; font-weight: 600; }
+  .pairs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .pairs:empty { display: none; }
+  .pairs :global(li) { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .pairs :global(.duo) { display: flex; }
+  .pairs :global(.duo i) { display: block; width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(11, 34, 48, 0.15); }
+  .pairs :global(.duo i + i) { margin-left: -8px; }
+  .pairs :global(.arrow) { color: var(--ink-soft); }
+  .pairs :global(strong) { font: 600 14px/1.4 var(--mono); }
+  .pairs :global(small) { display: block; font: 400 12px/1.5 var(--mono); color: var(--ink-soft); }
+
+  .drop { position: relative; display: grid; place-items: center; gap: 2px; text-align: center; padding: 16px 20px; border: 2px dashed var(--line); border-radius: 16px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 19px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); font-size: 15px; }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 12px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .ghost:hover { border-color: var(--sky); }
+  .error { margin: 0; color: #B4234F; }
+
+  .more-info { border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; background: var(--white); }
+  .more-info summary { cursor: pointer; font-weight: 600; }
+  .more-info p { color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
+
+  @media (max-width: 760px) {
+    .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 420px) {
+    .modes span { display: none; }
+  }
+</style>

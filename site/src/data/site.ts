@@ -94,6 +94,12 @@ export const TOOLS: Item[] = [
     blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
   },
   {
+    slug: 'diff-checker',
+    category: 'Code helpers',
+    name: 'Diff checker',
+    blurb: 'Compare two texts side by side and see every added, removed and changed word. Nothing is uploaded.',
+  },
+  {
     slug: 'api-key-leak-checker',
     name: 'API key leak checker',
     blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
@@ -162,6 +168,28 @@ export const TOOLS: Item[] = [
     slug: 'regex-tester',
     name: 'Regex tester',
     blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
+  },
+  {
+    slug: 'color-blindness-simulator',
+    category: 'Design',
+    name: 'Color blindness simulator',
+    blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
+  },
+  {
+    slug: 'cron-builder',
+    name: 'Cron expression generator',
+    blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
+  },
+  {
+    slug: 'gitignore-generator',
+    category: 'Code helpers',
+    name: '.gitignore generator',
+    blurb: 'A .gitignore for your stack that keeps .env files and keys out of git, plus a check for what would leak.',
+  },
+  {
+    slug: 'utm-builder',
+    name: 'UTM link builder',
+    blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
   {
     slug: 'schema-generator',

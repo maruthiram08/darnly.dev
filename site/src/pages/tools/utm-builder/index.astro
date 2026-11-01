@@ -1,0 +1,226 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { PRESETS } from '../../../scripts/utm-builder-core';
+
+const qrTool = TOOLS.find((t) => t.slug === 'qr-code-generator');
+
+const steps = [
+  'Paste the page you want people to visit, like <code>mysite.com</code> or <code>mysite.com/pricing</code>.',
+  'Pick where you’re posting it: X, LinkedIn, Reddit, Product Hunt, Hacker News or your newsletter. Give the campaign a short name, like <code>launch</code>.',
+  'Copy the link and post it. Your analytics will now show exactly which post sent each visitor. Need a link for every channel? Open “Links for every channel” and copy them all at once.',
+];
+
+const faq = [
+  { q: 'What is a UTM link?', a: 'A normal link with a few labels added to the end, like <code>?utm_source=x&amp;utm_campaign=launch</code>. The page opens the same way, but tools like Plausible and Google Analytics read the labels and tell you which post, channel and campaign each visitor came from.' },
+  { q: 'Why not just look at the referrer?', a: 'Many apps hide it. Clicks from Slack, Discord, WhatsApp, email and most phone apps often show up as “direct”, and X shows up as <code>t.co</code>. UTM labels travel inside the link itself, so they still count.' },
+  { q: 'Which fields do I need?', a: '<strong>Source</strong> (where: x, linkedin) and <strong>campaign</strong> (why: launch, black-friday) are enough for most people. <strong>Medium</strong> (social, email, referral) is filled in for you. <strong>Content</strong> tells two posts or buttons apart, and <strong>term</strong> is for paid search keywords.' },
+  { q: 'Why does it make everything lowercase?', a: 'Analytics tools count <code>Launch</code> and <code>launch</code> as two different campaigns, which splits your numbers. Lowercase with dashes keeps them together. You can turn this off under “More options”.' },
+  { q: 'Do UTM links hurt SEO?', a: 'No. Search engines treat them as the same page, especially if your page has a canonical tag. Don’t put UTM labels on links between your own pages, though: that starts a new visit and overwrites where the person really came from.' },
+  { q: 'Is anything uploaded?', a: 'No. Links are built in your browser. Recent links are saved only in this browser so you can copy them again, and you can clear them any time.' },
+];
+---
+<ToolPage
+  slug="utm-builder"
+  title="UTM link builder: campaign links for X, LinkedIn, Reddit · Darnly"
+  description="Build UTM tracking links for X, LinkedIn, Reddit, Product Hunt, Hacker News and newsletters. See each part of the link, copy it, get a QR code, and know which post sent your visitors. Free."
+  h1="UTM link builder: know which post sent your visitors"
+  lede="Paste your page, pick where you’re posting it, and copy a tagged link. Your analytics will show which post, channel and campaign each visitor came from."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ub">
+    <div class="stage" aria-label="Live preview of your link">
+      <div class="top">
+        <div class="linkbox">
+          <p class="label">Your link</p>
+          <p class="link" id="ub-link" aria-live="polite"></p>
+          <p class="empty" id="ub-empty">Paste your page below and your tagged link appears here.</p>
+          <div class="actions">
+            <button id="ub-copy" type="button" class="primary">Copy link</button>
+            <a id="ub-open" class="ghost" href="#" target="_blank" rel="noopener noreferrer">Test it</a>
+            <span class="status" id="ub-status" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <div class="qr">
+          <div class="qr-img" id="ub-qr" role="img" aria-label="QR code of your link"></div>
+          <button id="ub-qr-dl" type="button" class="ghost small">Download QR</button>
+        </div>
+      </div>
+      <ul class="parts" id="ub-parts" aria-label="What each part means"></ul>
+      <p class="note" id="ub-note" hidden></p>
+    </div>
+
+    <div class="form">
+      <div class="field wide">
+        <label for="ub-url">Your page</label>
+        <input id="ub-url" type="text" inputmode="url" placeholder="mysite.com/pricing" autocomplete="url" spellcheck="false" />
+        <p class="bad" id="ub-error" role="alert" hidden></p>
+      </div>
+
+      <fieldset class="field wide">
+        <legend>Where are you posting it?</legend>
+        <div class="chips" id="ub-presets">
+          {PRESETS.map((p) => (
+            <button type="button" class="chip" data-preset={p.id} aria-pressed="false">{p.label}</button>
+          ))}
+          <button type="button" class="chip" data-preset="other" aria-pressed="false">Somewhere else</button>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="ub-campaign">Campaign name</label>
+        <input id="ub-campaign" type="text" value="launch" placeholder="launch" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="ub-content">Which post or button? <span class="opt">optional</span></label>
+        <input id="ub-content" type="text" placeholder="first-post" autocomplete="off" spellcheck="false" />
+      </div>
+    </div>
+
+    <details class="fold" id="ub-more">
+      <summary>More options</summary>
+      <div class="form inner">
+        <div class="field">
+          <label for="ub-source">Source <code>utm_source</code></label>
+          <input id="ub-source" type="text" placeholder="x" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="ub-medium">Medium <code>utm_medium</code></label>
+          <input id="ub-medium" type="text" placeholder="social" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="ub-term">Keyword <code>utm_term</code> <span class="opt">for paid search</span></label>
+          <input id="ub-term" type="text" placeholder="bug-reporting-tool" autocomplete="off" spellcheck="false" />
+        </div>
+        <label class="check"><input type="checkbox" id="ub-tidy" checked /> Lowercase, with dashes for spaces (recommended)</label>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>Links for every channel</summary>
+      <p class="hint">The same page and campaign, tagged for each place you might post it.</p>
+      <ul class="all" id="ub-all"></ul>
+      <div class="actions">
+        <button id="ub-copy-all" type="button" class="ghost">Copy all</button>
+      </div>
+    </details>
+
+    <details class="fold" id="ub-recent-fold">
+      <summary>Recent links <span class="count" id="ub-recent-count"></span></summary>
+      <p class="hint">Links you copied, saved only in this browser.</p>
+      <ul class="all" id="ub-recent"></ul>
+      <p class="hint" id="ub-recent-empty">Nothing yet. Copy a link and it shows up here.</p>
+      <div class="actions">
+        <button id="ub-clear" type="button" class="ghost" hidden>Clear list</button>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>Where to see the clicks</summary>
+      <div class="where">
+        <div>
+          <h3>Plausible</h3>
+          <p>Open your site’s dashboard. In the <strong>Top Sources</strong> box, open <strong>Campaigns</strong> and pick UTM Sources, UTM Mediums or UTM Campaigns.</p>
+        </div>
+        <div>
+          <h3>Google Analytics 4</h3>
+          <p>Go to <strong>Reports → Acquisition → Traffic acquisition</strong>. Change the first column to <strong>Session campaign</strong> or <strong>Session source / medium</strong>.</p>
+        </div>
+        <div>
+          <h3>Cloudflare Web Analytics</h3>
+          <p>It doesn’t group visits by UTM labels. You’ll still see sites under <strong>Referers</strong> (like <code>t.co</code> for X), but for per-post numbers use Plausible or GA4.</p>
+        </div>
+      </div>
+    </details>
+
+    {qrTool && (
+      <p class="more-link">Need a QR code with your logo and colors? <a href={`/tools/${qrTool.slug}/`}>Try the {qrTool.name.toLowerCase()}</a>.</p>
+    )}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/utm-builder';
+</script>
+
+<style>
+  .ub { display: grid; gap: 24px; min-width: 0; }
+  .ub [hidden] { display: none !important; }
+  .stage { display: grid; gap: 20px; padding: 32px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: start; }
+  .linkbox { display: grid; gap: 14px; min-width: 0; }
+  .label { margin: 0; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .link { margin: 0; font: 600 22px/1.55 var(--mono); color: var(--ink); overflow-wrap: anywhere; word-break: break-all; }
+  .link :global(.base) { color: var(--ink); }
+  .link :global(.sep) { color: var(--ink-soft); }
+  .link :global(.hash) { color: var(--ink-soft); }
+  .link :global(.tag) { padding: 1px 3px; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .empty { margin: 0; font: 600 20px/1.5 var(--body); color: var(--ink-soft); }
+  .qr { display: grid; justify-items: center; gap: 10px; }
+  .qr-img { width: 168px; height: 168px; border-radius: 12px; overflow: hidden; background: var(--white); border: 1px solid var(--line); }
+  .qr-img :global(svg) { display: block; width: 100%; height: 100%; }
+  .qr-img:global(.off) { opacity: 0.25; }
+  .parts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 10px; }
+  .parts :global(li) { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--white); border-top: 4px solid var(--c); min-width: 0; }
+  .parts :global(.k) { font: 700 12px/1.2 var(--mono); color: var(--ink-soft); }
+  .parts :global(.v) { font: 700 18px/1.3 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+  .parts :global(.m) { font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; min-width: 0; }
+  .form.inner { padding-top: 6px; }
+  .field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+  .wide { grid-column: 1 / -1; }
+  .field label, .field legend { font-weight: 600; padding: 0; }
+  .field legend { margin-bottom: 8px; }
+  .opt { font-weight: 400; font-size: 14px; color: var(--ink-soft); }
+  .field code { font-size: 12px; font-weight: 500; color: var(--ink-soft); }
+  input[type='text'] { box-sizing: border-box; width: 100%; font: 500 17px/1.3 var(--mono); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  #ub-url { font-size: 20px; padding: 16px 18px; }
+  input[type='text']:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { font: 600 15px/1 var(--body); padding: 11px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .check { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 15px; }
+  .bad { margin: 0; color: #B4234F; font-size: 14px; }
+
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .count { font-weight: 400; color: var(--ink-soft); }
+  .hint { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  .all { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+  .all :global(li) { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--wash); }
+  .all :global(.who) { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+  .all :global(.url) { font: 500 13px/1.4 var(--mono); color: var(--ink-soft); overflow-wrap: anywhere; word-break: break-all; }
+  .all :global(.btns) { display: flex; gap: 6px; }
+  .where { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .where h3 { margin: 4px 0 6px; font: 700 16px/1.3 var(--body); }
+  .where p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
+  .more-link { margin: 0; color: var(--ink-soft); }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 16px/1 var(--body); padding: 14px 22px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .primary:disabled, .ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ghost, .ub :global(.mini) { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ub :global(.mini) { font-size: 13px; padding: 7px 12px; }
+  .ghost:hover, .ub :global(.mini:hover) { border-color: var(--sky); }
+  .ghost[aria-disabled='true'] { opacity: 0.4; pointer-events: none; }
+  .small { font-size: 13px; padding: 8px 12px; }
+  .status { font-size: 15px; color: var(--ink-soft); }
+
+  @media (max-width: 720px) {
+    .top { grid-template-columns: minmax(0, 1fr); }
+    .qr { justify-items: start; grid-template-columns: auto auto; align-items: end; }
+    .qr-img { width: 132px; height: 132px; }
+    .form { grid-template-columns: minmax(0, 1fr); }
+    .where { grid-template-columns: minmax(0, 1fr); }
+    .all :global(li) { grid-template-columns: minmax(0, 1fr) auto; }
+    .all :global(.url) { grid-column: 1 / -1; grid-row: 2; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 20px; }
+    .link { font-size: 17px; }
+  }
+</style>
