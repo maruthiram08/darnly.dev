@@ -5,6 +5,8 @@ import { oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
+import { isPaused, rateLimit } from './limits';
+import { checkSpend } from './spend';
 
 /** The Chrome Web Store id of the Darnly extension (tester builds get the same id from the store key). */
 const EXTENSION_ORIGIN = 'chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj';
@@ -65,7 +67,10 @@ async function route(req: Request, env: Env): Promise<Response> {
     await deleteAccount(env, user.id);
     return json({ ok: true });
   }
-  if (path === '/v1/bugs' && method === 'POST') return json(await saveBug(env, user.id, await parseUpload(req)), 201);
+  if (path === '/v1/bugs' && method === 'POST') {
+    if (await isPaused(env)) throw new HttpError(503, 'uploads_paused');
+    return json(await saveBug(env, user.id, await parseUpload(req)), 201);
+  }
   if (path === '/v1/bugs' && method === 'GET') {
     const status = url.searchParams.get('status');
     const pick = status === 'waiting' || status === 'fixed' ? status : 'all';
@@ -92,7 +97,13 @@ async function route(req: Request, env: Env): Promise<Response> {
 const appHandler = {
   async fetch(req: Request, env: Env): Promise<Response> {
     const signInPage = oauthRoute(req, env);
-    if (signInPage) return signInPage;
+    if (signInPage) {
+      return signInPage.catch((err) => {
+        if (!(err instanceof HttpError)) throw err;
+        const text = err.code === 'signups_paused' ? 'Darnly is not taking new sign-ups right now. Please try again tomorrow.' : `Darnly: ${err.code}`;
+        return new Response(text, { status: err.status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+      });
+    }
     const cors = corsHeaders(req, env);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
@@ -143,11 +154,28 @@ function oauthProvider(env: Env): OAuthProvider<Env> {
   return provider;
 }
 
-export default {
-  fetch: (req: Request, env: Env, ctx: ExecutionContext) => oauthProvider(env).fetch(req, env, ctx),
+/** Uploads, sign-ins and agent registration get a tighter per-IP limit than everything else. */
+function isWrite(req: Request, path: string): boolean {
+  if (req.method !== 'POST') return false;
+  return path === '/v1/bugs' || path === '/v1/auth/google' || path === '/register' || path === '/token' || path === '/authorize';
+}
 
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(cleanup(env).then((n) => console.log(`cleanup: deleted ${n} fixed bugs`)));
-    ctx.waitUntil(deleteExpiredSessions(env).then((n) => console.log(`cleanup: deleted ${n} expired sessions`)));
+export default {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const path = new URL(req.url).pathname.replace(/\/+$/, '') || '/';
+    if (req.method !== 'OPTIONS' && path !== '/v1/health') {
+      const limited = (isWrite(req, path) && (await rateLimit(env, req, 'write'))) || (await rateLimit(env, req, 'any'));
+      if (limited) return limited;
+    }
+    return oauthProvider(env).fetch(req, env, ctx);
+  },
+
+  /** Every hour: the spend meter. Once a day (03:17 UTC): cleanup. */
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(checkSpend(env).then((r) => console.log(`spend: ${JSON.stringify(r)}`)));
+    if (new Date(event.scheduledTime).getUTCHours() === 3) {
+      ctx.waitUntil(cleanup(env).then((n) => console.log(`cleanup: deleted ${n} fixed bugs`)));
+      ctx.waitUntil(deleteExpiredSessions(env).then((n) => console.log(`cleanup: deleted ${n} expired sessions`)));
+    }
   },
 } satisfies ExportedHandler<Env>;

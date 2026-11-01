@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import { HttpError, clip, newId } from './util';
+import { CAPS, countUpload, deleteOldUsage } from './limits';
 
 export const LIMITS = {
   pictureBytes: 5 * 1024 * 1024,
@@ -148,13 +149,17 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     if (seen) return summary(seen);
   }
   const now = Date.now();
+  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.logs?.length ?? 0);
   const counts = await env.DB.prepare(
-    "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting FROM bugs WHERE user_id = ?",
+    "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting, SUM(bytes) AS stored FROM bugs WHERE user_id = ?",
   )
     .bind(now - 3_600_000, userId)
-    .first<{ hour: number | null; waiting: number | null }>();
+    .first<{ hour: number | null; waiting: number | null; stored: number | null }>();
   if ((counts?.hour ?? 0) >= LIMITS.perHour) throw new HttpError(429, 'too_many_this_hour');
   if ((counts?.waiting ?? 0) >= LIMITS.waiting) throw new HttpError(429, 'inbox_full');
+  if ((counts?.stored ?? 0) + bytes > CAPS.userStoredBytes) throw new HttpError(429, 'storage_full');
+  // Daily counters live in their own table, so deleting bugs doesn't reset them.
+  await countUpload(env, userId, bytes, now);
 
   const id = newId('b');
   const prefix = `u/${userId}/${id}/`;
@@ -178,9 +183,9 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
   };
   try {
     await env.DB.prepare(
-      `INSERT INTO bugs (${COLUMNS}, user_id, client_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bugs (${COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null)
+      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null, bytes)
       .run();
   } catch (e) {
     // Two copies of the same capture arrived at once: keep the first, drop this one's files.
@@ -193,7 +198,7 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
 }
 
 export async function listBugs(env: Env, userId: string, status: 'waiting' | 'fixed' | 'all' = 'all', limit = 100): Promise<BugSummary[]> {
-  const n = Math.max(1, Math.min(200, Math.floor(limit)));
+  const n = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 100;
   const stmt =
     status === 'all'
       ? env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`).bind(userId, n)
@@ -266,12 +271,18 @@ export async function deleteAccount(env: Env, userId: string): Promise<void> {
   ]);
 }
 
-/** Daily job: fixed bugs are kept for 30 days, then deleted with their files. */
+/** Daily job: fixed bugs are kept for 30 days, then deleted with their files. Runs in batches until none are left (or 20 batches). */
 export async function cleanup(env: Env, now = Date.now()): Promise<number> {
   const cutoff = now - LIMITS.keepFixedDays * 86_400_000;
-  const { results } = await env.DB.prepare("SELECT id, files_prefix FROM bugs WHERE status = 'fixed' AND fixed_at < ? LIMIT 1000")
-    .bind(cutoff)
-    .all<{ id: string; files_prefix: string }>();
-  await deleteRows(env, results);
-  return results.length;
+  let total = 0;
+  for (let batch = 0; batch < 20; batch++) {
+    const { results } = await env.DB.prepare("SELECT id, files_prefix FROM bugs WHERE status = 'fixed' AND fixed_at < ? LIMIT 1000")
+      .bind(cutoff)
+      .all<{ id: string; files_prefix: string }>();
+    await deleteRows(env, results);
+    total += results.length;
+    if (results.length < 1000) break;
+  }
+  await deleteOldUsage(env, now);
+  return total;
 }
