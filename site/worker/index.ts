@@ -41,6 +41,11 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/domains?names=myapp.com,myapp.dev
+//   Up to 12 names. For each: free, taken (with dates), maybe (no DNS, registry didn't answer) or
+//   unknown. Asks each registry's RDAP server (from the IANA list, cached a day) and Cloudflare DNS.
+//   Own rate limit (DOMAIN_LIMIT). Used by the domain name finder at /tools/domain-name-finder/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,11 +54,13 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer, type RdapAnswer, type Result } from './domains';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: RateLimit;
   CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
+  DOMAIN_LIMIT?: RateLimit; // domain lookups, one request checks up to 12 names
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -74,6 +81,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/domains') return domainsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -169,6 +177,92 @@ async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Resp
   const body = json({ keys }, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+// /api/domains: is each name registered? Each name is cached on its own, so ideas shared
+// between searches are only looked up once.
+const MAX_NAMES = 12;
+async function domainsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const raw = (url.searchParams.get('names') ?? '').split(',').filter((n) => n.trim());
+  if (!raw.length) return json({ error: 'Type a name to check, like myapp.com.' }, 400);
+  if (raw.length > MAX_NAMES) return json({ error: `Check up to ${MAX_NAMES} names at a time.` }, 400);
+  const names = raw.map(cleanName);
+  if (names.some((n) => !n)) return json({ error: 'Names can use letters, numbers and dashes, and end in .com, .dev, .app, .io, .ai, .co, .net, .org, .xyz, .sh, .so or .me.' }, 400);
+
+  const limit = env.DOMAIN_LIMIT ?? env.FETCH_LIMIT;
+  if (limit) {
+    const { success } = await limit.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'That’s a lot of lookups in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const servers = await rdapServers(url, env, ctx, cache);
+  const results = await Promise.all(
+    [...new Set(names as string[])].map(async (name): Promise<Result> => {
+      const key = new Request(`https://darnly.dev/api/domains/one?name=${encodeURIComponent(name)}`);
+      const hit = await cache.match(key);
+      if (hit) return (await hit.json()) as Result;
+      const [rdap, dns] = await Promise.all([rdapLookup(name, servers, url, env), dnsLookup(name, url, env)]);
+      const result = verdict(name, rdap, dns);
+      // Taken names rarely change; free ones can be bought any minute, and errors should retry soon.
+      const ttl = result.state === 'taken' ? 6 * 3600 : result.state === 'free' ? 600 : 60;
+      ctx.waitUntil(cache.put(key, json(result, 200, ttl)));
+      return result;
+    }),
+  );
+  return json({ results });
+}
+
+// The IANA list of RDAP servers per ending, kept for a day in memory and in the cache.
+const BOOTSTRAP_URL = 'https://data.iana.org/rdap/dns.json';
+let bootstrap: { at: number; map: Record<string, string> } | null = null;
+async function rdapServers(self: URL, env: Env, ctx: Ctx, cache: Cache): Promise<Record<string, string>> {
+  const DAY = 86_400;
+  if (bootstrap && Date.now() - bootstrap.at < DAY * 1000) return bootstrap.map;
+  const key = new Request('https://darnly.dev/api/domains/rdap-bootstrap');
+  const hit = await cache.match(key);
+  let text = hit ? await hit.text() : null;
+  if (!text) {
+    text = await fetchText(BOOTSTRAP_URL, self, env, 'application/json', 1_000_000);
+    if (text && Object.keys(parseBootstrap(text)).length) {
+      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${DAY}` } })));
+    }
+  }
+  const map = text ? parseBootstrap(text) : {};
+  // Without the list, try again on the next request rather than in a day.
+  if (Object.keys(map).length) bootstrap = { at: Date.now(), map };
+  return map;
+}
+
+// Endings missing from the IANA list (some country endings) go through rdap.org, which knows more servers.
+async function rdapLookup(name: string, servers: Record<string, string>, self: URL, env: Env): Promise<RdapAnswer> {
+  const tld = name.slice(name.lastIndexOf('.') + 1);
+  const base = servers[tld] ?? 'https://rdap.org/';
+  try {
+    const res = await get(new URL(`${base}domain/${name}`), self, env, 'application/rdap+json, application/json', 6_000);
+    if (res.status === 404) return { kind: 'none' };
+    if (!res.ok) return { kind: 'error' };
+    let record: unknown = null;
+    try {
+      record = JSON.parse(await readLimited(res, 300_000));
+    } catch {
+      /* found, but the details didn't parse */
+    }
+    return { kind: 'found', ...readRecord(record) };
+  } catch {
+    return { kind: 'error' };
+  }
+}
+
+async function dnsLookup(name: string, self: URL, env: Env): Promise<DnsAnswer> {
+  try {
+    const res = await get(new URL(`https://cloudflare-dns.com/dns-query?name=${name}&type=NS`), self, env, 'application/dns-json', 4_000);
+    if (!res.ok) return 'error';
+    return readDns(JSON.parse(await readLimited(res, 50_000)));
+  } catch {
+    return 'error';
+  }
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.

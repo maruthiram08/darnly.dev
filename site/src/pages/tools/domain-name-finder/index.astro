@@ -1,0 +1,177 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { MAIN_TLDS, MORE_TLDS } from '../../../scripts/domain-name-finder-core';
+
+const steps = [
+  'Type your project’s name, or a few words about it, like <code>tiny invoice</code>.',
+  'We check your name on .com, .dev, .app, .io, .ai and .co, and come up with ideas (get-, try-, -app, -hq and short blends) checked the same way. Green is free, grey is taken.',
+  'Tap a green name and buy it at Cloudflare, Namecheap or Porkbun. Then point it at your app and check it with the <a href="/tools/domain-checker/">domain checker</a>.',
+];
+
+const faq = [
+  { q: 'How do you know a domain is free?', a: 'We ask the registry that runs each ending (like Verisign for .com and Google for .dev and .app) through RDAP, the public lookup that replaced WHOIS. If the registry has no record of the name, it’s almost always free. We also look it up in DNS, so a name that already has a website shows as taken even if the registry is slow to answer.' },
+  { q: 'Why does it say “Available” is a best guess?', a: 'A few names have no record but still can’t be bought for the normal price: registries hold back some short or premium names, and a name someone just let expire can sit in a grace period for a few weeks. The store tells you for sure, and shows the price, when you search the name there.' },
+  { q: 'What does “Probably free” mean?', a: 'The name has no website or DNS, but the registry didn’t answer in time. It’s very likely free. Search it at a store to be sure.' },
+  { q: 'Which ending should I pick?', a: '.com is still the one people type without thinking, so grab it if it’s free. .dev and .app suit software and force https, which is good. .ai and .io are popular for startups but cost more each year. .co is short but easy to mistype as .com.' },
+  { q: 'Where should I buy it?', a: 'Cloudflare sells domains at cost with no markup, which makes renewals cheap, and works well if your site is on Cloudflare. Namecheap and Porkbun are simple and often have a cheaper first year. The links here are plain links: we get nothing if you buy.' },
+  { q: 'Do you save the names I search?', a: 'No. The names are sent to our server only to ask the registries, and we don’t keep a list of searches. Some people worry that searching a name tips off domain squatters; RDAP and DNS lookups don’t reserve or register anything.' },
+];
+---
+<ToolPage
+  slug="domain-name-finder"
+  title="Domain name finder: find a free domain for your project · Darnly"
+  description="Type a project name and see if it's free on .com, .dev, .app, .io, .ai and .co, plus name ideas checked live. Free names link to Cloudflare, Namecheap and Porkbun. Free, no sign-up."
+  h1="Domain name finder: find a free domain for your project"
+  lede="Type your project’s name or a few words. See which endings are free right now, plus name ideas checked the same way, and buy the one you like."
+  steps={steps}
+  faq={faq}
+>
+  <div class="dn">
+    <form id="dn-form" class="ask">
+      <label class="sr" for="dn-q">Project name or a few words</label>
+      <input id="dn-q" type="text" value="tiny invoice" placeholder="tiny invoice" autocomplete="off" spellcheck="false" maxlength="80" />
+      <button id="dn-go" type="submit" disabled>Find domains</button>
+    </form>
+
+    <div class="tlds" id="dn-tlds" role="group" aria-label="Endings to check">
+      {MAIN_TLDS.map((t) => <button type="button" data-tld={t} aria-pressed="true">.{t}</button>)}
+      <span class="more-label">More:</span>
+      {MORE_TLDS.map((t) => <button type="button" data-tld={t} aria-pressed="false">.{t}</button>)}
+    </div>
+
+    <p class="error" id="dn-error" role="alert" hidden></p>
+
+    <section class="hero" id="dn-hero" data-state="checking" aria-live="polite" hidden>
+      <div class="browser" aria-hidden="true">
+        <div class="chrome">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="bar"><span class="lock"></span><span id="dn-hero-bar"></span></span>
+        </div>
+        <div class="screen">
+          <p class="hero-domain" id="dn-hero-domain"></p>
+        </div>
+      </div>
+      <div class="hero-info">
+        <span class="badge checking" id="dn-hero-badge">Checking…</span>
+        <p class="hero-line" id="dn-hero-line"></p>
+        <div id="dn-hero-buy"></div>
+        <p class="hero-after" id="dn-hero-after" hidden>Bought it? Once it points at your app, check it with the <a href="/tools/domain-checker/">domain checker</a>.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="dn-summary">
+      <h2 class="sub" id="dn-summary"></h2>
+      <div class="cards" id="dn-exact"></div>
+    </section>
+
+    <section aria-labelledby="dn-ideas-h">
+      <div class="ideas-head">
+        <h2 class="sub" id="dn-ideas-h">Name ideas</h2>
+        <label class="hide"><input type="checkbox" id="dn-hide" /> Hide taken ideas</label>
+      </div>
+      <ul class="ideas" id="dn-ideas"></ul>
+      <button type="button" class="ghost" id="dn-more" hidden>Show more ideas</button>
+    </section>
+
+    <p class="note">“Free” is our best guess from the registry and DNS. The store confirms it, and shows the price, when you search the name there. Store links are plain links, not affiliate links.</p>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/domain-name-finder';
+</script>
+
+<style>
+  .dn [hidden] { display: none !important; }
+  .dn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; --free: #1F9D55; --free-wash: #E6F6EC; --maybe: #8A6D00; --maybe-wash: #FFF6D6; --taken: #8A9BA5; --taken-wash: #F1F4F6; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; min-height: 48px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .tlds { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tlds button { font: 600 15px/1 var(--mono); padding: 10px 14px; min-height: 40px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink-soft); cursor: pointer; }
+  .tlds button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .more-label { color: var(--ink-soft); font-size: 14px; margin-left: 6px; }
+
+  /* The big preview: the chosen domain in a browser's address bar. */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-items: center; padding: 24px; border-radius: 22px; background: var(--wash); border: 2px solid var(--line); transition: border-color 0.2s, background 0.2s; }
+  .hero[data-state='free'] { background: var(--free-wash); border-color: #9ED9B4; }
+  .hero[data-state='taken'] { background: var(--taken-wash); }
+  .browser { border-radius: 14px; overflow: hidden; background: var(--white); box-shadow: 0 10px 30px rgba(11, 34, 48, 0.12); }
+  .chrome { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #E9EFF2; }
+  .dots { display: flex; gap: 6px; flex: none; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: #C9D4DA; }
+  .bar { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: var(--white); font: 500 14px/1.2 var(--mono); color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .lock { flex: none; width: 10px; height: 8px; border-radius: 2px; background: var(--ink-soft); position: relative; margin-top: 4px; }
+  .lock::before { content: ''; position: absolute; left: 2px; top: -5px; width: 6px; height: 6px; border: 1.5px solid var(--ink-soft); border-bottom: 0; border-radius: 4px 4px 0 0; box-sizing: border-box; }
+  .screen { display: grid; place-items: center; min-height: 150px; padding: 24px 16px; }
+  .hero-domain { margin: 0; font: 700 clamp(24px, 5vw, 40px)/1.1 var(--display); color: var(--ink); text-align: center; overflow-wrap: anywhere; }
+  .hero[data-state='taken'] .hero-domain { color: var(--taken); text-decoration: line-through; text-decoration-thickness: 3px; }
+  .hero[data-state='checking'] .hero-domain { color: var(--ink-soft); }
+  .hero-info { display: grid; gap: 12px; justify-items: start; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font: 700 16px/1 var(--body); padding: 9px 14px; border-radius: 999px; }
+  .badge::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+  .badge.free { background: var(--free); color: var(--white); }
+  .badge.maybe { background: var(--maybe-wash); color: var(--maybe); }
+  .badge.taken { background: var(--taken); color: var(--white); }
+  .badge.unknown, .badge.checking { background: var(--white); color: var(--ink-soft); }
+  .hero-line { margin: 0; font-size: 16px; color: var(--ink); }
+  .hero-after { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .dn :global(.buy) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dn :global(.store) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font: 600 15px/1 var(--body); text-decoration: none; background: var(--white); color: var(--ink); border: 1.5px solid var(--line); }
+  .dn :global(.store.cloudflare) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .dn :global(.store:hover) { box-shadow: 0 4px 14px rgba(11, 34, 48, 0.15); }
+
+  .sub { margin: 0 0 10px; font: 700 20px/1.3 var(--display); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .cards :global(.card) { display: grid; gap: 8px; justify-items: start; align-content: start; text-align: left; font: inherit; padding: 14px 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--white); color: var(--ink); min-width: 0; }
+  .cards :global(button.card) { cursor: pointer; }
+  .cards :global(.card.free) { border-color: #9ED9B4; background: var(--free-wash); }
+  .cards :global(.card.maybe) { border-color: #EBD27A; background: var(--maybe-wash); }
+  .cards :global(.card.taken) { background: var(--taken-wash); color: var(--taken); }
+  .cards :global(.card.taken .cname) { text-decoration: line-through; }
+  .cards :global(.card[aria-pressed='true']) { outline: 3px solid var(--free); outline-offset: 2px; }
+  .cards :global(.cname) { font: 700 18px/1.2 var(--body); overflow-wrap: anywhere; }
+  .cards :global(.ctld) { color: inherit; opacity: 0.75; }
+  .cards :global(.cnote) { font-size: 13px; color: var(--ink-soft); }
+  .dn :global(.pill) { font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.04em; padding: 5px 9px; border-radius: 999px; }
+  .dn :global(.pill.free) { background: var(--free); color: var(--white); }
+  .dn :global(.pill.maybe) { background: #F1D46B; color: #4D3D00; }
+  .dn :global(.pill.taken) { background: #DCE3E7; color: #5D6E78; }
+  .dn :global(.pill.unknown), .dn :global(.pill.checking) { background: var(--wash); color: var(--ink-soft); }
+  .dn :global(.card.checking), .dn :global(.tld.checking) { animation: dn-pulse 1.2s ease-in-out infinite; }
+  @keyframes dn-pulse { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) { .dn :global(.card.checking), .dn :global(.tld.checking) { animation: none; } }
+
+  .ideas-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+  .hide { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-soft); cursor: pointer; }
+  .hide input { width: 18px; height: 18px; }
+  .ideas { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+  .ideas :global(.idea) { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--white); }
+  .ideas :global(.idea.has-free) { border-color: #9ED9B4; }
+  .ideas :global(.idea.empty) { color: var(--ink-soft); }
+  .ideas :global(.iname) { font: 700 18px/1.2 var(--body); overflow-wrap: anywhere; min-width: 0; }
+  .ideas :global(.chips) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ideas :global(.tld) { font: 600 14px/1 var(--mono); padding: 9px 11px; min-height: 36px; display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid transparent; }
+  .ideas :global(button.tld) { cursor: pointer; }
+  .ideas :global(.tld.free) { background: var(--free); color: var(--white); }
+  .ideas :global(.tld.maybe) { background: #F1D46B; color: #4D3D00; }
+  .ideas :global(.tld.taken) { background: var(--taken-wash); color: #9AA9B1; text-decoration: line-through; }
+  .ideas :global(.tld.unknown) { background: var(--white); color: var(--ink-soft); border-color: var(--line); border-style: dashed; }
+  .ideas :global(.tld.checking) { background: var(--wash); color: var(--ink-soft); }
+  .ideas :global(.tld[aria-pressed='true']) { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 12px 18px; min-height: 44px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 700px) {
+    .hero { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .ask button { padding: 0 18px; }
+    .screen { min-height: 110px; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ideas :global(.tld) { padding: 8px 9px; font-size: 13px; }
+  }
+</style>

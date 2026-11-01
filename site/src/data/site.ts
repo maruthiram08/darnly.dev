@@ -190,6 +190,11 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'domain-name-finder',
+    category: 'Launch & domains',
+    name: 'Domain name finder',
+    blurb: 'Type a project name, see if it’s free on .com, .dev, .app, .io, .ai and .co, and get name ideas checked live.',
   },
 ];
 
