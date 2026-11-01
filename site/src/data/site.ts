@@ -63,6 +63,16 @@ export const TOOLS: Item[] = [
     name: 'DESIGN.md generator',
     blurb: 'Turn any website into a DESIGN.md style guide, so your AI agent builds in the same colors, fonts and spacing.',
   },
+  {
+    slug: 'tech-stack-finder',
+    name: 'Tech stack finder',
+    blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
+  },
+  {
+    slug: 'app-icon-generator',
+    name: 'App icon generator',
+    blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
+  },
 ];
 
 // Same for guides.

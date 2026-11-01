@@ -1,0 +1,25 @@
+{
+  "url": "http://localhost:42465/orders",
+  "entries": [
+    {
+      "t": 1793507658199,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "ms": 6,
+      "url": "http://localhost:42465/api/order",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    },
+    {
+      "t": 1793507658199,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "ms": 5,
+      "url": "http://localhost:42465/api/order",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    }
+  ]
+}

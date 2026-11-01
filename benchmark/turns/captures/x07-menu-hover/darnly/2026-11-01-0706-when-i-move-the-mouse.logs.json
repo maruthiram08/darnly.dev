@@ -1,0 +1,55 @@
+{
+  "url": "http://localhost:40459/",
+  "entries": [
+    {
+      "t": 1793516812591,
+      "kind": "request",
+      "method": "GET",
+      "status": 0,
+      "resourceType": "font",
+      "message": "net::ERR_CACHE_MISS",
+      "url": "http://localhost:40459/@fs/home/claude/darnly.dev/benchmark/turns/runs/_capture/excalidraw/packages/excalidraw/fonts/Assistant/Assistant-Regular.woff2",
+      "source": "browser"
+    },
+    {
+      "t": 1793516812591,
+      "kind": "request",
+      "method": "GET",
+      "status": 0,
+      "resourceType": "font",
+      "message": "net::ERR_CACHE_MISS",
+      "url": "http://localhost:40459/@fs/home/claude/darnly.dev/benchmark/turns/runs/_capture/excalidraw/packages/excalidraw/fonts/Assistant/Assistant-Bold.woff2",
+      "source": "browser"
+    },
+    {
+      "t": 1793516812591,
+      "kind": "request",
+      "method": "GET",
+      "status": 0,
+      "resourceType": "font",
+      "message": "net::ERR_CACHE_MISS",
+      "url": "http://localhost:40459/@fs/home/claude/darnly.dev/benchmark/turns/runs/_capture/excalidraw/packages/excalidraw/fonts/Assistant/Assistant-Medium.woff2",
+      "source": "browser"
+    },
+    {
+      "t": 1793516812653,
+      "kind": "request",
+      "method": "GET",
+      "status": 0,
+      "resourceType": "font",
+      "message": "net::ERR_CACHE_MISS",
+      "url": "http://localhost:40459/@fs/home/claude/darnly.dev/benchmark/turns/runs/_capture/excalidraw/packages/excalidraw/fonts/Excalifont/[hidden].woff2",
+      "source": "browser"
+    },
+    {
+      "t": 1793516812658,
+      "kind": "request",
+      "method": "GET",
+      "status": 0,
+      "resourceType": "font",
+      "message": "net::ERR_CACHE_MISS",
+      "url": "http://localhost:40459/@fs/home/claude/darnly.dev/benchmark/turns/runs/_capture/excalidraw/packages/excalidraw/fonts/Assistant/Assistant-SemiBold.woff2",
+      "source": "browser"
+    }
+  ]
+}

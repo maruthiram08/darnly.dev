@@ -1,0 +1,76 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of a site you like, or one you want to copy the setup of.',
+  'We read the page, the headers its server sends back and the scripts it loads, and match them against the signs that frameworks, site builders, hosts and analytics tools leave behind.',
+  'See what it was built with, where it’s hosted, which UI library and analytics it uses, and copy a prompt that tells your AI coding agent to build yours the same way.',
+];
+
+const faq = [
+  { q: 'How do I find out what a website is built with?', a: 'Paste its address above. We read the page the way a browser does and look for the fingerprints each tool leaves: folder names like /_next/ for Next.js, server headers from Vercel or Netlify, and scripts from analytics tools. Each result says how we know.' },
+  { q: 'Can it tell if a site was made with Lovable, Bolt or v0?', a: 'Often, yes. Sites still on their lovable.app, bolt.new or v0 address are easy. On a custom domain we look for the traces these builders leave in the page, but some sites remove them, so a missing result doesn’t prove the site wasn’t made with one.' },
+  { q: 'Why is something missing?', a: 'Many tools leave no trace in the page, and anything that runs only on the server (databases, payment back ends, sign-in) is usually invisible from outside. Sites can also hide their server headers or block automated visits. Try the home page, which usually loads the most.' },
+  { q: 'Is it the same as Wappalyzer or BuiltWith?', a: 'It answers the same question with a smaller list, focused on what people building with AI agents use: AI app builders, modern frameworks, hosts, UI libraries and analytics. It runs in your browser with nothing to install, and it hands the result straight to your agent.' },
+  { q: 'How do I build my site the same way?', a: 'Click “Copy prompt for your AI agent” and paste it into Claude Code, Cursor or Codex. It lists the stack and asks the agent to set up the same one, or to tell you what would change first if your project already uses something else.' },
+];
+---
+<ToolPage
+  slug="tech-stack-finder"
+  title="Tech stack finder: what is this website built with? · Darnly"
+  description="Paste any website to see what it was built with: framework or site builder (Next.js, Webflow, Lovable, Framer), hosting, UI library and analytics. Copy the stack as a prompt for your AI agent."
+  h1="Tech stack finder: see what any website is built with"
+  lede="Paste a site to see its framework or site builder, where it’s hosted, its UI library and its analytics. Then copy a prompt that tells your AI agent to build yours the same way."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ts">
+    <form id="ts-form" class="ask">
+      <label class="sr" for="ts-url">Website address</label>
+      <input id="ts-url" type="text" inputmode="url" autocomplete="url" placeholder="linear.app" required />
+      <button id="ts-go" type="submit">Find stack</button>
+    </form>
+    <p class="error" id="ts-error" role="alert" hidden></p>
+
+    <div id="ts-out" hidden>
+      <div class="summary">
+        <p id="ts-summary"></p>
+        <button id="ts-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+      </div>
+      <div class="groups" id="ts-groups"></div>
+      <p class="note" id="ts-note" hidden></p>
+      <p class="more" id="ts-more"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/tech-stack-finder';
+</script>
+
+<style>
+  .ts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .summary p { margin: 0; font-size: 18px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .groups :global(.group) { border: 1px solid var(--line); border-radius: 18px; padding: 18px 22px; background: var(--white); min-width: 0; }
+  .groups :global(.group h3) { margin: 0 0 12px; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-family: var(--body); font-weight: 600; }
+  .groups :global(ul) { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .groups :global(li) { display: grid; gap: 2px; min-width: 0; }
+  .groups :global(.tech) { font-size: 20px; font-weight: 600; }
+  .groups :global(.why) { font-size: 14px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .groups :global(.empty) { font-size: 15px; color: var(--ink-soft); margin: 0; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .more { margin: 0; font-size: 15px; }
+  .more :global(a) { color: var(--ink); }
+</style>
