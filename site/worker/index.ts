@@ -9,8 +9,14 @@
 // GET /api/fonts?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
+//
+// GET /api/slop?url=https://example.com
+//   Same guards. Reads the page, its stylesheets and (for sites that render in the browser) its
+//   main script, and returns an "AI-made look" score with the tells it found, for the AI slop
+//   checker at /tools/ai-slop-checker/.
 
 import { findFonts } from './fonts';
+import { checkSlop, mainScripts } from './slop';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -28,6 +34,7 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/slop') return slopApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -49,6 +56,39 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/slop: how AI-made a page looks, and what gives it away.
+function slopApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('slop', req, url, env, ctx, async (p) => {
+    const css: string[] = [...p.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    // findFonts already reads the stylesheets; keep a copy of each for the color and class checks.
+    const sheet = async (u: string) => {
+      const t = await fetchText(u, url, env, 'text/css,*/*;q=0.1');
+      if (t !== null && !/fonts\.googleapis\.com/.test(u)) css.push(t);
+      return t;
+    };
+    const origin = new URL(p.finalUrl).origin;
+    const [found, tags, js, favicon] = await Promise.all([
+      findFonts(p.html, p.finalUrl, sheet),
+      extract(p.html, p.finalUrl),
+      Promise.all(mainScripts(p.html, p.finalUrl).map((u) => fetchText(u, url, env, '*/*', 1_500_000))),
+      fetchText(`${origin}/favicon.ico`, url, env, 'image/*', 4_000),
+    ]);
+    const result = checkSlop({
+      html: p.html,
+      css,
+      js: js.filter((t): t is string => t !== null),
+      fonts: found.fonts,
+      title: tags.title,
+      icon: tags.icon,
+      // Sites that answer every address with their home page don't count as having a favicon.
+      faviconFile: favicon !== null && favicon.length > 0 && !/<html|<!doctype/i.test(favicon.slice(0, 200)),
+      shareImage: tags.og['og:image'] ?? tags.og['og:image:url'] ?? tags.twitter['twitter:image'] ?? null,
+      year: new Date().getUTCFullYear(),
+    });
+    return { url: p.target.href, finalUrl: p.finalUrl, status: p.status, title: tags.title, ...result };
+  });
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
@@ -102,13 +142,13 @@ function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
-async function fetchText(raw: string, self: URL, env: Env, accept: string): Promise<string | null> {
+async function fetchText(raw: string, self: URL, env: Env, accept: string, max = 500_000): Promise<string | null> {
   const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
   if (typeof t === 'string') return null;
   try {
     const res = await get(t, self, env, accept, 5_000);
     if (!res.ok || typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') === 'string') return null;
-    return await readLimited(res, 500_000);
+    return await readLimited(res, max);
   } catch {
     return null;
   }

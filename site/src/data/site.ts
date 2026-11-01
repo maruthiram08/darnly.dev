@@ -48,6 +48,11 @@ export const TOOLS: Item[] = [
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
   },
+  {
+    slug: 'ai-slop-checker',
+    name: 'AI slop checker',
+    blurb: 'Does your site look AI-made? Get a score, the tells that give it away, and a prompt to fix them.',
+  },
 ];
 
 // Same for guides.
