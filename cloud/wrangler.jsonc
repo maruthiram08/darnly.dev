@@ -1,14 +1,14 @@
 // Darnly cloud: the cloud inbox API (and, from sprint A3, the MCP endpoint).
-// Before the first deploy, see cloud/README.md: create the D1 database and R2 bucket, then paste the database id below.
+// Production resources (created 2026-11-01): D1 "darnly", R2 "darnly-bugs", KV "OAUTH_KV". See DEPLOY.md.
 {
   "name": "darnly-cloud",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "d1_databases": [
-    { "binding": "DB", "database_name": "darnly", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "darnly", "database_id": "b1f3a2eb-5658-4a44-b872-1ac043e3afc4", "migrations_dir": "migrations" }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "darnly-bugs" }],
-  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "2a549817cf404a31a65609b3a5e47800" }],
   "triggers": { "crons": ["17 3 * * *"] },
   "vars": {
     "PUBLIC_URL": "https://api.darnly.dev",
