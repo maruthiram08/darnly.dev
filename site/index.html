@@ -103,6 +103,8 @@ kbd { font: 500 14px/1 var(--mono); padding: 4px 8px; border-radius: 6px; backgr
 .final .box::after { content: ""; position: absolute; z-index: -1; width: 420px; height: 420px; right: -100px; bottom: -160px; border-radius: 50%; background: radial-gradient(circle, var(--pink), rgba(216, 57, 149, 0) 70%); filter: blur(50px); }
 .final h2 { color: var(--white); max-width: 18ch; font-size: clamp(30px, 4vw, 46px); line-height: 1.05; font-weight: 700; margin-top: 12px; }
 .final p { color: rgba(252, 255, 255, 0.9); max-width: 52ch; }
+.mail-inline { font: 500 0.95em/1 var(--mono); user-select: all; color: var(--ink); }
+.report li code { font: 0.9em var(--mono); }
 .mail { font: 500 16px/1 var(--mono); user-select: all; background: rgba(252, 255, 255, 0.16); padding: 10px 14px; border-radius: 10px; }
 
 footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
@@ -166,6 +168,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <div class="nav-links">
         <a href="#how">How it works</a>
         <a href="#report">The report</a>
+        <a href="#mac">Mac app</a>
         <a href="#privacy">Privacy</a>
       </div>
     </nav>
@@ -231,7 +234,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
         <div class="step">
           <span class="n">Step 3</span>
           <h3>Say what you expected</h3>
-          <p>One sentence, then Enter. Tell your agent "fix my bugs", or paste it into a cloud agent.</p>
+          <p>One sentence, then Enter. Got a picture of how it should look? Paste it in too. Then tell your agent "fix my bugs".</p>
         </div>
       </div>
     </div>
@@ -272,6 +275,41 @@ and save my week
     </div>
   </section>
 
+  <section class="band" id="mac" style="padding-top: 0">
+    <div class="wrap report">
+      <div>
+        <span class="eyebrow">Darnly for Mac</span>
+        <h2>Bugs outside the browser, too.</h2>
+        <p class="intro">A small menu bar app for Mac apps, the iOS Simulator and the Android Emulator. Same three moves, same inbox, so your agent already knows what to do.</p>
+        <ul>
+          <li><span>Press <kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>D</kbd> anywhere, click the broken part, type what you expected.</span></li>
+          <li><span>The element comes from macOS accessibility: its kind, label and accessibility id (<code>testID</code> in React Native), the best clue to the code.</span></li>
+          <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
+          <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
+        </ul>
+        <p class="intro">Early access: write to <span class="mail-inline">hello@darnly.dev</span> for the Mac download.</p>
+      </div>
+      <div class="file" role="figure" aria-label="Example bug report from the Mac app">
+        <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
+<pre><span class="k"># Bug in Maccy: group "Clipboard history"</span>
+
+<span class="p">**Expected:**</span> Popup background should use the
+brand gradient
+
+<span class="p">**What it should look like:**</span> .reference.png
+<span class="c">(a picture you pasted into the note)</span>
+
+<span class="k">## Element (the red box)</span>
+- kind: group (`AXGroup`)
+- accessibility id: `historyList` <span class="c">(start here)</span>
+- size: 450x312 at (0, 52) in the window
+
+<span class="k">## Errors (last 60s)</span>
+No errors in the app's log in the last 60 seconds.</pre>
+      </div>
+    </div>
+  </section>
+
   <section class="band" id="privacy" style="padding-top: 0">
     <div class="wrap">
       <div class="privacy">
@@ -280,7 +318,7 @@ and save my week
           <h2>Your bugs never leave your computer.</h2>
         </div>
         <dl>
-          <div><dt>No account, no server</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us.</dd></div>
+          <div><dt>No account needed</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us unless you switch on the optional cloud inbox for agents that can't see your files.</dd></div>
           <div><dt>Secrets hidden automatically</dt><dd>Passwords, card numbers, tokens, API keys and cookies become [hidden] before anything is saved.</dd></div>
           <div><dt>You choose the sites</dt><dd>Errors are recorded on localhost. Live sites only when you switch them on, one at a time.</dd></div>
         </dl>
