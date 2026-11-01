@@ -190,6 +190,11 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'http-status-explainer',
+    category: 'Code helpers',
+    name: 'HTTP status code explainer',
+    blurb: 'What 404, 500, 502 or a Vercel or Cloudflare error means in plain English, why it happens in your stack, and how to fix it.',
   },
 ];
 
