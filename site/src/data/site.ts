@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'csp-generator',
+    name: 'CSP generator',
+    blurb: 'Paste your site and get a Content Security Policy that allows exactly what it loads, for any host.',
+    category: 'Security',
+  },
 ];
 
 // Same for guides.
