@@ -14,6 +14,11 @@ export const TOOLS: Item[] = [
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
   {
+    slug: 'open-graph-checker',
+    name: 'Open Graph checker',
+    blurb: 'See how your link looks on X, LinkedIn, WhatsApp and Slack, and what to fix.',
+  },
+  {
     slug: 'meta-tag-generator',
     name: 'Meta tag generator',
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',

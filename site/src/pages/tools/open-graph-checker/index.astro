@@ -1,0 +1,108 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your page’s public address, for example your home page or a launch post.',
+  'We read the share tags the page gives to apps (Open Graph and Twitter tags) and draw how the link looks on X, LinkedIn, WhatsApp and Slack.',
+  'If something is missing, copy the tags we suggest into your page’s <code>&lt;head&gt;</code>, or hand them to your AI coding agent. Deploy, then check again.',
+];
+
+const faq = [
+  { q: 'What are Open Graph tags?', a: 'Small lines in your page’s <code>&lt;head&gt;</code>, like <code>og:title</code> and <code>og:image</code>, that tell apps what title, text and picture to show when someone shares your link.' },
+  { q: 'What size should my share image be?', a: '1200×630 pixels works everywhere. Keep important text away from the edges, because some apps crop the image.' },
+  { q: 'I fixed my tags but the old preview still shows. Why?', a: 'Apps keep previews for a while. Our checker keeps results for an hour. LinkedIn and X update when the link is shared again, and you can refresh LinkedIn’s copy with its Post Inspector.' },
+  { q: 'Can I check a page on localhost?', a: 'No. Apps can’t see your computer either, so only public addresses work. Deploy first, even to a preview address, then check that.' },
+  { q: 'Do you store the pages I check?', a: 'We keep the tags we read for up to an hour so repeat checks are fast. We don’t keep a list of who checked what.' },
+];
+---
+<ToolPage
+  slug="open-graph-checker"
+  title="Open Graph checker: preview your link on X, LinkedIn, WhatsApp, Slack · Darnly"
+  description="Paste a link to see how it looks when shared on X, LinkedIn, WhatsApp and Slack. Find missing og:image and og:title tags and copy the fix. Free."
+  h1="Open Graph checker: see how your link looks when shared"
+  lede="Paste a link to preview it on X, LinkedIn, WhatsApp and Slack, see which share tags are missing, and copy the fix."
+  steps={steps}
+  faq={faq}
+>
+  <div class="og">
+    <form id="og-form" class="ask">
+      <label class="sr" for="og-url">Page address</label>
+      <input id="og-url" type="text" inputmode="url" autocomplete="url" placeholder="your-site.com" required />
+      <button id="og-go" type="submit">Check</button>
+    </form>
+    <p class="error" id="og-error" role="alert" hidden></p>
+
+    <div id="og-out" hidden>
+      <div class="cards" id="og-cards"></div>
+
+      <h2 class="sub">What we found</h2>
+      <ul class="checks" id="og-checks"></ul>
+
+      <div class="code" id="og-fix-box" hidden>
+        <div class="code-head"><span>Suggested tags for your &lt;head&gt;</span><button id="og-copy" type="button">Copy</button></div>
+        <pre id="og-fix"></pre>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/og';
+</script>
+
+<style>
+  .og { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+  .sub { font-size: 24px; margin: 40px 0 0; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 20px; }
+  .cards :global(figure) { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .cards :global(figcaption) { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .cards :global(.img) { aspect-ratio: 1.91 / 1; background: #E8EEF1; overflow: hidden; display: grid; place-items: center; color: var(--ink-soft); font-size: 14px; }
+  .cards :global(.img img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cards :global(.img.broken::after) { content: 'Image didn’t load'; }
+  .cards :global(.img.broken img) { display: none; }
+  .cards :global(.text) { display: grid; gap: 2px; padding: 10px 12px; font-size: 14px; line-height: 1.35; min-width: 0; }
+  .cards :global(.text > *) { overflow: hidden; text-overflow: ellipsis; }
+  .cards :global(.muted) { color: #6B7C86; }
+
+  .cards :global(.x) { position: relative; border: 1px solid #CFD9DE; border-radius: 16px; overflow: hidden; background: #fff; }
+  .cards :global(.x-title) { position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 24px); background: rgba(0, 0, 0, 0.77); color: #fff; font-size: 13px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cards :global(.x.small) { display: grid; grid-template-columns: 130px 1fr; }
+  .cards :global(.x.small .img) { aspect-ratio: 1; }
+  .cards :global(.li) { border: 1px solid #E0E0E0; border-radius: 8px; overflow: hidden; background: #fff; }
+  .cards :global(.li .text) { background: #EEF3F8; }
+  .cards :global(.wa) { background: #E5DDD5; padding: 14px; border-radius: 12px; }
+  .cards :global(.bubble) { margin-left: auto; max-width: 340px; background: #D9FDD3; border-radius: 10px; padding: 4px; display: grid; }
+  .cards :global(.bubble .img) { border-radius: 8px; }
+  .cards :global(.bubble .text) { background: rgba(0, 0, 0, 0.04); border-radius: 0 0 8px 8px; }
+  .cards :global(.bubble .link) { font-size: 13px; color: #027EB5; padding: 6px 8px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cards :global(.sl) { border-left: 4px solid #DDDDDD; padding-left: 12px; display: grid; gap: 8px; background: #fff; }
+  .cards :global(.sl .text) { padding: 0; }
+  .cards :global(.sl .site) { font-size: 13px; }
+  .cards :global(.sl .title) { color: #1264A3; font-weight: 700; }
+  .cards :global(.sl .img) { max-width: 360px; border-radius: 6px; }
+
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .checks :global(li) { display: grid; grid-template-columns: 26px 150px 1fr; gap: 10px; align-items: baseline; padding: 12px 14px; border-radius: 12px; background: var(--wash); }
+  .checks :global(.mark) { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff; }
+  .checks :global(.ok .mark) { background: #1F9D55; }
+  .checks :global(.warn .mark) { background: #D98E04; }
+  .checks :global(.bad .mark) { background: #C2264B; }
+  .checks :global(.detail) { color: var(--ink-soft); overflow-wrap: anywhere; }
+  @media (max-width: 600px) {
+    .checks :global(li) { grid-template-columns: 26px 1fr; }
+    .checks :global(.detail) { grid-column: 2; }
+  }
+
+  .code { margin-top: 20px; border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px/1.7 var(--mono); }
+</style>
