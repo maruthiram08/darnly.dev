@@ -13,6 +13,11 @@ export const TOOLS: Item[] = [
     name: 'Favicon generator',
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
+  {
+    slug: 'image-compressor',
+    name: 'Image compressor',
+    blurb: 'Shrink images to WebP, JPG or PNG and see the size before and after.',
+  },
 ];
 
 // Same for guides.
