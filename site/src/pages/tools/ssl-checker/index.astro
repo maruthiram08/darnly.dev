@@ -1,0 +1,200 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type a domain, like yoursite.com. You can paste a full link too.',
+  'We read every certificate issued for it from the public Certificate Transparency logs, then open the site over https, http and www to see what visitors really get.',
+  'You get a big verdict with the days left, who issued it and which names it covers. Anything broken comes with a plain fix and a prompt for your AI agent.',
+];
+
+const faq = [
+  { q: 'What is an SSL certificate?', a: 'It’s what makes the padlock show and lets your site load over https. Without a valid one, browsers show a full-page “Your connection is not private” warning and most people leave. The modern name is TLS certificate, but everyone still says SSL.' },
+  { q: 'Do I need to renew my certificate?', a: 'Almost never by hand. Vercel, Netlify, Cloudflare, GitHub Pages, Lovable and most hosts get free certificates from Let’s Encrypt or Google and renew them on their own, about a third of the way before they run out. If the days left keep dropping under 10, renewal is failing, usually because a DNS record changed.' },
+  { q: 'Why does www give an error when my domain works?', a: 'www.yoursite.com is a separate name. It needs its own DNS record and has to be added at your host as a second domain, ideally redirecting to the main one. Until then there is no certificate for it, and people who type www get an error.' },
+  { q: 'My custom domain says “pending” in Vercel. What now?', a: 'Vercel only issues a certificate once your DNS points to it. Open Settings, then Domains, copy the exact record it shows (an A record to 76.76.21.21 or a CNAME to cname.vercel-dns.com), add it at your registrar, and wait a few minutes. This checker shows when the certificate appears.' },
+  { q: 'Where does the certificate data come from?', a: 'Every trusted certificate is recorded in public Certificate Transparency logs. We read them through crt.sh (with Cert Spotter as a backup) and keep the answer for an hour. The live https check runs each time, from darnly.dev’s server. Nothing about your check is stored.' },
+  { q: 'Why does it say a certificate exists but https doesn’t work?', a: 'The certificate can be issued on one host while your DNS points to another, for example after moving from Netlify to Vercel. Check where the domain points with the domain checker, then make sure that host has the domain added.' },
+];
+---
+<ToolPage
+  slug="ssl-checker"
+  title="SSL checker: check a site’s SSL certificate and expiry · Darnly"
+  description="Check any domain’s SSL certificate: valid or expired, who issued it, how many days are left, whether www is covered, and the certificate history. Plain fixes for Vercel, Netlify and Cloudflare."
+  h1="SSL checker: is my site’s certificate OK?"
+  lede="Type a domain and see if it’s secure, when the certificate runs out, who issued it and whether www is covered, with a plain fix if anything is wrong."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ssl">
+    <form id="ssl-form" class="ask">
+      <label class="sr" for="ssl-domain">Domain</label>
+      <input id="ssl-domain" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="yoursite.com" required />
+      <button id="ssl-go" type="submit">Check SSL</button>
+    </form>
+    <p class="error" id="ssl-error" role="alert" hidden></p>
+    <p class="wait" id="ssl-wait" hidden>Reading the public certificate logs and opening the site. This can take up to 15 seconds.</p>
+
+    <p class="example-tag" id="ssl-example">Example result. Type your own domain above.</p>
+
+    <section class="hero" id="ssl-hero" aria-live="polite">
+      <div class="band">
+        <span class="lock" id="ssl-lock" aria-hidden="true"></span>
+        <div class="band-text">
+          <p class="verdict" id="ssl-verdict"></p>
+          <p class="sub" id="ssl-sub"></p>
+        </div>
+      </div>
+      <div class="body">
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="track" cx="60" cy="60" r="52" />
+            <circle class="fill" id="ssl-ring" cx="60" cy="60" r="52" />
+          </svg>
+          <div class="ring-text">
+            <span class="days" id="ssl-days"></span>
+            <span class="days-label" id="ssl-days-label"></span>
+          </div>
+        </div>
+        <dl class="facts">
+          <div><dt>Issued by</dt><dd id="ssl-issuer"></dd></div>
+          <div><dt>Valid</dt><dd id="ssl-dates"></dd></div>
+          <div><dt>Renews</dt><dd id="ssl-renews"></dd></div>
+          <div id="ssl-host-row"><dt>Hosted on</dt><dd id="ssl-hosted"></dd></div>
+          <div class="names-row"><dt>Covers</dt><dd><ul class="names" id="ssl-names"></ul></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="checks" id="ssl-checks-wrap">
+      <div class="checks-head">
+        <h2 class="h">What visitors get</h2>
+        <button id="ssl-prompt" type="button" class="primary" hidden>Copy all fixes for your AI agent</button>
+      </div>
+      <ul class="list" id="ssl-list"></ul>
+    </div>
+
+    <section class="timeline-wrap" id="ssl-timeline-wrap">
+      <h2 class="h">Certificate history</h2>
+      <p class="hint">Each bar is one certificate from the public logs. Renewals should overlap, with no gaps.</p>
+      <div class="timeline" id="ssl-timeline"></div>
+    </section>
+
+    <details class="tech" id="ssl-tech">
+      <summary>Technical details</summary>
+      <div id="ssl-tech-body"></div>
+    </details>
+
+    <p class="note">Site not loading at all? The <a href="/tools/domain-checker/">domain checker</a> shows where your domain points and which DNS records are missing.</p>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/ssl-checker';
+</script>
+
+<style>
+  .ssl [hidden] { display: none !important; }
+  .ssl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+  .wait { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .example-tag { margin: 0 0 -8px; font: 600 13px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+
+  /* The big certificate card */
+  .hero { --tone: #1F9D55; --tint: #E8F7EF; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; background: var(--white); box-shadow: 0 10px 30px rgba(11, 34, 48, 0.07); transition: opacity 0.2s; }
+  .hero.loading { opacity: 0.45; }
+  .hero.warn { --tone: #C98A00; --tint: #FFF6DE; }
+  .hero.fail { --tone: #D2344F; --tint: #FDECEF; }
+  .hero.unknown { --tone: #4A6472; --tint: #EEF3F5; }
+  .band { display: flex; gap: 18px; align-items: center; padding: 24px 26px; background: var(--tint); border-bottom: 1px solid var(--line); }
+  .lock { flex: none; width: 64px; height: 64px; border-radius: 18px; background: var(--tone); display: grid; place-items: center; }
+  .lock :global(svg) { width: 34px; height: 34px; }
+  .band-text { min-width: 0; }
+  .verdict { margin: 0; font: 700 clamp(22px, 4vw, 30px)/1.15 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+  .sub { margin: 6px 0 0; color: var(--ink-soft); font-size: 16px; }
+
+  .body { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 28px; align-items: center; padding: 26px; }
+  .ring-wrap { position: relative; width: 180px; height: 180px; }
+  .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 11; }
+  .ring .track { stroke: var(--wash); }
+  .ring .fill { stroke: var(--tone); stroke-linecap: round; stroke-dasharray: 326.7; stroke-dashoffset: 326.7; transition: stroke-dashoffset 0.8s ease; }
+  .ring-text { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .days { font: 700 46px/1 var(--display); color: var(--ink); }
+  .days-label { margin-top: 6px; font-size: 14px; color: var(--ink-soft); }
+
+  .facts { margin: 0; display: grid; gap: 12px; }
+  .facts > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+  .facts dt { font-size: 14px; color: var(--ink-soft); }
+  .facts dd { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .facts :global(.issuer) { display: inline-flex; align-items: center; gap: 8px; }
+  .facts :global(.badge) { width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; color: #fff; font: 700 12px/1 var(--body); }
+  .names { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .names :global(li) { font: 500 14px/1 var(--mono); padding: 7px 10px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); }
+  .names :global(li.yes) { background: #E8F7EF; border-color: #A8DDBF; }
+  .names :global(li.no) { background: #FDECEF; border-color: #F2B3BF; color: #8E1B33; }
+
+  .h { margin: 0; font: 700 20px/1.2 var(--display); }
+  .checks { display: grid; gap: 12px; }
+  .checks-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .list :global(.item) { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 14px; border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 16px 18px; background: var(--white); }
+  .list :global(.item.pass) { border-left-color: #1F9D55; }
+  .list :global(.item.warn) { border-left-color: #E0A100; }
+  .list :global(.item.fail) { border-left-color: #D2344F; }
+  .list :global(.dot) { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--body); color: var(--white); }
+  .list :global(.pass .dot) { background: #1F9D55; }
+  .list :global(.warn .dot) { background: #E0A100; }
+  .list :global(.fail .dot) { background: #D2344F; }
+  .list :global(.label) { margin: 2px 0 0; font: 600 18px/1.3 var(--body); overflow-wrap: anywhere; }
+  .list :global(.detail) { margin: 0; color: var(--ink-soft); font-size: 15px; overflow-wrap: anywhere; }
+  .list :global(.fix) { margin: 4px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .list :global(.fix b) { font-weight: 600; }
+  .list :global(.actions) { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .list :global(.actions button) { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .list :global(.actions button:hover) { border-color: var(--sky); }
+
+  .timeline-wrap { display: grid; gap: 10px; }
+  .hint { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .timeline { position: relative; border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 14px 16px 10px; display: grid; gap: 8px; }
+  .timeline :global(.row) { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .timeline :global(.row-label) { font-size: 13px; color: var(--ink-soft); line-height: 1.3; overflow-wrap: anywhere; }
+  .timeline :global(.row-label b) { display: block; color: var(--ink); font-size: 14px; }
+  .timeline :global(.lane) { position: relative; height: 22px; background: var(--wash); border-radius: 6px; }
+  .timeline :global(.bar) { position: absolute; top: 3px; bottom: 3px; border-radius: 5px; min-width: 4px; }
+  .timeline :global(.bar.old) { opacity: 0.45; }
+  .timeline :global(.today) { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--pink); }
+  .timeline :global(.axis) { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; font-size: 12px; color: var(--ink-soft); }
+  .timeline :global(.axis-scale) { position: relative; height: 16px; }
+  .timeline :global(.axis-scale span) { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .timeline :global(.axis-scale span.today-label) { color: var(--pink); font-weight: 600; }
+  .timeline :global(.empty) { margin: 6px 0; color: var(--ink-soft); font-size: 15px; }
+
+  .tech { border: 1px solid var(--line); border-radius: 14px; background: var(--white); padding: 0 18px; }
+  .tech summary { cursor: pointer; padding: 14px 0; font-weight: 600; }
+  .tech :global(table) { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 14px; }
+  .tech :global(th), .tech :global(td) { text-align: left; padding: 7px 8px 7px 0; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+  .tech :global(th) { color: var(--ink-soft); font-weight: 500; width: 34%; }
+  .tech :global(code) { font-family: var(--mono); font-size: 13px; }
+  .tech :global(.scroll) { overflow-x: auto; }
+  .note { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .note a { color: var(--sky); }
+
+  @media (max-width: 640px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px 26px; }
+    .band { padding: 18px; gap: 14px; }
+    .lock { width: 52px; height: 52px; border-radius: 14px; }
+    .body { grid-template-columns: minmax(0, 1fr); justify-items: center; padding: 20px 18px; gap: 20px; }
+    .facts { width: 100%; }
+    .facts > div { grid-template-columns: 82px minmax(0, 1fr); }
+    .timeline :global(.row), .timeline :global(.axis) { grid-template-columns: 88px minmax(0, 1fr); gap: 8px; }
+  }
+</style>

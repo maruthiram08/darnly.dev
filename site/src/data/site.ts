@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'ssl-checker',
+    name: 'SSL checker',
+    category: 'Launch & domains',
+    blurb: 'Is your certificate valid? Days left, who issued it, whether www is covered, and its history.',
+  },
 ];
 
 // Same for guides.
