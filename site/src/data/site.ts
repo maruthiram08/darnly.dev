@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'curl-converter',
+    category: 'Code helpers',
+    name: 'curl converter',
+    blurb: 'Paste a curl command from API docs and get fetch, axios, Node.js, Python or a Next.js route, with keys moved to .env.',
+  },
 ];
 
 // Same for guides.

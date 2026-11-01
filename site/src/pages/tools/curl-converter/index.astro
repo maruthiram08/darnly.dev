@@ -1,0 +1,178 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { EXAMPLES } from '../../../scripts/curl-converter-core';
+
+const steps = [
+  'Paste a curl command from an API’s docs, or from Chrome DevTools (right-click a request in the Network tab, then <strong>Copy › Copy as cURL</strong>). An OpenAI example is already filled in.',
+  'Check the request card: method, address, headers, body and login. Anything that looks like a secret key is marked in pink.',
+  'Pick fetch, axios, Node.js, Python or a Next.js route and copy the code. Keep <strong>Move keys to .env</strong> on, and paste the <code>.env.local</code> lines it gives you into your project.',
+];
+
+const faq = [
+  { q: 'Is my curl command sent anywhere?', a: 'No. The command is read and turned into code in your browser. Nothing is uploaded, so it’s safe to paste commands with real keys in them. Still, if a key ends up somewhere public, change it at the provider.' },
+  { q: 'Why does it warn me about my API key?', a: 'Code that runs in the browser can be read by anyone who opens your site, keys included. Call the API from a server route instead (the <strong>Next.js route</strong> tab writes one for you) and keep the key in <code>.env.local</code>. To check a live site for leaked keys, use the <a href="/tools/api-key-leak-checker/">API key leak checker</a>.' },
+  { q: 'Which curl options does it understand?', a: '<code>-X</code>, <code>-H</code>, <code>-d</code>, <code>--data-raw</code>, <code>--data-binary</code>, <code>--data-urlencode</code>, <code>--json</code>, <code>-F</code>, <code>-u</code>, <code>-b</code>, <code>-A</code>, <code>-G</code>, <code>-I</code>, <code>-k</code> and <code>--oauth2-bearer</code>, with single, double and <code>$\'…\'</code> quotes and lines that end in <code>\\</code> or <code>^</code>. Options that only change how curl prints or saves things, like <code>-s</code> or <code>-o</code>, are left out and listed under <strong>What changed</strong>.' },
+  { q: 'Why did it add a Content-Type header?', a: 'When the body is JSON but the command has no Content-Type, curl actually sends it as a form, and most APIs then reply with an error. The tool adds <code>Content-Type: application/json</code> so the code does what the docs meant.' },
+  { q: 'fetch or axios: which should I use?', a: 'Use fetch unless your project already uses axios. fetch is built into browsers, Node.js 18+, Next.js and Cloudflare Workers, so there’s nothing to install. axios is a package that does the same with slightly shorter code.' },
+  { q: 'Does it work with Copy as cURL from Chrome on Windows?', a: 'Yes, both the bash and cmd versions work. The PowerShell version isn’t curl, so pick <strong>Copy as cURL (bash)</strong> instead.' },
+];
+---
+<ToolPage
+  slug="curl-converter"
+  title="curl to fetch, axios, Python and Next.js converter · Darnly"
+  description="Paste a curl command and get the same request as JavaScript fetch, axios, Node.js, Python requests or a Next.js route, with API keys moved to .env. Free and private."
+  h1="curl converter: curl to fetch, axios and Python"
+  lede="Paste a curl command from any API’s docs and get the same request as code for your project. Secret keys are spotted for you and moved to .env. Everything runs in your browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cc">
+    <div class="in">
+      <div class="head">
+        <label for="cc-input" class="lab">Your curl command</label>
+        <div class="chips" role="group" aria-label="Examples">
+          {Object.entries(EXAMPLES).map(([k, e]) => (
+            <button type="button" class="chip" data-example={k} aria-pressed={k === 'openai' ? 'true' : 'false'}>{e.label}</button>
+          ))}
+          <button id="cc-clear" type="button" class="chip ghost">Clear</button>
+        </div>
+      </div>
+      <textarea id="cc-input" spellcheck="false" autocomplete="off" autocapitalize="off" rows="8" placeholder="curl https://api.example.com/v1/items -H 'Authorization: Bearer …'">{EXAMPLES.openai.curl}</textarea>
+      <div class="error" id="cc-error" role="alert" hidden></div>
+    </div>
+
+    <div class="grid" id="cc-out">
+      <section class="card" aria-label="The request">
+        <p class="verdict" id="cc-verdict"></p>
+        <div class="line">
+          <span class="method" id="cc-method">POST</span>
+          <span class="url" id="cc-url"></span>
+        </div>
+        <div class="rows" id="cc-rows"></div>
+        <div class="warn" id="cc-warn" hidden>
+          <p><strong>Don’t put this key in browser code.</strong> Anyone who opens your site can read it and use it on your bill. Call this API from a server route and keep the key in <code>.env.local</code>.</p>
+          <div class="warn-btns">
+            <button type="button" class="pill" id="cc-to-next">Show me the server route</button>
+            <a class="pill ghost" href="/tools/api-key-leak-checker/">Check my live site for leaked keys</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="code-side" aria-label="Code">
+        <div class="code">
+          <div class="code-head">
+            <div class="tabs" id="cc-tabs" role="tablist" aria-label="Language">
+              <button type="button" role="tab" data-tab="fetch" aria-selected="true">fetch</button>
+              <button type="button" role="tab" data-tab="axios" aria-selected="false" tabindex="-1">axios</button>
+              <button type="button" role="tab" data-tab="node" aria-selected="false" tabindex="-1">Node.js</button>
+              <button type="button" role="tab" data-tab="python" aria-selected="false" tabindex="-1">Python</button>
+              <button type="button" role="tab" data-tab="next" aria-selected="false" tabindex="-1">Next.js route</button>
+            </div>
+          </div>
+          <div class="sub">
+            <p class="tab-note" id="cc-tab-note"></p>
+            <button id="cc-copy" type="button" class="copy">Copy</button>
+          </div>
+          <pre id="cc-code" role="tabpanel" tabindex="0"></pre>
+        </div>
+        <label class="check"><input id="cc-env" type="checkbox" checked /> Move keys to <code>.env</code> (recommended)</label>
+        <div class="env" id="cc-env-box" hidden>
+          <div class="env-head">
+            <span>Add to <code>.env.local</code></span>
+            <button id="cc-env-copy" type="button" class="copy small">Copy</button>
+          </div>
+          <pre id="cc-env-code"></pre>
+          <p class="env-note">Make sure <code>.env.local</code> is in your <code>.gitignore</code> so the key never reaches GitHub. Need one? Try the <a href="/tools/gitignore-generator/">.gitignore generator</a>.</p>
+        </div>
+        <button id="cc-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+        <details class="notes" id="cc-notes-box" hidden>
+          <summary id="cc-notes-sum">What changed from your command</summary>
+          <ul id="cc-notes"></ul>
+        </details>
+      </section>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/curl-converter';
+</script>
+
+<style>
+  .cc { display: grid; gap: 24px; min-width: 0; }
+  .cc [hidden] { display: none !important; }
+  .in { display: grid; gap: 10px; min-width: 0; }
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  .lab { font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: 600 13px/1 var(--body); padding: 9px 12px; min-height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .chip[aria-pressed='true'] { background: var(--sky); border-color: var(--sky); color: var(--white); }
+  textarea { width: 100%; min-height: 170px; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--ink); color: #D9EEF6; resize: vertical; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .error { padding: 14px 16px; border-radius: 12px; background: #FDEEF4; color: #8A1A3D; font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 24px; align-items: start; }
+  .grid.dim { opacity: 0.45; }
+
+  .card { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: var(--white); box-shadow: 0 10px 30px rgba(11, 34, 48, 0.06); min-width: 0; }
+  .verdict { margin: 0; padding: 10px 14px; border-radius: 12px; font-weight: 600; background: #E7F6EE; color: #1E7A4C; }
+  .verdict.bad { background: #FDEEF4; color: #8A1A3D; }
+  .line { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+  .method { flex: none; font: 700 14px/1 var(--mono); padding: 8px 10px; border-radius: 8px; color: var(--white); background: var(--sky); }
+  .method.m-POST { background: #1E7A4C; }
+  .method.m-PUT, .method.m-PATCH { background: #B26A00; }
+  .method.m-DELETE { background: #B3261E; }
+  .url { font: 500 15px/1.5 var(--mono); overflow-wrap: anywhere; min-width: 0; padding-top: 3px; }
+  .url :global(.host) { font-weight: 700; color: var(--ink); }
+  .url :global(.path) { color: var(--ink-soft); }
+  .rows { display: grid; gap: 14px; min-width: 0; }
+  .rows > :global(div) { min-width: 0; }
+  .rows :global(h3) { margin: 0 0 6px; font: 600 12px/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+  .rows :global(dl) { margin: 0; display: grid; gap: 4px; }
+  .rows :global(.kv) { display: grid; grid-template-columns: minmax(90px, 36%) minmax(0, 1fr); gap: 10px; padding: 7px 10px; border-radius: 8px; background: var(--wash); font: 400 13px/1.5 var(--mono); }
+  .rows :global(.kv dt) { font-weight: 600; overflow-wrap: anywhere; }
+  .rows :global(.kv dd) { margin: 0; overflow-wrap: anywhere; color: var(--ink-soft); }
+  .rows :global(.kv.secret) { background: #FDEEF4; box-shadow: inset 3px 0 0 var(--pink); }
+  .rows :global(.kv.secret dd) { color: #8A1A3D; }
+  .rows :global(.tag) { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font: 600 11px/1.4 var(--body); background: var(--pink); color: var(--white); vertical-align: 1px; }
+  .rows :global(.tag.soft) { background: var(--line); color: var(--ink); }
+  .rows :global(pre.body) { margin: 0; padding: 12px; max-height: 260px; overflow: auto; border-radius: 10px; background: var(--wash); font: 400 13px/1.55 var(--mono); }
+  .rows :global(.none) { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+  .warn { padding: 14px 16px; border-radius: 14px; background: #FDEEF4; color: #5E1029; }
+  .warn p { margin: 0; }
+  .warn-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .pill { font: 600 14px/1 var(--body); padding: 11px 14px; border-radius: 999px; border: 0; background: var(--pink); color: var(--white); cursor: pointer; text-decoration: none; }
+  .pill.ghost { background: var(--white); color: #8A1A3D; border: 1px solid #F3C2D6; }
+
+  .code-side { display: grid; gap: 12px; min-width: 0; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tabs button { font: 500 13px/1 var(--mono); padding: 10px 10px; border-radius: 8px; border: 0; background: transparent; color: #8FB4C4; cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: rgba(252, 255, 255, 0.14); color: var(--white); }
+  .copy { font: 600 13px/1 var(--body); padding: 10px 14px; border-radius: 8px; border: 0; background: var(--sky); color: var(--white); cursor: pointer; }
+  .copy.small { padding: 8px 12px; }
+  .sub { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 12px 0 16px; }
+  .tab-note { margin: 0; font: 400 13px/1.5 var(--body); color: #8FB4C4; }
+  .tab-note.bad { color: #F7A8C8; }
+  .code pre { margin: 0; padding: 14px 16px 16px; max-height: 560px; overflow: auto; font: 400 13px/1.65 var(--mono); font-variant-ligatures: none; }
+  .code pre :global(.s) { color: #A6E3A1; }
+  .code pre :global(.c) { color: #7C98A6; font-style: italic; }
+  .code pre :global(.k) { color: #F5A3CF; }
+  .code pre :global(.e) { color: #FFD479; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .check input { width: 18px; height: 18px; }
+  .env { border: 1px solid var(--line); border-radius: 14px; background: var(--wash); padding: 12px 14px; min-width: 0; }
+  .env-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; }
+  .env pre { margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--ink); color: #FFD479; font: 400 13px/1.6 var(--mono); overflow-x: auto; }
+  .env-note { margin: 10px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .primary { justify-self: start; font: 600 15px/1 var(--body); padding: 14px 20px; border-radius: 999px; border: 0; background: var(--pink); color: var(--white); cursor: pointer; }
+  .notes { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--white); }
+  .notes summary { cursor: pointer; font-weight: 600; }
+  .notes ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
