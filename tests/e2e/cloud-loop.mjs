@@ -44,7 +44,7 @@ const run = (args) =>
     p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`wrangler ${args[0]} exited ${code}`))));
   });
 await run(['d1', 'migrations', 'apply', 'darnly', '--local', '--persist-to', persist]);
-const worker = spawn('npx', ['wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--var', 'ALLOW_DEV_LOGIN:true', '--var', `PUBLIC_URL:${cloud}`], { cwd: cloudDir, env, stdio: 'ignore', detached: true });
+const worker = spawn('npx', ['wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--var', 'ALLOW_DEV_LOGIN:true', '--var', `PUBLIC_URL:${cloud}`, '--local-upstream', `127.0.0.1:${port}`], { cwd: cloudDir, env, stdio: 'ignore', detached: true });
 for (let i = 0; i < 60; i++) {
   const ok = await fetch(`${cloud}/v1/health`).then((r) => r.ok, () => false);
   if (ok) break;
@@ -100,7 +100,8 @@ try {
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   await panel.getByLabel('What did you expect?').fill('Pay now should open the payment form');
-  await panel.getByLabel('What did you expect?').press('Enter');
+  // Impatient double press: still one bug.
+  await Promise.all([panel.getByLabel('What did you expect?').press('Enter'), panel.getByLabel('What did you expect?').press('Enter').catch(() => {})]);
   await panel.getByText('Sent to your Darnly inbox').waitFor({ timeout: 8000 }).catch(() => fail('not sent to the cloud'));
 
   // What the agent would see.

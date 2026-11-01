@@ -67,6 +67,8 @@ export interface NewBug {
   /** Missing when the browser couldn't take a screenshot (for example on a protected page). */
   picture?: ArrayBuffer;
   logs?: string;
+  /** Random id the extension makes once per capture, so a repeated upload isn't saved twice. */
+  clientId?: string;
 }
 
 /** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), logs (JSON, optional). */
@@ -86,7 +88,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   if (typeof meta !== 'string' || !(report instanceof File || typeof report === 'string') || (picture != null && !(picture instanceof File))) {
     throw new HttpError(400, 'missing_parts');
   }
-  let parsed: { title?: unknown; pageUrl?: unknown };
+  let parsed: { title?: unknown; pageUrl?: unknown; clientId?: unknown };
   try {
     parsed = JSON.parse(meta);
   } catch {
@@ -114,10 +116,19 @@ export async function parseUpload(req: Request): Promise<NewBug> {
     report: reportText,
     picture: bytes,
     logs: logsText,
+    clientId: typeof parsed.clientId === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(parsed.clientId) ? parsed.clientId : undefined,
   };
 }
 
+async function bugByClientId(env: Env, userId: string, clientId: string): Promise<BugRow | null> {
+  return env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE user_id = ? AND client_id = ?`).bind(userId, clientId).first<BugRow>();
+}
+
 export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<BugSummary> {
+  if (bug.clientId) {
+    const seen = await bugByClientId(env, userId, bug.clientId);
+    if (seen) return summary(seen);
+  }
   const now = Date.now();
   const counts = await env.DB.prepare(
     "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting FROM bugs WHERE user_id = ?",
@@ -146,11 +157,19 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     created_at: now,
     fixed_at: null,
   };
-  await env.DB.prepare(
-    `INSERT INTO bugs (${COLUMNS}, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId)
-    .run();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO bugs (${COLUMNS}, user_id, client_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null)
+      .run();
+  } catch (e) {
+    // Two copies of the same capture arrived at once: keep the first, drop this one's files.
+    const seen = bug.clientId ? await bugByClientId(env, userId, bug.clientId) : null;
+    if (!seen) throw e;
+    await env.FILES.delete([prefix + 'report.md', prefix + 'picture.png', prefix + 'logs.json']);
+    return summary(seen);
+  }
   return summary(row);
 }
 
