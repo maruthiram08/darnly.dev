@@ -118,6 +118,11 @@ export const TOOLS: Item[] = [
     name: 'Screenshot beautifier',
     blurb: 'Frame a screenshot in a browser or phone on a nice background, sized for X, LinkedIn or a story.',
   },
+  {
+    slug: 'fake-data-generator',
+    name: 'Fake data generator',
+    blurb: 'Realistic users, products, orders or posts as JSON, CSV, SQL or a TypeScript seed file.',
+  },
 ];
 
 // Same for guides.
