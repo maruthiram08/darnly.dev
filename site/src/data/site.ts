@@ -169,6 +169,11 @@ export const TOOLS: Item[] = [
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
   },
+  {
+    slug: 'cron-builder',
+    name: 'Cron expression generator',
+    blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
+  },
 ];
 
 // Same for guides.
