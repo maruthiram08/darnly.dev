@@ -56,6 +56,11 @@ function fit(screen: HTMLElement) {
   screen.style.height = `${Math.round(h * scale)}px`;
 }
 
+// The browser fills the whole screen (Mac full screen or F11), so popups can't be sized.
+function isFullScreen(): boolean {
+  return !!document.fullscreenElement || (window.outerWidth >= screen.width && window.outerHeight >= screen.height);
+}
+
 function show(u: URL) {
   error.hidden = true;
   hint.hidden = false;
@@ -72,7 +77,19 @@ function show(u: URL) {
     open.type = 'button';
     open.className = 'rc-open';
     open.textContent = 'Open at this width';
+    const tip = document.createElement('p');
+    tip.className = 'rc-tip';
+    tip.hidden = true;
+    tip.textContent = navigator.platform.startsWith('Mac')
+      ? 'Your browser is in full screen, so the window would open full size too. Leave full screen (Control + Command + F), then press the button again. Or press it again now to open it anyway.'
+      : 'Your browser is in full screen, so the window would open full size too. Leave full screen (F11), then press the button again. Or press it again now to open it anyway.';
     open.addEventListener('click', () => {
+      // In full screen, new windows open full screen too, so the width would be lost. Say so once first.
+      if (tip.hidden && isFullScreen()) {
+        tip.hidden = false;
+        return;
+      }
+      tip.hidden = true;
       // Chrome ignores the size when "noopener" is passed, so open a blank sized window and cut the link back to us after.
       const h = Math.min(d.height, (screen.availHeight || d.height) - 80);
       const win = window.open('about:blank', `rc-${d.width}`, `popup=yes,width=${d.width},height=${h}`);
@@ -95,7 +112,7 @@ function show(u: URL) {
     frame.src = u.href;
     box.append(frame);
 
-    view.append(name, box, open);
+    view.append(name, box, open, tip);
     views.append(view);
     observer.observe(box);
   }

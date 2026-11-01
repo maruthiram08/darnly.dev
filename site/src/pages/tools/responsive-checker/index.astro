@@ -68,6 +68,8 @@ const faq = [
   :global(.rc-screen) { width: 100%; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
   :global(.rc-blocked) { position: absolute; inset: 0; display: grid; align-content: center; gap: 8px; padding: 16px; text-align: center; background: var(--wash); color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
   :global(.rc-blocked strong) { color: var(--ink); font-size: 15px; }
+  :global(.rc-tip) { margin: 0; padding: 10px 12px; border-radius: 10px; background: #FFF4D6; color: #6B4A00; font-size: 14px; }
+  :global(.rc-tip[hidden]) { display: none; }
   :global(.rc-shot) { overflow-y: auto; }
   :global(.rc-shot img) { display: block; width: 100%; height: auto; }
   :global(.rc-screen iframe) { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #fff; }
