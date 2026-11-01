@@ -57,3 +57,19 @@ export const SLOTS: Slot[] = [
     note: 'Square file; X, LinkedIn, Instagram and YouTube cut it into a circle.',
   },
 ];
+
+// Backgrounds that show around the picture in "Show it all". css draws the swatch; stops draw the file.
+export type Background = { key: string; name: string; css?: string; color?: string; stops?: string[] };
+
+export const BACKGROUNDS: Background[] = [
+  { key: 'blur', name: 'Blurred copy of your picture' },
+  { key: 'white', name: 'White', css: '#ffffff', color: '#ffffff' },
+  { key: 'black', name: 'Black', css: '#0b0b0f', color: '#0b0b0f' },
+  { key: 'cream', name: 'Cream', css: '#F6F0E6', color: '#F6F0E6' },
+  { key: 'sky', name: 'Sky blue', css: '#0596D1', color: '#0596D1' },
+  { key: 'sunset', name: 'Sunset gradient', css: 'linear-gradient(135deg, #F97316, #EC4899)', stops: ['#F97316', '#EC4899'] },
+  { key: 'ocean', name: 'Ocean gradient', css: 'linear-gradient(135deg, #06B6D4, #6366F1)', stops: ['#06B6D4', '#6366F1'] },
+  { key: 'mint', name: 'Mint gradient', css: 'linear-gradient(135deg, #A7F3D0, #34D399)', stops: ['#A7F3D0', '#34D399'] },
+  { key: 'dusk', name: 'Dusk gradient', css: 'linear-gradient(135deg, #1E1B4B, #7C3AED)', stops: ['#1E1B4B', '#7C3AED'] },
+  { key: 'peach', name: 'Peach gradient', css: 'linear-gradient(135deg, #FDE68A, #FCA5A5)', stops: ['#FDE68A', '#FCA5A5'] },
+];

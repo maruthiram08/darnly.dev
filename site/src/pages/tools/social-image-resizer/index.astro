@@ -1,6 +1,6 @@
 ---
 import ToolPage from '../../../layouts/ToolPage.astro';
-import { SLOTS } from '../../../scripts/social-image-slots';
+import { SLOTS, BACKGROUNDS } from '../../../scripts/social-image-slots';
 
 const steps = [
   'Drop in one picture, or paste it. You see it cropped right away for X, LinkedIn, Instagram, YouTube and a profile picture.',
@@ -41,12 +41,22 @@ const faq = [
         <label><input type="radio" name="sr-mode" value="fill" checked /> Fill the frame</label>
         <label><input type="radio" name="sr-mode" value="fit" /> Show it all</label>
       </fieldset>
-      <label class="bg" id="sr-bg-wrap" hidden>Background <input id="sr-bg" type="color" value="#ffffff" aria-label="Background color around the picture" /></label>
       <label class="toggle"><input id="sr-cover" type="checkbox" checked /> What gets covered</label>
       <fieldset class="seg" aria-label="File type">
         <label><input type="radio" name="sr-type" value="image/jpeg" checked /> JPG</label>
         <label><input type="radio" name="sr-type" value="image/png" /> PNG</label>
       </fieldset>
+    </div>
+
+    <div class="bgrow">
+      <span class="bg-label">Background</span>
+      <div class="swatches" id="sr-bgs" role="radiogroup" aria-label="Background around the picture">
+        {BACKGROUNDS.map((b) => (
+          <button type="button" role="radio" aria-checked={b.key === 'blur' ? 'true' : 'false'} class={`sw sw-${b.key}`} data-bg={b.key} title={b.name} aria-label={b.name} style={b.css ? `background: ${b.css}` : undefined}></button>
+        ))}
+        <label class="sw sw-custom" title="Pick any color"><input id="sr-bg" type="color" value="#ff5a5f" aria-label="Pick any background color" /></label>
+      </div>
+      <label class="space">Space around <input id="sr-pad" type="range" min="0" max="30" value="0" /></label>
     </div>
 
     <ul class="grid" id="sr-grid">
@@ -84,7 +94,7 @@ const faq = [
           ))}
         </tbody>
       </table>
-      <p>JPG is smaller and right for photos. Pick PNG for logos, text or sharp edges. Files are made in your browser with a canvas, and the covered areas are close guides, not exact: each app moves them a little between phone and desktop.</p>
+      <p>The background shows when you pick “Show it all” or add space around, which is handy for logos and screenshots. JPG is smaller and right for photos. Pick PNG for logos, text or sharp edges. Files are made in your browser with a canvas, and the covered areas are close guides, not exact: each app moves them a little between phone and desktop.</p>
     </details>
   </div>
 </ToolPage>
@@ -112,8 +122,20 @@ const faq = [
   .seg label:has(input:checked) { background: var(--sky); color: var(--white); }
   .seg input { position: absolute; opacity: 0; pointer-events: none; }
   .seg label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
-  .bg, .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
-  .bg input { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .bgrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  .bg-label { font-weight: 600; font-size: 15px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { position: relative; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid rgba(15, 23, 42, 0.18); cursor: pointer; overflow: hidden; }
+  .sw[aria-checked='true'] { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .sw:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .sw-blur { background: linear-gradient(135deg, #7DD3F5, #3C8F6E); }
+  .sw-blur::after { content: 'Blur'; position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px/1 var(--body); color: #fff; backdrop-filter: blur(2px); }
+  .sw-custom { background: conic-gradient(#f43f5e, #f59e0b, #84cc16, #06b6d4, #6366f1, #d946ef, #f43f5e); }
+  .sw-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  .sw-custom:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .space { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+  .space input { width: 120px; accent-color: var(--sky); }
   .toggle input { width: 18px; height: 18px; accent-color: var(--sky); }
 
   .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; min-width: 0; }

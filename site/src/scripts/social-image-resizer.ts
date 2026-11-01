@@ -1,10 +1,10 @@
 // Social image resizer: crops one picture for every social size with a canvas. Nothing is uploaded.
 import { makeZip, type ZipEntry } from './zip';
-import { SLOTS, type Slot } from './social-image-slots';
+import { SLOTS, BACKGROUNDS, type Slot } from './social-image-slots';
 
 type Type = 'image/jpeg' | 'image/png';
 type Mode = 'fill' | 'fit';
-type Source = { levels: CanvasImageSource[]; sizes: [number, number][]; w: number; h: number; name: string };
+type Source = { levels: CanvasImageSource[]; sizes: [number, number][]; w: number; h: number; name: string; tiny: HTMLCanvasElement };
 type Card = { slot: Slot; el: HTMLLIElement; canvas: HTMLCanvasElement; zoom: HTMLInputElement; warn: HTMLElement; cx: number; cy: number; queued: boolean };
 
 const MAX_SIDE = 8192;
@@ -17,7 +17,10 @@ const dropTitle = $<HTMLElement>('sr-drop-title');
 const dropText = $<HTMLElement>('sr-drop-text');
 const error = $<HTMLParagraphElement>('sr-error');
 const bg = $<HTMLInputElement>('sr-bg');
-const bgWrap = $<HTMLLabelElement>('sr-bg-wrap');
+const pad = $<HTMLInputElement>('sr-pad');
+const swatches = [...document.querySelectorAll<HTMLButtonElement>('#sr-bgs .sw[data-bg]')];
+const customSw = bg.closest('label')!;
+let bgKey = 'blur'; // a BACKGROUNDS key, or 'custom'
 const coverToggle = $<HTMLInputElement>('sr-cover');
 const zipBtn = $<HTMLButtonElement>('sr-zip');
 const resetBtn = $<HTMLButtonElement>('sr-reset');
@@ -66,7 +69,8 @@ function place(card: Card, W: number, H: number) {
   const s = src!;
   const fit = mode() === 'fit';
   const zoom = Number(card.zoom.value) / 100;
-  const scale = (fit ? Math.min(W / s.w, H / s.h) : Math.max(W / s.w, H / s.h)) * zoom;
+  const space = 1 - (2 * Number(pad.value)) / 100;
+  const scale = (fit ? Math.min(W / s.w, H / s.h) * space : Math.max(W / s.w, H / s.h)) * zoom;
   const dw = s.w * scale;
   const dh = s.h * scale;
   const axis = (out: number, d: number, c: number) => (d <= out ? (out - d) / 2 : Math.min(0, Math.max(out - d, out / 2 - c * d)));
@@ -78,8 +82,9 @@ function paint(card: Card, ctx: CanvasRenderingContext2D, W: number, H: number, 
   const p = place(card, W, H);
   const fit = mode() === 'fit';
   ctx.clearRect(0, 0, W * k, H * k);
-  if (fit || (forFile && type() === 'image/jpeg')) {
-    ctx.fillStyle = fit ? bg.value : '#ffffff';
+  if (fit) paintBackground(ctx, W * k, H * k);
+  else if (forFile && type() === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, W * k, H * k);
   }
   // Smallest halved copy that is still at least as big as what we draw.
@@ -90,6 +95,39 @@ function paint(card: Card, ctx: CanvasRenderingContext2D, W: number, H: number, 
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(s.levels[i], p.dx * k, p.dy * k, p.dw * k, p.dh * k);
   return p;
+}
+
+function paintBackground(ctx: CanvasRenderingContext2D, cw: number, ch: number) {
+  const b = BACKGROUNDS.find((x) => x.key === bgKey);
+  if (bgKey === 'custom' || !b) {
+    ctx.fillStyle = bg.value;
+  } else if (b.stops) {
+    const g = ctx.createLinearGradient(0, 0, cw, ch);
+    b.stops.forEach((c, i) => g.addColorStop(i / (b.stops!.length - 1), c));
+    ctx.fillStyle = g;
+  } else if (b.color) {
+    ctx.fillStyle = b.color;
+  } else {
+    // Blur: a tiny copy of the picture stretched to cover the frame comes out soft, in every browser.
+    const t = src!.tiny;
+    const k = Math.max(cw / t.width, ch / t.height) * 1.1;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(t, (cw - t.width * k) / 2, (ch - t.height * k) / 2, t.width * k, t.height * k);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  }
+  ctx.fillRect(0, 0, cw, ch);
+}
+
+function tinyCopy(img: CanvasImageSource, w: number, h: number) {
+  const k = 24 / Math.max(w, h);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k));
+  c.height = Math.max(1, Math.round(h * k));
+  const x = c.getContext('2d')!;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(img, 0, 0, c.width, c.height);
+  return c;
 }
 
 function paintCover(card: Card, ctx: CanvasRenderingContext2D, cw: number, ch: number) {
@@ -193,7 +231,9 @@ function showError(msg: string) {
 }
 
 function useSource(img: CanvasImageSource, w: number, h: number, name: string) {
-  src = { ...pyramid(img, w, h), w, h, name };
+  const p = pyramid(img, w, h);
+  const last = p.levels.length - 1;
+  src = { ...p, w, h, name, tiny: tinyCopy(p.levels[last], p.sizes[last][0], p.sizes[last][1]) };
   for (const card of cards) {
     card.cx = 0.5;
     card.cy = 0.5;
@@ -338,16 +378,41 @@ resetBtn.addEventListener('click', () => {
     card.cy = 0.5;
     card.zoom.value = '100';
   }
+  pad.value = '0';
   renderAll();
 });
 
-for (const r of modeRadios) r.addEventListener('change', () => {
-  bgWrap.hidden = mode() !== 'fit';
+const modeChanged = () => {
+  cards.forEach((c) => src && settle(c));
+  renderAll();
+};
+for (const r of modeRadios) r.addEventListener('change', modeChanged);
+
+// Picking a background or adding space switches to "Show it all", since that is where they show.
+function showAll() {
+  const fitRadio = modeRadios.find((r) => r.value === 'fit')!;
+  if (fitRadio.checked) return;
+  fitRadio.checked = true;
+  modeChanged();
+}
+
+function chooseBg(key: string) {
+  bgKey = key;
+  for (const sw of swatches) sw.setAttribute('aria-checked', String(sw.dataset.bg === key));
+  customSw.classList.toggle('on', key === 'custom');
+  customSw.style.outline = key === 'custom' ? '3px solid var(--sky)' : '';
+  customSw.style.outlineOffset = key === 'custom' ? '2px' : '';
+  showAll();
+  renderAll();
+}
+for (const sw of swatches) sw.addEventListener('click', () => chooseBg(sw.dataset.bg!));
+bg.addEventListener('input', () => chooseBg('custom'));
+pad.addEventListener('input', () => {
+  showAll();
   cards.forEach((c) => src && settle(c));
   renderAll();
 });
 for (const r of typeRadios) r.addEventListener('change', renderAll);
-bg.addEventListener('input', renderAll);
 coverToggle.addEventListener('change', () => {
   root.classList.toggle('no-cover', !coverToggle.checked);
   renderAll();
