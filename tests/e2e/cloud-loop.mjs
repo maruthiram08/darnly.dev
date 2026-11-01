@@ -9,12 +9,32 @@ import path from 'node:path';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
+const cloudRequire = createRequire(new URL('../../cloud/package.json', import.meta.url));
+const { Client } = cloudRequire('@modelcontextprotocol/sdk/client/index.js');
+const { StreamableHTTPClientTransport } = cloudRequire('@modelcontextprotocol/sdk/client/streamableHttp.js');
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const ext = path.join(root, '.output-e2e/chrome-mv3');
 const cloudDir = path.join(root, 'cloud');
 const port = 8790 + Math.floor(Math.random() * 100);
 const cloud = `http://127.0.0.1:${port}`;
 const env = { ...process.env, WRANGLER_SEND_METRICS: 'false' };
+
+// Connector sign-in, the way Claude or Cursor does it: register, consent page, approve, swap the code for a token.
+async function connectAgent(email) {
+  const redirect = 'http://127.0.0.1:7777/callback';
+  const reg = await (await fetch(`${cloud}/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ redirect_uris: [redirect], client_name: 'E2E Agent', token_endpoint_auth_method: 'none' }) })).json();
+  const b64 = (b) => Buffer.from(b).toString('base64url');
+  const verifier = b64(crypto.getRandomValues(new Uint8Array(32)));
+  const challenge = b64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+  const q = new URLSearchParams({ response_type: 'code', client_id: reg.client_id, redirect_uri: redirect, code_challenge: challenge, code_challenge_method: 'S256', state: 's' });
+  const consent = await fetch(`${cloud}/authorize?${q}`);
+  const tx = /name="tx" value="([^"]+)"/.exec(await consent.text())[1];
+  const cookie = consent.headers.get('set-cookie').split(';')[0];
+  const approved = await fetch(`${cloud}/authorize`, { method: 'POST', headers: { cookie }, body: new URLSearchParams({ tx, devEmail: email }), redirect: 'manual' });
+  const code = new URL(approved.headers.get('location')).searchParams.get('code');
+  const tok = await (await fetch(`${cloud}/token`, { method: 'POST', body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirect, client_id: reg.client_id, code_verifier: verifier }) })).json();
+  return tok.access_token;
+}
 
 const fail = (m) => { console.error('FAIL:', m); process.exitCode = 1; };
 const persist = fs.mkdtempSync(path.join(os.tmpdir(), 'darnly-cloud-'));
@@ -24,7 +44,7 @@ const run = (args) =>
     p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`wrangler ${args[0]} exited ${code}`))));
   });
 await run(['d1', 'migrations', 'apply', 'darnly', '--local', '--persist-to', persist]);
-const worker = spawn('npx', ['wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--var', 'ALLOW_DEV_LOGIN:true'], { cwd: cloudDir, env, stdio: 'ignore', detached: true });
+const worker = spawn('npx', ['wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--var', 'ALLOW_DEV_LOGIN:true', '--var', `PUBLIC_URL:${cloud}`], { cwd: cloudDir, env, stdio: 'ignore', detached: true });
 for (let i = 0; i < 60; i++) {
   const ok = await fetch(`${cloud}/v1/health`).then((r) => r.ok, () => false);
   if (ok) break;
@@ -97,8 +117,19 @@ try {
     if (bug.title !== 'Pay now should open the payment form') fail('title wrong: ' + bug.title);
 
     await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 10000 }).catch(() => fail('cloud list missing'));
-    // The agent marks it fixed through the API (MCP does the same call).
-    await fetch(`${cloud}/v1/bugs/${bug.id}/fixed`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: JSON.stringify({ note: 'wired Pay now to openPaymentForm()' }) });
+    // The agent connects through MCP (OAuth sign-in like Claude or Cursor), reads the bug and marks it fixed.
+    const agentToken = await connectAgent('maruthi@example.com');
+    const client = new Client({ name: 'e2e-agent', version: '1.0.0' });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${cloud}/mcp`), { requestInit: { headers: { authorization: `Bearer ${agentToken}` } } }));
+    const tools = (await client.listTools()).tools.map((t) => t.name).join(',');
+    if (tools !== 'list_bugs,get_bug,mark_fixed') fail('MCP tools wrong: ' + tools);
+    const listed = await client.callTool({ name: 'list_bugs', arguments: {} });
+    if (!listed.content[0].text.includes(bug.id)) fail('MCP list_bugs missing the bug');
+    const got = await client.callTool({ name: 'get_bug', arguments: { id: bug.id } });
+    if (!got.content[0].text.includes('Pay now should open the payment form')) fail('MCP get_bug missing the note');
+    if (got.content[1]?.type !== 'image') fail('MCP get_bug missing the picture');
+    await client.callTool({ name: 'mark_fixed', arguments: { id: bug.id, note: 'wired Pay now to openPaymentForm()' } });
+    await client.close();
     await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 12000 }).catch(() => fail('fixed nudge missing'));
     await panel.getByText('wired Pay now to openPaymentForm()').waitFor({ timeout: 3000 }).catch(() => fail('fix note missing'));
   }

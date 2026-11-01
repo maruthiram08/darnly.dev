@@ -1,4 +1,7 @@
+import { OAuthProvider, type OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
+import { mcpFetch } from './mcp';
+import { oauthRoute } from './oauth';
 import { requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
@@ -36,6 +39,12 @@ async function route(req: Request, env: Env): Promise<Response> {
 
   if (path === '/v1/me' && method === 'GET') return json({ email: user.email });
   if (path === '/v1/me' && method === 'DELETE') {
+    // Disconnect every agent first, then delete the bugs and the account.
+    const helpers = (env as Env & { OAUTH_PROVIDER?: OAuthHelpers }).OAUTH_PROVIDER;
+    if (helpers) {
+      const { items } = await helpers.listUserGrants(user.id);
+      await Promise.all(items.map((g) => helpers.revokeGrant(g.id, user.id)));
+    }
     await deleteAccount(env, user.id);
     return json({ ok: true });
   }
@@ -62,8 +71,11 @@ async function route(req: Request, env: Env): Promise<Response> {
   throw new HttpError(404, 'not_found');
 }
 
-export default {
+/** Everything except /mcp: the extension's API and the agent sign-in pages. */
+const appHandler = {
   async fetch(req: Request, env: Env): Promise<Response> {
+    const signInPage = oauthRoute(req, env);
+    if (signInPage) return signInPage;
     const cors = corsHeaders(req);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
@@ -79,6 +91,40 @@ export default {
     for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
     return res;
   },
+};
+
+/** /mcp, reached only with a valid agent token. The OAuth library puts the signed-in user in ctx.props. */
+const mcpHandler = {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext & { props?: { userId?: string } }): Promise<Response> {
+    const userId = ctx.props?.userId;
+    if (!userId) return new Response('signed out', { status: 401 });
+    return mcpFetch(req, env, userId);
+  },
+};
+
+// Built on first use, because the public address comes from the environment (localhost in tests).
+let provider: OAuthProvider<Env> | null = null;
+let providerFor = '';
+function oauthProvider(env: Env): OAuthProvider<Env> {
+  const base = (env.PUBLIC_URL || 'https://api.darnly.dev').replace(/\/+$/, '');
+  if (provider && providerFor === base) return provider;
+  providerFor = base;
+  provider = new OAuthProvider<Env>({
+    resourceMetadata: { resource: `${base}/mcp`, authorization_servers: [base], resource_name: 'Darnly bug inbox' },
+    apiRoute: '/mcp',
+    apiHandler: mcpHandler as never,
+    defaultHandler: appHandler as never,
+    authorizeEndpoint: '/authorize',
+    tokenEndpoint: '/token',
+    clientRegistrationEndpoint: '/register',
+    scopesSupported: ['bugs'],
+    accessTokenTTL: 3600,
+  });
+  return provider;
+}
+
+export default {
+  fetch: (req: Request, env: Env, ctx: ExecutionContext) => oauthProvider(env).fetch(req, env, ctx),
 
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanup(env).then((n) => console.log(`cleanup: deleted ${n} fixed bugs`)));

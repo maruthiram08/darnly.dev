@@ -8,10 +8,14 @@
     { "binding": "DB", "database_name": "darnly", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "darnly-bugs" }],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }],
   "triggers": { "crons": ["17 3 * * *"] },
   "vars": {
+    "PUBLIC_URL": "https://api.darnly.dev",
     // OAuth client id of type "Chrome extension" from Google Cloud Console. Tokens for any other client are refused.
-    "GOOGLE_EXTENSION_CLIENT_ID": ""
+    "GOOGLE_EXTENSION_CLIENT_ID": "",
+    // OAuth client id of type "Web application" for agent sign-in. Its secret is set with `wrangler secret put GOOGLE_WEB_CLIENT_SECRET`.
+    "GOOGLE_WEB_CLIENT_ID": ""
   },
   "observability": { "enabled": true }
 }
