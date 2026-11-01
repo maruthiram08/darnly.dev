@@ -1,0 +1,128 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type the name of a package, or up to three to compare. You can paste an <code>npm install</code> line or an npmjs.com link too.',
+  'We read the package from the npm registry: its latest version, license, dependencies, size, maintainers, TypeScript types and deprecation notice, plus its weekly downloads for the last year.',
+  'Each fact gets a green, amber or red mark, and the package gets a one-line verdict. Copy the result for your AI agent, or copy the install command.',
+];
+
+const faq = [
+  { q: 'How do I know if an npm package is safe to use?', a: 'Look for four things: lots of weekly downloads, a release in the last year, a normal open source license like MIT, and no deprecation notice. This tool checks all of them at once and marks anything that needs a second look.' },
+  { q: 'My AI agent suggested a package I’ve never heard of. Should I install it?', a: 'Check it here first. AI agents sometimes invent package names that sound right, and attackers register those names with harmful code. A package that doesn’t exist, or has almost no downloads, is a sign to ask the agent again.' },
+  { q: 'What does “abandoned” mean here?', a: 'Nothing new has been published in over two years. Amber means over a year. Some small, finished packages don’t need updates, so treat it as a prompt to look, not a ban. A deprecated package is different: its author has asked people to stop using it.' },
+  { q: 'Is a package with one maintainer bad?', a: 'No, most packages have one. It just means everything rests on one person, so for something your whole app depends on, a package with a team behind it is a little safer.' },
+  { q: 'Does this check for viruses or security holes?', a: 'No. It checks the signs of a healthy, trustworthy package. For known security problems in packages you already use, run <code>npm audit</code> in your project.' },
+  { q: 'Where does the data come from?', a: 'Straight from the public npm registry and npm’s download counts. Results are kept for up to an hour, so a brand new release can take a little while to show.' },
+];
+---
+<ToolPage
+  slug="npm-package-checker"
+  title="npm package checker: is this package safe to use? · Darnly"
+  description="Check any npm package before you install it: weekly downloads, last release, license, dependencies, size, maintainers, TypeScript types and deprecation, with a clear verdict. Compare up to 3 packages side by side."
+  h1="npm package checker: is this package safe to use?"
+  lede="Your AI agent suggested a package you’ve never heard of? Type its name to see how popular it is, when it was last updated, its license and more, with a clear verdict. Compare up to three."
+  steps={steps}
+  faq={faq}
+>
+  <div class="np">
+    <form id="np-form" class="ask">
+      <label class="sr" for="np-name">Package names, up to three</label>
+      <input id="np-name" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="zod, or zod, valibot, yup" required />
+      <button id="np-go" type="submit">Check</button>
+    </form>
+    <p class="try">
+      <span>Try:</span>
+      <button type="button" class="chip" data-try="axios, got, request">axios vs got vs request</button>
+      <button type="button" class="chip" data-try="zod, yup, joi">zod vs yup vs joi</button>
+      <button type="button" class="chip" data-try="express, hono, fastify">express vs hono vs fastify</button>
+      <button type="button" class="chip" data-try="react-hook-form-zod-easy">a made-up name</button>
+    </p>
+    <p class="error" id="np-error" role="alert" hidden></p>
+
+    <div id="np-out" aria-live="polite">
+      <div class="cols" id="np-cols"></div>
+      <div class="actions" id="np-actions" hidden>
+        <button id="np-copy" type="button" class="primary">Copy result for your AI agent</button>
+        <span class="copied" id="np-copied" hidden>Copied</span>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/npm-package-checker';
+</script>
+
+<style>
+  .np { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: 18px var(--mono); padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 28px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; min-height: 48px; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .try { margin: -4px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-soft); }
+  .chip { font: 500 14px/1 var(--body); padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; min-height: 36px; }
+  .chip:hover { border-color: var(--sky); }
+  .error { margin: 0; color: #B4234F; }
+
+  .cols { display: grid; gap: 16px; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); }
+  /* Side by side, every card lines up with the same card of the other packages. */
+  @media (min-width: 761px) {
+    .cols.multi { grid-auto-flow: column; grid-template-rows: repeat(11, auto); row-gap: 12px; }
+    .cols.multi :global(.pkg) { grid-row: span 11; grid-template-rows: subgrid; }
+    .cols.multi :global(.cards) { display: contents; }
+  }
+  @media (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+  .cols :global(.pkg) { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .cols :global(.pkg.loading) { opacity: 0.55; }
+  .cols :global(.head) { display: grid; gap: 4px; min-width: 0; }
+  .cols :global(.head h3) { margin: 0; font: 700 26px/1.1 var(--mono); overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+  .cols :global(.head h3 a) { color: var(--ink); text-decoration: none; }
+  .cols :global(.head h3 a:hover) { text-decoration: underline; }
+  .cols :global(.ver) { font: 500 14px var(--mono); color: var(--ink-soft); }
+  .cols :global(.best) { font: 600 12px/1 var(--body); letter-spacing: 0.04em; text-transform: uppercase; background: var(--ink); color: var(--white); padding: 6px 9px; border-radius: 999px; align-self: center; }
+  .cols :global(.desc) { margin: 0; color: var(--ink-soft); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+
+  .cols :global(.verdict) { border-radius: 18px; padding: 18px 20px; display: grid; gap: 4px; align-content: center; }
+  .cols :global(.verdict strong) { font: 700 22px/1.15 var(--display); display: flex; gap: 10px; align-items: center; }
+  .cols :global(.verdict span) { font-size: 15px; }
+  .cols :global(.verdict.good) { background: #E3F6EA; color: #0F5A2E; }
+  .cols :global(.verdict.warn) { background: #FFF2D9; color: #7A4B00; }
+  .cols :global(.verdict.bad) { background: #FDE6EC; color: #8E1638; }
+  .cols :global(.verdict.info) { background: var(--wash); color: var(--ink); }
+  .cols :global(.mark) { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--white); font: 700 15px/1 var(--body); }
+  .cols :global(.good .mark) { background: #1E8E4E; }
+  .cols :global(.warn .mark) { background: #C27A00; }
+  .cols :global(.bad .mark) { background: #C8264F; }
+  .cols :global(.info .mark) { background: var(--sky); }
+
+  .cols :global(.dl) { border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px 12px; background: var(--white); display: grid; gap: 6px; }
+  .cols :global(.dl .big) { font: 700 38px/1 var(--display); }
+  .cols :global(.dl .big small) { font: 500 15px var(--body); color: var(--ink-soft); margin-left: 6px; }
+  .cols :global(.dl svg) { width: 100%; height: 64px; display: block; }
+  .cols :global(.dl .trend) { font-size: 14px; color: var(--ink-soft); }
+
+  .cols :global(.cards) { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .cols :global(.card) { border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 12px 14px; background: var(--white); display: grid; gap: 3px; align-content: start; min-height: 112px; min-width: 0; }
+  .cols :global(.card.good) { border-left-color: #1E8E4E; }
+  .cols :global(.card.warn) { border-left-color: #E09A1A; background: #FFFBF2; }
+  .cols :global(.card.bad) { border-left-color: #C8264F; background: #FFF6F8; }
+  .cols :global(.card.info) { border-left-color: var(--sky); }
+  .cols :global(.card .label) { font: 600 12px/1.2 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .cols :global(.card .value) { font: 700 22px/1.2 var(--display); overflow-wrap: anywhere; }
+  .cols :global(.card .note) { font-size: 13.5px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .cols :global(.card.bad .note) { color: #8E1638; }
+
+  .cols :global(.foot) { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+  .cols :global(.install) { font: 14px var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--wash); color: var(--ink); cursor: pointer; min-height: 40px; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+  .cols :global(.foot a) { color: var(--ink); }
+
+  .cols :global(.skel) { background: var(--wash); border-radius: 14px; }
+
+  .actions { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; min-height: 44px; }
+  .copied { color: #1E8E4E; font-weight: 600; }
+</style>
