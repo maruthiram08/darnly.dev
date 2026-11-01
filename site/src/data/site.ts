@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'git-undo-helper',
+    category: 'Code helpers',
+    name: 'Git undo helper',
+    blurb: 'Pick what went wrong in git and see the fix on a picture of your commits, with the exact commands or a prompt for your agent.',
+  },
 ];
 
 // Same for guides.
