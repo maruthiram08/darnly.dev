@@ -88,7 +88,10 @@ async function readPng(part: File, tooLarge: string): Promise<ArrayBuffer> {
 
 /** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), reference (PNG, optional), logs (JSON, optional). */
 export async function parseUpload(req: Request): Promise<NewBug> {
-  const length = Number(req.headers.get('content-length') ?? 0);
+  // Without a declared size the body would be read before any limit applies; the extension always sends one.
+  const declared = req.headers.get('content-length');
+  if (declared == null || !/^\d+$/.test(declared)) throw new HttpError(411, 'length_required');
+  const length = Number(declared);
   if (length > 2 * LIMITS.pictureBytes + LIMITS.reportBytes + LIMITS.logsBytes + 64_000) throw new HttpError(413, 'too_large');
   let form: FormData;
   try {

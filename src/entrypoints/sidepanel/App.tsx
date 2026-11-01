@@ -7,7 +7,7 @@ import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { planSetup, type PlannedChange } from '@/lib/agent-setup';
-import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
+import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
 interface PendingCapture {
@@ -149,6 +149,19 @@ export function App() {
     setSession(null);
     setCloudBugs([]);
     cloudSeen.current = null;
+  };
+  const cloudSignOutEverywhere = async () => {
+    if (!session) return;
+    try {
+      await signOutEverywhere(session);
+    } catch (e) {
+      setMessage(`Couldn't sign out everywhere: ${(e as Error).message}`);
+      return;
+    }
+    setSession(null);
+    setCloudBugs([]);
+    cloudSeen.current = null;
+    setMessage('Signed out on every computer, and every coding agent is disconnected. Add the connector again to reconnect one.');
   };
   const cloudDeleteAll = async () => {
     if (!session) return;
@@ -671,6 +684,7 @@ export function App() {
           </details>
           <p className="text-xs text-gray-500">
             {session.email} · <button className="underline" onClick={cloudSignOut}>Sign out</button> ·{' '}
+            <button className="underline" onClick={cloudSignOutEverywhere} title="Signs out every computer and disconnects every coding agent">Sign out everywhere</button> ·{' '}
             {confirmDelete ? (
               <>
                 Delete every bug in your inbox? <button className="font-medium text-rose-700 underline" onClick={cloudDeleteAll}>Yes, delete</button>{' '}

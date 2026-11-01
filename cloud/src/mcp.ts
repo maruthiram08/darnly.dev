@@ -4,6 +4,9 @@ import type { Env } from './env';
 import { getBug, getPicture, getReference, listBugs, markFixed } from './bugs';
 import { HttpError } from './util';
 
+const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
+const PAGE_DATA_END = '<!-- darnly:page-data:end -->';
+
 export const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 const LOCAL_HINT = 'Bugs saved straight into a project folder (the Mac app, or the extension in folder mode) are not listed here: check .darnly/inbox/ in the project too.';
@@ -88,7 +91,9 @@ async function callTool(env: Env, userId: string, name: string, args: Record<str
       const lines = bugs.map(
         (b) => `- ${b.id} [${b.status}] ${b.title}\n  page: ${b.pageUrl || b.site} · captured ${when(b.createdAt)}${b.fixedNote ? `\n  fixed: ${b.fixedNote}` : ''}`,
       );
-      return text(`${bugs.length} ${status === 'all' ? '' : status + ' '}bug${bugs.length === 1 ? '' : 's'}:\n${lines.join('\n')}\n\nCall get_bug with an id to read one. Only fix bugs whose page belongs to the code you are working on.\n${LOCAL_HINT}`);
+      // Page addresses come from the web page, so the list sits inside the page-data markers.
+      const safe = (t: string) => t.replace(/<!--\s*darnly:page-data:(start|end)\s*-->/gi, '[marker removed]');
+      return text(`${bugs.length} ${status === 'all' ? '' : status + ' '}bug${bugs.length === 1 ? '' : 's'}:\n${PAGE_DATA_START}\n${safe(lines.join('\n'))}\n${PAGE_DATA_END}\n\nCall get_bug with an id to read one. Only fix bugs whose page belongs to the code you are working on.\n${LOCAL_HINT}`);
     }
     if (name === 'get_bug') {
       const bug = await getBug(env, userId, id);

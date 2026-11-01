@@ -120,6 +120,7 @@ describe('MCP for coding agents', () => {
     const list = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
     expect(list.content[0].text).toContain(bugId);
     expect(list.content[0].text).toContain('Save plan should stay one line');
+    expect(list.content[0].text.indexOf('<!-- darnly:page-data:start -->')).toBeLessThan(list.content[0].text.indexOf(bugId));
 
     const bug = await rpc(token, 'tools/call', { name: 'get_bug', arguments: { id: bugId } });
     expect(bug.content[0].text).toContain(`Darnly bug id: ${bugId}`);
