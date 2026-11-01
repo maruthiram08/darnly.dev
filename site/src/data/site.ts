@@ -38,6 +38,11 @@ export const TOOLS: Item[] = [
     name: 'Image compressor',
     blurb: 'Shrink images to WebP, JPG or PNG and see the size before and after.',
   },
+  {
+    slug: 'image-converter',
+    name: 'Image converter',
+    blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
+  },
 ];
 
 // Same for guides.
