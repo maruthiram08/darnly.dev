@@ -9,6 +9,9 @@ struct TargetWindow {
     let ownerName: String
     let title: String?
     let frame: CGRect
+    /// The app asked macOS to keep this window out of screenshots (NSWindow.sharingType = .none).
+    /// No capture API can see it; pictures show whatever is behind it instead.
+    let hiddenFromCapture: Bool
 }
 
 enum Probe {
@@ -40,7 +43,8 @@ enum Probe {
             if systemOwners.contains(owner) { continue }
             if let alpha = info[kCGWindowAlpha as String] as? Double, alpha < 0.05 { continue }
             if layer != 0, element(pid: pid, at: point) == nil { continue }
-            return TargetWindow(id: id, pid: pid, ownerName: owner, title: info[kCGWindowName as String] as? String, frame: frame)
+            return TargetWindow(id: id, pid: pid, ownerName: owner, title: info[kCGWindowName as String] as? String, frame: frame,
+                                hiddenFromCapture: (info[kCGWindowSharingState as String] as? Int) == Int(CGWindowSharingType.none.rawValue))
         }
         return nil
     }

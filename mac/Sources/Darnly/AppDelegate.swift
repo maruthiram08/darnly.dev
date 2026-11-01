@@ -112,18 +112,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var png: Data?
         var preview: NSImage?
         defer { frozen = nil }
-        do {
-            // Prefer the picture taken when the hotkey was pressed; it still shows panels that hid since.
-            let image: CGImage
-            if let f = frozen, let cut = Screenshot.crop(f, to: window.frame) { image = cut } else { image = try await Screenshot.capture(window) }
-            png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
-            if let png { preview = NSImage(data: png) }
-        } catch {
-            NSLog("Darnly: screenshot failed: \(error)")
+        let hiddenReason = window.hiddenFromCapture ? "\(window.ownerName) hides this window from screenshots, so macOS doesn't let any app take a picture of it." : nil
+        if hiddenReason == nil {
+            do {
+                // Prefer the picture taken when the hotkey was pressed; it still shows panels that hid since.
+                let image: CGImage
+                if let f = frozen, let cut = Screenshot.crop(f, to: window.frame) { image = cut } else { image = try await Screenshot.capture(window) }
+                png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
+                if let png { preview = NSImage(data: png) }
+            } catch {
+                NSLog("Darnly: screenshot failed: \(error)")
+            }
         }
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
         let note: String? = await withCheckedContinuation { cont in
-            notePanel.show(image: preview, summary: png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
+            notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
         }
         guard let note else { return }
         let collected = await logs
@@ -133,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
             bundleId: collected.bundleId ?? NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
-            element: element, logs: collected.logs, logsRead: collected.read)
+            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason)
         do {
             let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, logs: capture.logs)
             notify("Saved to \(Report.inboxFolder)/\(file.lastPathComponent). Tell your agent: fix the bugs in \(Report.inboxFolder)")
