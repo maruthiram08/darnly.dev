@@ -1,0 +1,135 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick your brand color with the color picker, or paste its hex code (like #0593C6).',
+  'We build a full 50 to 950 scale around it. Your exact color keeps its place, marked “Your color”, and the other shades step evenly lighter and darker.',
+  'Click a shade to copy it, copy the Tailwind v4 theme, the v3 config or CSS variables, or copy a prompt that tells your AI coding agent to add the scale for you.',
+];
+
+const faq = [
+  { q: 'Why do these shades look more even than other generators?', a: 'Most generators mix your color with white and black, which makes light shades look washed out and dark shades look muddy. We step through OKLCH, a color space built around how people actually see lightness, and keep the hue steady. That’s the same approach Tailwind v4 uses for its own colors.' },
+  { q: 'Which shade is my color?', a: 'By default it goes on the shade whose lightness is closest, so a mid blue usually lands on 500 or 600. You can move it with “Your color is shade”. The card for your color is marked, and its hex code is exactly what you entered.' },
+  { q: 'Which Tailwind version do I have?', a: 'If your CSS file starts with <code>@import "tailwindcss";</code> and there’s no config file, you’re on v4: use the <code>@theme</code> block. If your project has a <code>tailwind.config.js</code> or <code>tailwind.config.ts</code> file, you’re on v3: use the config snippet. Not sure? Copy the prompt for your AI agent and it will work it out.' },
+  { q: 'Should I use hex or OKLCH?', a: 'Both look the same. Hex works everywhere. OKLCH is what Tailwind v4 uses for its built-in colors and can show slightly richer colors on newer screens. If you’re unsure, keep hex.' },
+  { q: 'Which shade should my buttons use?', a: 'A common starting point is 600 for primary buttons, 700 for hover, and 50 or 100 for light backgrounds. White text on 600 is usually easy to read. The AI agent prompt sets these up for you.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="tailwind-color-generator"
+  title="Tailwind color shades generator: a 50–950 scale from one color · Darnly"
+  description="Turn one brand color into an even Tailwind 50–950 shade scale using OKLCH. Copy it as a Tailwind v4 theme, a v3 config, CSS variables or a prompt for your AI agent. Free."
+  h1="Tailwind color shades: a 50–950 scale from one color"
+  lede="Pick or paste your brand color and get an even 50 to 950 shade scale, ready for Tailwind v4, Tailwind v3 or plain CSS. Click any shade to copy it, or hand the whole scale to your AI coding agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="tc">
+    <div class="inputs">
+      <label class="field color">
+        <span>Your color</span>
+        <span class="pair">
+          <input id="tc-picker" type="color" value="#0593c6" aria-label="Pick a color" />
+          <input id="tc-hex" type="text" value="#0593C6" spellcheck="false" autocomplete="off" aria-label="Hex code" maxlength="9" />
+        </span>
+      </label>
+      <label class="field">
+        <span>Color name</span>
+        <input id="tc-name" type="text" value="brand" spellcheck="false" autocomplete="off" maxlength="40" />
+      </label>
+      <label class="field">
+        <span>Your color is shade</span>
+        <select id="tc-anchor">
+          <option value="auto">Closest match</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="300">300</option>
+          <option value="400">400</option>
+          <option value="500">500</option>
+          <option value="600">600</option>
+          <option value="700">700</option>
+          <option value="800">800</option>
+          <option value="900">900</option>
+          <option value="950">950</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Format</span>
+        <select id="tc-format">
+          <option value="hex">Hex</option>
+          <option value="oklch">OKLCH</option>
+        </select>
+      </label>
+    </div>
+    <p class="error" id="tc-error" role="alert" hidden></p>
+
+    <ul class="swatches" id="tc-swatches"></ul>
+
+    <div class="summary">
+      <p class="status" id="tc-status" role="status" aria-live="polite">Click any shade to copy it.</p>
+      <button id="tc-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>Tailwind v4 · paste in your CSS</span><button type="button" data-copy="tc-v4">Copy</button></div>
+      <pre id="tc-v4"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>Tailwind v3 · tailwind.config</span><button type="button" data-copy="tc-v3">Copy</button></div>
+      <pre id="tc-v3"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>CSS variables</span><button type="button" data-copy="tc-css">Copy</button></div>
+      <pre id="tc-css"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/tailwind-color-generator';
+</script>
+
+<style>
+  .tc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .tc [hidden] { display: none !important; }
+  .inputs { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr); gap: 14px; align-items: end; }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field input[type='text'], .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='text'], .field select { height: 48px; }
+  .field input[type='text']:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .field input[aria-invalid='true'] { border-color: #B4234F; }
+  .pair { display: flex; gap: 8px; min-width: 0; }
+  .pair input[type='text'] { flex: 1; min-width: 0; font-family: var(--mono); text-transform: uppercase; }
+  .pair input[type='color'] { flex: none; width: 50px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .error { margin: 0; color: #B4234F; }
+
+  .swatches { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 6px; }
+  .swatches :global(.swatch) { width: 100%; min-height: 128px; display: grid; align-content: end; gap: 2px; text-align: left; padding: 10px 8px; border: 1px solid rgba(11, 34, 48, 0.1); border-radius: 12px; cursor: pointer; font: inherit; position: relative; }
+  .swatches :global(.swatch strong) { font: 700 16px/1.2 var(--display); }
+  .swatches :global(.swatch span) { font: 400 11px/1.4 var(--mono); opacity: 0.9; overflow-wrap: anywhere; }
+  .swatches :global(.swatch em) { font-style: normal; font-size: 11px; opacity: 0.75; margin-top: 2px; }
+  .swatches :global(.swatch.mine) { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .swatches :global(.swatch.mine em) { opacity: 1; font-weight: 600; }
+  .swatches :global(.swatch:hover) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(11, 34, 48, 0.14); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 900px) {
+    .inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .swatches { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .swatches { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    .swatches :global(.swatch span) { font-size: 10px; }
+    .swatches :global(.swatch) { min-height: 96px; }
+  }
+</style>

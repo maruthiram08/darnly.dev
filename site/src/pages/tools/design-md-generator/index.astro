@@ -1,0 +1,154 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of a site whose look you want your app to follow.',
+  'We read the page and its stylesheets and pull out its colors, fonts, type sizes, spacing, corner radius, shadows, and how its buttons and cards look.',
+  'Download the DESIGN.md file and save it in your project’s top folder, or copy a prompt that tells your AI coding agent to save it and follow it.',
+];
+
+const faq = [
+  { q: 'What is a DESIGN.md file?', a: 'A short style guide written for AI coding agents like Claude Code, Codex and Cursor. It lists the exact colors, fonts, sizes, spacing and component styles to use, so the agent stops guessing and every new screen looks like it belongs to the same app.' },
+  { q: 'Where do I put DESIGN.md?', a: 'In the top folder of your project, next to <code>package.json</code>. Then tell your agent about it once: add the line <code>Follow DESIGN.md for all UI work.</code> to <code>CLAUDE.md</code> (Claude Code) or <code>AGENTS.md</code> (Codex, Cursor and most others). The “Copy prompt for your AI agent” button asks the agent to do both for you.' },
+  { q: 'Can I copy another site’s design?', a: 'Use it for inspiration and to learn how good sites set up their styles, not to clone someone else’s brand. Colors, sizes and spacing are common building blocks, but logos, illustrations and paid fonts belong to their owners. Pointing it at your own site works great too: it turns the look you already have into rules your agent can follow.' },
+  { q: 'Why are some values missing?', a: 'Some sites add their styles with JavaScript after the page loads, and some block automated visits, so there’s less to read. We read up to 12 stylesheets per page. If a section is missing, try another page on the same site, like a pricing or sign-up page.' },
+  { q: 'How is this different from the color and font finders?', a: 'The <a href="/tools/website-color-finder/">website color finder</a> and <a href="/tools/font-finder/">font finder</a> each go deep on one thing. This tool uses both and adds type sizes, spacing, radius, shadows, buttons and cards, then writes it all up as one file your agent can follow.' },
+];
+---
+<ToolPage
+  slug="design-md-generator"
+  title="DESIGN.md generator: a style guide for your AI agent · Darnly"
+  description="Paste any website and get a DESIGN.md file with its colors, fonts, type scale, spacing, radius, shadows, buttons and cards. Drop it in your repo so Claude Code, Codex or Cursor builds in the same style."
+  h1="DESIGN.md generator: a style guide for your AI agent"
+  lede="Paste a site and get a short DESIGN.md with its colors, fonts, sizes, spacing and component styles. Put it in your project, and your AI coding agent builds every screen in that style."
+  steps={steps}
+  faq={faq}
+>
+  <div class="dm">
+    <form id="dm-form" class="ask">
+      <label class="sr" for="dm-url">Website address</label>
+      <input id="dm-url" type="text" inputmode="url" autocomplete="url" placeholder="linear.app" required />
+      <button id="dm-go" type="submit">Make DESIGN.md</button>
+    </form>
+    <p class="error" id="dm-error" role="alert" hidden></p>
+
+    <div id="dm-out" class="out" hidden>
+      <div class="summary">
+        <p id="dm-summary"></p>
+        <div class="actions">
+          <button id="dm-download" type="button" class="primary">Download DESIGN.md</button>
+          <button id="dm-prompt" type="button" class="secondary">Copy prompt for your AI agent</button>
+        </div>
+      </div>
+      <p class="status" id="dm-status" role="status" aria-live="polite"></p>
+
+      <div class="glance">
+        <section class="panel" id="dm-colors-box">
+          <h2>Colors</h2>
+          <ul class="swatches" id="dm-colors"></ul>
+        </section>
+        <section class="panel" id="dm-type-box">
+          <h2>Type</h2>
+          <p class="fonts" id="dm-fonts"></p>
+          <ul class="scale" id="dm-scale"></ul>
+        </section>
+        <section class="panel" id="dm-shape-box">
+          <h2>Shape and spacing</h2>
+          <ul class="shapes" id="dm-shapes"></ul>
+          <p class="hint" id="dm-spacing"></p>
+        </section>
+        <section class="panel" id="dm-comp-box">
+          <h2>Buttons and cards</h2>
+          <div class="comps" id="dm-comps"></div>
+        </section>
+      </div>
+
+      <div class="code">
+        <div class="code-head"><span>DESIGN.md</span><button type="button" id="dm-copy">Copy</button></div>
+        <pre id="dm-md"></pre>
+      </div>
+
+      <div class="how">
+        <h2>How to use it</h2>
+        <ol>
+          <li>Save <code>DESIGN.md</code> in the top folder of your project.</li>
+          <li>Add <code>Follow DESIGN.md for all UI work.</code> to <code>CLAUDE.md</code> (Claude Code) or <code>AGENTS.md</code> (Codex, Cursor and others).</li>
+          <li>Or skip both steps: copy the prompt above and paste it into your agent.</li>
+        </ol>
+      </div>
+
+      <p class="note" id="dm-note" hidden></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/design-md-generator';
+</script>
+
+<style>
+  .dm { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .dm [hidden] { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .out { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; min-width: 0; }
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .summary p { margin: 0; font-size: 18px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .primary, .secondary { font: 600 15px/1 var(--body); padding: 12px 18px; border-radius: 999px; cursor: pointer; }
+  .primary { border: 0; background: var(--ink); color: var(--white); }
+  .secondary { border: 2px solid var(--ink); background: transparent; color: var(--ink); }
+  .status { margin: -12px 0 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+
+  .glance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .panel { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); }
+  .panel h2 { margin: 0; font: 700 18px/1.2 var(--display); }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .swatches { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .swatches :global(button) { width: 100%; min-height: 76px; display: grid; align-content: end; gap: 2px; padding: 10px; text-align: left; border: 1px solid rgba(11, 34, 48, 0.12); border-radius: 12px; cursor: pointer; font: inherit; }
+  .swatches :global(strong) { font: 700 13px/1.2 var(--mono); }
+  .swatches :global(span) { font-size: 12px; opacity: 0.85; }
+
+  .fonts { margin: 0; font-size: 15px; }
+  .scale { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .scale :global(li) { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .scale :global(b) { flex: none; width: 64px; font: 500 12px/1.4 var(--mono); color: var(--ink-soft); }
+  .scale :global(span) { line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  .shapes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+  .shapes :global(li) { display: grid; justify-items: center; gap: 6px; font: 500 12px/1.3 var(--mono); color: var(--ink-soft); text-align: center; }
+  .shapes :global(i) { display: block; width: 56px; height: 56px; border: 2px solid var(--sky); background: #E6F6FC; }
+  .shapes :global(i.shadow) { border: 0; background: var(--white); }
+
+  .comps { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; background: #F4F8FA; }
+  .comps :global(.btn) { font-family: inherit; line-height: 1.2; cursor: default; }
+  .comps :global(.card) { width: 100%; max-width: 260px; }
+  .comps :global(.card b) { display: block; margin-bottom: 4px; }
+  .comps :global(.card span) { font-size: 14px; opacity: 0.75; }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow: auto; max-height: 520px; font: 400 13px/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .how { padding: 20px; border-radius: 16px; background: #E6F6FC; }
+  .how h2 { margin: 0 0 8px; font: 700 18px/1.2 var(--display); }
+  .how ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .how code { font: 500 13px/1.4 var(--mono); background: rgba(252, 255, 255, 0.8); padding: 1px 5px; border-radius: 6px; overflow-wrap: anywhere; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 720px) {
+    .glance { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px 26px; }
+    .actions, .actions button { width: 100%; }
+  }
+</style>
