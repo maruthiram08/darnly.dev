@@ -48,4 +48,4 @@ Deleting an account revokes every agent's access.
 
 ## Deploy (first time)
 
-Deploy steps are written up in sprint A4.
+See [DEPLOY.md](DEPLOY.md).

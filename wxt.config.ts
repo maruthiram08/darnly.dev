@@ -13,6 +13,9 @@ export default defineConfig({
     // identity: "Sign in with Google" for the cloud inbox (projects whose code isn't on this computer).
     permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest', 'identity'],
     // The Google OAuth client (type "Chrome extension") is created once the store gives the extension its id.
+    // An unpacked build gets a random id, and Google sign-in only works for the store id. Setting the store
+    // item's public key (Developer Dashboard → Package → Public key) gives an unpacked build the same id.
+    ...(process.env.DARNLY_MANIFEST_KEY ? { key: process.env.DARNLY_MANIFEST_KEY } : {}),
     ...(process.env.DARNLY_GOOGLE_CLIENT_ID
       ? { oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] } }
       : {}),
