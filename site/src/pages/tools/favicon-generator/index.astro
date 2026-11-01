@@ -1,0 +1,100 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in your logo or any square-ish image. A PNG or SVG with a transparent background works best.',
+  'Pick a background, padding and shape. The previews update as you go, including how it looks in a browser tab.',
+  'Download the ZIP, put the files in your site’s <code>public/</code> folder (or wherever your static files live), and paste the HTML into your <code>&lt;head&gt;</code>.',
+];
+
+const faq = [
+  { q: 'Is my image uploaded anywhere?', a: 'No. Everything happens in your browser. Your image never leaves your computer.' },
+  { q: 'Which files do I get?', a: '<code>favicon.ico</code> (16, 32 and 48 px inside), PNGs at 16, 32 and 48 px, <code>apple-touch-icon.png</code> (180 px) for iPhone home screens, 192 and 512 px icons for Android, a <code>site.webmanifest</code>, and the HTML to paste.' },
+  { q: 'Where do the files go in a Next.js, Vite or Astro project?', a: 'Put them in the <code>public/</code> folder, so they’re served from the root of your site. Then add the HTML lines to your page’s <code>&lt;head&gt;</code>, or ask your AI coding agent to do it.' },
+  { q: 'My favicon doesn’t change after I update it. Why?', a: 'Browsers keep favicons for a long time. Do a hard refresh, open the site in a private window, or close and reopen the tab.' },
+  { q: 'What image size should I start with?', a: 'At least 512×512 pixels, or an SVG. Smaller images still work but look soft on large icons.' },
+];
+---
+<ToolPage
+  slug="favicon-generator"
+  title="Free favicon generator: every size from one image · Darnly"
+  description="Turn your logo into favicon.ico, Apple touch icon, Android icons and the HTML to paste. Free, instant, and your image never leaves your browser."
+  h1="Favicon generator: every size from one image"
+  lede="Drop in your logo and get favicon.ico, every PNG size, the Apple and Android icons, and the HTML to paste. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="fg">
+    <label class="drop" id="fg-drop">
+      <input id="fg-file" type="file" accept="image/*" />
+      <strong>Drop your logo here</strong>
+      <span id="fg-drop-text">or click to choose a file. You can also paste an image.</span>
+    </label>
+    <p class="error" id="fg-error" role="alert" hidden></p>
+
+    <div class="result" id="fg-result" hidden>
+      <div class="controls">
+        <label class="check"><input id="fg-bg-on" type="checkbox" /> Background</label>
+        <input id="fg-bg" type="color" value="#0593c6" disabled aria-label="Background color" />
+        <label>Padding <input id="fg-pad" type="range" min="0" max="25" value="0" /></label>
+        <label>Shape
+          <select id="fg-shape">
+            <option value="square">Square</option>
+            <option value="rounded">Rounded</option>
+            <option value="circle">Circle</option>
+          </select>
+        </label>
+        <label>Site name <input id="fg-name" type="text" placeholder="My site" maxlength="40" /></label>
+      </div>
+
+      <div class="tab" aria-label="Preview in a browser tab">
+        <span class="tab-pill"><img id="fg-tab-icon" alt="" width="16" height="16" /><span id="fg-tab-title">My site</span></span>
+      </div>
+
+      <div class="previews" id="fg-previews"></div>
+
+      <div class="actions">
+        <button id="fg-download" type="button" class="primary">Download all (ZIP)</button>
+      </div>
+
+      <div class="code">
+        <div class="code-head"><span>Paste into your &lt;head&gt;</span><button id="fg-copy" type="button">Copy</button></div>
+        <pre id="fg-html"></pre>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/favicon';
+</script>
+
+<style>
+  .fg { display: grid; gap: 20px; }
+  .drop { position: relative; display: grid; place-items: center; gap: 6px; text-align: center; padding: 48px 24px; border: 2px dashed var(--line); border-radius: 20px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 22px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .error { margin: 0; color: #B4234F; }
+  .result { display: grid; gap: 24px; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+  .controls label { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .controls input[type='text'], .controls select { font: inherit; font-size: 15px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+  .controls input[type='color'] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .tab { padding: 10px 12px 0; background: #DEE3E8; border-radius: 12px 12px 0 0; }
+  .tab-pill { display: inline-flex; align-items: center; gap: 8px; max-width: 240px; padding: 9px 14px; background: var(--white); border-radius: 10px 10px 0 0; font-size: 13px; }
+  .tab-pill img { width: 16px; height: 16px; }
+  .previews { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 24px; }
+  .previews :global(figure) { margin: 0; display: grid; justify-items: center; gap: 8px; }
+  .previews :global(canvas) { background: repeating-conic-gradient(#e6eef2 0 25%, #fff 0 50%) 0 0 / 12px 12px; border-radius: 4px; }
+  .previews :global(figcaption) { font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+  .actions button.primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .actions button.primary:hover { background: #047FAB; }
+  .actions button:disabled { opacity: 0.6; cursor: wait; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px/1.7 var(--mono); }
+</style>

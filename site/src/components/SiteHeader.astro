@@ -1,0 +1,28 @@
+---
+// Top bar for inner pages (tools, guides). The home page keeps its own hero header.
+import { storeUrl } from '../data/site';
+interface Props { source: string }
+const { source } = Astro.props;
+---
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/"><img src="/icon.png" alt="" width="30" height="30">Darnly</a>
+    <nav aria-label="Main">
+      <a href="/tools/">Free tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/#mac">Mac app</a>
+      <a class="add" href={storeUrl(source)}>Add to Chrome</a>
+    </nav>
+  </div>
+</header>
+<style>
+  .site-header { background: var(--sky); color: var(--white); }
+  .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--display); text-decoration: none; }
+  .brand img { border-radius: 8px; }
+  nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  nav a { text-decoration: none; font-size: 15px; padding: 6px 12px; border-radius: 999px; }
+  nav a:hover { background: rgba(252, 255, 255, 0.18); }
+  nav a.add { background: var(--white); color: var(--ink); font-weight: 600; margin-left: 6px; }
+  @media (max-width: 600px) { nav a:not(.add) { display: none; } }
+</style>

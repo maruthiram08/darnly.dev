@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import { HttpError, newId, newToken, sha256 } from './util';
+import { countSignup } from './limits';
 
 export interface User {
   id: string;
@@ -34,6 +35,7 @@ export async function upsertUser(env: Env, who: GoogleIdentity): Promise<User> {
     if (found.email !== who.email) await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(who.email, found.id).run();
     return { id: found.id, email: who.email };
   }
+  await countSignup(env);
   const user = { id: newId('u'), email: who.email };
   await env.DB.prepare('INSERT INTO users (id, google_sub, email, created_at) VALUES (?, ?, ?, ?)')
     .bind(user.id, who.sub, who.email, Date.now())
@@ -65,6 +67,9 @@ export async function createSession(env: Env, userId: string): Promise<string> {
   return token;
 }
 
+/** A session unused this long is signed out, so a token copied off an old laptop stops working. */
+export const SESSION_IDLE_MS = 90 * 86_400_000;
+
 /** Reads `Authorization: Bearer <token>` and returns the signed-in user, or throws 401. */
 export async function requireUser(env: Env, req: Request): Promise<User> {
   const header = req.headers.get('authorization') ?? '';
@@ -77,6 +82,10 @@ export async function requireUser(env: Env, req: Request): Promise<User> {
     .bind(hash)
     .first<User & { last: number }>();
   if (!row) throw new HttpError(401, 'signed_out');
+  if (Date.now() - row.last > SESSION_IDLE_MS) {
+    await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(hash).run();
+    throw new HttpError(401, 'signed_out');
+  }
   // Touch at most once an hour to keep writes low.
   if (Date.now() - row.last > 3_600_000) {
     await env.DB.prepare('UPDATE sessions SET last_used_at = ? WHERE token_hash = ?').bind(Date.now(), hash).run();
@@ -87,4 +96,15 @@ export async function requireUser(env: Env, req: Request): Promise<User> {
 export async function signOut(env: Env, req: Request): Promise<void> {
   const match = /^Bearer (.+)$/.exec(req.headers.get('authorization') ?? '');
   if (match) await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256(match[1]!)).run();
+}
+
+/** Daily job: forget sessions nobody has used for SESSION_IDLE_MS. */
+export async function deleteExpiredSessions(env: Env, now = Date.now()): Promise<number> {
+  const res = await env.DB.prepare('DELETE FROM sessions WHERE last_used_at < ?').bind(now - SESSION_IDLE_MS).run();
+  return res.meta.changes ?? 0;
+}
+
+/** Signs out every extension session of this user. */
+export async function deleteAllSessions(env: Env, userId: string): Promise<void> {
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
 }

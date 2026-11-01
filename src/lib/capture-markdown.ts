@@ -20,6 +20,8 @@ export interface CaptureInput {
   forPaste?: boolean;
   /** Written for the cloud inbox: the agent reads it through MCP, which returns the picture with it. */
   forCloud?: boolean;
+  /** The user added a picture of what it should look like. */
+  reference?: boolean;
 }
 
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
@@ -39,7 +41,16 @@ function codeBlock(content: string, lang: string): string[] {
   return [`${fence}${lang}`, pageSafe(content), fence];
 }
 
-/** Where the bug is, for the file's heading: the page path and the component or element. The note itself goes under "Expected". */
+/** A component name the page reported, kept only when it looks like a real identifier (the page can send any text). */
+function componentName(name: string | undefined): string | undefined {
+  return name && /^[A-Za-z_$][\w$.]{0,59}$/.test(name) ? name : undefined;
+}
+
+/**
+ * Where the bug is, for the file's heading: the page path and the component or element. The note itself goes under "Expected".
+ * The heading sits outside the page-data markers, so it holds no free text from the page (element text, page title):
+ * only the path, a component identifier or the tag name.
+ */
 export function whereHeading(url: string, element?: ElementInfo): string {
   let path = url;
   try {
@@ -47,7 +58,7 @@ export function whereHeading(url: string, element?: ElementInfo): string {
   } catch {
     /* keep as is */
   }
-  const what = element ? element.components?.at(-1) ?? element.component ?? `${element.tag}${element.text ? ` "${element.text.slice(0, 40)}${element.text.length > 40 ? '…' : ''}"` : ''}` : 'whole page';
+  const what = element ? componentName(element.components?.at(-1)) ?? componentName(element.component) ?? element.tag.replace(/[^a-z0-9-]/gi, '') : 'whole page';
   return `Bug on ${path}: ${what}`.replace(/[\r\n<>`]/g, ' ').slice(0, 120);
 }
 
@@ -69,7 +80,6 @@ export function captureMarkdown(c: CaptureInput): string {
     '---',
     `id: ${c.id}`,
     `url: ${yamlValue(c.url)}`,
-    `page_title: ${yamlValue(c.title)}`,
     `captured: ${c.capturedAt.toISOString()}`,
     `viewport: ${c.viewport.width}x${c.viewport.height}`,
     `browser: ${yamlValue(c.browser)}`,
@@ -81,6 +91,11 @@ export function captureMarkdown(c: CaptureInput): string {
     `**Screenshot:** ${png}${c.element ? ' (the red box marks the element)' : ''}`,
     '',
   ];
+  // Not in the paste version: "Copy picture" copies only the screenshot.
+  if (c.reference && !c.forPaste) {
+    const ref = c.forCloud ? 'the second picture returned with this bug' : `${INBOX_FOLDER}/${c.id}.reference.png`;
+    lines.push(`**What it should look like:** ${ref} (a picture the user gave. Match its colors, sizes and layout; where the note and the picture differ, follow the note)`, '');
+  }
   // Everything from here to the end marker came from the web page (its text, HTML and logs).
   // A page can contain text written to trick an AI agent, so the agent is told to treat it as data only.
   lines.push(
@@ -89,6 +104,8 @@ export function captureMarkdown(c: CaptureInput): string {
     '',
   );
   const pageDataFrom = lines.length;
+  // The page title is free text the page chose, so it goes inside the markers (not in the front matter).
+  if (c.title.trim()) lines.push(`Page title: "${c.title.replace(/\s+/g, ' ').trim().slice(0, 200)}"`, '');
   const el = c.element;
   if (el) {
     const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
@@ -146,7 +163,7 @@ export function captureMarkdown(c: CaptureInput): string {
       ? 'Find the code with the hints above, fix it so the expected behaviour happens, then call the Darnly `mark_fixed` tool with this bug\'s id and one line on what you changed.'
       : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
-      : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and its PNG to ${DONE_FOLDER}/.`,
+      : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
     '',
   );
   return lines.join('\n');

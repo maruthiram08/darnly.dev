@@ -1,0 +1,26 @@
+---
+// The footer on every page. Lists every tool and guide once there are any.
+import { TOOLS, GUIDES } from '../data/site';
+---
+<footer>
+  <div class="wrap">
+    {(TOOLS.length > 0 || GUIDES.length > 0) && (
+      <nav class="lists" aria-label="Free tools and guides">
+        {TOOLS.length > 0 && (
+          <div>
+            <h2>Free tools</h2>
+            <ul>{TOOLS.map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}</ul>
+          </div>
+        )}
+        {GUIDES.length > 0 && (
+          <div>
+            <h2>Guides</h2>
+            <ul>{GUIDES.map((g) => <li><a href={`/guides/${g.slug}/`}>{g.name}</a></li>)}</ul>
+          </div>
+        )}
+      </nav>
+    )}
+    <span>© 2026 Darnly. Made for people who build with AI coding agents.</span>
+    <span><a href="/privacy">Privacy policy</a></span>
+  </div>
+</footer>

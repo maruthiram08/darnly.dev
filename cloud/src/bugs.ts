@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import { HttpError, clip, newId } from './util';
+import { CAPS, countUpload, deleteOldUsage } from './limits';
 
 export const LIMITS = {
   pictureBytes: 5 * 1024 * 1024,
@@ -52,7 +53,16 @@ function summary(row: BugRow): BugSummary {
   };
 }
 
-function siteOf(pageUrl: string): string {
+/** Bugs from the Mac app carry `macos://<app name>` instead of a web address. */
+export function siteOf(pageUrl: string): string {
+  const mac = /^macos:\/\/([^/?#]{1,200})/.exec(pageUrl);
+  if (mac) {
+    try {
+      return `${decodeURIComponent(mac[1]!).slice(0, 80)} (Mac app)`;
+    } catch {
+      return 'Mac app';
+    }
+  }
   try {
     return new URL(pageUrl).host || 'unknown';
   } catch {
@@ -60,21 +70,38 @@ function siteOf(pageUrl: string): string {
   }
 }
 
+/** Every file a bug can have in R2, so deleting a bug removes them all. */
+const FILE_NAMES = ['report.md', 'picture.png', 'reference.png', 'logs.json'];
+
 export interface NewBug {
   title: string;
   pageUrl: string;
   report: string;
   /** Missing when the browser couldn't take a screenshot (for example on a protected page). */
   picture?: ArrayBuffer;
+  /** A picture the user added of what it should look like (optional). */
+  reference?: ArrayBuffer;
   logs?: string;
   /** Random id the extension makes once per capture, so a repeated upload isn't saved twice. */
   clientId?: string;
 }
 
-/** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), logs (JSON, optional). */
+async function readPng(part: File, tooLarge: string): Promise<ArrayBuffer> {
+  if (part.size > LIMITS.pictureBytes) throw new HttpError(413, tooLarge);
+  const bytes = await part.arrayBuffer();
+  const head = new Uint8Array(bytes.slice(0, 8));
+  const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+  if (!isPng) throw new HttpError(415, 'picture_not_png');
+  return bytes;
+}
+
+/** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), reference (PNG, optional), logs (JSON, optional). */
 export async function parseUpload(req: Request): Promise<NewBug> {
-  const length = Number(req.headers.get('content-length') ?? 0);
-  if (length > LIMITS.pictureBytes + LIMITS.reportBytes + LIMITS.logsBytes + 64_000) throw new HttpError(413, 'too_large');
+  // Without a declared size the body would be read before any limit applies; the extension always sends one.
+  const declared = req.headers.get('content-length');
+  if (declared == null || !/^\d+$/.test(declared)) throw new HttpError(411, 'length_required');
+  const length = Number(declared);
+  if (length > 2 * LIMITS.pictureBytes + LIMITS.reportBytes + LIMITS.logsBytes + 64_000) throw new HttpError(413, 'too_large');
   let form: FormData;
   try {
     form = await req.formData();
@@ -84,8 +111,14 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   const meta = form.get('meta');
   const report = form.get('report');
   const picture = form.get('picture');
+  const reference = form.get('reference');
   const logs = form.get('logs');
-  if (typeof meta !== 'string' || !(report instanceof File || typeof report === 'string') || (picture != null && !(picture instanceof File))) {
+  if (
+    typeof meta !== 'string' ||
+    !(report instanceof File || typeof report === 'string') ||
+    (picture != null && !(picture instanceof File)) ||
+    (reference != null && !(reference instanceof File))
+  ) {
     throw new HttpError(400, 'missing_parts');
   }
   let parsed: { title?: unknown; pageUrl?: unknown; clientId?: unknown };
@@ -96,14 +129,8 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   }
   const reportText = typeof report === 'string' ? report : await report.text();
   if (reportText.length > LIMITS.reportBytes) throw new HttpError(413, 'report_too_large');
-  let bytes: ArrayBuffer | undefined;
-  if (picture instanceof File) {
-    if (picture.size > LIMITS.pictureBytes) throw new HttpError(413, 'picture_too_large');
-    bytes = await picture.arrayBuffer();
-    const head = new Uint8Array(bytes.slice(0, 8));
-    const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
-    if (!isPng) throw new HttpError(415, 'picture_not_png');
-  }
+  const bytes = picture instanceof File ? await readPng(picture, 'picture_too_large') : undefined;
+  const referenceBytes = reference instanceof File ? await readPng(reference, 'reference_too_large') : undefined;
   let logsText: string | undefined;
   if (logs != null) {
     logsText = typeof logs === 'string' ? logs : await logs.text();
@@ -115,6 +142,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
     pageUrl,
     report: reportText,
     picture: bytes,
+    reference: referenceBytes,
     logs: logsText,
     clientId: typeof parsed.clientId === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(parsed.clientId) ? parsed.clientId : undefined,
   };
@@ -130,19 +158,24 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     if (seen) return summary(seen);
   }
   const now = Date.now();
+  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.logs?.length ?? 0);
   const counts = await env.DB.prepare(
-    "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting FROM bugs WHERE user_id = ?",
+    "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting, SUM(bytes) AS stored FROM bugs WHERE user_id = ?",
   )
     .bind(now - 3_600_000, userId)
-    .first<{ hour: number | null; waiting: number | null }>();
+    .first<{ hour: number | null; waiting: number | null; stored: number | null }>();
   if ((counts?.hour ?? 0) >= LIMITS.perHour) throw new HttpError(429, 'too_many_this_hour');
   if ((counts?.waiting ?? 0) >= LIMITS.waiting) throw new HttpError(429, 'inbox_full');
+  if ((counts?.stored ?? 0) + bytes > CAPS.userStoredBytes) throw new HttpError(429, 'storage_full');
+  // Daily counters live in their own table, so deleting bugs doesn't reset them.
+  await countUpload(env, userId, bytes, now);
 
   const id = newId('b');
   const prefix = `u/${userId}/${id}/`;
   await Promise.all([
     env.FILES.put(prefix + 'report.md', bug.report, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } }),
     bug.picture ? env.FILES.put(prefix + 'picture.png', bug.picture, { httpMetadata: { contentType: 'image/png' } }) : null,
+    bug.reference ? env.FILES.put(prefix + 'reference.png', bug.reference, { httpMetadata: { contentType: 'image/png' } }) : null,
     bug.logs ? env.FILES.put(prefix + 'logs.json', bug.logs, { httpMetadata: { contentType: 'application/json' } }) : null,
   ]);
   const row: BugRow = {
@@ -159,22 +192,22 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
   };
   try {
     await env.DB.prepare(
-      `INSERT INTO bugs (${COLUMNS}, user_id, client_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bugs (${COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null)
+      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null, bytes)
       .run();
   } catch (e) {
     // Two copies of the same capture arrived at once: keep the first, drop this one's files.
     const seen = bug.clientId ? await bugByClientId(env, userId, bug.clientId) : null;
     if (!seen) throw e;
-    await env.FILES.delete([prefix + 'report.md', prefix + 'picture.png', prefix + 'logs.json']);
+    await env.FILES.delete(FILE_NAMES.map((f) => prefix + f));
     return summary(seen);
   }
   return summary(row);
 }
 
 export async function listBugs(env: Env, userId: string, status: 'waiting' | 'fixed' | 'all' = 'all', limit = 100): Promise<BugSummary[]> {
-  const n = Math.max(1, Math.min(200, Math.floor(limit)));
+  const n = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 100;
   const stmt =
     status === 'all'
       ? env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`).bind(userId, n)
@@ -206,6 +239,13 @@ export async function getPicture(env: Env, userId: string, bugId: string): Promi
   return obj.arrayBuffer();
 }
 
+/** The picture of what it should look like, if the user added one. */
+export async function getReference(env: Env, userId: string, bugId: string): Promise<ArrayBuffer | null> {
+  const row = await ownBug(env, userId, bugId);
+  const obj = await env.FILES.get(row.files_prefix + 'reference.png');
+  return obj ? obj.arrayBuffer() : null;
+}
+
 export async function markFixed(env: Env, userId: string, bugId: string, note: unknown): Promise<BugSummary> {
   const row = await ownBug(env, userId, bugId);
   const fixedNote = clip(note, LIMITS.fixedNote) || null;
@@ -218,7 +258,7 @@ export async function markFixed(env: Env, userId: string, bugId: string, note: u
 
 async function deleteRows(env: Env, rows: { id: string; files_prefix: string }[]): Promise<void> {
   if (!rows.length) return;
-  const keys = rows.flatMap((r) => ['report.md', 'picture.png', 'logs.json'].map((f) => r.files_prefix + f));
+  const keys = rows.flatMap((r) => FILE_NAMES.map((f) => r.files_prefix + f));
   for (let i = 0; i < keys.length; i += 1000) await env.FILES.delete(keys.slice(i, i + 1000));
   for (let i = 0; i < rows.length; i += 50) {
     const ids = rows.slice(i, i + 50).map((r) => r.id);
@@ -240,12 +280,18 @@ export async function deleteAccount(env: Env, userId: string): Promise<void> {
   ]);
 }
 
-/** Daily job: fixed bugs are kept for 30 days, then deleted with their files. */
+/** Daily job: fixed bugs are kept for 30 days, then deleted with their files. Runs in batches until none are left (or 20 batches). */
 export async function cleanup(env: Env, now = Date.now()): Promise<number> {
   const cutoff = now - LIMITS.keepFixedDays * 86_400_000;
-  const { results } = await env.DB.prepare("SELECT id, files_prefix FROM bugs WHERE status = 'fixed' AND fixed_at < ? LIMIT 1000")
-    .bind(cutoff)
-    .all<{ id: string; files_prefix: string }>();
-  await deleteRows(env, results);
-  return results.length;
+  let total = 0;
+  for (let batch = 0; batch < 20; batch++) {
+    const { results } = await env.DB.prepare("SELECT id, files_prefix FROM bugs WHERE status = 'fixed' AND fixed_at < ? LIMIT 1000")
+      .bind(cutoff)
+      .all<{ id: string; files_prefix: string }>();
+    await deleteRows(env, results);
+    total += results.length;
+    if (results.length < 1000) break;
+  }
+  await deleteOldUsage(env, now);
+  return total;
 }

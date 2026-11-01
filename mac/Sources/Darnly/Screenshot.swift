@@ -16,6 +16,41 @@ enum Screenshot {
         return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
     }
 
+    /// The whole screen under the mouse, as it looked when the hotkey was pressed. Taken before the picker
+    /// appears, because menus, pop-overs and notch panels often hide the moment something covers them.
+    struct Frozen {
+        let image: CGImage
+        /// The display's frame in global points, top-left origin.
+        let frame: CGRect
+    }
+
+    static func freezeScreen(at mouse: NSPoint) async -> Frozen? {
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main,
+              let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true),
+              let display = content.displays.first(where: { $0.displayID == number.uint32Value }) else { return nil }
+        let filter = SCContentFilter(display: display, excludingWindows: [])
+        let config = SCStreamConfiguration()
+        let scale = screen.backingScaleFactor
+        config.width = Int(screen.frame.width * scale)
+        config.height = Int(screen.frame.height * scale)
+        config.showsCursor = false
+        guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) else { return nil }
+        let frame = CGRect(x: screen.frame.minX, y: Probe.primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
+        return Frozen(image: image, frame: frame)
+    }
+
+    /// The part of the frozen screen covered by a window (global top-left points), or nil if it isn't on that screen.
+    static func crop(_ frozen: Frozen, to rect: CGRect) -> CGImage? {
+        // Only when the whole window is on that screen, so the box and ring still line up.
+        guard frozen.frame.contains(rect), rect.width > 1, rect.height > 1 else { return nil }
+        let r = rect
+        let sx = CGFloat(frozen.image.width) / frozen.frame.width
+        let sy = CGFloat(frozen.image.height) / frozen.frame.height
+        let px = CGRect(x: (r.minX - frozen.frame.minX) * sx, y: (r.minY - frozen.frame.minY) * sy, width: r.width * sx, height: r.height * sy).integral
+        return frozen.image.cropping(to: px)
+    }
+
     /// Draws the red box (element) and a ring (where the user clicked). Rects and points are in window points, top-left origin.
     static func mark(_ image: CGImage, windowSize: CGSize, box: CGRect?, click: CGPoint?) -> Data? {
         let w = image.width, h = image.height

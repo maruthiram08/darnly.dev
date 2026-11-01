@@ -1,13 +1,29 @@
-# darnly.dev landing page
+# darnly.dev website
 
-One static page: `index.html` plus two images. No build step.
+Built with [Astro](https://astro.build): plain static pages, one shared layout.
 
-## Put it live on Cloudflare Pages (about 5 minutes)
+## Where things are
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Pick the `darnly.dev` repo, branch `main`.
-3. Framework preset: **None**. Build command: leave empty. Build output directory: `site`.
-4. **Save and Deploy**.
-5. In the new project → **Custom domains** → **Set up a custom domain** → `darnly.dev` (and `www.darnly.dev`). Cloudflare adds the DNS records itself because the domain is already on Cloudflare.
+- `src/pages/index.astro`: the home page (sells bug capture). Its styles are in `src/styles/home.css`.
+- `src/pages/tools/` and `src/pages/guides/`: the free tools and guides. Each hub lists what's in `src/data/site.ts` and stays hidden from search (noindex, not in the sitemap) until it lists something.
+- `src/layouts/Base.astro`: every page's `<head>` (title, description, social preview, canonical URL, fonts).
+- `src/components/SiteHeader.astro` and `SiteFooter.astro`: the top bar for inner pages and the footer for every page.
+- `src/data/site.ts`: the Chrome Web Store link (tagged per page with `utm_source`) and the lists of tools and guides.
+- `public/`: copied as is: `_headers` (security headers), `icon.png`, `robots.txt`, `privacy.html` (kept at its old address because the store listing links to it).
 
-Every push to `main` that changes `site/` redeploys it.
+## Add a tool
+
+1. Add it to `TOOLS` in `src/data/site.ts`.
+2. Create `src/pages/tools/<slug>/index.astro`. The footer and `/tools/` pick it up automatically.
+
+## Run it locally
+
+```
+cd site
+npm install
+npm run dev
+```
+
+## Deploy
+
+Pushing to `main` deploys through the Cloudflare Worker `darnly-dev`. `wrangler.jsonc` at the repo root runs `npm ci` and `npm run build` in `site/` first, then uploads `site/dist`. The Node version comes from `.node-version` at the repo root.

@@ -13,4 +13,18 @@ export interface Env {
   GOOGLE_WEB_CLIENT_SECRET?: string;
   /** "true" only in local tests and `wrangler dev`: lets a made-up email sign in. Never set in production. */
   ALLOW_DEV_LOGIN?: string;
+  /** "true" turns cloud uploads and new sign-ups off. Set in the dashboard (Settings > Variables) to stop them in a minute. */
+  UPLOADS_OFF?: string;
+  /** Per-IP rate limits (Cloudflare rate limiting binding). Missing in tests. */
+  WRITE_LIMITER?: RateLimit;
+  ANY_LIMITER?: RateLimit;
+  /** Spend meter (spend.ts). The account id and an API token with Account Analytics Read + Workers Scripts Edit, both set as secrets. */
+  CF_ACCOUNT_ID?: string;
+  CF_API_TOKEN?: string;
+  /** Dollar amounts of usage this billing month at which uploads pause, and at which api.darnly.dev is taken offline. */
+  SPEND_PAUSE_USD?: string;
+  SPEND_STOP_USD?: string;
+  /** Day of the month the Cloudflare billing period starts on (Billing > Billable Usage). Default 1. */
+  BILLING_DAY?: string;
+  WORKER_NAME?: string;
 }

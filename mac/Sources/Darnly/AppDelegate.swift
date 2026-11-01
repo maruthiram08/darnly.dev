@@ -6,11 +6,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkey: Hotkey?
     private let picker = Picker()
     private let notePanel = NotePanel()
+    private let welcome = WelcomeWindow()
     private var busy = false
+    private var frozen: Screenshot.Frozen?
 
     private var projectURL: URL? {
         get { UserDefaults.standard.string(forKey: "projectPath").map { URL(fileURLWithPath: $0, isDirectory: true) } }
-        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu() }
+        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu(); welcome.refresh() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -21,9 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
         hotkey = Hotkey { [weak self] in self?.capture() }
-        // Ask for Accessibility once (to name the element under the click). Screen Recording is asked on the first capture.
-        _ = Probe.isTrusted(prompt: true)
-        if projectURL == nil { chooseProject() }
+        // First launch: the welcome screen walks through the folder, the two permissions and the hotkey.
+        if !UserDefaults.standard.bool(forKey: "welcomeShown") { showWelcome() }
+        else if Destination.current == .folder && projectURL == nil { chooseProject() }
     }
 
     private func rebuildMenu() {
@@ -33,12 +35,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         cap.target = self
         menu.addItem(cap)
         menu.addItem(.separator())
-        let project = NSMenuItem(title: projectURL.map { "Project: \($0.lastPathComponent)" } ?? "No project folder yet", action: nil, keyEquivalent: "")
-        project.isEnabled = false
-        menu.addItem(project)
+        let cloud = CloudAccount.shared
+        let header = NSMenuItem(title: "Bugs go to", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        let folder = item(projectURL.map { "Project folder: \($0.lastPathComponent)" } ?? "Project folder on this Mac", #selector(useFolder))
+        folder.state = Destination.current == .folder ? .on : .off
+        menu.addItem(folder)
+        let inbox = item(cloud.email.map { "Cloud inbox: \($0)" } ?? "Cloud inbox (for cloud agents)", #selector(useCloud))
+        inbox.state = Destination.current == .cloud ? .on : .off
+        menu.addItem(inbox)
+        menu.addItem(.separator())
         menu.addItem(item("Choose project folder…", #selector(chooseProject)))
         menu.addItem(item("Open inbox in Finder", #selector(openInbox)))
+        if cloud.isSignedIn { menu.addItem(item("Sign out of cloud inbox", #selector(signOutCloud))) }
         menu.addItem(.separator())
+        menu.addItem(item("How to use Darnly…", #selector(showWelcome)))
         menu.addItem(item("Permissions…", #selector(openPermissions)))
         menu.addItem(item("Quit Darnly", #selector(NSApplication.terminate(_:)), target: NSApp))
         statusItem.menu = menu
@@ -52,6 +64,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func captureFromMenu() { capture() }
 
+    @objc private func showWelcome() {
+        welcome.show(project: { [weak self] in self?.projectURL }, chooseProject: { [weak self] in self?.chooseProject() }, signIn: { [weak self] in self?.signInCloud() }, changed: { [weak self] in self?.rebuildMenu() })
+    }
+
+    @objc private func useFolder() {
+        Destination.current = .folder
+        rebuildMenu()
+        welcome.refresh()
+        if projectURL == nil { chooseProject() }
+    }
+
+    @objc private func useCloud() {
+        if CloudAccount.shared.isSignedIn {
+            Destination.current = .cloud
+            rebuildMenu()
+            welcome.refresh()
+        } else {
+            signInCloud()
+        }
+    }
+
+    /// Sign in to the cloud inbox; on success, captures go there.
+    func signInCloud() {
+        CloudAccount.shared.signIn { [weak self] problem in
+            guard let self else { return }
+            if let problem {
+                self.notify(problem)
+            } else {
+                Destination.current = .cloud
+                self.notify("Signed in as \(CloudAccount.shared.email ?? "you"). Bugs now go to your Darnly cloud inbox.")
+            }
+            self.rebuildMenu()
+            self.welcome.refresh()
+        }
+    }
+
+    @objc private func signOutCloud() {
+        CloudAccount.shared.signOut()
+        Destination.current = .folder
+        rebuildMenu()
+        welcome.refresh()
+    }
+
+    /// Where bugs are saved when there's no project folder (for example a cloud upload failed): ~/Darnly/.darnly/inbox.
+    private var fallbackFolder: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Darnly", isDirectory: true)
+    }
+
     @objc private func chooseProject() {
         let panel = NSOpenPanel()
         panel.message = "Choose your project's folder. Bugs are saved into .darnly/inbox inside it, where your coding agent finds them."
@@ -63,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openInbox() {
-        guard let p = projectURL else { return chooseProject() }
+        guard let p = projectURL ?? (Destination.current == .cloud ? fallbackFolder : nil) else { return chooseProject() }
         let inbox = p.appendingPathComponent(Report.inboxFolder, isDirectory: true)
         try? FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
         NSWorkspace.shared.open(inbox)
@@ -88,35 +148,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func capture() {
         guard !busy else { return }
-        guard let project = projectURL else { return chooseProject() }
+        let project = projectURL
+        if Destination.current == .cloud {
+            guard CloudAccount.shared.isSignedIn else { return signInCloud() }
+        } else if project == nil {
+            return chooseProject()
+        }
         busy = true
-        picker.start { [weak self] pick in
-            guard let self else { return }
-            guard let pick else { self.busy = false; return }
-            Task { @MainActor in await self.finish(pick, project: project) }
+        let mouse = NSEvent.mouseLocation
+        Task { @MainActor in
+            // Take the picture first: whatever is on screen right now, before the picker covers it.
+            self.frozen = await Screenshot.freezeScreen(at: mouse)
+            self.picker.start { [weak self] pick in
+                guard let self else { return }
+                guard let pick else { self.busy = false; self.frozen = nil; return }
+                Task { @MainActor in await self.finish(pick, project: project) }
+            }
         }
     }
 
     @MainActor
-    private func finish(_ pick: Pick, project: URL) async {
+    private func finish(_ pick: Pick, project: URL?) async {
         defer { busy = false }
         let window = pick.window
         let element = pick.element.flatMap { Probe.info($0, in: window) }
         async let logs = LogCollector.collect(for: window)
         var png: Data?
         var preview: NSImage?
-        do {
-            let image = try await Screenshot.capture(window)
-            png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
-            if let png { preview = NSImage(data: png) }
-        } catch {
-            NSLog("Darnly: screenshot failed: \(error)")
+        defer { frozen = nil }
+        let hiddenReason = window.hiddenFromCapture ? "\(window.ownerName) hides this window from screenshots, so macOS doesn't let any app take a picture of it." : nil
+        if hiddenReason == nil {
+            do {
+                // Prefer the picture taken when the hotkey was pressed; it still shows panels that hid since.
+                let image: CGImage
+                if let f = frozen, let cut = Screenshot.crop(f, to: window.frame) { image = cut } else { image = try await Screenshot.capture(window) }
+                png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
+                if let png { preview = NSImage(data: png) }
+            } catch {
+                NSLog("Darnly: screenshot failed: \(error)")
+            }
         }
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
-        let note: String? = await withCheckedContinuation { cont in
-            notePanel.show(image: preview, summary: png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
+        let result: NoteResult? = await withCheckedContinuation { cont in
+            notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
         }
-        guard let note else { return }
+        guard let result else { return }
+        let note = result.note
         let collected = await logs
         let now = Date()
         let title = Report.title(note: note, element: element)
@@ -124,12 +201,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
             bundleId: collected.bundleId ?? NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
-            element: element, logs: collected.logs, logsRead: collected.read)
+            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason, hasReference: result.reference != nil)
+        var problem = ""
+        if Destination.current == .cloud {
+            var forCloud = capture
+            forCloud.forCloud = true
+            let parts = Cloud.uploadParts(title: title, appName: window.ownerName, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
+            do {
+                try await CloudAccount.shared.upload(parts)
+                notify("Sent to your Darnly cloud inbox. Tell your agent: fix the bugs in my Darnly inbox")
+                return
+            } catch let e as CloudError {
+                problem = e.message + " "
+                rebuildMenu()
+            } catch {
+                problem = "Couldn't reach the cloud inbox (\(error.localizedDescription)). "
+            }
+        }
+        // The project folder, or ~/Darnly when the cloud upload failed and there's no folder: the bug is never lost.
+        let folder = project ?? fallbackFolder
         do {
-            let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, logs: capture.logs)
-            notify("Saved to \(Report.inboxFolder)/\(file.lastPathComponent). Tell your agent: fix the bugs in \(Report.inboxFolder)")
+            let file = try Inbox.save(project: folder, id: capture.id, markdown: Report.markdown(capture), png: png, reference: result.reference, logs: capture.logs)
+            let shown = folder == project ? Report.inboxFolder : "~/Darnly/\(Report.inboxFolder)"
+            notify(problem + "Saved to \(shown)/\(file.lastPathComponent)." + (problem.isEmpty ? " Tell your agent: fix the bugs in \(Report.inboxFolder)" : ""))
         } catch {
-            notify("Couldn't save: \(error.localizedDescription)")
+            notify(problem + "Couldn't save: \(error.localizedDescription)")
         }
     }
 
@@ -141,12 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let label = NSTextField(wrappingLabelWithString: text)
         label.preferredMaxLayoutWidth = 300
         let vc = NSViewController()
-        let box = NSView(frame: CGRect(x: 0, y: 0, width: 320, height: 64))
+        let box = NSView(frame: CGRect(x: 0, y: 0, width: 320, height: max(64, label.fittingSize.height + 20)))
         label.frame = box.bounds.insetBy(dx: 10, dy: 10)
         box.addSubview(label)
         vc.view = box
         pop.contentViewController = vc
         pop.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { pop.close() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) { pop.close() }
     }
 }

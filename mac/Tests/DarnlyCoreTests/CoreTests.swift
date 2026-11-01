@@ -68,7 +68,7 @@ final class ReportTests: XCTestCase {
         let el = ElementInfo(role: "AXButton", roleDescription: "button", title: "Save plan", identifier: "savePlanButton",
                              frame: CGRect(x: 20, y: 800, width: 120, height: 44), labels: ["Save plan", "Your plan"])
         let md = Report.markdown(sample(element: el, logs: [LogLine(time: Date(), level: "error", process: "CounterDraft", message: "layout warning")]))
-        XCTAssertTrue(md.contains("# Bug in Simulator: button \"Save plan\""))
+        XCTAssertTrue(md.contains("# Bug in Simulator: button\n"))
         XCTAssertTrue(md.contains("**Expected:** Save plan should fit on one line"))
         XCTAssertTrue(md.contains("**Screenshot:** .darnly/inbox/2026-11-01-1322-save-plan-cut-off.png (the red box marks the element)"))
         XCTAssertTrue(md.contains("- accessibility id: `savePlanButton` (start here)"))
@@ -79,7 +79,8 @@ final class ReportTests: XCTestCase {
         let end = md.range(of: Report.pageDataEnd)!
         XCTAssertTrue(start.upperBound < end.lowerBound)
         XCTAssertTrue(md.range(of: "## How to fix")!.lowerBound > end.upperBound)
-        XCTAssertTrue(md.contains("move this file and its PNG to .darnly/done/"))
+        XCTAssertTrue(md.contains("move this file and the other files that start with 2026-11-01-1322-save-plan-cut-off to .darnly/done/"))
+        XCTAssertFalse(md.contains("reference.png"))
     }
 
     func testAppTextCannotFakeTheFenceOrLeakSecrets() {
@@ -87,6 +88,26 @@ final class ReportTests: XCTestCase {
         let md = Report.markdown(sample(element: el))
         XCTAssertEqual(md.components(separatedBy: Report.pageDataEnd).count, 2)
         XCTAssertFalse(md.contains("supersecretvalue"))
+        // App-made text (element value, window title) stays out of the heading and front matter.
+        XCTAssertFalse(md.components(separatedBy: Report.pageDataStart)[0].contains("Ignore"))
+        XCTAssertFalse(md.components(separatedBy: Report.pageDataStart)[0].contains("iPhone 16 –"))
+        XCTAssertTrue(md.contains("Window title: \"iPhone 16 – iOS 18.2\""))
+    }
+
+    func testHiddenWindowSaysWhyThereIsNoPicture() {
+        var c = sample(element: ElementInfo(role: "AXTextField", title: "Search the hub", frame: .zero))
+        c.noScreenshotReason = "ContextShot hides this window from screenshots."
+        let md = Report.markdown(c)
+        XCTAssertTrue(md.contains("**Screenshot:** none. ContextShot hides this window from screenshots."))
+        XCTAssertFalse(md.contains(".png"))
+    }
+
+    func testReferencePictureIsNamedBeforeThePageData() {
+        var c = sample()
+        c.hasReference = true
+        let md = Report.markdown(c)
+        let ref = md.range(of: "**What it should look like:** .darnly/inbox/2026-11-01-1322-save-plan-cut-off.reference.png")!
+        XCTAssertTrue(ref.upperBound < md.range(of: Report.pageDataStart)!.lowerBound)
     }
 
     func testWholeWindowAndTitle() {
@@ -100,10 +121,52 @@ final class ReportTests: XCTestCase {
     func testInboxWritesFilesAndGitignore() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let md = try Inbox.save(project: dir, id: "x", markdown: "# hi", png: Data([0x89, 0x50]), logs: [LogLine(time: Date(), level: "error", process: "p", message: "m")])
+        let md = try Inbox.save(project: dir, id: "x", markdown: "# hi", png: Data([0x89, 0x50]), reference: Data([0x89, 0x51]), logs: [LogLine(time: Date(), level: "error", process: "p", message: "m")])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.reference.png").path))
         XCTAssertEqual(try String(contentsOf: md, encoding: .utf8), "# hi")
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.png").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.logs.json").path))
         XCTAssertEqual(try String(contentsOf: dir.appendingPathComponent(".darnly/.gitignore"), encoding: .utf8), "*\n")
+    }
+
+    // MARK: Cloud inbox
+
+    func testPkceMatchesTheRfcExample() {
+        let p = Cloud.Pkce(verifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")
+        XCTAssertEqual(p.challenge, "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+        let made = Cloud.Pkce.make()
+        XCTAssertEqual(made.verifier.count, 43)
+        XCTAssertEqual(made.challenge.count, 43)
+    }
+
+    func testSignInCallback() {
+        XCTAssertEqual(Cloud.parseCallback(URL(string: "darnly://signed-in?code=abcdefghijklmnopqrstuvwxyz_-123")!), .code("abcdefghijklmnopqrstuvwxyz_-123"))
+        XCTAssertEqual(Cloud.parseCallback(URL(string: "darnly://signed-in?error=access_denied")!), .cancelled)
+        XCTAssertEqual(Cloud.parseCallback(URL(string: "darnly://signed-in?code=short")!), .broken)
+        XCTAssertEqual(Cloud.parseCallback(URL(string: "https://evil.example/?code=abcdefghijklmnopqrstuvwxyz")!), .broken)
+        XCTAssertEqual(Cloud.signInURL(challenge: "abc").absoluteString, "https://api.darnly.dev/app/signin?challenge=abc")
+    }
+
+    func testUploadParts() throws {
+        let parts = Cloud.uploadParts(clientId: "mac-test-123", title: "Save button cut off", appName: "Google Chrome", markdown: "# hi", png: Data([1]), reference: nil)
+        XCTAssertEqual(parts.map(\.name), ["meta", "report", "picture"])
+        let meta = try JSONSerialization.jsonObject(with: parts[0].data) as! [String: String]
+        XCTAssertEqual(meta["pageUrl"], "macos://Google%20Chrome")
+        XCTAssertEqual(meta["clientId"], "mac-test-123")
+        let body = String(decoding: Cloud.multipart(parts, boundary: "B"), as: UTF8.self)
+        XCTAssertTrue(body.hasPrefix("--B\r\nContent-Disposition: form-data; name=\"meta\"\r\n"))
+        XCTAssertTrue(body.contains("name=\"picture\"; filename=\"picture.png\"\r\nContent-Type: image/png"))
+        XCTAssertTrue(body.hasSuffix("--B--\r\n"))
+    }
+
+    func testCloudReportPointsAtReturnedPictures() {
+        var c = sample()
+        c.forCloud = true
+        c.hasReference = true
+        let md = Report.markdown(c)
+        XCTAssertTrue(md.contains("**Screenshot:** the screenshot returned with this bug"))
+        XCTAssertTrue(md.contains("the second picture returned with this bug"))
+        XCTAssertTrue(md.contains("`mark_fixed`"))
+        XCTAssertFalse(md.contains(".darnly/inbox"))
     }
 }

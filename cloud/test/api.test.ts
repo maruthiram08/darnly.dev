@@ -2,6 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { cleanup } from '../src/bugs';
+import { SESSION_IDLE_MS, deleteExpiredSessions } from '../src/auth';
 
 const BASE = 'https://api.darnly.dev';
 // A tiny valid PNG (1x1).
@@ -117,6 +118,11 @@ describe('cloud inbox API', () => {
     const big = new Uint8Array(5 * 1024 * 1024 + 10);
     big.set(PNG.slice(0, 8));
     expect((await upload(token, { picture: big })).status).toBe(413);
+    const form = new FormData();
+    form.set('meta', JSON.stringify({ title: 'x', pageUrl: 'https://a.example/' }));
+    form.set('report', '# x');
+    form.set('reference', new File([new TextEncoder().encode('not a png')], 'r.png', { type: 'image/png' }));
+    expect((await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form })).status).toBe(415);
   });
 
   it('deletes all bugs and files, and deleting the account signs out', async () => {
@@ -151,5 +157,41 @@ describe('cloud inbox API', () => {
   it('keeps a worker export with fetch and scheduled', () => {
     expect(typeof worker.fetch).toBe('function');
     expect(typeof worker.scheduled).toBe('function');
+  });
+
+  it('signs out a session nobody used for 90 days', async () => {
+    const token = await signIn('idle@example.com');
+    const ok = await SELF.fetch(`${BASE}/v1/me`, auth(token));
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('x-content-type-options')).toBe('nosniff');
+    await env.DB.prepare('UPDATE sessions SET last_used_at = ?').bind(Date.now() - SESSION_IDLE_MS - 1000).run();
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(token))).status).toBe(401);
+    const other = await signIn('idle2@example.com');
+    await env.DB.prepare('UPDATE sessions SET last_used_at = ?').bind(Date.now() - SESSION_IDLE_MS - 1000).run();
+    expect(await deleteExpiredSessions(env as never)).toBeGreaterThanOrEqual(1);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(other))).status).toBe(401);
+  });
+
+  it('signs out everywhere', async () => {
+    const a = await signIn('everywhere@example.com');
+    const b = await signIn('everywhere@example.com');
+    const res = await SELF.fetch(`${BASE}/v1/auth/logout-all`, { method: 'POST', ...auth(a) });
+    expect(res.status).toBe(200);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(a))).status).toBe(401);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(b))).status).toBe(401);
+  });
+
+  it('allows only the Darnly extension in CORS outside local development', async () => {
+    const res = await SELF.fetch(`${BASE}/v1/health`, { headers: { origin: 'chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj' } });
+    expect(res.headers.get('access-control-allow-origin')).toBe('chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj');
+    const web = await SELF.fetch(`${BASE}/v1/health`, { headers: { origin: 'https://evil.example' } });
+    expect(web.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('refuses an upload that does not declare its size', async () => {
+    const token = await signIn('chunked@example.com');
+    const body = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('x')); c.close(); } });
+    const res = await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'multipart/form-data; boundary=x' }, body, duplex: 'half' } as RequestInit);
+    expect(res.status).toBe(411);
   });
 });
