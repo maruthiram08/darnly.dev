@@ -1,0 +1,17 @@
+// Darnly cloud: the cloud inbox API (and, from sprint A3, the MCP endpoint).
+// Before the first deploy, see cloud/README.md: create the D1 database and R2 bucket, then paste the database id below.
+{
+  "name": "darnly-cloud",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    { "binding": "DB", "database_name": "darnly", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "darnly-bugs" }],
+  "triggers": { "crons": ["17 3 * * *"] },
+  "vars": {
+    // OAuth client id of type "Chrome extension" from Google Cloud Console. Tokens for any other client are refused.
+    "GOOGLE_EXTENSION_CLIENT_ID": ""
+  },
+  "observability": { "enabled": true }
+}
