@@ -153,6 +153,11 @@ export const TOOLS: Item[] = [
     name: 'Unix timestamp converter',
     blurb: 'Timestamp to date and back, in your time zone, UTC and four cities, with JS, Postgres and Python code.',
   },
+  {
+    slug: 'app-store-screenshots',
+    name: 'App Store screenshot maker',
+    blurb: 'Your app screenshots in a device frame with a headline, at every App Store and Google Play size.',
+  },
 ];
 
 // Same for guides.
