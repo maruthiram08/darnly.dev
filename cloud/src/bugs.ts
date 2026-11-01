@@ -146,7 +146,7 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     if (seen) return summary(seen);
   }
   const now = Date.now();
-  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.logs?.length ?? 0);
+  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.logs?.length ?? 0);
   const counts = await env.DB.prepare(
     "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting, SUM(bytes) AS stored FROM bugs WHERE user_id = ?",
   )
