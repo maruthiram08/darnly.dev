@@ -23,6 +23,11 @@ export const TOOLS: Item[] = [
     name: 'Meta tag generator',
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
+  {
+    slug: 'image-converter',
+    name: 'Image converter',
+    blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
+  },
 ];
 
 // Same for guides.
