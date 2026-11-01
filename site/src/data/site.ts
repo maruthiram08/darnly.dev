@@ -186,6 +186,11 @@ export const TOOLS: Item[] = [
     name: '.gitignore generator',
     blurb: 'A .gitignore for your stack that keeps .env files and keys out of git, plus a check for what would leak.',
   },
+  {
+    slug: 'utm-builder',
+    name: 'UTM link builder',
+    blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },
 ];
 
 // Same for guides.
