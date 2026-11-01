@@ -42,7 +42,9 @@ echo "Sending to Apple for notarization (usually a few minutes)…"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
 xcrun stapler staple "$DMG"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
-# Same file under a fixed name, for the "latest release" download link on darnly.dev.
-cp "$DMG" build/Darnly.dmg
+# The website's "Download for Mac" button serves site/download/Darnly.dmg (darnly.dev/download/Darnly.dmg).
+mkdir -p ../site/download
+cp "$DMG" ../site/download/Darnly.dmg
 echo "Done: $DMG (signed and notarized; share this file)"
-echo "For the website download: upload build/Darnly.dmg to a new GitHub release (see README)."
+echo "Also copied to site/download/Darnly.dmg. To update the website download, commit and push it:"
+echo "  git add ../site/download/Darnly.dmg && git commit -m \"Mac app ${VERSION}\" && git push"
