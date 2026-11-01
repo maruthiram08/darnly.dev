@@ -41,6 +41,12 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// POST /api/request  { method, url, headers, body }
+//   Sends one API request for the API tester at /tools/api-tester/ and returns its status, time,
+//   size, headers and body. Public addresses only (checked on every redirect), its own limit of
+//   20 a minute, a 10 second timeout, a 1 MB response limit, no Cookie header, never cached.
+//   See request.ts.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,11 +55,13 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { sendRequest } from './request';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: RateLimit;
   CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
+  API_LIMIT?: RateLimit; // the API tester sends requests of any method, so it has its own limit
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -74,6 +82,14 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/request') {
+      return sendRequest(req, {
+        checkTarget: (raw) => checkTarget(raw, env.ALLOW_LOCAL === '1'),
+        isOwnHost: (t) => isOwnHost(t, url),
+        ownPage: (t) => ownPage(t, env),
+        limit: env.API_LIMIT,
+      });
+    }
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },

@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'api-tester',
+    category: 'Code helpers',
+    name: 'API tester',
+    blurb: 'Send GET or POST with headers, JSON and a token. See the status in plain words, time, size and CORS, and copy it as curl.',
+  },
 ];
 
 // Same for guides.

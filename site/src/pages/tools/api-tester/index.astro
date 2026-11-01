@@ -1,0 +1,279 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick the method (GET, POST…) and paste the API address. You can also paste a whole <code>curl</code> command into the address box and the form fills itself in.',
+  'Add headers, a JSON body (it’s checked as you type) or a token in the <strong>Auth</strong> tab, then press <strong>Send</strong>.',
+  'The big card shows the status in plain words, with what to do when it fails, plus the time, size and whether browser apps can call it. Copy the request as curl or fetch code, or copy a prompt for your AI agent.',
+];
+
+const faq = [
+  { q: 'Is it safe to put my API key here?', a: 'Your request goes through darnly.dev’s server so it works without CORS errors. Nothing is stored or logged: not the address, not your token, not the response. Your own cookies are never sent, and a Cookie header is dropped. Still, use a test key when you can, and never paste a production database password into any website.' },
+  { q: 'Why does it work here but fail in my app with a CORS error?', a: 'Browsers only let a web page read an API on another domain when that API sends an <code>Access-Control-Allow-Origin</code> header. This tool sends requests from a server, where CORS doesn’t apply, so it shows the CORS card to tell you whether your browser app will be allowed. If it says “Blocked in browsers”, call the API from your backend (a Next.js route handler, a Supabase Edge Function) or add the header on the API.' },
+  { q: 'What does 401 vs 403 mean?', a: '401 means the API doesn’t know who you are: the token is missing, wrong or expired. 403 means it knows who you are, but you aren’t allowed to do that: the key lacks a permission, or (in Supabase) a Row Level Security policy blocks the row.' },
+  { q: 'Can I test my localhost API?', a: 'No. The request is sent from our server on the internet, which can’t see your computer. Deploy a preview (Vercel and Netlify make one for every branch), or use curl in your terminal for localhost.' },
+  { q: 'Why is the time different from my app?', a: 'The time is measured from our server, which sits in a data center near you. Your users’ phones add their own network time on top. Over a second is slow for an API; over 10 seconds and many hosts stop the request.' },
+  { q: 'What are the limits?', a: 'Up to 20 requests a minute, a 10 second timeout, 200 KB for the body you send and 1 MB of response shown. Redirects are followed up to 5 times, and your Authorization header is not passed on to a different domain.' },
+];
+---
+<ToolPage
+  slug="api-tester"
+  title="API tester: send a request and see the response in plain English · Darnly"
+  description="A free online Postman alternative. Send GET, POST, PUT or DELETE with headers, a JSON body and a token. See the status in plain words, time, size and CORS, and copy it as curl or fetch."
+  h1="API tester: send a request, see what went wrong"
+  lede="Test any API endpoint in your browser, with no install and no CORS errors. The status comes back in plain words, with what to do when it fails."
+  steps={steps}
+  faq={faq}
+>
+  <div class="at">
+    <form class="req" id="at-form" autocomplete="off">
+      <div class="bar">
+        <label class="sr" for="at-method">Method</label>
+        <select id="at-method" class="method">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>PATCH</option>
+          <option>DELETE</option>
+          <option>HEAD</option>
+          <option>OPTIONS</option>
+        </select>
+        <label class="sr" for="at-url">API address</label>
+        <input id="at-url" class="url" type="text" inputmode="url" spellcheck="false" autocapitalize="off" placeholder="https://api.example.com/v1/users  (or paste a curl command)" />
+        <button id="at-send" class="send" type="submit">Send</button>
+      </div>
+
+      <p class="examples">Try:
+        <button type="button" class="chip" data-example="get">Get a post</button>
+        <button type="button" class="chip" data-example="post">Create with JSON</button>
+        <button type="button" class="chip" data-example="notfound">404 not found</button>
+        <button type="button" class="chip" data-example="auth">Wrong token (401)</button>
+        <button type="button" class="chip" data-example="dog">Random dog</button>
+      </p>
+
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="headers" aria-selected="true">Headers <span class="count" id="at-header-count"></span></button>
+        <button type="button" role="tab" data-tab="body" aria-selected="false">Body <span class="count"></span></button>
+        <button type="button" role="tab" data-tab="auth" aria-selected="false">Auth <span class="count"></span></button>
+      </div>
+
+      <div class="panel" data-panel="headers" role="tabpanel">
+        <div class="rows" id="at-header-rows"></div>
+        <button type="button" class="ghost small" id="at-add-header">+ Add header</button>
+        <p class="hint" id="at-header-note"></p>
+      </div>
+
+      <div class="panel" data-panel="body" role="tabpanel" hidden>
+        <div class="radios" role="radiogroup" aria-label="Body type">
+          <label><input type="radio" name="at-body-type" value="none" checked /> None</label>
+          <label><input type="radio" name="at-body-type" value="json" /> JSON</label>
+          <label><input type="radio" name="at-body-type" value="text" /> Text</label>
+          <label><input type="radio" name="at-body-type" value="form" /> Form</label>
+        </div>
+        <div class="bodywrap" id="at-body-wrap">
+          <textarea id="at-body" rows="7" spellcheck="false" autocapitalize="off" aria-label="Request body"></textarea>
+          <div class="bodyfoot">
+            <span class="check" id="at-body-check" aria-live="polite"></span>
+            <button type="button" class="ghost small" id="at-body-format">Tidy JSON</button>
+          </div>
+        </div>
+        <p class="hint warn" id="at-body-note"></p>
+      </div>
+
+      <div class="panel" data-panel="auth" role="tabpanel" hidden>
+        <div class="radios" role="radiogroup" aria-label="Auth type">
+          <label><input type="radio" name="at-auth-type" value="none" checked /> None</label>
+          <label><input type="radio" name="at-auth-type" value="bearer" /> Bearer token</label>
+          <label><input type="radio" name="at-auth-type" value="basic" /> Username and password</label>
+          <label><input type="radio" name="at-auth-type" value="key" /> API key header</label>
+        </div>
+        <div data-auth="none"><p class="hint">No sign-in sent. Most APIs need one of the others.</p></div>
+        <div data-auth="bearer" class="fields" hidden>
+          <label for="at-auth-token">Token</label>
+          <input id="at-auth-token" type="text" spellcheck="false" placeholder="eyJhbGciOi… or sk_test_…" />
+          <p class="hint">Sent as <code>Authorization: Bearer &lt;token&gt;</code>. Used by Supabase, OpenAI, Stripe, Clerk and most APIs.</p>
+        </div>
+        <div data-auth="basic" class="fields two" hidden>
+          <div><label for="at-auth-user">Username</label><input id="at-auth-user" type="text" spellcheck="false" /></div>
+          <div><label for="at-auth-pass">Password</label><input id="at-auth-pass" type="password" /></div>
+        </div>
+        <div data-auth="key" class="fields two" hidden>
+          <div><label for="at-auth-keyname">Header name</label><input id="at-auth-keyname" type="text" spellcheck="false" value="x-api-key" /></div>
+          <div><label for="at-auth-keyvalue">Key</label><input id="at-auth-keyvalue" type="text" spellcheck="false" /></div>
+          <p class="hint full">Supabase uses <code>apikey</code>, Anthropic and many others use <code>x-api-key</code>.</p>
+        </div>
+      </div>
+    </form>
+
+    <section class="stage" id="at-stage" data-tone="idle" aria-live="polite" aria-label="Response">
+      <div class="verdict">
+        <span class="code-badge" id="at-code">…</span>
+        <div class="vtext">
+          <p class="status-text" id="at-status-text">Sending the example…</p>
+          <p class="meaning" id="at-meaning"></p>
+        </div>
+      </div>
+      <p class="tip" id="at-tip" hidden></p>
+      <div class="cards" id="at-cards"></div>
+
+      <div class="body">
+        <div class="body-head">
+          <span class="lab">Response body</span>
+          <div class="toggle" id="at-viewer-bar" hidden>
+            <button type="button" id="at-view-pretty" aria-pressed="true">Pretty</button>
+            <button type="button" id="at-view-raw" aria-pressed="false">Raw</button>
+          </div>
+        </div>
+        <div class="viewer" id="at-viewer"></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="at-copy-prompt">Copy prompt for your AI agent</button>
+        <button type="button" class="ghost" id="at-copy-curl">Copy as curl</button>
+        <button type="button" class="ghost" id="at-copy-fetch">Copy as fetch</button>
+        <button type="button" class="ghost" id="at-copy-body" disabled>Copy response</button>
+      </div>
+      <p class="copy-status" id="at-copy-status" role="status" aria-live="polite"></p>
+      <p class="private">🔒 Requests go through darnly.dev’s server, so there are no CORS errors. Nothing is stored or logged, and your cookies are never sent.</p>
+    </section>
+
+    <details class="fold">
+      <summary>Response headers <span class="count" id="at-res-headers-count"></span></summary>
+      <div class="table"><table><tbody id="at-res-headers"></tbody></table></div>
+    </details>
+    <details class="fold">
+      <summary>What was sent</summary>
+      <p class="hint">Secrets are hidden here. The real values were sent.</p>
+      <div class="table"><table><tbody id="at-sent"></tbody></table></div>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/api-tester';
+</script>
+
+<style>
+  .at { display: grid; gap: 20px; min-width: 0; }
+  .at [hidden] { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .req { display: grid; gap: 14px; padding: 20px; border-radius: 20px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .bar { display: flex; gap: 8px; min-width: 0; }
+  .method { flex: none; font: 700 15px/1 var(--mono); padding: 0 12px; height: 50px; border: 1px solid var(--line); border-radius: 14px; background: var(--wash); color: #1A9B5A; cursor: pointer; }
+  .method[data-m='POST'] { color: #B46A00; }
+  .method[data-m='PUT'], .method[data-m='PATCH'] { color: #0478A3; }
+  .method[data-m='DELETE'] { color: #C2224F; }
+  .method[data-m='HEAD'], .method[data-m='OPTIONS'] { color: #7B3FC4; }
+  .url { flex: 1; min-width: 0; height: 50px; box-sizing: border-box; font: 400 15px/1 var(--mono); padding: 0 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  .url:focus, .method:focus, textarea:focus, .fields input:focus, .rows :global(input[type='text']:focus) { outline: none; border-color: var(--sky); }
+  .send { flex: none; font: 700 16px/1 var(--body); padding: 0 26px; height: 50px; border: 0; border-radius: 14px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .send:disabled { opacity: 0.6; cursor: wait; }
+  .examples { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-soft); }
+  .chip { font: 600 14px/1 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--wash); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .tabs button { font: 600 15px/1 var(--body); padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .tabs button[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--sky); }
+  .count { font: 600 12px/1 var(--mono); color: var(--sky); }
+  .count:empty { display: none; }
+  .panel { display: grid; gap: 10px; min-width: 0; }
+  .rows { display: grid; gap: 8px; }
+  .rows :global(.hrow) { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center; }
+  .rows :global(input[type='text']) { min-width: 0; height: 40px; box-sizing: border-box; font: 400 14px/1 var(--mono); padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); }
+  .rows :global(input[type='checkbox']) { width: 18px; height: 18px; accent-color: var(--ink); }
+  .rows :global(.x) { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink-soft); font-size: 20px; line-height: 1; cursor: pointer; }
+  .rows :global(.x:hover) { border-color: #F0A3B9; color: #9C1C44; }
+  .radios { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px; }
+  .radios label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .radios input { accent-color: var(--ink); }
+  .bodywrap { display: grid; gap: 6px; }
+  textarea { width: 100%; min-width: 0; box-sizing: border-box; font: 400 14px/1.5 var(--mono); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; }
+  .bodyfoot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .check { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+  .check.ok { color: #0B6B3A; }
+  .check.bad { color: #9C1C44; }
+  .fields { display: grid; gap: 6px; }
+  .fields.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .fields.two > div { display: grid; gap: 6px; }
+  .fields .full { grid-column: 1 / -1; }
+  .fields label { font-weight: 600; font-size: 14px; }
+  .fields input { min-width: 0; height: 42px; box-sizing: border-box; font: 400 14px/1 var(--mono); padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .hint:empty { display: none; }
+  .hint.warn { color: #8A5C00; }
+
+  .stage { display: grid; gap: 18px; padding: 28px; border-radius: 24px; border: 2px solid var(--line); background: var(--wash); min-width: 0; transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
+  .stage.loading { opacity: 0.55; }
+  .stage[data-tone='ok'] { border-color: #9ED9B8; background: #F1FBF5; }
+  .stage[data-tone='warn'] { border-color: #F2CF7A; background: #FFF9EA; }
+  .stage[data-tone='bad'] { border-color: #F0A3B9; background: #FFF2F5; }
+  .verdict { display: flex; gap: 18px; align-items: center; min-width: 0; }
+  .code-badge { flex: none; display: grid; place-items: center; min-width: 96px; height: 80px; padding: 0 16px; box-sizing: border-box; border-radius: 20px; background: var(--ink-soft); color: #fff; font: 800 40px/1 var(--display); letter-spacing: -0.02em; }
+  .stage[data-tone='ok'] .code-badge { background: #1A9B5A; }
+  .stage[data-tone='warn'] .code-badge { background: #C98A00; }
+  .stage[data-tone='bad'] .code-badge { background: #C2224F; }
+  .vtext { min-width: 0; }
+  .status-text { margin: 0; font: 800 clamp(24px, 3.4vw, 34px)/1.12 var(--display); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .stage[data-tone='bad'] .status-text { color: #9C1C44; }
+  .meaning { margin: 6px 0 0; color: var(--ink-soft); font-size: 17px; overflow-wrap: anywhere; }
+  .meaning:empty { display: none; }
+  .tip { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); font-size: 16px; color: var(--ink); }
+  .stage[data-tone='bad'] .tip { border-color: #F0A3B9; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .cards:empty { display: none; }
+  .cards :global(.card) { display: grid; align-content: start; gap: 4px; padding: 14px 16px; border-radius: 16px; background: var(--white); border: 1px solid var(--line); min-width: 0; }
+  .cards :global(.label) { font: 600 12px/1.2 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .cards :global(strong) { font: 700 19px/1.2 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+  .cards :global(.note) { font-size: 14px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .cards :global(.card.ok strong) { color: #0B6B3A; }
+  .cards :global(.card.warn strong) { color: #8A5C00; }
+  .cards :global(.card.bad) { border-color: #F0A3B9; }
+  .cards :global(.card.bad strong) { color: #9C1C44; }
+  .body { display: grid; gap: 8px; min-width: 0; }
+  .body-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .lab { font-weight: 600; }
+  .toggle { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--white); }
+  .toggle button { font: 600 13px/1 var(--body); padding: 7px 12px; border: 0; background: none; color: var(--ink-soft); cursor: pointer; }
+  .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .viewer { min-width: 0; }
+  .viewer :global(pre.code) { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); font: 13px/1.55 var(--mono); overflow: auto; max-height: 460px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+  .viewer :global(.k) { color: #7B3FC4; }
+  .viewer :global(.s) { color: #0B6B3A; }
+  .viewer :global(.d) { color: #0478A3; }
+  .viewer :global(.b), .viewer :global(.n) { color: #C2224F; }
+  .viewer :global(.empty) { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px dashed var(--line); color: var(--ink-soft); font-size: 15px; }
+  .viewer :global(.empty + .empty), .viewer :global(pre + .empty) { margin-top: 8px; }
+  .viewer:empty { display: none; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .ghost:disabled { opacity: 0.5; cursor: default; }
+  .ghost.small { justify-self: start; font-size: 14px; padding: 8px 12px; }
+  .copy-status { margin: -6px 0 0; min-height: 1.4em; font-size: 15px; color: var(--ink-soft); }
+  .private { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .fold { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .fold .hint { margin-bottom: 8px; }
+  .table { overflow-x: auto; background: var(--white); border-radius: 12px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .table :global(th), .table :global(td) { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .table :global(tr:first-child th), .table :global(tr:first-child td) { border-top: 0; }
+  .table :global(th) { font: 600 13px/1.4 var(--mono); white-space: nowrap; }
+  .table :global(td) { font: 13px/1.5 var(--mono); word-break: break-all; }
+  .table :global(.hn) { display: block; font: 13px/1.4 var(--body); color: var(--ink-soft); word-break: normal; }
+  @media (max-width: 640px) {
+    .req { padding: 14px; }
+    .bar { flex-wrap: wrap; }
+    .url { flex-basis: 100%; order: 3; }
+    .send { margin-left: auto; }
+    .stage { padding: 18px; }
+    .verdict { gap: 12px; }
+    .code-badge { min-width: 72px; height: 60px; font-size: 28px; border-radius: 16px; }
+    .cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .rows :global(.hrow) { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .rows :global(.hrow > :nth-child(3)) { grid-column: 2 / 3; grid-row: 2; }
+    .rows :global(.hrow > :nth-child(4)) { grid-column: 3; grid-row: 1; }
+    .fields.two { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
