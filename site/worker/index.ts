@@ -109,6 +109,9 @@ async function shotsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Res
     return body;
   } catch (e) {
     console.log('shots failed', target.href, String(e));
+    if (String(e).includes('site-blocked')) {
+      return json({ error: 'That site also blocks automated browsers, so we can’t take screenshots of it.' }, 422);
+    }
     return json({ error: SHOTS_UNAVAILABLE }, 503);
   }
 }

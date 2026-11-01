@@ -34,12 +34,16 @@ export async function takeShots(binding: unknown, target: string, allowed: Check
       const left = deadline - Date.now();
       if (left < 2_000) break;
       await page.setViewport({ width: w.width, height: w.height, isMobile: w.mobile, hasTouch: w.mobile, deviceScaleFactor: 1 });
+      let status = 0;
       try {
-        await page.goto(target, { waitUntil: 'networkidle2', timeout: Math.min(PAGE_TIMEOUT_MS, left - 1_000) });
+        const res = await page.goto(target, { waitUntil: 'networkidle2', timeout: Math.min(PAGE_TIMEOUT_MS, left - 1_000) });
+        status = res?.status() ?? 0;
       } catch {
         // Busy pages never go quiet; take what has loaded so far.
       }
-      if (!allowed(page.url())) throw new Error('redirected');
+      const at = page.url();
+      if (at.startsWith('chrome-error:') || status === 403 || status === 429) throw new Error('site-blocked');
+      if (!allowed(at)) throw new Error('redirected');
       const full = await page.evaluate(() => document.documentElement.scrollHeight).catch(() => w.height);
       const height = Math.max(w.height, Math.min(full, w.height * MAX_SCREENS));
       const jpeg = (await page.screenshot({
