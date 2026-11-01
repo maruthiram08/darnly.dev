@@ -41,6 +41,10 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/whoami
+//   Sends back the visitor's own IP address and country (from Cloudflare's request data), for the
+//   browser info tool at /tools/browser-info/. Fetches nothing, logs nothing, and is never cached.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -74,6 +78,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/whoami') return whoami(req);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -124,6 +129,15 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     }),
     { cache: false, maxBytes: 2_000_000 },
   );
+}
+
+// /api/whoami: the visitor's own IP address and country, read from the request. Nothing is stored.
+function whoami(req: Request): Response {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const cf = (req as Request & { cf?: { country?: string } }).cf;
+  const country = (cf?.country ?? req.headers.get('cf-ipcountry') ?? '').toUpperCase().slice(0, 2);
+  const ip = (req.headers.get('cf-connecting-ip') ?? '').slice(0, 64);
+  return json({ ip, country });
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
