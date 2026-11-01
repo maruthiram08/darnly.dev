@@ -10,6 +10,15 @@
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
 //
+// GET /api/assets?url=https://example.com
+//   Same guards. Lists the pictures a page uses (images, SVGs, icons, CSS backgrounds, share
+//   image) for the asset extractor at /tools/asset-extractor/.
+//
+// GET /api/asset?url=https://example.com/logo.png
+//   Passes one picture through so the asset extractor can show its size and put it in a ZIP
+//   (browsers can't read other sites' files directly). Images only, 5 MB at most, cached a day,
+//   with its own per-visitor rate limit, and served so it can't run as a page on darnly.dev.
+//
 // GET /api/colors?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns its color palette, for the
 //   website color finder at /tools/website-color-finder/.
@@ -23,6 +32,7 @@
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
 
 import { findFonts } from './fonts';
+import { findAssets } from './assets';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
@@ -30,6 +40,7 @@ import { findStack } from './stack';
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  ASSET_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -43,6 +54,8 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/assets') return assetsApi(req, url, env, ctx);
+    if (url.pathname === '/api/asset') return assetProxy(req, url, env, ctx);
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
@@ -67,6 +80,119 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/assets: every picture a page uses.
+function assetsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('assets', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findAssets(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,application/manifest+json,application/json,*/*;q=0.1'))),
+  }));
+}
+
+const ASSET_MAX = 5_000_000;
+const ASSET_CACHE_SECONDS = 86_400;
+
+// /api/asset: one picture from another site, passed through for the asset extractor.
+async function assetProxy(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/asset?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.ASSET_LIMIT) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await env.ASSET_LIMIT.limit({ key: who });
+    if (!success) return json({ error: 'Too many downloads in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  let res: Response;
+  try {
+    res = await get(target, url, env, 'image/avif,image/webp,image/svg+xml,image/*,*/*;q=0.5');
+  } catch {
+    return json({ error: 'We couldn’t reach that file.' }, 502);
+  }
+  if (typeof checkTarget(res.url || target.href, env.ALLOW_LOCAL === '1') === 'string') return json({ error: 'That file redirects somewhere we can’t fetch.' }, 400);
+  if (!res.ok) {
+    res.body?.cancel().catch(() => {});
+    return json({ error: `That site answered with error ${res.status}.` }, 422);
+  }
+  const declared = Number(res.headers.get('content-length') ?? '0');
+  if (declared > ASSET_MAX) {
+    res.body?.cancel().catch(() => {});
+    return json({ error: 'That file is bigger than 5 MB.' }, 413);
+  }
+
+  const bytes = await readBytes(res, ASSET_MAX + 1);
+  if (bytes.length > ASSET_MAX) return json({ error: 'That file is bigger than 5 MB.' }, 413);
+  const type = imageType(res.headers.get('content-type') ?? '', bytes);
+  if (!type) return json({ error: 'That address isn’t a picture.' }, 415);
+
+  const out = new Response(bytes, {
+    headers: {
+      'content-type': type,
+      'cache-control': `public, max-age=${ASSET_CACHE_SECONDS}`,
+      'x-content-type-options': 'nosniff',
+      // Pictures from other sites (SVGs above all) must never run as a page on darnly.dev,
+      // and other sites can't embed this as a free image proxy.
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      'content-disposition': 'attachment',
+      'cross-origin-resource-policy': 'same-origin',
+    },
+  });
+  ctx.waitUntil(cache.put(cacheKey, out.clone()));
+  return out;
+}
+
+// The picture's real type: trust an image/* header, otherwise look at the first bytes
+// (some servers send favicons as application/octet-stream).
+function imageType(header: string, b: Uint8Array): string | null {
+  const h = header.split(';')[0].trim().toLowerCase();
+  const sniffed =
+    b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? 'image/png' :
+    b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg' :
+    b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 ? 'image/gif' :
+    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'image/webp' :
+    b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 && b[8] === 0x61 && b[9] === 0x76 && b[10] === 0x69 ? 'image/avif' :
+    b[0] === 0 && b[1] === 0 && (b[2] === 1 || b[2] === 2) && b[3] === 0 ? 'image/x-icon' :
+    b[0] === 0x42 && b[1] === 0x4d ? 'image/bmp' :
+    /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(new TextDecoder().decode(b.subarray(0, 2048))) ? 'image/svg+xml' :
+    null;
+  if (h.startsWith('image/')) {
+    // An SVG claimed as an image must actually look like one, and a raster must not hide HTML.
+    if (h === 'image/svg+xml') return sniffed === 'image/svg+xml' ? h : null;
+    if (sniffed) return sniffed === 'image/svg+xml' ? null : sniffed;
+    const looksLikeText = /^\s*</.test(new TextDecoder().decode(b.subarray(0, 64)));
+    return !looksLikeText && /^image\/(png|jpeg|gif|webp|avif|x-icon|vnd\.microsoft\.icon|bmp|tiff|apng)$/.test(h) ? h : null;
+  }
+  return sniffed;
+}
+
+async function readBytes(res: Response, max: number): Promise<Uint8Array> {
+  if (!res.body) return new Uint8Array();
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (size < max) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.length;
+  }
+  reader.cancel().catch(() => {});
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.length;
+  }
+  return out;
 }
 
 // /api/stack: what a page was built with, hosted on and tracked by.

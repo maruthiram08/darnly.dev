@@ -7,7 +7,11 @@
   "main": "site/worker/index.ts",
   "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   // Free tools that fetch other sites: at most 20 checks a minute per visitor.
-  "ratelimits": [{ "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } }],
+  // The asset extractor passes each picture through /api/asset, so it gets its own, larger budget.
+  "ratelimits": [
+    { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
+    { "name": "ASSET_LIMIT", "namespace_id": "4802", "simple": { "limit": 240, "period": 60 } }
+  ],
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
   "previews": {}
