@@ -18,6 +18,11 @@
 //   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
 //   and grades each launch basic, for the launch checker at /tools/launch-checker/.
 //
+// GET /api/design?url=https://example.com
+//   Same guards. Reads the page and its stylesheets once and returns its colors, fonts, type
+//   scale, spacing, radius, shadows, buttons and cards, for the DESIGN.md generator at
+//   /tools/design-md-generator/.
+//
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
@@ -25,6 +30,7 @@
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
+import { findDesign } from './design';
 import { findStack } from './stack';
 
 interface Env {
@@ -45,6 +51,7 @@ export default {
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
+    if (url.pathname === '/api/design') return designApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
@@ -109,6 +116,16 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     finalUrl: p.finalUrl,
     status: p.status,
     ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
+// /api/design: a page's design system (colors, fonts, type scale, spacing, shape, components).
+function designApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('design', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findDesign(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
 }
 

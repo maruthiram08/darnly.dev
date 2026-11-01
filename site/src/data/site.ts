@@ -59,6 +59,11 @@ export const TOOLS: Item[] = [
     blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
   },
   {
+    slug: 'design-md-generator',
+    name: 'DESIGN.md generator',
+    blurb: 'Turn any website into a DESIGN.md style guide, so your AI agent builds in the same colors, fonts and spacing.',
+  },
+  {
     slug: 'tech-stack-finder',
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
