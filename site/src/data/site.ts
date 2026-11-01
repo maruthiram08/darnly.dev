@@ -64,6 +64,11 @@ export const TOOLS: Item[] = [
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
   {
+    slug: 'app-icon-generator',
+    name: 'App icon generator',
+    blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
+  },
+  {
     slug: 'contrast-checker',
     name: 'Color contrast checker',
     blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
