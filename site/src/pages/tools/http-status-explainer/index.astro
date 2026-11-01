@@ -1,0 +1,209 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { storeUrl } from '../../../data/site';
+import { CODES, GROUPS } from '../../../scripts/http-status-data';
+
+const steps = [
+  'Type the code you see, like 502, or the words on the error page, like “timeout” or FUNCTION_INVOCATION_TIMEOUT. Or click any code in the list.',
+  'Read what it means in plain English, and see where in the chain it broke: your browser, your host, your app, or the database behind it.',
+  'Pick your stack to narrow down the usual causes, then copy a prompt that asks Claude Code, Cursor or Codex to find and fix it.',
+];
+
+const faq = [
+  { q: 'What does a 404 error mean?', a: 'The server is working, but there’s nothing at that address. The page, file or API route doesn’t exist where the link points. Common causes: a typo, a page that moved without a redirect, a file in the wrong folder in Next.js, or a Vite/React app on Netlify or Vercel with no rewrite to index.html. <a href="#404">See 404 in detail</a>.' },
+  { q: 'What does a 500 Internal Server Error mean?', a: 'Your server code crashed while handling the request. The message is vague on purpose; the real error is in your server logs (in Vercel: your project, then Logs). The most common cause is an env var that’s set in .env.local but missing in production. <a href="#500">See 500 in detail</a>.' },
+  { q: 'What does 502 Bad Gateway mean?', a: 'Your host or proxy (Vercel, Cloudflare, Netlify, Nginx) asked your app for the page and got a broken answer or none at all. The middleman is fine; your app behind it crashed, is down, or listens on the wrong port. <a href="#502">See 502 in detail</a>.' },
+  { q: 'What does 403 Forbidden mean?', a: 'The server understood the request and still said no: you’re not allowed to see or do this. In Supabase it’s usually a Row Level Security policy; on Cloudflare a firewall rule; on Vercel preview links, Deployment Protection. <a href="#403">See 403 in detail</a>.' },
+  { q: 'What does 429 Too Many Requests mean?', a: 'Too many requests were sent in a short time, so the server is refusing for a while. With AI APIs it means you hit your rate limit or usage tier. In your own app, look for a useEffect that fetches in a loop. <a href="#429">See 429 in detail</a>.' },
+  { q: 'What’s the difference between 4xx and 5xx errors?', a: 'A 4xx code means the request was the problem: wrong address, not logged in, not allowed, bad data. A 5xx code means the server was the problem: it crashed, timed out, or is down. 4xx: look at what was sent. 5xx: look at the server logs.' },
+  { q: 'What’s the difference between 502 and 504?', a: 'Both come from the host in front of your app. 502 means your app sent back a broken answer or crashed. 504 means your app was too slow and the host gave up waiting. A 504 is usually a slow AI call or database query.' },
+  { q: 'Can I link straight to one code?', a: 'Yes. Every code has its own link, like darnly.dev/tools/http-status-explainer/#502, and Vercel errors too, like #FUNCTION_INVOCATION_TIMEOUT. Use “Copy link” on any code.' },
+];
+---
+<ToolPage
+  slug="http-status-explainer"
+  title="HTTP status codes explained in plain English (404, 500, 502…) · Darnly"
+  description="What does this error code mean? Every HTTP status code from 100 to 599, plus Cloudflare 52x, Vercel and Netlify errors, in plain English, with the usual causes in Next.js, Vercel, Supabase and Cloudflare, how to fix them, and a prompt for your AI agent."
+  h1="What does this error code mean?"
+  lede="Type the code or the words on the error page. See what it means in plain English, where in the chain it broke, the usual causes in Next.js, Vercel, Supabase and Cloudflare, and how to fix it."
+  steps={steps}
+  faq={faq}
+>
+  <div class="hs">
+    <div class="find">
+      <label class="search">
+        <span class="sr">Find a code</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input id="hs-q" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Type 502, “timeout” or FUNCTION_INVOCATION_TIMEOUT" aria-controls="hs-results" />
+      </label>
+      <ul class="results" id="hs-results" role="listbox" hidden></ul>
+      <div class="quick" aria-label="Most searched codes">
+        {['404', '500', '502', '403', '429', '401', '504', '503'].map((id) => <a href={`#${id}`} data-id={id}>{id}</a>)}
+      </div>
+    </div>
+
+    <article class="card" id="hs-card" aria-live="polite">
+      <div class="top">
+        <div class="num" id="hs-num">404</div>
+        <div class="head">
+          <span class="group" id="hs-group"></span>
+          <h2 class="name" id="hs-name">Not Found</h2>
+          <p class="verdict" id="hs-verdict"></p>
+        </div>
+      </div>
+      <p class="means" id="hs-means"></p>
+
+      <div class="chain" id="hs-chain" aria-label="Where it broke"></div>
+
+      <div class="cols">
+        <section class="causes">
+          <div class="chead">
+            <h3>Usual causes</h3>
+            <div class="tags" id="hs-tags" aria-label="Filter by your stack"></div>
+          </div>
+          <ul id="hs-causes"></ul>
+        </section>
+        <section class="fixes">
+          <h3>How to fix it</h3>
+          <ol id="hs-fixes"></ol>
+        </section>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="hs-prompt">Copy prompt for your AI agent</button>
+        <button type="button" class="ghost" id="hs-link">Copy link to this code</button>
+        <span class="status" id="hs-status" role="status"></span>
+      </div>
+    </article>
+
+    <p class="darnly">Seeing this on your own site? <a href={storeUrl('tool-http-status-explainer')}>Capture it with Darnly</a>: press one key, click what broke, and your AI agent gets the screenshot, the failed request and the console errors.</p>
+
+    <section class="all" aria-labelledby="hs-all-h">
+      <h2 id="hs-all-h">All codes</h2>
+      {GROUPS.map((g) => (
+        <div class="g">
+          <h3>{g.label}</h3>
+          <ul>
+            {CODES.filter((x) => x.group === g.id).map((x) => (
+              <li><a href={`#${x.id}`} data-id={x.id} class={`chip t${String(x.status)[0]}`}><b>{/^\d+$/.test(x.id) ? x.id : x.status}</b><span>{/^\d+$/.test(x.id) || x.group === 'Netlify' ? x.name : x.id}</span></a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/http-status-explainer';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .hs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+
+  .find { position: relative; display: grid; gap: 10px; }
+  .search { display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 2px solid var(--line); border-radius: 16px; background: #fff; }
+  .search:focus-within { border-color: var(--sky); }
+  .search svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--ink-soft); stroke-width: 2; stroke-linecap: round; }
+  .search input { flex: 1; min-width: 0; font: 500 19px/1 var(--body); padding: 16px 0; border: 0; outline: none; background: transparent; color: var(--ink); }
+  .results { position: absolute; z-index: 5; top: 62px; left: 0; right: 0; list-style: none; margin: 0; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 18px 40px -18px rgba(11, 34, 48, 0.35); max-height: 340px; overflow: auto; }
+  .results :global(li) { display: flex; gap: 12px; align-items: baseline; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+  .results :global(li[aria-selected='true']), .results :global(li:hover) { background: var(--wash); }
+  .results :global(b) { font: 700 15px/1.2 var(--mono); flex: none; }
+  .results :global(span) { font-size: 15px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .results :global(.none) { cursor: default; color: var(--ink-soft); }
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .quick::before { content: 'Most searched:'; font: 600 14px/1 var(--body); color: var(--ink-soft); margin-right: 4px; }
+  .quick a { font: 600 14px/1 var(--mono); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; }
+  .quick a:hover { border-color: var(--sky); }
+  .quick a[aria-current='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+
+  /* Big result card, colored by the kind of code. */
+  .card { --c: #D2344F; --soft: #FFF3F5; --deep: #A3122F; display: grid; gap: 18px; padding: 26px; border-radius: 22px; background: var(--soft); border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); scroll-margin-top: 16px; }
+  .card.client { --c: #D98A00; --soft: #FFF8EA; --deep: #8A5300; }
+  .card.server { --c: #D2344F; --soft: #FFF3F5; --deep: #A3122F; }
+  .card.ok { --c: #1F9D55; --soft: #F1FAF4; --deep: #146B39; }
+  .card.redirect { --c: #0593C6; --soft: #EEF8FB; --deep: #05668A; }
+  .card.info { --c: #6B7C88; --soft: #F4F7F9; --deep: #3E4F5A; }
+  .top { display: flex; gap: 22px; align-items: center; }
+  .num { flex: none; font: 800 104px/0.9 var(--display); letter-spacing: -0.04em; color: var(--c); }
+  .head { display: grid; gap: 6px; min-width: 0; }
+  .group { justify-self: start; font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 9px; border-radius: 6px; background: var(--c); color: #fff; overflow-wrap: anywhere; }
+  .name { font: 700 32px/1.1 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+  .verdict { margin: 0; font: 600 16px/1.4 var(--body); color: var(--deep); }
+  .means { margin: 0; font-size: 20px; line-height: 1.5; color: var(--ink); max-width: 62ch; }
+
+  /* Browser → host → app → database, with the likely broken hop marked. */
+  .chain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 18px 8px 12px; background: #fff; border-radius: 16px; border: 1px solid var(--line); }
+  .chain :global(.hop) { position: relative; display: grid; align-content: start; justify-items: center; gap: 4px; text-align: center; padding: 0 4px; }
+  .chain :global(.hop:not(:last-child))::after { content: ''; position: absolute; top: 22px; left: calc(50% + 26px); right: calc(-50% + 26px); height: 3px; border-radius: 2px; background: #9FD9B5; }
+  .chain :global(.hop.after:not(:last-child))::after, .chain :global(.hop.bad:not(:last-child))::after { background: repeating-linear-gradient(90deg, #C9D6DD 0 6px, transparent 6px 11px); }
+  .chain :global(.dot) { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font: 700 20px/1 var(--body); background: #E3F6EA; color: #1F9D55; border: 2px solid #9FD9B5; }
+  .chain :global(.hop.after .dot) { background: #F1F5F7; color: #9AAAB4; border-color: #D7E1E6; }
+  .chain :global(.hop.bad .dot) { background: var(--c); color: #fff; border-color: var(--c); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 20%, transparent); }
+  .chain :global(.hop.done .dot) { background: #1F9D55; color: #fff; border-color: #1F9D55; }
+  .chain :global(.lbl) { font: 700 15px/1.2 var(--body); color: var(--ink); margin-top: 6px; }
+  .chain :global(.sub) { font-size: 12.5px; line-height: 1.3; color: var(--ink-soft); }
+  .chain :global(.hop.after .lbl) { color: #8EA0AA; }
+  .chain :global(.flag) { font: 700 11px/1 var(--body); letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 7px; border-radius: 5px; background: var(--c); color: #fff; margin-top: 4px; }
+  .chain :global(.hop.done .flag) { background: #1F9D55; }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; }
+  .cols section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; min-width: 0; }
+  .cols h3 { font: 700 19px/1.2 var(--display); margin: 0; }
+  .chead { display: grid; gap: 10px; margin-bottom: 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags :global(button) { font: 600 13px/1 var(--body); padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); cursor: pointer; }
+  .tags :global(button[aria-pressed='true']) { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .tags :global(button[aria-pressed='true'])::before { content: '✓ '; }
+  .causes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .causes :global(li) { display: grid; gap: 4px; font-size: 16px; line-height: 1.45; padding-left: 14px; border-left: 3px solid var(--c); }
+  .causes :global(li.dim) { opacity: 0.38; border-left-color: var(--line); }
+  .causes :global(.tag) { justify-self: start; font: 600 11.5px/1 var(--mono); padding: 4px 7px; border-radius: 5px; background: var(--wash); color: var(--ink-soft); }
+  .causes :global(.empty) { border: 0; padding: 0; color: var(--ink-soft); }
+  .fixes ol { margin: 10px 0 0; padding: 0; list-style: none; counter-reset: f; display: grid; gap: 12px; }
+  .fixes :global(li) { counter-increment: f; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; font-size: 16px; line-height: 1.45; }
+  .fixes :global(li)::before { content: counter(f); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 13px/1 var(--body); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .primary { font: 600 16px/1 var(--body); padding: 14px 20px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 12px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { font-size: 14px; color: var(--ink-soft); }
+
+  .darnly { margin: 0; padding: 14px 18px; border-radius: 14px; background: var(--wash); font-size: 16px; }
+  .darnly a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pink); text-decoration-thickness: 2px; }
+
+  .all { display: grid; gap: 18px; margin-top: 8px; }
+  .all > h2 { font-size: 26px; }
+  .g h3 { font: 600 15px/1.2 var(--body); color: var(--ink-soft); margin: 0 0 8px; }
+  .g ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; font-size: 14px; max-width: 100%; }
+  .chip b { font: 700 14px/1 var(--mono); }
+  .chip span { color: var(--ink-soft); overflow-wrap: anywhere; }
+  .chip.t4 b { color: #A86A00; }
+  .chip.t5 b { color: #C0243F; }
+  .chip.t2 b { color: #1F9D55; }
+  .chip.t3 b { color: #05668A; }
+  .chip:hover { border-color: var(--sky); }
+  .chip[aria-current='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+  @media (max-width: 720px) {
+    .cols { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .card { padding: 18px; }
+    .top { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .num { font-size: 76px; }
+    .name { font-size: 26px; }
+    .means { font-size: 18px; }
+    .chain { padding: 14px 2px 10px; }
+    .chain :global(.dot) { width: 36px; height: 36px; font-size: 16px; }
+    .chain :global(.hop:not(:last-child))::after { top: 17px; left: calc(50% + 21px); right: calc(-50% + 21px); }
+    .chain :global(.lbl) { font-size: 13px; }
+    .chain :global(.sub) { display: none; }
+    .search input { font-size: 16px; }
+  }
+</style>
