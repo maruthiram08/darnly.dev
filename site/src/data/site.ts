@@ -4,7 +4,7 @@ export const STORE_URL = 'https://chromewebstore.google.com/detail/gognoljafcabn
 // Chrome Web Store link tagged with the page it came from, so installs can be counted per page.
 export const storeUrl = (source: string) => `${STORE_URL}?utm_source=${encodeURIComponent(source)}`;
 
-export type Item = { slug: string; name: string; blurb: string };
+export type Item = { slug: string; name: string; blurb: string; category?: string };
 
 // Add a tool here when its page ships; the footer and /tools/ list it automatically.
 export const TOOLS: Item[] = [
@@ -162,6 +162,12 @@ export const TOOLS: Item[] = [
     slug: 'regex-tester',
     name: 'Regex tester',
     blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
+  },
+  {
+    slug: 'schema-generator',
+    name: 'Schema markup generator',
+    blurb: 'JSON-LD for your company, app, product, article, FAQ, event or shop, with a Google result preview.',
+    category: 'SEO & sharing',
   },
 ];
 
