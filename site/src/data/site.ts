@@ -43,6 +43,11 @@ export const TOOLS: Item[] = [
     name: 'Image converter',
     blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
   },
+  {
+    slug: 'og-image-generator',
+    name: 'OG image generator',
+    blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
+  },
 ];
 
 // Same for guides.
