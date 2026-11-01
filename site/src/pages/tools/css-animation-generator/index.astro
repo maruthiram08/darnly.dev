@@ -1,0 +1,283 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick a preset: fade, slide, bounce, pulse, shake, spin, pop, shimmer or typing. The preview plays it straight away.',
+  'Tune how long it takes, how long it waits, how many times it plays, and the easing. Drag the two dots on the curve to change how it speeds up and slows down.',
+  'Copy it as plain CSS, as a Tailwind v4 theme animation, as a one-line Tailwind class, or as a prompt for your AI coding agent.',
+];
+
+const faq = [
+  { q: 'What is easing?', a: 'Easing is how an animation speeds up and slows down. Real things never move at one speed: they start and stop gently. The curve shows it: where it is steep, the element moves fast. “Ease out”, fast then slow, is a safe choice for anything that appears.' },
+  { q: 'How long should an animation be?', a: 'Most interface animations feel right between 150 and 500 milliseconds. Things that appear can take a little longer than things that leave. Loops like spinners and shimmers run at about one to two seconds a turn.' },
+  { q: 'What is prefers-reduced-motion?', a: 'Some people turn off animations in their phone or computer settings, often because movement makes them dizzy or sick. Every snippet here includes a rule that switches the animation off for them, so they see the finished state with no movement. Tick “Show what people who turn off animations see” to check it.' },
+  { q: 'Which Tailwind output should I use?', a: 'On Tailwind v4, use the <code>@theme</code> version: it adds a real <code>animate-…</code> class you can reuse anywhere. The one-line class, like <code>animate-[fade-in_0.6s_ease_both]</code>, works on v3 and v4 but still needs the keyframes in your global CSS file.' },
+  { q: 'Why is “both” at the end?', a: 'It keeps the first frame while the animation waits for its delay, and keeps the last frame when it ends. Without it, a fade-in with a delay flashes into view, disappears and then fades in.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="css-animation-generator"
+  title="CSS animation generator: keyframes, easing and Tailwind · Darnly"
+  description="Make CSS animations from presets like fade, slide, bounce, pulse, shake, spin, pop, shimmer and typing. Tune timing with a visual cubic-bezier editor, watch a live preview, and copy CSS @keyframes or Tailwind v4 classes. Free."
+  h1="CSS animations and keyframes, with a live preview"
+  lede="Pick an animation, tune its timing and easing, and watch it play on a real card, button or icon. Copy it as CSS, as a Tailwind class, or as a prompt for your AI coding agent. It switches itself off for people who turn off animations."
+  steps={steps}
+  faq={faq}
+>
+  <style is:inline id="ca-live"></style>
+  <div class="ca">
+    <div class="stage" id="ca-stage" aria-label="Live preview of your animation. Click to replay.">
+      <button type="button" class="replay" id="ca-replay" aria-label="Replay the animation">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Replay
+      </button>
+    </div>
+
+    <div class="presets" id="ca-presets" aria-label="Animation presets"></div>
+    <p class="says" id="ca-says"></p>
+
+    <div class="controls">
+      <div class="field" id="ca-target-field">
+        <span>Show it on</span>
+        <div class="seg" role="radiogroup" aria-label="Preview element" id="ca-target">
+          <button type="button" role="radio" data-v="card" aria-checked="true">Card</button>
+          <button type="button" role="radio" data-v="button" aria-checked="false">Button</button>
+          <button type="button" role="radio" data-v="icon" aria-checked="false">Icon</button>
+        </div>
+      </div>
+      <label class="field" id="ca-slide-field" hidden>
+        <span>Slide in from</span>
+        <select id="ca-slide">
+          <option value="below">Below</option>
+          <option value="above">Above</option>
+          <option value="left">The left</option>
+          <option value="right">The right</option>
+        </select>
+      </label>
+      <label class="field" id="ca-text-field" hidden>
+        <span>Text to type</span>
+        <input id="ca-text" type="text" maxlength="40" spellcheck="false" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="controls sliders">
+      <label class="field">
+        <span>How long <output id="ca-dur-out"></output></span>
+        <input id="ca-dur" type="range" min="100" max="5000" step="50" value="600" />
+      </label>
+      <label class="field">
+        <span>Wait before starting <output id="ca-delay-out"></output></span>
+        <input id="ca-delay" type="range" min="0" max="3000" step="50" value="0" />
+      </label>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <span>How many times</span>
+        <div class="seg" role="radiogroup" aria-label="How many times it plays" id="ca-iter">
+          <button type="button" role="radio" data-v="1" aria-checked="true">Once</button>
+          <button type="button" role="radio" data-v="2" aria-checked="false">2</button>
+          <button type="button" role="radio" data-v="3" aria-checked="false">3</button>
+          <button type="button" role="radio" data-v="0" aria-checked="false">Loop</button>
+        </div>
+      </div>
+      <div class="field">
+        <span>Direction</span>
+        <div class="seg" role="radiogroup" aria-label="Direction" id="ca-dir">
+          <button type="button" role="radio" data-v="normal" aria-checked="true">Forward</button>
+          <button type="button" role="radio" data-v="reverse" aria-checked="false">Backward</button>
+          <button type="button" role="radio" data-v="alternate" aria-checked="false">Back and forth</button>
+        </div>
+        <small class="hint" id="ca-dir-hint"></small>
+      </div>
+    </div>
+
+    <div class="ease" id="ca-ease">
+      <div class="ease-graph">
+        <svg id="ca-svg" viewBox="0 0 220 300" role="group" aria-label="Easing curve. Drag the two dots, or focus one and use the arrow keys.">
+          <rect class="grid-box" x="10" y="75" width="200" height="150" rx="6" />
+          <line class="grid-line" x1="10" y1="150" x2="210" y2="150" />
+          <line class="grid-line" x1="110" y1="75" x2="110" y2="225" />
+          <text class="axis" x="12" y="242">start</text>
+          <text class="axis" x="208" y="242" text-anchor="end">time →</text>
+          <text class="axis" x="14" y="70">done</text>
+          <line class="arm" id="ca-arm1" x1="10" y1="225" x2="10" y2="225" />
+          <line class="arm" id="ca-arm2" x1="210" y1="75" x2="210" y2="75" />
+          <path class="curve" id="ca-curve" d="" />
+          <circle class="handle h1" id="ca-h1" r="9" cx="10" cy="225" tabindex="0" role="slider" aria-label="First curve handle" />
+          <circle class="handle h2" id="ca-h2" r="9" cx="210" cy="75" tabindex="0" role="slider" aria-label="Second curve handle" />
+        </svg>
+        <div class="track" aria-hidden="true"><span class="dot" id="ca-dot"></span></div>
+      </div>
+      <div class="ease-side">
+        <span class="label">Easing</span>
+        <div class="ease-presets" id="ca-ease-presets" aria-label="Easing presets"></div>
+        <p class="ease-says" id="ca-ease-says"></p>
+        <label class="field">
+          <span>Or type one</span>
+          <input id="ca-ease-in" type="text" spellcheck="false" autocomplete="off" aria-label="Easing as cubic-bezier" />
+        </label>
+        <p class="note" id="ca-ease-note" hidden>Typing uses steps, so one letter appears at a time. The curve doesn’t apply.</p>
+      </div>
+    </div>
+
+    <div class="summary">
+      <p class="status" id="ca-status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <label class="check">
+          <input id="ca-reduced" type="checkbox" />
+          <span>Show what people who turn off animations see</span>
+        </label>
+        <button type="button" class="primary" id="ca-prompt">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>CSS</span><button type="button" data-copy="ca-css">Copy</button></div>
+      <pre id="ca-css"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>Tailwind v4 · @theme animation</span><button type="button" data-copy="ca-theme">Copy</button></div>
+      <pre id="ca-theme"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>Tailwind class · v3 and v4</span><button type="button" data-copy="ca-arb">Copy</button></div>
+      <pre id="ca-arb"></pre>
+      <div class="code-head sub"><span>Plus these keyframes</span><button type="button" data-copy="ca-arb-kf">Copy</button></div>
+      <pre id="ca-arb-kf"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/css-animation-generator';
+</script>
+
+<style>
+  .ca { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .ca [hidden] { display: none !important; }
+
+  /* Preview */
+  .stage { position: relative; min-height: 380px; border-radius: 24px; display: grid; place-items: center; padding: 56px 20px 32px; box-sizing: border-box; border: 1px solid rgba(11, 34, 48, 0.08); overflow: hidden; cursor: pointer; background: radial-gradient(circle at 30% 20%, #FFFFFF 0, transparent 60%), linear-gradient(160deg, #EAF6FA, #F6EEF4); }
+  .stage.is-reduced::after { content: 'Animations turned off'; position: absolute; left: 16px; top: 16px; font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 999px; background: var(--ink); color: var(--white); }
+  .replay { position: absolute; right: 14px; top: 14px; display: inline-flex; gap: 6px; align-items: center; font: 600 14px/1 var(--body); padding: 10px 14px; border: 0; border-radius: 999px; background: #FFFFFF; color: var(--ink); cursor: pointer; box-shadow: 0 1px 2px rgba(11, 34, 48, 0.1), 0 4px 12px rgba(11, 34, 48, 0.1); }
+  .replay svg { width: 16px; height: 16px; }
+
+  .stage :global(.t-card) { display: flex; gap: 14px; align-items: center; width: min(340px, 100%); box-sizing: border-box; padding: 18px 20px; border-radius: 18px; background: #FFFFFF; color: var(--ink); box-shadow: 0 1px 2px rgba(11, 34, 48, 0.08), 0 12px 32px rgba(11, 34, 48, 0.14); }
+  .stage :global(.t-avatar) { flex: none; width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #F6D365, #FDA085); }
+  .stage :global(.t-lines) { display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+  .stage :global(.t-lines strong) { font: 700 17px/1.2 var(--display); color: var(--ink); }
+  .stage :global(.t-button) { font: 600 17px/1 var(--body); padding: 18px 28px; border-radius: 999px; background: var(--ink); color: var(--white); box-shadow: 0 8px 24px rgba(11, 34, 48, 0.22); }
+  .stage :global(.t-icon) { display: grid; place-items: center; width: 88px; height: 88px; border-radius: 26px; background: #FFFFFF; color: var(--sky); box-shadow: 0 10px 28px rgba(11, 34, 48, 0.14); }
+  .stage :global(.t-icon svg) { width: 48px; height: 48px; }
+  .stage :global(.t-skeleton) { display: grid; gap: 12px; width: min(340px, 100%); box-sizing: border-box; padding: 20px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 12px 32px rgba(11, 34, 48, 0.12); }
+  /* Low specificity on purpose, so the generated shimmer class can replace the background. */
+  :global(.sk) { display: block; border-radius: 8px; background: #E3EAEE; }
+  .stage :global(.sk-row) { display: flex; gap: 12px; align-items: center; }
+  .stage :global(.sk-col) { display: grid; gap: 8px; flex: 1; }
+  .stage :global(.sk-circle) { width: 44px; height: 44px; border-radius: 50%; flex: none; }
+  .stage :global(.sk-line) { height: 12px; }
+  .stage :global(.sk-block) { height: 110px; border-radius: 12px; }
+  .stage :global(.w80) { width: 80%; }
+  .stage :global(.w60) { width: 60%; }
+  .stage :global(.w40) { width: 40%; }
+  .stage :global(.t-text) { max-width: 100%; overflow: hidden; color: var(--ink); font-size: clamp(22px, 5vw, 34px); font-weight: 600; }
+  .stage :global(.t-text) { display: grid; justify-items: start; }
+  .stage :global(.t-ghost), .stage :global(.t-type) { grid-area: 1 / 1; font-family: ui-monospace, monospace; white-space: nowrap; }
+  .stage :global(.t-ghost) { visibility: hidden; border-right: 2px solid transparent; }
+  .stage :global(.t-type) { padding-right: 0; }
+
+  /* Presets with tiny looping demos */
+  .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+  .presets :global(button) { display: grid; gap: 8px; justify-items: center; width: 76px; padding: 12px 0 10px; border: 2px solid var(--line); border-radius: 16px; background: var(--white); cursor: pointer; font: 600 13px/1.2 var(--body); color: var(--ink); }
+  .presets :global(button[aria-pressed='true']) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .presets :global(.demo) { display: block; width: 22px; height: 22px; border-radius: 6px; background: var(--sky); }
+  .presets :global(.demo-fade) { animation: ca-d-fade 1.6s ease infinite alternate; }
+  .presets :global(.demo-slide) { animation: ca-d-slide 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+  .presets :global(.demo-bounce) { animation: ca-d-bounce 1.2s ease-in-out infinite; }
+  .presets :global(.demo-pulse) { animation: ca-d-pulse 1.4s ease-in-out infinite; }
+  .presets :global(.demo-shake) { animation: ca-d-shake 1.6s ease infinite; }
+  .presets :global(.demo-spin) { width: 18px; height: 18px; border-radius: 50%; background: none; border: 3px solid rgba(5, 147, 198, 0.2); border-top-color: var(--sky); animation: ca-d-spin 1s linear infinite; }
+  .presets :global(.demo-pop) { animation: ca-d-pop 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+  .presets :global(.demo-shimmer) { width: 40px; height: 10px; margin: 6px 0; border-radius: 5px; background: linear-gradient(90deg, #D5E2E8 30%, #F8FBFC 50%, #D5E2E8 70%); background-size: 300% 100%; animation: ca-d-shimmer 1.4s linear infinite; }
+  .presets :global(.demo-typing) { width: 0; height: 10px; margin: 6px 0; border-radius: 2px; background: var(--sky); border-right: 3px solid var(--ink); animation: ca-d-type 2s steps(4) infinite; }
+  @keyframes ca-d-fade { from { opacity: 0.1; } to { opacity: 1; } }
+  @keyframes ca-d-slide { 0% { opacity: 0; transform: translateY(10px); } 60%, 100% { opacity: 1; transform: none; } }
+  @keyframes ca-d-bounce { 0%, 50%, 80%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } 65% { transform: translateY(-3px); } }
+  @keyframes ca-d-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+  @keyframes ca-d-shake { 0%, 50%, 100% { transform: translateX(0); } 10%, 30% { transform: translateX(-4px); } 20%, 40% { transform: translateX(4px); } }
+  @keyframes ca-d-spin { to { transform: rotate(360deg); } }
+  @keyframes ca-d-pop { 0% { opacity: 0; transform: scale(0.4); } 40%, 100% { opacity: 1; transform: scale(1); } }
+  @keyframes ca-d-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+  @keyframes ca-d-type { from { width: 0; } to { width: 40px; } }
+  @media (prefers-reduced-motion: reduce) {
+    .presets :global(.demo) { animation: none !important; }
+  }
+  .says { margin: -6px 0 0; font-size: 15px; color: var(--ink-soft); min-height: 1.5em; }
+
+  /* Controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: start; }
+  .controls > .field { flex: 1 1 240px; }
+  .sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field output { font-family: var(--mono); color: var(--ink); margin-left: 4px; }
+  .field input[type='text'], .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; height: 48px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='text']:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .field input[aria-invalid='true'] { border-color: #B4234F; }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .hint { font-size: 13px; color: var(--ink-soft); }
+  .seg { display: flex; gap: 4px; padding: 4px; min-height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1.1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 6px 8px; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+
+  /* Easing editor */
+  .ease { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 20px 28px; align-items: start; padding: 20px; border: 2px solid var(--line); border-radius: 20px; background: var(--white); }
+  .ease.off .ease-graph, .ease.off .ease-presets, .ease.off .ease-side .field { opacity: 0.35; pointer-events: none; }
+  .ease-graph { display: grid; gap: 10px; }
+  .ease-graph svg { width: 100%; height: auto; touch-action: none; overflow: visible; user-select: none; }
+  .grid-box { fill: var(--wash); stroke: var(--line); stroke-width: 1.5; }
+  .grid-line { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+  .axis { font: 500 11px var(--body); fill: var(--ink-soft); }
+  .arm { stroke: var(--ink-soft); stroke-width: 1.5; }
+  .curve { fill: none; stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+  .handle { stroke: #FFFFFF; stroke-width: 3; cursor: grab; }
+  .handle.h1 { fill: var(--pink); }
+  .handle.h2 { fill: var(--sky); }
+  .handle:focus { outline: none; stroke: var(--ink); }
+  .handle:active { cursor: grabbing; }
+  .track { position: relative; height: 14px; margin: 0 4px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); }
+  .dot { position: absolute; top: 50%; left: 0; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--ink); }
+  @keyframes ca-dot { from { left: 0; } to { left: 100%; } }
+  .ease-side { display: grid; gap: 12px; align-content: start; }
+  .label { font-size: 14px; color: var(--ink-soft); }
+  .ease-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ease-presets :global(button) { display: grid; gap: 4px; justify-items: center; width: 82px; padding: 8px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; font: 600 12px/1.2 var(--body); color: var(--ink); }
+  .ease-presets :global(button[aria-pressed='true']) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .ease-presets :global(svg) { width: 32px; height: 44px; overflow: visible; }
+  .ease-presets :global(path) { fill: none; stroke: var(--sky); stroke-width: 4; stroke-linecap: round; }
+  .ease-says { margin: 0; font-size: 14px; color: var(--ink); min-height: 1.5em; }
+  .ease-side input { font-family: var(--mono) !important; font-size: 14px !important; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .check { display: flex; gap: 8px; align-items: center; min-height: 44px; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head.sub { border-top: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 760px) {
+    .sliders { grid-template-columns: minmax(0, 1fr); }
+    .ease { grid-template-columns: minmax(0, 1fr); }
+    .ease-graph { max-width: 260px; justify-self: center; width: 100%; }
+    .stage { min-height: 320px; }
+    .presets :global(button) { width: calc((100% - 30px) / 4); min-width: 68px; }
+  }
+</style>

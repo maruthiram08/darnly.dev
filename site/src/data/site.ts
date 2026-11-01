@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'css-animation-generator',
+    category: 'Design',
+    name: 'CSS animations and keyframes',
+    blurb: 'Pick fade, slide, bounce, shimmer or typing, tune the timing on a visual curve, copy CSS or Tailwind.',
+  },
 ];
 
 // Same for guides.
