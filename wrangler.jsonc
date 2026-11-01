@@ -7,7 +7,14 @@
   "main": "site/worker/index.ts",
   "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   // Free tools that fetch other sites: at most 20 checks a minute per visitor.
-  "ratelimits": [{ "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } }],
+  "ratelimits": [
+    { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
+    // Screenshots (Browser Rendering) cost money per use: 3 a minute per visitor, 20 a minute for the whole site.
+    { "name": "SHOT_LIMIT", "namespace_id": "4802", "simple": { "limit": 3, "period": 60 } },
+    { "name": "SHOT_LIMIT_ALL", "namespace_id": "4803", "simple": { "limit": 20, "period": 60 } }
+  ],
+  // Cloudflare's headless browser, used only by /api/shots for the responsive checker.
+  "browser": { "binding": "BROWSER" },
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
   "previews": {}

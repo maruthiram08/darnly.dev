@@ -8,11 +8,11 @@ const steps = [
 ];
 
 const faq = [
-  { q: 'Why is one of the boxes blank?', a: 'Many sites (Google, GitHub, banks and most big apps) tell browsers not to show them inside other pages. That’s a safety setting on their side, so no checker that shows the live page can display them. Use “Open at this width” to see the page in its own window at that size.' },
+  { q: 'Why do some sites show as screenshots?', a: 'Many sites (Google, GitHub, Myntra, banks and most big apps) tell browsers not to show them inside other pages. That’s a safety setting on their side. For those sites we take real screenshots at each width instead, so you can still compare them. You can’t click inside a screenshot, so use “Open at this width” for a closer look.' },
   { q: 'Can I check my site on localhost?', a: 'No. This page runs on the internet, so it can’t see your computer. Deploy your site (a Vercel, Netlify or Cloudflare preview link works), then paste that address.' },
   { q: 'Is this the same as a real phone?', a: 'It shows the page at the same width a phone uses, which is what decides most layout problems. Touch, the on-screen keyboard and the phone’s own browser can still differ, so check on a real phone before you launch.' },
   { q: 'Why these three widths?', a: '390 px is a modern iPhone, 768 px is an iPad held upright, and 1280 px is a common laptop. If a layout works at all three, it usually works in between too.' },
-  { q: 'Is anything sent to Darnly?', a: 'No. Your browser loads the page straight from your site. Darnly never sees it.' },
+  { q: 'Is anything sent to Darnly?', a: 'Only the address you type. Our server checks whether the site allows being shown in a frame, and takes screenshots if it doesn’t. Live views load straight from your site into your browser.' },
 ];
 ---
 <ToolPage
@@ -33,8 +33,9 @@ const faq = [
     <p class="error" id="rc-error" role="alert" hidden></p>
 
     <div class="result" id="rc-result" hidden>
-      <p class="hint">
-        <strong>See a blank box?</strong> That site blocks being shown inside other pages, which many big sites do for safety. It isn’t a problem with your layout. Press “Open at this width” to see it in its own window instead.
+      <p class="hint" id="rc-hint">
+        <span><strong>See a grey or blank box?</strong> That site blocks being shown inside other pages. It isn’t a problem with your layout.</span>
+        <button type="button" id="rc-shots" class="rc-open">Show screenshots instead</button>
       </p>
 
       <div class="views" id="rc-views"></div>
@@ -57,13 +58,18 @@ const faq = [
   .error { margin: 0; color: #B4234F; }
   .result { display: grid; gap: 16px; }
   .views { display: grid; grid-template-columns: minmax(0, 390fr) minmax(0, 620fr) minmax(0, 900fr); gap: 16px; align-items: start; }
-  .hint { margin: 0; padding: 14px 16px; border-radius: 12px; background: var(--wash); color: var(--ink-soft); font-size: 15px; }
+  .hint { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0; padding: 14px 16px; border-radius: 12px; background: var(--wash); color: var(--ink-soft); font-size: 15px; }
+  .hint[hidden] { display: none; }
   .hint strong { color: var(--ink); }
   :global(.rc-view) { display: grid; gap: 8px; min-width: 0; justify-items: start; }
     :global(.rc-name) { font: 500 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
   :global(.rc-open) { font: 600 13px/1 var(--body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); cursor: pointer; }
   :global(.rc-open:hover) { border-color: var(--sky); }
   :global(.rc-screen) { width: 100%; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  :global(.rc-blocked) { position: absolute; inset: 0; display: grid; align-content: center; gap: 8px; padding: 16px; text-align: center; background: var(--wash); color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+  :global(.rc-blocked strong) { color: var(--ink); font-size: 15px; }
+  :global(.rc-shot) { overflow-y: auto; }
+  :global(.rc-shot img) { display: block; width: 100%; height: auto; }
   :global(.rc-screen iframe) { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #fff; }
   @media (max-width: 760px) {
     .views { grid-template-columns: minmax(0, 1fr); }

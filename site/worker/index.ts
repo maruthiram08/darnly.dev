@@ -9,12 +9,26 @@
 // GET /api/fonts?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
+//
+// GET /api/frame?url=https://example.com
+//   Same guards. Reads the page's X-Frame-Options and CSP frame-ancestors headers and says whether
+//   other sites may show it in a frame, for the responsive checker at /tools/responsive-checker/.
+//
+// GET /api/shots?url=https://example.com
+//   Screenshots of the page at 390, 768 and 1280 px wide, for sites that block frames. Uses
+//   Browser Rendering, so it has stricter limits: 3 a minute per visitor and 20 a minute site-wide,
+//   a one hour cache, a 25 second budget, and every address the browser loads is checked.
 
 import { findFonts } from './fonts';
+import { takeShots } from './shots';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  // Browser Rendering for /api/shots, with its own per-visitor and site-wide limits.
+  BROWSER?: unknown;
+  SHOT_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  SHOT_LIMIT_ALL?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -28,13 +42,15 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/frame') return frameApi(req, url, env, ctx);
+    if (url.pathname === '/api/shots') return shotsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
 type Ctx = { waitUntil(p: Promise<unknown>): void };
-type Page = { target: URL; finalUrl: string; status: number; html: string };
+type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 
 // /api/og: the share tags of one page.
 function og(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
@@ -49,6 +65,69 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/frame: whether other sites may show this page inside a frame.
+function frameApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('frame', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    // An error page (often a bot check) doesn't carry the real page's headers, so we can't tell.
+    framing: p.status >= 400 ? 'unknown' : frameRule(p.headers),
+  }));
+}
+
+const SHOTS_UNAVAILABLE = 'Screenshots aren’t available right now. Use “Open at this width” to see the page.';
+
+// /api/shots: screenshots at the three widths.
+async function shotsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const local = env.ALLOW_LOCAL === '1';
+  const target = checkTarget(url.searchParams.get('url') ?? '', local);
+  if (typeof target === 'string') return json({ error: target }, 400);
+  if (!env.BROWSER) return json({ error: SHOTS_UNAVAILABLE }, 503);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/shots?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+  if (env.SHOT_LIMIT && !(await env.SHOT_LIMIT.limit({ key: who })).success) {
+    return json({ error: 'Too many screenshots in a minute. Wait a moment and try again.' }, 429);
+  }
+  if (env.SHOT_LIMIT_ALL && !(await env.SHOT_LIMIT_ALL.limit({ key: 'all' })).success) {
+    return json({ error: 'Lots of people are taking screenshots right now. Try again in a minute.' }, 429);
+  }
+
+  try {
+    const shots = await takeShots(env.BROWSER, target.href, (u) => typeof checkTarget(u, local) !== 'string' && /^https?:/i.test(u));
+    if (!shots.length) return json({ error: 'That page took too long to load.' }, 504);
+    const body = json({ url: target.href, shots }, 200, CACHE_SECONDS);
+    ctx.waitUntil(cache.put(cacheKey, body.clone()));
+    return body;
+  } catch (e) {
+    console.log('shots failed', target.href, String(e));
+    return json({ error: SHOTS_UNAVAILABLE }, 503);
+  }
+}
+
+// Browsers follow CSP frame-ancestors when a page sends it, and X-Frame-Options otherwise.
+export function frameRule(h: Headers): 'allowed' | 'blocked' {
+  const csp = h.get('content-security-policy');
+  if (csp) {
+    for (const policy of csp.split(',')) {
+      const d = policy.split(';').map((x) => x.trim()).find((x) => /^frame-ancestors(\s|$)/i.test(x));
+      if (!d) continue;
+      const sources = d.split(/\s+/).slice(1).map((x) => x.toLowerCase());
+      const ok = sources.some((x) => x === '*' || x === 'https:' || /^(https:\/\/)?(\*\.)?darnly\.dev\/?$/.test(x));
+      if (!ok) return 'blocked';
+    }
+    if (/frame-ancestors/i.test(csp)) return 'allowed';
+  }
+  const xfo = (h.get('x-frame-options') ?? '').toLowerCase();
+  return /deny|sameorigin/.test(xfo) ? 'blocked' : 'allowed';
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
@@ -89,7 +168,7 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
   }
 
   const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html }), 200, CACHE_SECONDS);
+  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
