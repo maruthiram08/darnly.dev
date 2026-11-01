@@ -1,0 +1,26 @@
+name: Mac app
+on:
+  push:
+    paths: ['mac/**', '.github/workflows/mac.yml']
+  pull_request:
+    paths: ['mac/**', '.github/workflows/mac.yml']
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mac
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Unit tests (report, redaction, logs)
+        run: swift test
+      - name: Build Darnly.app
+        run: ./scripts/make-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Darnly-mac
+          path: mac/build/Darnly-mac-*.zip

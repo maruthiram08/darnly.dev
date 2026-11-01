@@ -23,6 +23,11 @@ describe('redactText', () => {
     }
   });
 
+  it('hides a secret pair that follows a plain "name: value"', () => {
+    expect(redactText('Failed to save plan: token=abcd1234efgh')).toBe('Failed to save plan: token=[hidden]');
+    expect(redactText('step: 2 apiKey=zzzz9999 done')).toContain('apiKey=[hidden]');
+  });
+
   it('hides values of secret-named fields', () => {
     const out = redactText('{"password": "hunter2-password-value", "user": "maruthi"} token=abc12345 page=2');
     expect(out).not.toContain('hunter2');
@@ -53,5 +58,11 @@ describe('redactUrl', () => {
   it('drops passwords in URLs and token fragments', () => {
     expect(redactUrl('https://user:pw123@example.com/x')).not.toContain('pw123');
     expect(redactUrl('https://app.com/cb#access_token=abcdef1234567890xyz&x=1')).not.toContain('abcdef1234567890xyz');
+  });
+  it('keeps long URL paths readable', () => {
+    const u = 'https://cloudusersettings-pa.clients6.google.com/v1alpha1/settings:getCurrent/AI_CHAT_INCLUDE_PAGE_CONTEXT?key=AIzaSyAbcdefghijklmnopqrstuvwxyz0123456';
+    const out = redactUrl(u);
+    expect(out).toContain('clients6.google.com/v1alpha1/settings:getCurrent/AI_CHAT_INCLUDE_PAGE_CONTEXT');
+    expect(out).not.toContain('AIzaSy');
   });
 });
