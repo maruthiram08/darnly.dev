@@ -7,6 +7,7 @@ import { markScreenshot } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { planSetup, type PlannedChange } from '@/lib/agent-setup';
+import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
 interface PendingCapture {
@@ -62,6 +63,71 @@ export function App() {
   useEffect(() => {
     chrome.storage.local.get('cloudProject').then((r) => setCloud(r.cloudProject === true ? true : false), () => setCloud(false));
   }, []);
+  // Cloud inbox: signed in, bugs upload to Darnly cloud and the agent reads them through MCP.
+  const [session, setSession] = useState<CloudSession | null>(null);
+  const [cloudBugs, setCloudBugs] = useState<CaptureSummary[]>([]);
+  const [mcp, setMcp] = useState('');
+  const [sentToCloud, setSentToCloud] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const cloudSeen = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    loadSession().then(setSession, () => {});
+    mcpUrl().then(setMcp, () => {});
+  }, []);
+  const refreshCloud = useCallback(async (s: CloudSession | null) => {
+    if (!s) return;
+    try {
+      const list = (await listCloudBugs(s)).map(toSummary);
+      const before = cloudSeen.current;
+      if (before) {
+        const fixedNow = list.filter((c) => c.status === 'fixed' && before.get(c.id) === 'waiting');
+        if (fixedNow.length) setJustFixed((prev) => [...fixedNow, ...prev.filter((p) => !fixedNow.some((n) => n.id === p.id))]);
+      }
+      cloudSeen.current = new Map(list.map((c) => [c.id, c.status]));
+      setCloudBugs(list);
+    } catch (e) {
+      if (e instanceof CloudError && e.status === 401) setSession(null);
+    }
+  }, []);
+  useEffect(() => {
+    if (!session) return;
+    refreshCloud(session);
+    const t = setInterval(() => refreshCloud(session), 8000);
+    return () => clearInterval(t);
+  }, [session, refreshCloud]);
+  const cloudSignIn = async () => {
+    setMessage('');
+    try {
+      setSession(await signInWithGoogle());
+      chooseCloud(true);
+    } catch (e) {
+      const why = (e as Error).message;
+      setMessage(
+        /oauth2|client/i.test(why)
+          ? "Cloud sign-in isn't switched on in this build yet. Copy each bug into your agent for now."
+          : `Couldn't sign in: ${why}`,
+      );
+    }
+  };
+  const cloudSignOut = async () => {
+    if (session) await signOut(session);
+    setSession(null);
+    setCloudBugs([]);
+    cloudSeen.current = null;
+  };
+  const cloudDeleteAll = async () => {
+    if (!session) return;
+    try {
+      const n = await deleteAllCloudBugs(session);
+      setMessage(`Deleted ${n} ${n === 1 ? 'bug' : 'bugs'} from your Darnly inbox.`);
+      setCloudBugs([]);
+      cloudSeen.current = new Map();
+    } catch (e) {
+      setMessage(`Couldn't delete: ${(e as Error).message}`);
+    }
+    setConfirmDelete(false);
+  };
+
   const chooseCloud = (v: boolean) => {
     setCloud(v);
     chrome.storage.local.set({ cloudProject: v }).catch(() => {});
@@ -203,12 +269,17 @@ export function App() {
       logs: c.logs,
       recorder: c.recorder,
     };
-    return { id, markdown: captureMarkdown(input), paste: captureMarkdown({ ...input, forPaste: true }) };
+    return {
+      id,
+      markdown: captureMarkdown(input),
+      paste: captureMarkdown({ ...input, forPaste: true }),
+      cloud: captureMarkdown({ ...input, forCloud: true }),
+    };
   };
 
   const save = async () => {
     if (!capture) return;
-    const { id, markdown, paste } = build(capture);
+    const { id, markdown, paste, cloud: cloudReport } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
     if (capture.logs.length) files[`${id}.logs.json`] = JSON.stringify({ url: capture.page.url, entries: capture.logs }, null, 2);
     if (capture.screenshot) {
@@ -233,8 +304,9 @@ export function App() {
       chrome.storage.local.set({ captureTimes: next }).catch(() => {});
       chrome.storage.session.remove('pressedAt').catch(() => {});
     };
-    const done = (file: string) => {
+    const done = (file: string, cloudSent = false) => {
       recordTime();
+      setSentToCloud(cloudSent);
       setLastMarkdown(markdown);
       setLastPaste(paste);
       setLastTitle(headingFrom(note, capture.element));
@@ -244,7 +316,25 @@ export function App() {
       setCapture(null);
       setMessage('');
     };
-    // No linked folder (for example a cloud project): keep the bug in the panel, ready to drag into the agent.
+    // Cloud project, signed in: send it to the Darnly inbox, where the agent reads it through MCP.
+    if (!folder && session) {
+      try {
+        await uploadBug(session, {
+          title: headingFrom(note, capture.element),
+          pageUrl: capture.page.url,
+          report: cloudReport,
+          picture: files[`${id}.png`] as Blob | undefined,
+          logs: files[`${id}.logs.json`] as string | undefined,
+        });
+        done('', true);
+        refreshCloud(session);
+      } catch (e) {
+        done('');
+        setMessage(`Couldn't send it to your Darnly inbox (${(e as Error).message}). Copy it into your agent below instead.`);
+      }
+      return;
+    }
+    // No linked folder and not signed in: keep the bug in the panel, ready to copy into the agent.
     if (!folder) return done('');
     // This runs inside the Enter key press, so Chrome may show its once-a-session "Allow" prompt here.
     if (!(await ensureAccess(folder))) {
@@ -283,16 +373,30 @@ export function App() {
     setMessage('Copied. Paste it into your agent.');
   };
 
+  // The bug list: the linked folder's bugs, or the cloud inbox's.
+  const shown = folder ? captures : session ? cloudBugs : [];
+
   return (
     <main className="space-y-4 p-4 text-sm text-gray-900">
       <header>
         <h1 className="text-base font-semibold">{PRODUCT.NAME}</h1>
         {!folder && cloud === false && <Welcome onLink={linkFolder} onCloud={() => chooseCloud(true)} />}
-        {!folder && cloud && (
+        {!folder && cloud && session && (
           <p className="mt-1 text-xs text-gray-500">
-            Cloud project: you copy each bug into your agent ·{' '}
+            Sending bugs to your Darnly inbox ({session.email}) ·{' '}
             <button className="underline" onClick={linkFolder}>link a folder instead</button>
           </p>
+        )}
+        {!folder && cloud && !session && (
+          <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
+            <p className="font-medium">Send bugs straight to your agent</p>
+            <p className="text-xs text-gray-500">Sign in once, and each bug goes to your private Darnly inbox. Your agent picks it up there, with nothing to paste.</p>
+            <button className="w-full rounded-lg bg-gray-900 py-2 text-white" onClick={cloudSignIn}>Sign in with Google</button>
+            <p className="text-xs text-gray-500">
+              Or copy each bug into your agent by hand ·{' '}
+              <button className="underline" onClick={linkFolder}>link a folder instead</button>
+            </p>
+          </div>
         )}
         {folder && <FolderLine folder={folder} access={access} onLink={linkFolder} />}
       </header>
@@ -371,7 +475,12 @@ export function App() {
 
       {stage === 'saved' && (
         <section className="space-y-2">
-          {lastFile ? (
+          {sentToCloud ? (
+            <>
+              <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Sent to your Darnly inbox</p>
+              <p className="text-gray-600">Tell your agent: <em>"fix my Darnly bugs"</em></p>
+            </>
+          ) : lastFile ? (
             <>
               <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
               <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
@@ -379,7 +488,8 @@ export function App() {
           ) : (
             <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
           )}
-          <DragCard files={lastFiles} title={lastTitle} linked={!!lastFile} />
+          <DragCard files={lastFiles} title={lastTitle} linked={!!lastFile || sentToCloud} />
+          {sentToCloud && <p className="text-xs text-gray-500">Agent not connected yet? Copy it by hand:</p>}
           <div className="flex gap-2">
             {lastFiles.some((f) => f.type === 'image/png') && (
               <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyPicture(lastFiles)}>1. Copy picture{copied.picture ? ' ✓' : ''}</button>
@@ -433,32 +543,64 @@ export function App() {
         </section>
       )}
 
-      {captures.length > 0 && (
+      {shown.length > 0 && (
         <section>
           <p className="font-medium">
-            Captured bugs <span className="font-normal text-gray-500">· {captures.filter((c) => c.status === 'waiting').length} waiting, {captures.filter((c) => c.status === 'fixed').length} fixed</span>
+            Captured bugs <span className="font-normal text-gray-500">· {shown.filter((c) => c.status === 'waiting').length} waiting, {shown.filter((c) => c.status === 'fixed').length} fixed</span>
           </p>
           <ul className="mt-2 divide-y divide-gray-100">
-            {captures.slice(0, 20).map((c) => (
+            {shown.slice(0, 20).map((c) => (
               <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed (moved to done)' : 'Waiting for your agent'} />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed' : 'Waiting for your agent'} />
                 <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
               </li>
             ))}
           </ul>
-          {captures.some((c) => c.status === 'waiting') && (
-            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+          {shown.some((c) => c.status === 'waiting') && (
+            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></p>
           )}
         </section>
       )}
       {stats.length >= 3 && (
         <p className="text-xs text-gray-500">
           Average capture: {Math.round(stats.reduce((a, b) => a + b.ms, 0) / stats.length / 1000)}s over {stats.length} bugs
-          {captures.length ? ` · ${captures.filter((c) => c.status === 'fixed').length} of ${captures.length} fixed` : ''}
+          {shown.length ? ` · ${shown.filter((c) => c.status === 'fixed').length} of ${shown.length} fixed` : ''}
         </p>
+      )}
+      {!folder && session && (
+        <section className="space-y-2 border-t border-gray-100 pt-3">
+          <details className="rounded-lg border border-gray-200 p-3" open={cloudBugs.length === 0}>
+            <summary className="cursor-pointer font-medium">Connect your agent (once)</summary>
+            <p className="mt-2 text-gray-600">Add this address as a connector (MCP server) in your agent, then sign in with the same Google account:</p>
+            <div className="mt-2 flex gap-2">
+              <code className="min-w-0 flex-1 truncate rounded bg-gray-100 px-2 py-1.5 text-xs" title={mcp}>{mcp}</code>
+              <button className="rounded-lg border border-gray-300 px-3" onClick={() => navigator.clipboard.writeText(mcp).then(() => setMessage('Connector address copied.'))}>Copy</button>
+            </div>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-gray-500">
+              <li>Claude: Settings, Connectors, Add custom connector</li>
+              <li>Claude Code: <code>claude mcp add --transport http darnly {mcp}</code></li>
+              <li>Cursor: Settings, MCP, Add new MCP server</li>
+            </ul>
+          </details>
+          <p className="text-xs text-gray-500">
+            {session.email} · <button className="underline" onClick={cloudSignOut}>Sign out</button> ·{' '}
+            {confirmDelete ? (
+              <>
+                Delete every bug in your inbox? <button className="font-medium text-rose-700 underline" onClick={cloudDeleteAll}>Yes, delete</button>{' '}
+                <button className="underline" onClick={() => setConfirmDelete(false)}>Keep</button>
+              </>
+            ) : (
+              <button className="underline" onClick={() => setConfirmDelete(true)}>Delete all my cloud bugs</button>
+            )}
+          </p>
+        </section>
       )}
     </main>
   );
+}
+
+function toSummary(b: CloudBug): CaptureSummary {
+  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined };
 }
 
 function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void }) {

@@ -128,6 +128,12 @@ describe('captureMarkdown hints', () => {
     expect(md).not.toContain('.darnly/');
     expect(md).toContain('the screenshot pasted with this message');
   });
+  it('tells a cloud agent to mark the bug fixed instead of moving files', () => {
+    const md = captureMarkdown({ ...base, element, forCloud: true, logs: [{ t: Date.now(), kind: 'error', message: 'boom' }] });
+    expect(md).not.toContain('.darnly/');
+    expect(md).toContain('the screenshot returned with this bug');
+    expect(md).toContain('`mark_fixed`');
+  });
 });
 
 describe('page data fence', () => {

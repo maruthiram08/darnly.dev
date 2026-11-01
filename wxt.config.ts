@@ -10,7 +10,12 @@ export default defineConfig({
   manifest: {
     name: PRODUCT.NAME,
     description: 'Turn a bug you see on screen into a ready-to-fix note for your AI coding agent.',
-    permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest'],
+    // identity: "Sign in with Google" for the cloud inbox (projects whose code isn't on this computer).
+    permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest', 'identity'],
+    // The Google OAuth client (type "Chrome extension") is created once the store gives the extension its id.
+    ...(process.env.DARNLY_GOOGLE_CLIENT_ID
+      ? { oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] } }
+      : {}),
     // Production sites are switched on one at a time from the side panel; Chrome asks to confirm each.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
     // Localhost works without asking; other sites work through the hotkey (activeTab). Per-site opt-in comes in Sprint 2.
