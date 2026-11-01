@@ -23,6 +23,11 @@ export const TOOLS: Item[] = [
     name: 'Meta tag generator',
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
+  {
+    slug: 'font-finder',
+    name: 'Font finder',
+    blurb: 'See what fonts any website uses, whether they’re free, and copy them into your project.',
+  },
 ];
 
 // Same for guides.
