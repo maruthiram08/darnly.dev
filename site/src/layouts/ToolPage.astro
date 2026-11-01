@@ -20,7 +20,11 @@ interface Props {
 
 const { slug, title, description, h1, lede, steps, faq } = Astro.props;
 const source = `tool-${slug}`;
-const others = TOOLS.filter((t) => t.slug !== slug).slice(0, 3);
+// Tools from the same category first, then the newest of the rest.
+const self = TOOLS.find((t) => t.slug === slug);
+const rest = TOOLS.filter((t) => t.slug !== slug);
+const same = self?.category ? rest.filter((t) => t.category === self.category) : [];
+const others = [...same, ...rest.filter((t) => !same.includes(t)).reverse()].slice(0, 3);
 const canonical = new URL(`/tools/${slug}/`, Astro.site).toString();
 // Each tool can have its own share picture at public/og/tools/<slug>.jpg; otherwise the site's default is used.
 const image = existsSync(join(process.cwd(), 'public/og/tools', `${slug}.jpg`)) ? `/og/tools/${slug}.jpg` : undefined;
@@ -58,7 +62,10 @@ const jsonLd = JSON.stringify([
 
     {others.length > 0 && (
       <section class="more" aria-labelledby="more-h">
-        <h2 id="more-h">More free tools</h2>
+        <div class="more-head">
+          <h2 id="more-h">More free tools</h2>
+          <a href="/tools/">See all {TOOLS.length} tools</a>
+        </div>
         <ul>{others.map((t) => <li><a href={`/tools/${t.slug}/`}><strong>{t.name}</strong><span>{t.blurb}</span></a></li>)}</ul>
       </section>
     )}
@@ -88,6 +95,9 @@ const jsonLd = JSON.stringify([
   .tool { margin-top: 32px; }
   h2 { font-size: 28px; line-height: 1.1; }
   .more, .how, .faq { margin-top: 64px; }
+  .more-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  .more-head a { color: var(--sky); font-weight: 600; text-decoration: none; }
+  .more-head a:hover { text-decoration: underline; }
   .more ul { list-style: none; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
   .more a { display: grid; gap: 4px; padding: 18px; border-radius: 14px; background: var(--wash); text-decoration: none; height: 100%; }
   .more span { color: var(--ink-soft); font-size: 15px; }
