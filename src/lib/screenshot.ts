@@ -1,5 +1,17 @@
 import type { ElementInfo } from './element-info';
 
+/** Largest side of a saved reference picture, in pixels: big enough to read, small enough for an agent. */
+export const MAX_REFERENCE_SIDE = 1600;
+
+/** Turns a pasted or dropped picture into a PNG, shrunk so its longest side is at most MAX_REFERENCE_SIDE. */
+export async function referencePng(file: Blob): Promise<Blob> {
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, MAX_REFERENCE_SIDE / Math.max(img.width, img.height, 1));
+  const canvas = new OffscreenCanvas(Math.max(1, Math.round(img.width * k)), Math.max(1, Math.round(img.height * k)));
+  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.convertToBlob({ type: 'image/png' });
+}
+
 /**
  * Draws a red box around the picked element on the screenshot.
  * The screenshot is in device pixels, the element box in CSS pixels, so we scale by their ratio.

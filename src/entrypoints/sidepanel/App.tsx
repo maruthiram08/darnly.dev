@@ -3,7 +3,7 @@ import { PRODUCT, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
-import { markScreenshot } from '@/lib/screenshot';
+import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { planSetup, type PlannedChange } from '@/lib/agent-setup';
@@ -32,6 +32,24 @@ export function App() {
   const [stage, setStage] = useState<Stage>('idle');
   const [capture, setCapture] = useState<PendingCapture | null>(null);
   const [note, setNote] = useState('');
+  // Optional picture of what it should look like, pasted or dropped into the note box.
+  const [reference, setReference] = useState<{ png: Blob; url: string } | null>(null);
+  const addReference = async (file: File | Blob) => {
+    try {
+      const png = await referencePng(file);
+      setReference((old) => {
+        if (old) URL.revokeObjectURL(old.url);
+        return { png, url: URL.createObjectURL(png) };
+      });
+    } catch {
+      setMessage("Couldn't read that picture. Try a PNG or JPEG.");
+    }
+  };
+  const clearReference = () =>
+    setReference((old) => {
+      if (old) URL.revokeObjectURL(old.url);
+      return null;
+    });
   const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
   const [access, setAccess] = useState<string>('none');
   const [message, setMessage] = useState('');
@@ -216,6 +234,7 @@ export function App() {
         });
         if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
+        clearReference();
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
       }
@@ -269,6 +288,7 @@ export function App() {
       element: c.element,
       logs: c.logs,
       recorder: c.recorder,
+      reference: !!reference,
     };
     return {
       id,
@@ -307,6 +327,8 @@ export function App() {
       ];
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption);
     }
+    // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
+    const referenceFile = reference ? { [`${id}.reference.png`]: reference.png } : {};
     const asFiles = Object.entries(files)
       .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
       .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
@@ -330,6 +352,7 @@ export function App() {
       setLastFile(file);
       setStage('saved');
       setCapture(null);
+      clearReference();
       setMessage('');
     };
     // Cloud project, signed in: send it to the Darnly inbox, where the agent reads it through MCP.
@@ -342,6 +365,7 @@ export function App() {
           pageUrl: capture.page.url,
           report: cloudReport,
           picture: files[`${id}.png`] as Blob | undefined,
+          reference: reference?.png,
           logs: files[`${id}.logs.json`] as string | undefined,
         });
         done('', true);
@@ -360,7 +384,7 @@ export function App() {
       return;
     }
     try {
-      await writeToProject(folder, 'inbox', files);
+      await writeToProject(folder, 'inbox', { ...files, ...referenceFile });
       setAccess('granted');
       done(`${INBOX_FOLDER}/${id}.md`);
       refreshProject(folder);
@@ -474,6 +498,24 @@ export function App() {
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            onPaste={(e) => {
+              // A picture on the clipboard (and no text) is a picture of what it should look like.
+              const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
+              if (file && !e.clipboardData.getData('text/plain')) {
+                e.preventDefault();
+                addReference(file);
+              }
+            }}
+            onDragOver={(e) => {
+              if ([...e.dataTransfer.items].some((i) => i.kind === 'file' && i.type.startsWith('image/'))) e.preventDefault();
+            }}
+            onDrop={(e) => {
+              const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
+              if (file) {
+                e.preventDefault();
+                addReference(file);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -482,6 +524,15 @@ export function App() {
             }}
             placeholder="What should it do or look like? e.g. Should look flat, like the Beliefs pills"
           />
+          {reference ? (
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <img src={reference.url} alt="What it should look like" className="h-10 max-w-[5rem] rounded border border-gray-200 object-cover" />
+              <span className="flex-1">Picture of what you want added</span>
+              <button className="underline" onClick={clearReference}>Remove</button>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">Optional: paste or drop a picture of what it should look like.</p>
+          )}
           <div className="flex gap-2">
             <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white disabled:opacity-60" onClick={save} disabled={saving}>
               {saving ? (!folder && session ? 'Sending…' : 'Saving…') : 'Save (Enter)'}
