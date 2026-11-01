@@ -1,0 +1,152 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your site’s address.',
+  'We follow the links on your site the way Google does, up to 100 pages, and skip pages that say they shouldn’t be listed.',
+  'Download sitemap.xml and robots.txt, or copy one prompt that asks Claude Code, Cursor or Codex to add them to your project.',
+];
+
+const faq = [
+  { q: 'What is a sitemap?', a: 'A sitemap.xml is a list of every page on your site that you want Google and other search engines to find. Without one, they only find pages by following links, so new or rarely linked pages can take weeks to show up.' },
+  { q: 'Where do I put sitemap.xml and robots.txt?', a: 'In the folder your site serves from its root, so they open at yoursite.com/sitemap.xml and yoursite.com/robots.txt. That’s public/ in Next.js, Vite, React, Astro and Nuxt, and static/ in SvelteKit. On a plain HTML site, put them next to index.html.' },
+  { q: 'Which pages are left out?', a: 'Pages that answer with an error, addresses that redirect somewhere else, pages marked noindex, pages whose canonical tag points to another address, and pages your robots.txt blocks. Each one is listed with the reason, so you can fix it or leave it out on purpose.' },
+  { q: 'Why does it stop at 100 pages?', a: 'To keep it quick and gentle on your site. Most new sites have far fewer. If yours has more, ask your AI agent to add the sitemap plugin for your framework, which lists every page on each build. The copied prompt asks for that.' },
+  { q: 'Will this sitemap stay up to date?', a: 'No, the file is a snapshot of today. When you add pages, run it again, or use the prompt so your agent sets up a sitemap that rebuilds itself.' },
+  { q: 'Can I use it on a site on localhost?', a: 'No. We read your site from the internet, so it needs a public address. Deploy a preview (Vercel, Netlify and Cloudflare all make one), then paste that.' },
+];
+---
+<ToolPage
+  slug="sitemap-generator"
+  title="Sitemap generator: free sitemap.xml and robots.txt · Darnly"
+  description="Paste your site and get a sitemap.xml and robots.txt in seconds. We follow your links up to 100 pages, list broken pages and redirects, and tell you where the files go in Next.js, Vite and Astro."
+  h1="Sitemap and robots.txt generator"
+  lede="Paste your site and get a sitemap.xml and robots.txt to download, plus a list of broken pages and redirects we found along the way."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sg">
+    <form id="sg-form" class="ask">
+      <label class="sr" for="sg-url">Website address</label>
+      <input id="sg-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="sg-go" type="submit">Make my sitemap</button>
+    </form>
+    <p class="status" id="sg-status" hidden>Following the links on your site. This can take up to 30 seconds.</p>
+    <p class="error" id="sg-error" role="alert" hidden></p>
+
+    <div id="sg-out" class="out" hidden>
+      <div class="summary">
+        <div>
+          <p class="verdict" id="sg-verdict"></p>
+          <p class="counts" id="sg-counts"></p>
+        </div>
+        <button id="sg-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+      </div>
+      <p class="note" id="sg-note" hidden></p>
+
+      <div class="files">
+        <section class="file">
+          <div class="file-head">
+            <h2>sitemap.xml</h2>
+            <div class="btns">
+              <button type="button" id="sg-copy-xml">Copy</button>
+              <button type="button" id="sg-dl-xml" class="dark">Download</button>
+            </div>
+          </div>
+          <pre id="sg-xml" tabindex="0"></pre>
+        </section>
+        <section class="file">
+          <div class="file-head">
+            <h2>robots.txt</h2>
+            <div class="btns">
+              <button type="button" id="sg-copy-robots">Copy</button>
+              <button type="button" id="sg-dl-robots" class="dark">Download</button>
+            </div>
+          </div>
+          <pre id="sg-robots" tabindex="0"></pre>
+          <p class="hint" id="sg-robots-hint"></p>
+        </section>
+      </div>
+
+      <section class="where">
+        <div class="where-head">
+          <h2>Where do the files go?</h2>
+          <label>
+            <span class="sr">Your framework</span>
+            <select id="sg-fw">
+              <option value="next">Next.js</option>
+              <option value="vite">Vite or React</option>
+              <option value="astro">Astro</option>
+              <option value="nuxt">Nuxt</option>
+              <option value="sveltekit">SvelteKit</option>
+              <option value="wordpress">WordPress</option>
+              <option value="other">Plain HTML or other</option>
+            </select>
+          </label>
+        </div>
+        <p id="sg-where"></p>
+        <p class="hint">Then open <span id="sg-check"></span> in your browser to check, and add the sitemap in <a href="https://search.google.com/search-console" rel="noopener" target="_blank">Google Search Console</a> under Sitemaps.</p>
+      </section>
+
+      <details class="group" id="sg-pages-box" open>
+        <summary id="sg-pages-title"></summary>
+        <ul class="rows" id="sg-pages"></ul>
+      </details>
+      <details class="group" id="sg-problems-box" open>
+        <summary id="sg-problems-title"></summary>
+        <ul class="rows" id="sg-problems"></ul>
+      </details>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/sitemap-generator';
+</script>
+
+<style>
+  .sg [hidden] { display: none !important; }
+  .sg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  @media (max-width: 480px) { .ask { flex-wrap: wrap; } .ask button { width: 100%; padding: 14px 26px; } }
+  .status { margin: 0; color: var(--ink-soft); }
+  .error { margin: 0; color: #B4234F; }
+
+  .out { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .verdict { margin: 0; font: 700 24px/1.2 var(--display); overflow-wrap: anywhere; }
+  .counts { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .note { margin: 0; font-size: 15px; padding: 12px 16px; border-radius: 12px; background: #FFF6DA; border: 1px solid #F0D58A; }
+
+  .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+  .file, .where { border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 16px 18px; min-width: 0; }
+  .file-head, .where-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  h2 { margin: 0; font: 600 18px/1.3 var(--body); }
+  .btns { display: flex; gap: 8px; }
+  .btns button { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .btns button:hover { border-color: var(--sky); }
+  .btns button.dark { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  pre { margin: 0; max-height: 260px; overflow: auto; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: #F5F8FB; border-radius: 10px; padding: 12px; white-space: pre; }
+  .hint { margin: 10px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .where p { margin: 0; }
+  .where :global(code) { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: #F0F4F8; padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  select { font: inherit; font-size: 15px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); max-width: 100%; }
+
+  .group { border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 4px 18px; }
+  .group summary { cursor: pointer; font: 600 17px/1.3 var(--body); padding: 12px 0; }
+  .rows { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 0; }
+  .rows :global(li) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .rows :global(.path) { overflow-wrap: anywhere; }
+  .rows :global(.meta) { color: var(--ink-soft); font-size: 14px; white-space: nowrap; }
+  .rows :global(.why) { grid-column: 1 / -1; color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+  .rows :global(.tag) { font: 600 12px/1 var(--body); padding: 5px 8px; border-radius: 999px; white-space: nowrap; align-self: start; }
+  .rows :global(.tag.error) { background: #FBE3E8; color: #A3173C; }
+  .rows :global(.tag.redirect) { background: #FFF1CC; color: #7A5600; }
+  .rows :global(.tag.skip) { background: #EAF0F6; color: #3B4A5A; }
+</style>

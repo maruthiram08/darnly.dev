@@ -21,15 +21,22 @@
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/sitemap?url=https://example.com
+//   Same guards, plus its own limit of 2 crawls a minute per visitor. Follows links on the same
+//   host (up to 100 pages, 4 at a time) and returns the pages for sitemap.xml and robots.txt,
+//   for the sitemap generator at /tools/sitemap-generator/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
+import { crawl, type Fetched } from './sitemap';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
-  FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  FETCH_LIMIT?: RateLimit;
+  CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -46,11 +53,13 @@ export default {
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
+type RateLimit = { limit(o: { key: string }): Promise<{ success: boolean }> };
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 
@@ -112,8 +121,35 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
   }));
 }
 
+// /api/sitemap: crawl one site and list the pages for sitemap.xml. Every page goes through get().
+function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const fetchPage = async (raw: string, accept: string): Promise<Fetched | null> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
+      const type = res.headers.get('content-type') ?? '';
+      const readable = /html|text\/plain/i.test(type) || !type;
+      const text = readable && res.status < 400 ? await readLimited(res, 500_000) : '';
+      if (!text) res.body?.cancel().catch(() => {});
+      return { status: res.status, url: final, type, lastModified: res.headers.get('last-modified'), robotsHeader: res.headers.get('x-robots-tag'), text };
+    } catch {
+      return null;
+    }
+  };
+  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
-async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>): Promise<Response> {
+type ToolOptions = { limit?: RateLimit; limitError?: string; cacheSeconds?: number };
+async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>, opts: ToolOptions = {}): Promise<Response> {
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
 
   const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
@@ -128,6 +164,11 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
     const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
     const { success } = await env.FETCH_LIMIT.limit({ key: who });
     if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+  if (opts.limit) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await opts.limit.limit({ key: who });
+    if (!success) return json({ error: opts.limitError ?? 'Too many checks in a minute. Wait a moment and try again.' }, 429);
   }
 
   let res: Response;
@@ -150,7 +191,7 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
   }
 
   const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
+  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, opts.cacheSeconds ?? CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }

@@ -63,6 +63,11 @@ export const TOOLS: Item[] = [
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
+  {
+    slug: 'sitemap-generator',
+    name: 'Sitemap generator',
+    blurb: 'A sitemap.xml and robots.txt for your site in seconds, plus the broken links we found.',
+  },
 ];
 
 // Same for guides.
