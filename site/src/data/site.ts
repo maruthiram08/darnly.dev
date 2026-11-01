@@ -143,6 +143,11 @@ export const TOOLS: Item[] = [
     name: 'JWT decoder',
     blurb: 'Paste a token and see when it expires, who it’s for and its role, in plain words. Nothing is uploaded.',
   },
+  {
+    slug: 'timestamp-converter',
+    name: 'Unix timestamp converter',
+    blurb: 'Timestamp to date and back, in your time zone, UTC and four cities, with JS, Postgres and Python code.',
+  },
 ];
 
 // Same for guides.
