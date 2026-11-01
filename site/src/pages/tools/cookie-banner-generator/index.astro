@@ -1,0 +1,264 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Link to the privacy policy generator once it ships, so the two tools point at each other.
+const privacy = TOOLS.find((t) => t.slug === 'privacy-policy-generator');
+
+const steps = [
+  'Pick a style: a bar across the page, a small box in the corner, or a pop-up in the middle. The preview at the top shows it live on a sample page.',
+  'Choose your colors, your text and which kinds of cookies you ask about: analytics, marketing, or both. Try the buttons on the preview to see what your visitors will see.',
+  'Click “Copy code” and paste it just before <code>&lt;/body&gt;</code>, or click “Copy prompt for your AI agent” and let Claude Code, Codex or Cursor add it for you, including the change that holds back your analytics until people agree.',
+];
+
+const faq = [
+  { q: 'Do I need a cookie banner?', a: 'If people in the EU or UK visit your site and you use cookies that are not strictly needed, like Google Analytics, Meta Pixel or ad trackers, you need to ask first. If you only use cookieless analytics such as Cloudflare Web Analytics, Plausible or Fathom, and no other tracking, you may not need a banner at all. This is not legal advice.' },
+  { q: 'How does it hold back my analytics?', a: 'Change your analytics tags from <code>&lt;script&gt;</code> to <code>&lt;script type="text/plain" data-cookie-category="analytics"&gt;</code>. The browser ignores them until the visitor clicks Accept, and then the banner’s script turns them back into real scripts. Open “How to hold back your analytics” for a copy-paste example.' },
+  { q: 'Where is the choice saved?', a: 'In the visitor’s browser, in <code>localStorage</code> under <code>cookie-consent</code>. It’s not a cookie itself, and nothing is sent to us or anyone else. On the next visit the banner stays hidden and the allowed scripts load straight away.' },
+  { q: 'How do visitors change their mind?', a: 'Add a link with <code>data-cookie-settings</code>, for example <code>&lt;a href="#" data-cookie-settings&gt;Cookie settings&lt;/a&gt;</code> in your footer. Clicking it opens the banner again with their choices filled in.' },
+  { q: 'Does it work with React, Next.js or other frameworks?', a: 'Yes, but frameworks like React don’t run a <code>&lt;script&gt;</code> tag pasted into a component. Use “Copy prompt for your AI agent”: the prompt tells your agent to move the script into its own file for your framework.' },
+  { q: 'Can my code react to the choice?', a: 'Yes. The banner fires a <code>cookieconsent</code> event on <code>document</code> with the choice in <code>event.detail</code>, for example <code>{ analytics: true, marketing: false }</code>.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser, and the code you copy has no outside dependency.' },
+];
+---
+<ToolPage
+  slug="cookie-banner-generator"
+  title="Cookie consent banner generator: free, no dependency · Darnly"
+  description="Make a cookie consent banner in seconds. Pick a style, colors and categories, see it live, and copy a 3 KB snippet that only loads analytics after consent. Free."
+  h1="Cookie consent banner generator"
+  lede="Design a cookie banner on a live preview, then copy a tiny snippet with no dependency. It saves each visitor’s choice and only loads your analytics after they agree."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cb">
+    <div class="stage">
+      <div class="badges">
+        <span class="badge" id="cb-size">3.0 KB · no dependencies</span>
+        <span class="badge ga wait" id="cb-ga"><i aria-hidden="true"></i><span id="cb-ga-text">Analytics waits for a choice</span></span>
+      </div>
+      <div class="browser" aria-label="Live preview of your cookie banner on a sample page">
+        <div class="chrome" aria-hidden="true"><span></span><span></span><span></span><em>yourapp.com</em></div>
+        <div class="mock" id="cb-mock" data-style="bar">
+          <div class="site">
+            <div class="nav" aria-hidden="true"><b class="logo"></b><i></i><i></i><i></i></div>
+            <div class="hero">
+              <p class="h">Ship your app this week</p>
+              <p class="l">A sample page, so you can see how the banner sits on a real site.</p>
+              <span class="cta">Get started</span>
+            </div>
+            <div class="cards" aria-hidden="true"><div></div><div></div><div></div></div>
+            <div class="foot"><span>© Your app</span><a href="#" id="cb-settings">Cookie settings</a></div>
+          </div>
+          <div id="cb-mount"></div>
+        </div>
+      </div>
+      <div class="under">
+        <button id="cb-replay" type="button" class="ghost small" hidden>Show the banner again</button>
+        <p class="status" id="cb-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="cb-copy" type="button" class="primary">Copy code</button>
+      <button id="cb-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+    </div>
+
+    <div class="controls">
+      <fieldset class="group">
+        <legend>Style</legend>
+        <div class="styles">
+          <label class="style"><input type="radio" name="cb-style" value="bar" checked /><span class="thumb t-bar" aria-hidden="true"><i></i></span>Bar</label>
+          <label class="style"><input type="radio" name="cb-style" value="corner" /><span class="thumb t-corner" aria-hidden="true"><i></i></span>Corner box</label>
+          <label class="style"><input type="radio" name="cb-style" value="modal" /><span class="thumb t-modal" aria-hidden="true"><i></i></span>Pop-up</label>
+        </div>
+        <div class="place" id="cb-place">
+          <label><input type="radio" name="cb-place" value="bottom" checked /> Bottom</label>
+          <label><input type="radio" name="cb-place" value="top" /> Top</label>
+          <label><input type="radio" name="cb-place" value="left" /> Left</label>
+          <label><input type="radio" name="cb-place" value="right" /> Right</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Colors</legend>
+        <div class="presets">
+          <button type="button" data-preset="light" aria-pressed="true"><i></i>Light</button>
+          <button type="button" data-preset="dark" aria-pressed="false"><i></i>Dark</button>
+          <button type="button" data-preset="sky" aria-pressed="false"><i></i>Sky</button>
+          <button type="button" data-preset="warm" aria-pressed="false"><i></i>Warm</button>
+        </div>
+        <div class="colors">
+          <div class="color"><label for="cb-bg-text">Background</label><div class="field"><input id="cb-bg" type="color" aria-label="Pick background color" /><input id="cb-bg-text" type="text" spellcheck="false" autocomplete="off" /></div></div>
+          <div class="color"><label for="cb-fg-text">Text</label><div class="field"><input id="cb-fg" type="color" aria-label="Pick text color" /><input id="cb-fg-text" type="text" spellcheck="false" autocomplete="off" /></div></div>
+          <div class="color"><label for="cb-accent-text">Button</label><div class="field"><input id="cb-accent" type="color" aria-label="Pick button color" /><input id="cb-accent-text" type="text" spellcheck="false" autocomplete="off" /></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>What you ask about</legend>
+        <div class="checks">
+          <label><input type="checkbox" checked disabled /> Necessary <small>always on</small></label>
+          <label><input type="checkbox" id="cb-analytics" /> Analytics <small>Google Analytics, Hotjar…</small></label>
+          <label><input type="checkbox" id="cb-marketing" /> Marketing <small>Meta Pixel, ad tags…</small></label>
+        </div>
+        <p class="hint" id="cb-cats-none" hidden>With nothing to ask about, the banner just tells people you use necessary cookies, with one “Got it” button.</p>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Text</legend>
+        <label class="text"><span>Message</span><textarea id="cb-message" rows="3"></textarea></label>
+        <label class="text"><span>Privacy policy link</span><input id="cb-policy" type="text" placeholder="/privacy" spellcheck="false" /></label>
+      </fieldset>
+    </div>
+
+    <details class="more">
+      <summary>More options</summary>
+      <div class="more-body">
+        <label class="text"><span>Title (optional)</span><input id="cb-title" type="text" placeholder="We value your privacy" /></label>
+        <div class="row3">
+          <label class="text"><span>Accept button</span><input id="cb-accept" type="text" placeholder="Accept all" /></label>
+          <label class="text"><span>Reject button</span><input id="cb-reject" type="text" placeholder="Reject all" /></label>
+          <label class="text"><span>Customize button</span><input id="cb-custom" type="text" placeholder="Customize" /></label>
+        </div>
+        <label class="text"><span>Rounded corners <output id="cb-radius-out">10px</output></span><input id="cb-radius" type="range" min="0" max="24" value="10" /></label>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>See the code</summary>
+      <div class="more-body">
+        <p class="hint">Paste this once, just before <code>&lt;/body&gt;</code>, on every page.</p>
+        <pre><code id="cb-code"></code></pre>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>How to hold back your analytics until people agree</summary>
+      <div class="more-body">
+        <p class="hint">Change your analytics tags to <code>type="text/plain"</code> with a <code>data-cookie-category</code>. They only run after the visitor allows that category.</p>
+        <pre><code id="cb-gate"></code></pre>
+        <button id="cb-copy-gate" type="button" class="ghost small">Copy example</button>
+      </div>
+    </details>
+
+    <div class="note">
+      <strong>You may not need a banner.</strong>{' '}
+      If you only use cookieless analytics, like Cloudflare Web Analytics or Plausible, and no ads or tracking pixels, you may not need one. This is not legal advice.
+      {privacy && <> Need the policy page too? <a href={`/tools/${privacy.slug}/`}>Make a privacy policy</a>.</>}
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/cookie-banner-generator';
+</script>
+
+<style>
+  .cb { display: grid; gap: 24px; min-width: 0; }
+  .cb [hidden] { display: none !important; }
+
+  /* Preview */
+  .stage { display: grid; gap: 12px; min-width: 0; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font: 600 13px/1 var(--mono); padding: 8px 12px; border-radius: 999px; background: var(--wash); color: var(--ink); }
+  .ga i { width: 9px; height: 9px; border-radius: 50%; background: #A0AEB8; }
+  .ga.wait i { background: #E6A700; }
+  .ga.on { background: #D6F5E3; color: #0B6B3A; }
+  .ga.on i { background: #12A150; }
+  .ga.off { background: #FBE0E8; color: #9C1C44; }
+  .ga.off i { background: #C8325F; }
+  .browser { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 10px 34px rgba(11, 34, 48, 0.1); }
+  .chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #F1F5F7; border-bottom: 1px solid var(--line); }
+  .chrome span { width: 10px; height: 10px; border-radius: 50%; background: #D3DDE2; }
+  .chrome em { margin-left: 10px; flex: 1; max-width: 260px; font: 400 12px/1 var(--mono); font-style: normal; color: var(--ink-soft); background: #fff; padding: 6px 10px; border-radius: 999px; }
+  /* transform makes the banner's position:fixed stick to this box instead of the whole page */
+  .mock { position: relative; transform: translateZ(0); height: 440px; overflow: hidden; background: #FAFBFC; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1F2937; }
+  .site { padding: 18px 24px; display: grid; gap: 26px; }
+  .nav { display: flex; align-items: center; gap: 14px; }
+  .nav .logo { width: 28px; height: 28px; border-radius: 8px; background: #CBD5E1; margin-right: auto; }
+  .nav i { width: 54px; height: 9px; border-radius: 5px; background: #E2E8F0; }
+  .hero { display: grid; gap: 10px; justify-items: start; max-width: 520px; }
+  .hero p { margin: 0; }
+  .hero .h { font: 800 30px/1.1 system-ui, sans-serif; letter-spacing: -0.02em; color: #111827; }
+  .hero .l { color: #6B7280; font-size: 15px; }
+  .hero .cta { padding: 9px 16px; border-radius: 8px; background: #CBD5E1; color: #334155; font-weight: 600; font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .cards div { height: 110px; border-radius: 12px; background: #fff; border: 1px solid #E5E7EB; }
+  .foot { display: flex; gap: 16px; font-size: 13px; color: #94A3B8; padding-top: 4px; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+  .foot a { color: #475569; }
+  .under { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 36px; }
+  .status { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+  /* Buttons */
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .primary { font: 600 16px/1 var(--body); padding: 14px 22px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 13px 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .ghost.small { font-size: 14px; padding: 9px 14px; justify-self: start; }
+
+  /* Controls */
+  .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .group { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .group legend { padding: 0 6px; font-weight: 700; }
+  .styles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .style { display: grid; gap: 6px; justify-items: center; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .style input { position: absolute; opacity: 0; pointer-events: none; }
+  .thumb { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; border: 2px solid var(--line); background: var(--wash); overflow: hidden; }
+  .style input:checked + .thumb { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(5, 147, 198, 0.2); }
+  .style input:focus-visible + .thumb { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .thumb i { position: absolute; background: var(--ink); border-radius: 3px; }
+  .t-bar i { left: 0; right: 0; bottom: 0; height: 22%; border-radius: 0; }
+  .t-corner i { right: 8%; bottom: 8%; width: 46%; height: 38%; }
+  .t-modal { background: #9DB3BE; }
+  .t-modal i { left: 22%; right: 22%; top: 26%; bottom: 26%; background: var(--white); }
+  .place { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px; }
+  .place label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button { display: inline-flex; align-items: center; gap: 8px; font: 600 14px/1 var(--body); padding: 7px 12px 7px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .presets button[aria-pressed='true'] { border-color: var(--sky); box-shadow: 0 0 0 2px rgba(5, 147, 198, 0.2); }
+  .presets i { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--p-bg) 50%, var(--p-ac) 50%); border: 1px solid rgba(0, 0, 0, 0.15); }
+  .colors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .color { display: grid; gap: 6px; min-width: 0; }
+  .color label { font-size: 14px; font-weight: 600; }
+  .field { display: flex; gap: 6px; align-items: center; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); min-width: 0; }
+  .field:focus-within { border-color: var(--sky); }
+  .field input[type='color'] { flex: none; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
+  .field input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .field input[type='color']::-webkit-color-swatch { border: 0; border-radius: 7px; }
+  .field input[type='text'] { flex: 1; min-width: 0; width: 100%; font: 500 13px/1.2 var(--mono); padding: 6px 2px; border: 0; background: none; color: var(--ink); }
+  .field input[type='text']:focus { outline: none; }
+  .checks { display: grid; gap: 8px; }
+  .checks label { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; cursor: pointer; }
+  .checks small { color: var(--ink-soft); font-size: 13px; }
+  .text { display: grid; gap: 6px; min-width: 0; }
+  .text > span { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; }
+  .text input[type='text'], .text textarea { width: 100%; font: 15px/1.45 var(--body); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); resize: vertical; }
+  .text input[type='text']:focus, .text textarea:focus { outline: none; border-color: var(--sky); }
+  .text output { font: 500 13px/1.4 var(--mono); color: var(--ink-soft); }
+  .hint { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  /* Folded sections */
+  .more { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .more summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .more-body { display: grid; gap: 14px; padding-bottom: 18px; min-width: 0; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  pre { margin: 0; max-height: 360px; overflow: auto; padding: 14px; border-radius: 12px; background: var(--ink); color: #E6F4F9; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre code { font: inherit !important; }
+  .note { padding: 16px 20px; border-radius: 16px; border: 1px dashed var(--line); color: var(--ink-soft); font-size: 15px; }
+  .note strong { color: var(--ink); }
+  .note a { color: var(--sky); }
+
+  @media (max-width: 760px) {
+    .controls { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .mock { height: 500px; }
+    .site { padding: 14px 16px; gap: 20px; }
+    .nav i { width: 30px; }
+    .hero .h { font-size: 24px; }
+    .cards { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .cards div:nth-child(3) { display: none; }
+    .colors, .row3 { grid-template-columns: minmax(0, 1fr); }
+    .actions > button { flex: 1 1 100%; }
+  }
+</style>
