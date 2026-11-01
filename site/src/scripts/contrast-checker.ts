@@ -14,7 +14,6 @@ const bgError = $<HTMLParagraphElement>('cc-bg-error');
 const swap = $<HTMLButtonElement>('cc-swap');
 const ratioEl = $<HTMLElement>('cc-ratio');
 const verdict = $<HTMLElement>('cc-verdict');
-const checks = $<HTMLUListElement>('cc-checks');
 const sample = $<HTMLDivElement>('cc-sample');
 const fix = $<HTMLDivElement>('cc-fix');
 const suggestList = $<HTMLUListElement>('cc-suggest');
@@ -174,7 +173,7 @@ function render() {
   ratio = contrast(fg, bg);
 
   ratioEl.textContent = show(ratio);
-  for (const li of checks.querySelectorAll<HTMLLIElement>('li')) {
+  for (const li of document.querySelectorAll<HTMLElement>('#cc-checks li, #cc-sample [data-min]')) {
     const ok = ratio >= Number(li.dataset.min);
     li.classList.toggle('pass', ok);
     li.classList.toggle('fail', !ok);

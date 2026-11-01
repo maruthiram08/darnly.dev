@@ -7,7 +7,7 @@ const tailwind = TOOLS.find((t) => t.slug === 'tailwind-color-generator');
 
 const steps = [
   'Type or paste your text color and your background color. Hex (<code>#0593c6</code>), <code>rgb()</code>, <code>hsl()</code> and color names all work, or pick one with the swatch.',
-  'See the contrast ratio and whether it passes WCAG AA and AAA, for normal and large text, with a live sample of how it reads.',
+  'The preview at the top shows your colors live, with a check or a cross on each kind of text. Open “See every WCAG level” for the AA and AAA details.',
   'If it fails, we suggest the nearest text color that passes. It keeps the same hue and only gets lighter or darker. Click “Use this”, or copy a prompt that tells your AI coding agent to make the change.',
 ];
 
@@ -30,6 +30,17 @@ const faq = [
   faq={faq}
 >
   <div class="cc">
+    <div class="stage" id="cc-sample" aria-label="Live preview of your two colors">
+      <div class="badge">
+        <strong id="cc-ratio">3.5:1</strong>
+        <span id="cc-verdict">Only passes for large text</span>
+      </div>
+      <div class="line"><p class="big">Large headline text</p><span class="tag" data-min="3">Large text</span></div>
+      <div class="line"><p>Normal text, like a paragraph, a label or a menu link.</p><span class="tag" data-min="4.5">Normal text</span></div>
+      <div class="line"><p class="small">Small print, like a caption or helper text.</p><span class="tag" data-min="4.5">Small text</span></div>
+      <div class="line"><span class="fake-btn">Button</span><span class="tag" data-min="3">Buttons and icons</span></div>
+    </div>
+
     <div class="pickers">
       <div class="picker">
         <label for="cc-fg-text">Text color</label>
@@ -50,11 +61,8 @@ const faq = [
       </div>
     </div>
 
-    <div class="score">
-      <div class="ratio">
-        <strong id="cc-ratio">3.36:1</strong>
-        <span id="cc-verdict">Only passes for large text</span>
-      </div>
+    <details class="score">
+      <summary>See every WCAG level (AA and AAA)</summary>
       <ul class="checks" id="cc-checks">
         <li data-min="4.5"><b>AA</b> normal text <em>4.5:1</em><span class="pill"></span></li>
         <li data-min="3"><b>AA</b> large text <em>3:1</em><span class="pill"></span></li>
@@ -62,14 +70,7 @@ const faq = [
         <li data-min="4.5"><b>AAA</b> large text <em>4.5:1</em><span class="pill"></span></li>
         <li data-min="3"><b>UI</b> buttons, icons, borders <em>3:1</em><span class="pill"></span></li>
       </ul>
-    </div>
-
-    <div class="sample" id="cc-sample">
-      <p class="big">Large text looks like this</p>
-      <p>Normal text, like a paragraph or a label. The quick brown fox jumps over the lazy dog.</p>
-      <p class="small">Small print, like a caption or helper text.</p>
-      <span class="fake-btn">Button</span>
-    </div>
+    </details>
 
     <div class="fix" id="cc-fix" hidden>
       <h2>Colors that pass</h2>
@@ -106,10 +107,22 @@ const faq = [
   .bad { margin: 0; color: #B4234F; font-size: 14px; }
   .swap { width: 48px; height: 48px; margin-bottom: 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
   .swap:hover { border-color: var(--sky); }
-  .score { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 24px; align-items: center; padding: 20px; border-radius: 20px; background: var(--wash); }
-  .ratio { display: grid; gap: 4px; }
-  .ratio strong { font: 800 52px/1 var(--display); letter-spacing: -0.03em; }
-  .ratio span { color: var(--ink-soft); }
+  .stage { position: relative; display: grid; gap: 18px; padding: 32px; padding-right: 250px; min-height: 280px; border-radius: 24px; border: 1px solid var(--line); background: #FFFFFF; color: #0593C6; overflow-wrap: anywhere; transition: background 0.15s, color 0.15s; }
+  .badge { position: absolute; top: 20px; right: 20px; width: 200px; display: grid; gap: 4px; padding: 16px; border-radius: 16px; background: var(--white); color: var(--ink); box-shadow: 0 8px 28px rgba(11, 34, 48, 0.16); }
+  .badge strong { font: 800 46px/1 var(--display); letter-spacing: -0.03em; }
+  .badge span { font-size: 15px; color: var(--ink-soft); }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .line p { margin: 0; }
+  .stage .big { font: 700 32px/1.15 var(--display); letter-spacing: -0.02em; }
+  .stage .small { font-size: 13px; }
+  .tag { flex: none; font: 700 12px/1 var(--mono); padding: 6px 9px; border-radius: 999px; background: #EEE; color: #333; }
+  .tag:global(.pass) { background: #D6F5E3; color: #0B6B3A; }
+  .tag:global(.pass)::before { content: '✓ '; }
+  .tag:global(.fail) { background: #FBE0E8; color: #9C1C44; }
+  .tag:global(.fail)::before { content: '✗ '; }
+  .score { padding: 4px 20px; border-radius: 16px; background: var(--wash); }
+  .score summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .score .checks { padding-bottom: 16px; }
   .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   .checks li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; font-size: 15px; }
   .checks b { font: 700 13px/1 var(--mono); }
@@ -119,10 +132,6 @@ const faq = [
   .checks :global(li.pass .pill)::before { content: 'Pass'; }
   .checks :global(li.fail .pill) { background: #FBE0E8; color: #9C1C44; }
   .checks :global(li.fail .pill)::before { content: 'Fail'; }
-  .sample { display: grid; gap: 10px; justify-items: start; padding: 28px; border-radius: 20px; border: 1px solid var(--line); background: #FFFFFF; color: #0593C6; overflow-wrap: anywhere; }
-  .sample p { margin: 0; }
-  .sample .big { font: 700 28px/1.2 var(--display); }
-  .sample .small { font-size: 13px; }
   .fake-btn { margin-top: 6px; padding: 10px 18px; border-radius: 999px; border: 2px solid currentColor; font-weight: 600; }
   .fix { display: grid; gap: 12px; }
   .fix h2 { font-size: 24px; }
@@ -143,8 +152,9 @@ const faq = [
   @media (max-width: 640px) {
     .pickers { grid-template-columns: minmax(0, 1fr); }
     .swap { justify-self: center; margin: 0; transform: rotate(90deg); }
-    .score { grid-template-columns: minmax(0, 1fr); }
-    .ratio strong { font-size: 44px; }
-    .sample { padding: 20px; }
+    .stage { padding: 20px; min-height: 0; }
+    .badge { position: static; width: auto; padding: 12px 14px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+    .badge strong { font-size: 36px; }
+    .stage .big { font-size: 26px; }
   }
 </style>
