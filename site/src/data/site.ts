@@ -63,6 +63,11 @@ export const TOOLS: Item[] = [
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
+  {
+    slug: 'app-icon-generator',
+    name: 'App icon generator',
+    blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
+  },
 ];
 
 // Same for guides.
