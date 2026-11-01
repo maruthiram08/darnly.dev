@@ -1,0 +1,104 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of your live site.',
+  'We read the page and up to 20 of its own JavaScript files, the same files every visitor’s browser downloads, and look for secret keys from OpenAI, Anthropic, Stripe, Supabase, AWS, GitHub, Google, Resend, SendGrid, Twilio, Firebase and more.',
+  'For each key we find, you see what someone could do with it and three steps: rotate it, move the call to your server, and a prompt for your AI agent that does the move.',
+];
+
+const faq = [
+  { q: 'How can a key be leaked if my code is private?', a: 'Anything your site’s browser code uses ends up in the JavaScript files that every visitor downloads. Keys in variables that start with NEXT_PUBLIC_, VITE_ or PUBLIC_, or keys pasted straight into a component, are copied into those files when the site is built. Anyone can open them with View Source.' },
+  { q: 'Do you see or keep my keys?', a: 'No key is ever sent back to your browser in full. You see only the type, the file it was in and a short preview like sk-ab…9f2, so you can tell which key it is. Results aren’t saved or cached, and nothing is logged.' },
+  { q: 'I found a key. Is deleting it from my code enough?', a: 'No. Once a key has been on a public site, assume it has been copied. Rotate it first (make a new key and delete the old one in the provider’s dashboard), then move the code that uses it to your server so the new key never reaches the browser.' },
+  { q: 'Which keys are fine to be public?', a: 'Stripe and Clerk keys that start with pk_, the Supabase anon or publishable key, and the Firebase web config are made to be in the browser. Supabase keys are only safe when Row Level Security is on. Google keys that start with AIza are often public too, but restrict them to your site so nobody can run up your bill.' },
+  { q: 'What does “move the call to the server” mean?', a: 'Instead of your page calling OpenAI (or Stripe, or Resend) with the key, your page calls a small piece of code on your server, like an API route, an edge function or a serverless function. That code holds the key and makes the call. The “Copy prompt” button asks Claude Code, Cursor or Codex to do this for you.' },
+  { q: 'Can it find every leaked key?', a: 'It checks the page you paste and the JavaScript it loads, which is where most leaks happen. It doesn’t log in, so code only loaded after sign-in isn’t checked, and it can’t see keys in your repository history. A clean result means none were found in the files listed, not that none exist.' },
+];
+---
+<ToolPage
+  slug="api-key-leak-checker"
+  title="API key leak checker: did I leak an API key? · Darnly"
+  description="Paste your site to check if your OpenAI, Anthropic, Stripe, Supabase service_role, AWS or other secret keys are exposed in its JavaScript. Free, keys are masked, and each finding comes with a fix and a prompt for your AI agent."
+  h1="API key leak checker: did I leak an API key?"
+  lede="Paste your site and we’ll check the JavaScript every visitor downloads for secret keys anyone can copy, like OpenAI, Stripe or a Supabase service_role key. Each key we find comes with three steps to fix it."
+  steps={steps}
+  faq={faq}
+>
+  <div class="kl">
+    <form id="kl-form" class="ask">
+      <label class="sr" for="kl-url">Website address</label>
+      <input id="kl-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="kl-go" type="submit">Check for leaks</button>
+    </form>
+    <p class="error" id="kl-error" role="alert" hidden></p>
+
+    <div id="kl-out" hidden>
+      <div class="summary" id="kl-summary">
+        <p class="verdict" id="kl-verdict"></p>
+        <p class="counts" id="kl-counts"></p>
+      </div>
+      <ul class="list" id="kl-list"></ul>
+      <details class="files" id="kl-files-box">
+        <summary id="kl-files-sum"></summary>
+        <ul id="kl-files"></ul>
+      </details>
+      <p class="note" id="kl-note" hidden></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/api-key-leak-checker';
+</script>
+
+<style>
+  .kl [hidden] { display: none !important; }
+  .kl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .summary { border-radius: 16px; padding: 18px 20px; border: 1px solid var(--line); border-left-width: 6px; background: var(--white); }
+  .summary.leak { border-left-color: #D2344F; }
+  .summary.check { border-left-color: #E0A100; }
+  .summary.clean { border-left-color: #1F9D55; }
+  .verdict { margin: 0; font: 700 24px/1.25 var(--display); overflow-wrap: anywhere; }
+  .counts { margin: 6px 0 0; color: var(--ink-soft); font-size: 15px; }
+
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .list :global(.item) { border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 16px 18px; background: var(--white); display: grid; gap: 8px; min-width: 0; }
+  .list :global(.item.leak) { border-left-color: #D2344F; }
+  .list :global(.item.check) { border-left-color: #E0A100; }
+  .list :global(.item.ok) { border-left-color: #1F9D55; }
+  .list :global(.head) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+  .list :global(.tag) { font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.04em; padding: 5px 8px; border-radius: 6px; color: var(--white); }
+  .list :global(.leak .tag) { background: #D2344F; }
+  .list :global(.check .tag) { background: #B98300; }
+  .list :global(.ok .tag) { background: #1F9D55; }
+  .list :global(.name) { margin: 0; font: 600 18px/1.3 var(--body); }
+  .list :global(.preview) { font: 14px/1.4 var(--mono); background: var(--wash); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; overflow-wrap: anywhere; }
+  .list :global(.risk), .list :global(.where) { margin: 0; color: var(--ink-soft); font-size: 15px; overflow-wrap: anywhere; }
+  .list :global(.risk b) { color: var(--ink); font-weight: 600; }
+  .list :global(.steps) { margin: 4px 0 0; padding-left: 22px; display: grid; gap: 10px; font-size: 15px; }
+  .list :global(.steps li) { padding-left: 2px; }
+  .list :global(.steps b) { font-weight: 600; }
+  .list :global(.act) { display: inline-block; margin-top: 6px; font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .list :global(.act.primary) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .list :global(.act:hover) { border-color: var(--sky); }
+
+  .files { border: 1px solid var(--line); border-radius: 14px; padding: 12px 18px; background: var(--white); }
+  .files summary { cursor: pointer; font-weight: 600; }
+  .files ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+  .files :global(li) { overflow-wrap: anywhere; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 520px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px 26px; }
+    .verdict { font-size: 21px; }
+  }
+</style>
