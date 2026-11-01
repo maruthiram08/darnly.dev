@@ -97,4 +97,8 @@ const jsonLd = JSON.stringify([
   .faq summary { cursor: pointer; font-weight: 600; }
   .faq p { margin: 10px 0 0; color: var(--ink-soft); }
   :global(.tool-page code) { font: 0.9em var(--mono); }
+  /* Phones: small text buttons (Copy, presets, toggles) get a finger-sized height. Empty ones (color handles) keep their size. */
+  @media (pointer: coarse) {
+    :global(.tool button:not(:empty)), :global(.tool select) { min-height: 40px; }
+  }
 </style>
