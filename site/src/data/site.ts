@@ -58,6 +58,11 @@ export const TOOLS: Item[] = [
     name: 'Website color finder',
     blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
   },
+  {
+    slug: 'tech-stack-finder',
+    name: 'Tech stack finder',
+    blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
+  },
 ];
 
 // Same for guides.
