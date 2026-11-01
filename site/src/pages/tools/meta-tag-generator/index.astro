@@ -1,0 +1,132 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type your page title, a short description and your page’s link. Add a picture link and your site name if you have them.',
+  'Watch the previews. The counters tell you when Google is likely to cut your text off, and the Google preview shows how it will look.',
+  'Click Copy and paste the tags into your page’s <code>&lt;head&gt;</code>. Or paste them into Claude Code, Cursor or Codex and ask it to add them to your site.',
+];
+
+const faq = [
+  { q: 'What are meta tags?', a: 'Short lines of HTML in the <code>&lt;head&gt;</code> of your page. Google uses them for the title and text in search results. Facebook, LinkedIn, X, WhatsApp and Slack use them to draw the preview card when someone shares your link.' },
+  { q: 'How long should my title and description be?', a: 'Keep the title under about 60 characters and the description between about 120 and 160. Longer text still works, but Google may cut it off with “…”.' },
+  { q: 'What size should my share image be?', a: '1200 × 630 pixels, as a PNG or JPG under about 5 MB. Use a full link that starts with <code>https://</code>. If you type a path like <code>/og.png</code>, this tool joins it to your page link for you.' },
+  { q: 'Where do I paste the tags in Next.js, Vite or Astro?', a: 'In plain HTML, Vite and Astro, put them inside <code>&lt;head&gt;</code> in your page or layout file. Next.js uses a <code>metadata</code> export instead, so the easiest way is to paste the tags into your AI coding agent and ask it to “add these meta tags to my site”.' },
+  { q: 'I changed my tags but the old preview still shows. Why?', a: 'Social sites remember previews for a while. Facebook and LinkedIn have free debugger pages that fetch your link again. Google picks up changes the next time it visits your page.' },
+  { q: 'Is anything I type sent anywhere?', a: 'No. Everything happens in your browser. Nothing you type leaves your computer.' },
+];
+---
+<ToolPage
+  slug="meta-tag-generator"
+  title="Meta tag generator: look right on Google and social · Darnly"
+  description="Write your title and description once and get the SEO, Open Graph and X (Twitter) tags to paste, with a Google preview and length checks. Free and private."
+  h1="Meta tag generator: look right on Google and when shared"
+  lede="Fill in a few boxes and get every tag your page needs for Google, Facebook, LinkedIn and X. See the Google preview as you type, then copy and paste."
+  steps={steps}
+  faq={faq}
+>
+  <div class="mt">
+    <div class="grid">
+      <div class="form" id="mt-form">
+        <label>
+          <span class="lab">Page title <span class="count" id="mt-title-count"></span></span>
+          <input id="mt-title" type="text" maxlength="200" placeholder="Acme: invoices in 30 seconds" />
+        </label>
+        <label>
+          <span class="lab">Description <span class="count" id="mt-desc-count"></span></span>
+          <textarea id="mt-desc" rows="3" maxlength="500" placeholder="Send your first invoice in under a minute. Free for your first 10 clients."></textarea>
+        </label>
+        <label>
+          <span class="lab">Page link</span>
+          <input id="mt-url" type="text" inputmode="url" placeholder="https://acme.com" />
+        </label>
+        <p class="note" id="mt-url-note" hidden>That doesn’t look like a link. Try something like https://acme.com</p>
+        <label>
+          <span class="lab">Share image link <span class="opt">optional</span></span>
+          <input id="mt-image" type="text" inputmode="url" placeholder="https://acme.com/og.png" />
+        </label>
+        <p class="note" id="mt-image-note" hidden>Add your page link above too, so this becomes a full https:// link. Social sites need one.</p>
+        <label>
+          <span class="lab">Site name <span class="opt">optional</span></span>
+          <input id="mt-site" type="text" maxlength="60" placeholder="Acme" />
+        </label>
+        <div class="color-row">
+          <label class="check"><input id="mt-color-on" type="checkbox" /> Browser color on phones</label>
+          <input id="mt-color" type="color" value="#0593c6" disabled aria-label="Theme color" />
+        </div>
+      </div>
+
+      <div class="previews">
+        <div>
+          <p class="ph">Google preview</p>
+          <div class="google" aria-label="Google search result preview">
+            <span class="g-site" id="mt-g-site"></span>
+            <span class="g-url" id="mt-g-url"></span>
+            <span class="g-title" id="mt-g-title"></span>
+            <span class="g-desc" id="mt-g-desc"></span>
+          </div>
+        </div>
+        <div>
+          <p class="ph">Share card preview</p>
+          <div class="social" aria-label="Social share card preview">
+            <div class="s-image" id="mt-s-image"></div>
+            <div class="s-body">
+              <span class="s-domain" id="mt-s-domain"></span>
+              <span class="s-title" id="mt-s-title"></span>
+              <span class="s-desc" id="mt-s-desc"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>Paste into your &lt;head&gt;</span><button id="mt-copy" type="button">Copy</button></div>
+      <pre id="mt-code"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/meta-tag-generator';
+</script>
+
+<style>
+  .mt { display: grid; gap: 28px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .form { display: grid; gap: 16px; }
+  .form label { display: grid; gap: 6px; }
+  .lab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-weight: 600; font-size: 15px; }
+  .opt { font-weight: 400; color: var(--ink-soft); }
+  .count { font: 500 12px/1.6 var(--mono); color: var(--ink-soft); }
+  .count[data-state='good'] { color: #1E7A4C; }
+  .count[data-state='warn'] { color: #9A6A00; }
+  .count[data-state='bad'] { color: #B4234F; }
+  .form input[type='text'], .form textarea { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); resize: vertical; }
+  .form input[type='text']:focus, .form textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .note { margin: -8px 0 0; font-size: 14px; color: #9A6A00; }
+  .color-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .form .check { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .color-row input[type='color'] { width: 44px; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .previews { display: grid; gap: 24px; }
+  .ph { margin: 0 0 8px; font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+  .google { display: grid; gap: 2px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; font-family: Arial, sans-serif; overflow-wrap: anywhere; }
+  .g-site { font-size: 14px; color: #202124; }
+  .g-url { font-size: 12px; color: #4d5156; }
+  .g-title { margin-top: 4px; font-size: 20px; line-height: 1.3; color: #1a0dab; }
+  .g-desc { margin-top: 2px; font-size: 14px; line-height: 1.58; color: #4d5156; }
+  .social { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .s-image { display: grid; place-items: center; aspect-ratio: 1200 / 630; padding: 16px; text-align: center; background: var(--wash); color: var(--ink-soft); font: 500 13px/1.5 var(--mono); overflow-wrap: anywhere; }
+  .s-image[data-empty='false'] { background: linear-gradient(135deg, #D9EEF6, #F6DDEB); color: var(--ink); }
+  .s-body { display: grid; gap: 3px; padding: 12px 14px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+  .s-domain { font-size: 12px; color: #65676b; letter-spacing: 0.02em; }
+  .s-title { font-weight: 600; font-size: 16px; color: #1c1e21; }
+  .s-desc { font-size: 14px; color: #65676b; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px/1.7 var(--mono); font-variant-ligatures: none; }
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

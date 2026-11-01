@@ -13,6 +13,11 @@ export const TOOLS: Item[] = [
     name: 'Favicon generator',
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
+  {
+    slug: 'meta-tag-generator',
+    name: 'Meta tag generator',
+    blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
+  },
 ];
 
 // Same for guides.
