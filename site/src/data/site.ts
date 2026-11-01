@@ -169,6 +169,12 @@ export const TOOLS: Item[] = [
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
   },
+  {
+    slug: 'env-example-generator',
+    category: 'Security',
+    name: '.env.example generator',
+    blurb: 'Paste your .env and get a safe .env.example, with secrets that would leak to the browser flagged in red.',
+  },
 ];
 
 // Same for guides.
