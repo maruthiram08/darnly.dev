@@ -2,7 +2,7 @@ import Foundation
 
 /// Writes a capture into `<project>/.darnly/inbox/`, the folder the agent reads.
 public enum Inbox {
-    public static func save(project: URL, id: String, markdown: String, png: Data?, logs: [LogLine]) throws -> URL {
+    public static func save(project: URL, id: String, markdown: String, png: Data?, reference: Data? = nil, logs: [LogLine]) throws -> URL {
         let fm = FileManager.default
         let root = project.appendingPathComponent(".darnly", isDirectory: true)
         let inbox = root.appendingPathComponent("inbox", isDirectory: true)
@@ -13,6 +13,7 @@ public enum Inbox {
         let md = inbox.appendingPathComponent("\(id).md")
         try markdown.write(to: md, atomically: true, encoding: .utf8)
         if let png { try png.write(to: inbox.appendingPathComponent("\(id).png"), options: .atomic) }
+        if let reference { try reference.write(to: inbox.appendingPathComponent("\(id).reference.png"), options: .atomic) }
         if !logs.isEmpty {
             let enc = JSONEncoder()
             enc.outputFormatting = [.prettyPrinted, .sortedKeys]
