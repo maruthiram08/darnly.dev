@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'browser-info',
+    category: 'Code helpers',
+    name: 'What browser am I using?',
+    blurb: 'Your browser, OS, viewport, screen, dark mode and time zone in one look. Copy it all for a bug report.',
+  },
 ];
 
 // Same for guides.
