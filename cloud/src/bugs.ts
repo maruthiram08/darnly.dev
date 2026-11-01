@@ -53,7 +53,16 @@ function summary(row: BugRow): BugSummary {
   };
 }
 
-function siteOf(pageUrl: string): string {
+/** Bugs from the Mac app carry `macos://<app name>` instead of a web address. */
+export function siteOf(pageUrl: string): string {
+  const mac = /^macos:\/\/([^/?#]{1,200})/.exec(pageUrl);
+  if (mac) {
+    try {
+      return `${decodeURIComponent(mac[1]!).slice(0, 80)} (Mac app)`;
+    } catch {
+      return 'Mac app';
+    }
+  }
   try {
     return new URL(pageUrl).host || 'unknown';
   } catch {

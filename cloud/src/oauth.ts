@@ -2,18 +2,24 @@
 // approve, sign in with Google, and the agent gets a token for their Darnly inbox only.
 import type { AuthRequest, OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
-import { upsertUser } from './auth';
-import { newToken } from './util';
+import { createSession, upsertUser } from './auth';
+import { HttpError, base64url, newToken } from './util';
 
 type OAuthEnv = Env & { OAUTH_PROVIDER: OAuthHelpers };
 
 const TX_TTL = 600; // seconds
 const COOKIE = '__Host-darnly_tx';
 
-interface Transaction {
-  authRequest: AuthRequest;
-  browser: string; // must match the cookie: the approval has to come from the browser that saw the page
-}
+/** The Mac app's sign-in: it sends a PKCE challenge, and gets back a one-time code on darnly://signed-in. */
+export const APP_CALLBACK = 'darnly://signed-in';
+const APP_CODE_TTL = 60; // seconds (the shortest KV allows)
+
+type Transaction =
+  // A coding agent connecting over MCP (older entries have no kind).
+  | { kind?: 'agent'; authRequest: AuthRequest; browser: string }
+  // The Darnly Mac app signing in to the cloud inbox.
+  | { kind: 'app'; challenge: string; browser: string };
+// browser must match the cookie: the approval has to come from the browser that saw the page.
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -100,6 +106,7 @@ async function approve(req: Request, env: OAuthEnv): Promise<Response> {
   if (!tx) return page('Expired', '<h1>This page expired</h1><p>Go back to your agent and connect Darnly again.</p>', 400);
   if (form?.get('deny')) {
     await env.OAUTH_KV.delete(`tx:${txId}`);
+    if (tx.kind === 'app') return redirect(`${APP_CALLBACK}?error=access_denied`);
     const back = new URL(tx.authRequest.redirectUri);
     back.searchParams.set('error', 'access_denied');
     if (tx.authRequest.state) back.searchParams.set('state', tx.authRequest.state);
@@ -147,9 +154,18 @@ async function googleCallback(req: Request, env: OAuthEnv): Promise<Response> {
   return finish(env, txId!, tx, { sub: info.sub, email: info.email });
 }
 
+function redirect(location: string): Response {
+  return new Response(null, { status: 302, headers: { location, 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` } });
+}
+
 async function finish(env: OAuthEnv, txId: string, tx: Transaction, who: { sub: string; email: string }): Promise<Response> {
   await env.OAUTH_KV.delete(`tx:${txId}`);
   const user = await upsertUser(env, who);
+  if (tx.kind === 'app') {
+    const code = newToken();
+    await env.OAUTH_KV.put(`appcode:${code}`, JSON.stringify({ userId: user.id, email: user.email, challenge: tx.challenge }), { expirationTtl: APP_CODE_TTL });
+    return redirect(`${APP_CALLBACK}?code=${code}`);
+  }
   const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
     request: tx.authRequest,
     userId: user.id,
@@ -157,10 +173,48 @@ async function finish(env: OAuthEnv, txId: string, tx: Transaction, who: { sub: 
     scope: tx.authRequest.scope,
     props: { userId: user.id, email: user.email },
   });
-  return new Response(null, {
-    status: 302,
-    headers: { location: redirectTo, 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` },
-  });
+  return redirect(redirectTo);
+}
+
+/** GET /app/signin?challenge=…: the page the Mac app opens in its sign-in sheet. */
+async function showAppSignIn(req: Request, env: OAuthEnv): Promise<Response> {
+  const challenge = new URL(req.url).searchParams.get('challenge') ?? '';
+  if (!/^[A-Za-z0-9_-]{43}$/.test(challenge)) return page('Sign-in link is broken', '<h1>This sign-in link doesn\'t work</h1><p>Open Darnly on your Mac and choose Sign in again.</p>', 400);
+  const txId = newToken();
+  const browser = newToken();
+  await env.OAUTH_KV.put(`tx:${txId}`, JSON.stringify({ kind: 'app', challenge, browser } satisfies Transaction), { expirationTtl: TX_TTL });
+  const dev = env.ALLOW_DEV_LOGIN === 'true' ? '<input name="devEmail" type="email" placeholder="Dev only: sign in as this email">' : '';
+  return page(
+    'Sign in the Mac app',
+    `<h1>Sign in the Darnly Mac app?</h1>
+<p>Bugs you capture on your Mac will go to your private Darnly inbox, where the coding agents you connected can pick them up.</p>
+<p>Only continue if you just chose <strong>Sign in</strong> in Darnly on your Mac.</p>
+<form method="post" action="/authorize">
+<input type="hidden" name="tx" value="${txId}">${dev}
+<button type="submit">Continue with Google</button>
+</form>
+<form method="post" action="/authorize"><input type="hidden" name="tx" value="${txId}"><input type="hidden" name="deny" value="1"><button class="secondary" type="submit">Cancel</button></form>`,
+    200,
+    {
+      'set-cookie': `${COOKIE}=${browser}; Path=/; Max-Age=${TX_TTL}; HttpOnly; Secure; SameSite=Lax`,
+      // The form's redirect goes to Google, or straight back to the app (cancel, or dev sign-in).
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://accounts.google.com darnly:; frame-ancestors 'none'",
+    },
+  );
+}
+
+/** POST /v1/auth/app/exchange {code, verifier}: the Mac app trades its one-time code for a session token. */
+export async function exchangeAppCode(env: Env, body: { code?: unknown; verifier?: unknown }): Promise<{ token: string; email: string }> {
+  const { code, verifier } = body;
+  if (typeof code !== 'string' || !/^[A-Za-z0-9_-]{20,100}$/.test(code)) throw new HttpError(400, 'bad_code');
+  if (typeof verifier !== 'string' || !/^[A-Za-z0-9_-]{43,128}$/.test(verifier)) throw new HttpError(400, 'bad_verifier');
+  const key = `appcode:${code}`;
+  const saved = await env.OAUTH_KV.get<{ userId: string; email: string; challenge: string }>(key, 'json');
+  if (!saved) throw new HttpError(400, 'bad_code');
+  await env.OAUTH_KV.delete(key); // one use, even when the verifier is wrong
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  if (base64url(new Uint8Array(digest)) !== saved.challenge) throw new HttpError(400, 'bad_verifier');
+  return { token: await createSession(env, saved.userId), email: saved.email };
 }
 
 /** Routes for the agent sign-in pages, or null when the path isn't one of them. */
@@ -168,6 +222,7 @@ export function oauthRoute(req: Request, env: Env): Promise<Response> | null {
   const { pathname } = new URL(req.url);
   const e = env as OAuthEnv;
   if (pathname === '/authorize' && req.method === 'GET') return showConsent(req, e);
+  if (pathname === '/app/signin' && req.method === 'GET') return showAppSignIn(req, e);
   if (pathname === '/authorize' && req.method === 'POST') return approve(req, e);
   if (pathname === '/oauth/google/callback' && req.method === 'GET') return googleCallback(req, e);
   return null;
