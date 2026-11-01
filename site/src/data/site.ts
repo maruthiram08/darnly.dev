@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'redirect-rules-generator',
+    category: 'Launch & domains',
+    name: 'Redirect generator',
+    blurb: 'Old and new URLs in, redirect rules out for Vercel, Netlify, Cloudflare, Next.js, nginx and .htaccess. Loops and chains in red.',
+  },
 ];
 
 // Same for guides.
