@@ -22,7 +22,7 @@ npx wrangler r2 bucket create darnly-bugs
 npx wrangler kv namespace create OAUTH_KV   # paste the id into wrangler.jsonc
 ```
 
-In `wrangler.jsonc`, fill in `GOOGLE_EXTENSION_CLIENT_ID` and `GOOGLE_WEB_CLIENT_ID`. Then:
+The two Google client ids are already in `wrangler.jsonc`. Then (paste the Web client's secret when asked):
 
 ```sh
 npx wrangler secret put GOOGLE_WEB_CLIENT_SECRET
@@ -39,12 +39,12 @@ Never set `ALLOW_DEV_LOGIN` in production.
 ## 3. Extension build
 
 ```sh
-DARNLY_GOOGLE_CLIENT_ID=<the Chrome extension client id> npm run zip
+npm run zip   # the Chrome extension client id is built in (wxt.config.ts)
 ```
 
 Upload the zip as version 0.2.0, with the changes in `store/listing-0.2.0.md`.
 
-To try sign-in before the store approves 0.2.0, build an unpacked copy with the store's id: copy the public key from Developer Dashboard → Package → Public key, then run `DARNLY_MANIFEST_KEY=<key> DARNLY_GOOGLE_CLIENT_ID=<id> npm run build` and load `.output/chrome-mv3`.
+To try sign-in before the store approves 0.2.0, build an unpacked copy with the store's id: copy the public key from Developer Dashboard → Package → Public key, then run `DARNLY_MANIFEST_KEY=<key> npm run build` and load `.output/chrome-mv3`.
 
 ## 4. Try it
 

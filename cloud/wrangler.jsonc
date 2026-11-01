@@ -13,9 +13,9 @@
   "vars": {
     "PUBLIC_URL": "https://api.darnly.dev",
     // OAuth client id of type "Chrome extension" from Google Cloud Console. Tokens for any other client are refused.
-    "GOOGLE_EXTENSION_CLIENT_ID": "",
+    "GOOGLE_EXTENSION_CLIENT_ID": "707818170740-n9bp4nmkrt8avl5p29452d59cve587as.apps.googleusercontent.com",
     // OAuth client id of type "Web application" for agent sign-in. Its secret is set with `wrangler secret put GOOGLE_WEB_CLIENT_SECRET`.
-    "GOOGLE_WEB_CLIENT_ID": ""
+    "GOOGLE_WEB_CLIENT_ID": "707818170740-qvuscm010h8l15ldp5ebprdjui5pkoj0.apps.googleusercontent.com"
   },
   "observability": { "enabled": true }
 }
