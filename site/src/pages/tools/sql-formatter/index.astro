@@ -1,0 +1,196 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const jsonTool = TOOLS.find((t) => t.slug === 'json-to-typescript');
+
+const steps = [
+  'Paste your SQL in the box. One query or many, even a messy one-liner your AI agent wrote.',
+  'It’s formatted with colors at the top, and next to it you get a plain-English outline: which tables it reads, how they’re joined, what it filters, and whether it changes data.',
+  'Pick your database (Postgres and Supabase, MySQL or SQLite), keyword case and indent. Then copy the clean SQL, or copy a prompt that asks your AI agent to check it before you run it.',
+];
+
+const initial = `select u.id,u.email,count(o.id) as orders,sum(o.total) as spent from users u left join orders o on o.user_id=u.id where u.created_at > now() - interval '30 days' and u.is_test = false group by u.id,u.email having count(o.id) > 0 order by spent desc limit 20;
+update profiles set plan = 'free', trial_ends_at = null;`;
+
+const faq = [
+  { q: 'How do I format SQL?', a: 'Paste it in the box. It’s formatted as you type, with each clause on its own line and colors for keywords, names, text and numbers. Click “Copy formatted SQL” to take it back to your editor.' },
+  { q: 'Which databases does it support?', a: 'Postgres (which is what Supabase and Neon use), MySQL (also PlanetScale and MariaDB) and SQLite (also Turso and D1). Pick yours so things like <code>::text</code>, backticks and <code>$1</code> are read the right way.' },
+  { q: 'Why is there a red warning?', a: 'An <code>UPDATE</code> or <code>DELETE</code> without a <code>WHERE</code> changes or deletes every row in the table. So do <code>TRUNCATE</code>, <code>DROP TABLE</code>, and a filter that is always true like <code>WHERE 1=1</code>. The warning shows before you run it, because afterwards only a backup can bring the data back.' },
+  { q: 'What does “what this query does” mean?', a: 'For each statement you get a short outline in plain words: the tables it reads, how joins keep or drop rows, the filter, grouping, sorting and limit, and what it adds, changes or deletes. It’s worked out from the text, so treat it as a quick read, not a guarantee.' },
+  { q: 'Can it check SQL my AI agent wrote?', a: 'Yes. Paste it in, read the outline, and if anything looks off click “Copy prompt for your AI agent”. The prompt asks it to explain the query and give a safer version when something can wipe out a table.' },
+  { q: 'Is my SQL uploaded?', a: 'No. Formatting and the outline both run in your browser, so your queries never leave your computer.' },
+];
+---
+<ToolPage
+  slug="sql-formatter"
+  title="SQL formatter: format and explain SQL online · Darnly"
+  description="Format SQL with syntax colors for Postgres, Supabase, MySQL or SQLite, and see what each query does in plain English. Warns about DELETE or UPDATE without WHERE. Free, nothing uploaded."
+  h1="SQL formatter: format and explain SQL"
+  lede="Paste any SQL. Get it cleaned up and colored, with a plain-English outline of what it does and a red flag when it can wipe out a table."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sf">
+    <section class="stage" id="sf-stage" aria-label="Formatted SQL">
+      <div class="verdict" id="sf-verdict" role="status" aria-live="polite">
+        <span class="icon" id="sf-verdict-icon" aria-hidden="true"></span>
+        <p id="sf-verdict-text"></p>
+      </div>
+      <p class="error" id="sf-error" role="alert" hidden></p>
+      <div class="split">
+        <div class="codebox">
+          <button type="button" class="copy-top" id="sf-copy-top">Copy</button>
+          <pre tabindex="0" aria-label="Formatted SQL"><code id="sf-code"></code></pre>
+        </div>
+        <div class="explain">
+          <h2>What this does</h2>
+          <ol class="outline" id="sf-outline"></ol>
+        </div>
+      </div>
+    </section>
+
+    <div class="field">
+      <div class="field-top">
+        <label for="sf-input">Your SQL</label>
+        <div class="examples" role="group" aria-label="Examples">
+          <span>Try:</span>
+          <button type="button" data-example="messy">Messy one-liner</button>
+          <button type="button" data-example="supabase">Supabase table</button>
+          <button type="button" data-example="cte">WITH query</button>
+          <button type="button" data-example="danger">Dangerous ones</button>
+        </div>
+      </div>
+      <textarea id="sf-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste SQL here, e.g. select * from users where id = 1">{initial}</textarea>
+    </div>
+
+    <div class="sf-opts">
+      <fieldset class="seg">
+        <legend>Database</legend>
+        <label><input type="radio" name="sf-dialect" value="postgresql" checked /> Postgres / Supabase</label>
+        <label><input type="radio" name="sf-dialect" value="mysql" /> MySQL</label>
+        <label><input type="radio" name="sf-dialect" value="sqlite" /> SQLite</label>
+      </fieldset>
+      <fieldset class="seg">
+        <legend>Keywords</legend>
+        <label><input type="radio" name="sf-case" value="upper" checked /> UPPER</label>
+        <label><input type="radio" name="sf-case" value="lower" /> lower</label>
+        <label><input type="radio" name="sf-case" value="preserve" /> As typed</label>
+      </fieldset>
+      <fieldset class="seg">
+        <legend>Indent</legend>
+        <label><input type="radio" name="sf-indent" value="2" checked /> 2 spaces</label>
+        <label><input type="radio" name="sf-indent" value="4" /> 4 spaces</label>
+        <label><input type="radio" name="sf-indent" value="tab" /> Tab</label>
+      </fieldset>
+    </div>
+
+    <div class="actions">
+      <button id="sf-copy" type="button" class="primary">Copy formatted SQL</button>
+      <button id="sf-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      <button id="sf-clear" type="button" class="ghost">Clear</button>
+      <p class="status" id="sf-status" role="status" aria-live="polite"></p>
+    </div>
+    {jsonTool && <p class="hint">Got JSON back from your database? Turn it into types with the <a href={`/tools/${jsonTool.slug}/`}>{jsonTool.name}</a> tool.</p>}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/sql-formatter';
+</script>
+
+<style>
+  .sf { display: grid; gap: 20px; min-width: 0; }
+  .sf [hidden] { display: none !important; }
+  .stage { display: grid; gap: 16px; padding: 24px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .stage[data-level='danger'] { background: #FFF3F6; border-color: #F6C3D0; }
+
+  .verdict { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .verdict p { margin: 0; font: 800 28px/1.2 var(--display); letter-spacing: -0.02em; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+  .verdict p :global(b) { font-family: var(--mono); font-size: 0.8em; font-weight: 700; padding: 0 6px; border-radius: 6px; background: rgba(11, 34, 48, 0.07); }
+  .icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; font: 800 22px/1 var(--body); color: var(--white); background: #8AA2AE; }
+  .verdict:global(.lvl-read) .icon { background: #1FA971; }
+  .verdict:global(.lvl-write) .icon, .verdict:global(.lvl-schema) .icon { background: #D98A00; }
+  .verdict:global(.lvl-danger) .icon { background: #D7264F; }
+  .verdict:global(.lvl-danger) p { color: #A51D45; }
+  .error { margin: 0; padding: 12px 16px; border-radius: 12px; background: #FFF6E5; color: #8A4B00; font-size: 15px; }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .codebox { position: relative; min-width: 0; }
+  .codebox pre { margin: 0; min-height: 160px; max-height: 620px; overflow: auto; padding: 18px 0; border-radius: 16px; background: #0B2230; color: #E6F6FB; font: 400 14px/1.65 var(--mono); font-variant-ligatures: none; white-space: pre; tab-size: 4; }
+  .codebox code { display: block; min-width: max-content; }
+  .copy-top { position: absolute; top: 10px; right: 10px; z-index: 1; font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(11, 34, 48, 0.85); color: #E6F6FB; cursor: pointer; }
+  .copy-top:hover { border-color: #7FD3F0; }
+  .codebox :global(.stmt) { display: block; padding: 0 18px; border-left: 4px solid transparent; }
+  .codebox :global(.stmt + .stmt), .codebox :global(.s-cmt + .stmt) { margin-top: 14px; }
+  .codebox :global(.stmt.lvl-danger) { background: rgba(215, 38, 79, 0.22); border-left-color: #FF5C83; }
+  .codebox :global(.stmt.lvl-write) { border-left-color: #F2B33D; }
+  .codebox :global(.s-kw) { color: #FF8BC4; font-weight: 600; }
+  .codebox :global(.s-fn) { color: #7FD3F0; }
+  .codebox :global(.s-str) { color: #B5E8A0; }
+  .codebox :global(.s-num) { color: #FFC872; }
+  .codebox :global(.s-qid) { color: #E6F6FB; text-decoration: underline dotted rgba(230, 246, 251, 0.4); }
+  .codebox :global(.s-param) { color: #FFC872; font-style: italic; }
+  .codebox :global(.s-cmt) { color: #7D97A4; font-style: italic; }
+  .codebox :global(.s-op) { color: #A9C4D0; }
+
+  .explain { display: grid; gap: 10px; min-width: 0; }
+  .explain h2 { font: 700 14px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .outline { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; max-height: 580px; overflow: auto; }
+  .outline :global(.card) { padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); border-left: 5px solid #8AA2AE; min-width: 0; }
+  .outline :global(.card.lvl-read) { border-left-color: #1FA971; }
+  .outline :global(.card.lvl-write), .outline :global(.card.lvl-schema) { border-left-color: #D98A00; }
+  .outline :global(.card.lvl-danger) { border-color: #F6C3D0; border-left-color: #D7264F; background: #FFF8FA; }
+  .outline :global(.card-top) { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .outline :global(.n) { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--white); font: 700 12px/1 var(--body); }
+  .outline :global(.badge) { font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.05em; padding: 5px 8px; border-radius: 999px; background: #E7EEF1; color: var(--ink-soft); }
+  .outline :global(.lvl-read .badge) { background: #D5F5E3; color: #0E6B47; }
+  .outline :global(.lvl-write .badge), .outline :global(.lvl-schema .badge) { background: #FFF0CF; color: #8A5300; }
+  .outline :global(.lvl-danger .badge) { background: #D7264F; color: #fff; }
+  .outline :global(.verb) { font: 600 12px/1 var(--mono); color: var(--ink-soft); }
+  .outline :global(.head) { margin: 0; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+  .outline :global(ul) { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 15px; line-height: 1.5; color: var(--ink); }
+  .outline :global(li li) { overflow-wrap: anywhere; }
+  .outline :global(.lbl) { display: inline-block; min-width: 4.6em; font: 600 12px/1.2 var(--body); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+  .outline :global(li.bad) { color: #A51D45; font-weight: 600; }
+  .outline :global(li.bad .lbl) { color: #D7264F; }
+  .outline :global(code) { font: 500 13px/1.4 var(--mono); padding: 1px 5px; border-radius: 5px; background: var(--wash); }
+
+  .field { display: grid; gap: 8px; min-width: 0; }
+  .field-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .field label { font-weight: 600; }
+  .examples { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-soft); }
+  .examples button { font: 500 13px/1 var(--body); padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .examples button:hover { border-color: var(--sky); }
+  .examples button[data-example='danger'] { color: #A51D45; }
+  textarea { box-sizing: border-box; width: 100%; height: 200px; margin: 0; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; tab-size: 4; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+
+  .sf-opts { display: flex; flex-wrap: wrap; gap: 14px 20px; }
+  .seg { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); }
+  .seg legend { float: left; padding: 0 8px 0 10px; font: 600 13px/1 var(--body); color: var(--ink-soft); }
+  .seg label { position: relative; padding: 7px 12px; border-radius: 999px; font: 500 14px/1.2 var(--body); cursor: pointer; }
+  .seg label:has(input:checked) { background: var(--sky); color: var(--white); }
+  .seg label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 860px) {
+    .split { grid-template-columns: minmax(0, 1fr); }
+    .outline { max-height: none; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 16px; border-radius: 18px; }
+    .verdict p { font-size: 22px; }
+    .icon { width: 36px; height: 36px; font-size: 18px; }
+    .codebox pre { font-size: 13px; }
+    .seg { border-radius: 16px; }
+    .seg legend { width: 100%; box-sizing: border-box; padding: 6px 10px 4px; }
+  }
+</style>

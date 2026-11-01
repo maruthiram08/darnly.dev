@@ -190,6 +190,11 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'sql-formatter',
+    category: 'Code helpers',
+    name: 'SQL formatter',
+    blurb: 'Format SQL with colors and see what it does in plain English, with a red flag on DELETE or UPDATE without WHERE.',
   },
 ];
 
