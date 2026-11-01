@@ -1,7 +1,7 @@
 import { OAuthProvider, type OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
 import { mcpFetch } from './mcp';
-import { oauthRoute } from './oauth';
+import { exchangeAppCode, oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
@@ -47,6 +47,7 @@ async function route(req: Request, env: Env): Promise<Response> {
     const { token, user } = await signIn(env, await readJson(req));
     return json({ token, email: user.email });
   }
+  if (path === '/v1/auth/app/exchange' && method === 'POST') return json(await exchangeAppCode(env, await readJson(req)));
   if (path === '/v1/auth/logout' && method === 'POST') {
     await signOut(env, req);
     return json({ ok: true });
@@ -157,7 +158,7 @@ function oauthProvider(env: Env): OAuthProvider<Env> {
 /** Uploads, sign-ins and agent registration get a tighter per-IP limit than everything else. */
 function isWrite(req: Request, path: string): boolean {
   if (req.method !== 'POST') return false;
-  return path === '/v1/bugs' || path === '/v1/auth/google' || path === '/register' || path === '/token' || path === '/authorize';
+  return path === '/v1/bugs' || path === '/v1/auth/google' || path === '/v1/auth/app/exchange' || path === '/register' || path === '/token' || path === '/authorize';
 }
 
 export default {
