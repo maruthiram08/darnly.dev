@@ -10,7 +10,9 @@
   // The sitemap generator also gets 2 crawls a minute, since one crawl reads up to 100 pages.
   "ratelimits": [
     { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
-    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } }
+    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
+    // The llms.txt generator crawls up to 50 pages: 2 a minute, separate from the sitemap's limit.
+    { "name": "LLMS_LIMIT", "namespace_id": "4810", "simple": { "limit": 2, "period": 60 } }
   ],
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).

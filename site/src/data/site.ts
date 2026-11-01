@@ -143,6 +143,11 @@ export const TOOLS: Item[] = [
     name: 'JWT decoder',
     blurb: 'Paste a token and see when it expires, who it’s for and its role, in plain words. Nothing is uploaded.',
   },
+  {
+    slug: 'llms-txt-generator',
+    name: 'llms.txt generator',
+    blurb: 'An llms.txt for ChatGPT, Claude and Perplexity from your pages, plus which AI crawlers you let in.',
+  },
 ];
 
 // Same for guides.

@@ -41,6 +41,11 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/llms?url=https://example.com
+//   Same guards, plus its own limit of 2 a minute per visitor. Uses the sitemap crawler (up to
+//   50 pages) to read each page's title and description, checks robots.txt for AI crawlers and
+//   whether an llms.txt exists, for the llms.txt generator at /tools/llms-txt-generator/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -48,12 +53,14 @@ import { checkLaunch, type Probe } from './launch';
 import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
+import { llmsSite } from './llms';
 import { findLeaks } from './secrets';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: RateLimit;
   CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
+  LLMS_LIMIT?: RateLimit; // the llms.txt generator crawls up to 50 pages, with its own limit
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -74,6 +81,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/llms') return llmsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -206,7 +214,29 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
 
 // /api/sitemap: crawl one site and list the pages for sitemap.xml. Every page goes through get().
 function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
-  const fetchPage = async (raw: string, accept: string): Promise<Fetched | null> => {
+  const fetchPage = crawlFetcher(url, env);
+  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
+// /api/llms: crawl one site (up to 50 pages) for the llms.txt generator, and check robots.txt for AI crawlers.
+function llmsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const fetchPage = crawlFetcher(url, env);
+  return pageTool('llms', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await llmsSite(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.LLMS_LIMIT, limitError: 'You can make 2 llms.txt files a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
+// The page reader the crawlers use: the same address rules as every tool, a 5 second timeout per page.
+function crawlFetcher(url: URL, env: Env) {
+  return async (raw: string, accept: string): Promise<Fetched | null> => {
     const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
     if (typeof t === 'string') return null;
     try {
@@ -214,7 +244,7 @@ function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
       const final = res.url || t.href;
       if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
       const type = res.headers.get('content-type') ?? '';
-      const readable = /html|text\/plain/i.test(type) || !type;
+      const readable = /html|text\/plain|markdown/i.test(type) || !type;
       const text = readable && res.status < 400 ? await readLimited(res, 500_000) : '';
       if (!text) res.body?.cancel().catch(() => {});
       return { status: res.status, url: final, type, lastModified: res.headers.get('last-modified'), robotsHeader: res.headers.get('x-robots-tag'), text };
@@ -222,12 +252,6 @@ function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
       return null;
     }
   };
-  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
-    url: p.target.href,
-    finalUrl: p.finalUrl,
-    status: p.status,
-    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
-  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
 }
 
 // /api/design: a page's design system (colors, fonts, type scale, spacing, shape, components).

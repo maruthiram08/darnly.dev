@@ -1,0 +1,211 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your site’s address.',
+  'We read up to 50 of your pages and take each one’s title and description, then check your robots.txt for AI crawlers.',
+  'Edit the name and summary if you like, then download llms.txt or copy one prompt that asks Claude Code, Cursor or Codex to add it.',
+];
+
+const faq = [
+  { q: 'What is llms.txt?', a: 'A plain text file at yoursite.com/llms.txt that tells AI tools what your site is and links to its main pages, each with one line about it. It’s like a sitemap written for ChatGPT, Claude and Perplexity instead of Google. The format is described at llmstxt.org.' },
+  { q: 'Does llms.txt help my site show up in AI answers?', a: 'It can help AI tools that read it understand your site and link to the right page, and it costs nothing to add. No AI company has promised to rank sites by it, so think of it as a cheap extra, not a replacement for clear pages and good titles.' },
+  { q: 'Where do I put llms.txt?', a: 'In the folder your site serves from its root, so it opens at yoursite.com/llms.txt. That’s public/ in Next.js, Vite, React, Astro and Nuxt, and static/ in SvelteKit. On a plain HTML site, put it next to index.html.' },
+  { q: 'What do “allowed” and “blocked” mean for AI crawlers?', a: 'Your robots.txt file can tell each crawler to stay out. GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, Google-Extended (Gemini) and CCBot (Common Crawl) all follow it. Blocked means that crawler won’t read your pages, so its AI is less likely to know about your site. Each card gives you a rule to copy if you want to change it.' },
+  { q: 'Does blocking Google-Extended remove me from Google Search?', a: 'No. Google-Extended only controls whether Google uses your pages for Gemini. Google Search uses Googlebot, which this tool doesn’t change.' },
+  { q: 'Why are some pages listed without a description?', a: 'We use each page’s meta description, or its first paragraph if it has none. Pages with neither are listed by title only. Adding a meta description helps search engines too.' },
+  { q: 'Can I use it on a site on localhost?', a: 'No. We read your site from the internet, so it needs a public address. Deploy a preview (Vercel, Netlify and Cloudflare all make one), then paste that.' },
+];
+---
+<ToolPage
+  slug="llms-txt-generator"
+  title="llms.txt generator: free llms.txt for AI search · Darnly"
+  description="Paste your site and get an llms.txt file for ChatGPT, Claude and Perplexity in seconds. See which AI crawlers your robots.txt lets in, with one-click rules to change it."
+  h1="llms.txt generator for AI search"
+  lede="Paste your site and get an llms.txt that tells ChatGPT, Claude and Perplexity what your site is about, plus which AI crawlers your robots.txt lets in."
+  steps={steps}
+  faq={faq}
+>
+  <div class="lt">
+    <form id="lt-form" class="ask">
+      <label class="sr" for="lt-url">Website address</label>
+      <input id="lt-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="lt-go" type="submit">Make my llms.txt</button>
+    </form>
+    <p class="status" id="lt-status" hidden>Reading the pages on your site. This can take up to 30 seconds.</p>
+    <p class="error" id="lt-error" role="alert" hidden></p>
+
+    <div class="head" id="lt-head" hidden>
+      <div>
+        <p class="verdict" id="lt-verdict"></p>
+        <p class="counts" id="lt-counts"></p>
+      </div>
+      <button id="lt-prompt" type="button" class="primary" hidden>Copy prompt for your AI agent</button>
+    </div>
+    <p class="note" id="lt-note" hidden></p>
+
+    <section class="preview" aria-label="llms.txt preview">
+      <div class="bar">
+        <div class="bar-left">
+          <span class="file-name">llms.txt</span>
+          <span class="badge-top example" id="lt-badge">Example</span>
+          <span class="size" id="lt-size"></span>
+        </div>
+        <div class="bar-right">
+          <div class="toggle" role="group" aria-label="View">
+            <button type="button" data-view="rendered" aria-pressed="true">Preview</button>
+            <button type="button" data-view="plain" aria-pressed="false">Plain text</button>
+          </div>
+          <div class="btns" id="lt-actions" hidden>
+            <button type="button" id="lt-copy">Copy</button>
+            <button type="button" id="lt-dl" class="dark">Download</button>
+          </div>
+        </div>
+      </div>
+      <div class="edit" id="lt-summary-row" hidden>
+        <label>
+          <span>Site name</span>
+          <input id="lt-name" type="text" maxlength="80" />
+        </label>
+        <label>
+          <span>One-line summary</span>
+          <textarea id="lt-summary" rows="2" maxlength="400"></textarea>
+        </label>
+      </div>
+      <div class="doc" id="lt-rendered"></div>
+      <pre class="doc plain" id="lt-plain" tabindex="0" hidden></pre>
+    </section>
+
+    <section class="ai" id="lt-ai" hidden>
+      <h2 id="lt-bots-title"></h2>
+      <ul class="bots" id="lt-bots"></ul>
+      <p class="hint" id="lt-bots-hint"></p>
+    </section>
+
+    <section class="where" id="lt-where-box" hidden>
+      <div class="where-head">
+        <h2>Where does llms.txt go?</h2>
+        <label>
+          <span class="sr">Your framework</span>
+          <select id="lt-fw">
+            <option value="next">Next.js</option>
+            <option value="vite">Vite or React</option>
+            <option value="astro">Astro</option>
+            <option value="nuxt">Nuxt</option>
+            <option value="sveltekit">SvelteKit</option>
+            <option value="wordpress">WordPress</option>
+            <option value="other">Plain HTML or other</option>
+          </select>
+        </label>
+      </div>
+      <p id="lt-where"></p>
+      <p class="hint">Then open <span id="lt-check"></span> in your browser to check it’s there.</p>
+    </section>
+
+    <details class="group" id="lt-pages-box" hidden>
+      <summary id="lt-pages-title"></summary>
+      <ul class="pages" id="lt-pages"></ul>
+    </details>
+    <details class="group" id="lt-existing-box" hidden>
+      <summary>Your current llms.txt</summary>
+      <pre id="lt-existing" tabindex="0"></pre>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/llms-txt-generator';
+</script>
+
+<style>
+  .lt [hidden] { display: none !important; }
+  .lt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  @media (max-width: 480px) { .ask { flex-wrap: wrap; } .ask button { width: 100%; padding: 14px 26px; } }
+  .status { margin: 0; color: var(--ink-soft); }
+  .error { margin: 0; color: #B4234F; }
+
+  .head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .verdict { margin: 0; font: 700 24px/1.2 var(--display); overflow-wrap: anywhere; }
+  .counts { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .note { margin: 0; font-size: 15px; padding: 12px 16px; border-radius: 12px; background: #FFF6DA; border: 1px solid #F0D58A; }
+  h2 { margin: 0; font: 600 18px/1.3 var(--body); }
+  .hint { margin: 10px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+  /* The big live preview */
+  .preview { border: 1px solid var(--line); border-radius: 18px; background: var(--white); overflow: hidden; box-shadow: 0 10px 30px rgba(20, 40, 70, 0.08); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); background: #F5F8FB; }
+  .bar-left, .bar-right { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .file-name { font: 600 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .badge-top { font: 600 12px/1 var(--body); padding: 5px 9px; border-radius: 999px; background: #DFF5E6; color: #146B35; }
+  .badge-top.example { background: #EAF0F6; color: #3B4A5A; }
+  .size { font-size: 13px; color: var(--ink-soft); }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--white); }
+  .toggle button { font: 600 13px/1 var(--body); padding: 8px 12px; border: 0; background: none; color: var(--ink-soft); cursor: pointer; }
+  .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .btns { display: flex; gap: 8px; }
+  .btns button { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .btns button:hover { border-color: var(--sky); }
+  .btns button.dark { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+  .edit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  @media (max-width: 640px) { .edit { grid-template-columns: minmax(0, 1fr); } }
+  .edit label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .edit input, .edit textarea { font: inherit; font-size: 15px; font-weight: 400; color: var(--ink); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); resize: vertical; min-width: 0; }
+  .edit input:focus, .edit textarea:focus { outline: none; border-color: var(--sky); }
+
+  .doc { padding: 22px 26px 26px; max-height: 560px; overflow: auto; }
+  @media (max-width: 480px) { .doc { padding: 18px 16px; } }
+  .doc :global(.h1) { margin: 0 0 10px; font: 700 28px/1.2 var(--display); overflow-wrap: anywhere; }
+  .doc :global(blockquote) { margin: 0 0 18px; padding: 4px 0 4px 14px; border-left: 4px solid var(--sky); color: var(--ink-soft); font-size: 16px; }
+  .doc :global(.h2) { margin: 18px 0 8px; font: 600 18px/1.3 var(--body); }
+  .doc :global(ul) { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .doc :global(li) { font-size: 15px; overflow-wrap: anywhere; }
+  .doc :global(a) { color: var(--sky); font-weight: 600; }
+  .doc :global(.desc) { color: var(--ink-soft); }
+  .doc :global(.empty) { color: var(--ink-soft); }
+  .plain, pre { margin: 0; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .plain { background: #FBFCFD; }
+  .group pre { max-height: 300px; overflow: auto; background: #F5F8FB; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+
+  /* AI crawler cards */
+  .ai h2 { margin-bottom: 12px; }
+  .bots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 165px), 1fr)); gap: 12px; }
+  .bots :global(.bot) { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--white); border-top: 4px solid #2E9E5B; }
+  .bots :global(.bot.blocked) { border-top-color: #C8304F; }
+  .bots :global(.bot.partly) { border-top-color: #D69A00; }
+  .bots :global(.bot-top) { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  .bots :global(.bot-name) { font: 700 16px/1.2 var(--body); }
+  .bots :global(.badge) { font: 600 12px/1 var(--body); padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+  .bots :global(.badge.allowed) { background: #DFF5E6; color: #146B35; }
+  .bots :global(.badge.blocked) { background: #FBE3E8; color: #A3173C; }
+  .bots :global(.badge.partly) { background: #FFF1CC; color: #7A5600; }
+  .bots :global(.bot-what), .bots :global(.bot-why) { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .bots :global(.small) { margin-top: auto; align-self: flex-start; font: 600 13px/1.2 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; text-align: left; }
+  .bots :global(.small:hover) { border-color: var(--sky); }
+  .bots :global(.bot.blocked .small), .bots :global(.bot.partly .small) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+  .where { border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 16px 18px; min-width: 0; }
+  .where-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .where p { margin: 0; }
+  .where :global(code) { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: #F0F4F8; padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  .where .hint { margin-top: 10px; }
+  select { font: inherit; font-size: 15px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); max-width: 100%; }
+
+  .group { border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 4px 18px; }
+  .group summary { cursor: pointer; font: 600 17px/1.3 var(--body); padding: 12px 0; }
+  .pages { list-style: none; margin: 0 0 12px; padding: 0; }
+  .pages :global(li) { border-top: 1px solid var(--line); }
+  .pages :global(label) { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; cursor: pointer; }
+  .pages :global(input) { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+  .pages :global(.page-text) { display: grid; gap: 2px; min-width: 0; }
+  .pages :global(.page-title) { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .pages :global(.page-path) { font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .pages :global(.page-warn) { font-size: 13px; color: #7A5600; }
+</style>
