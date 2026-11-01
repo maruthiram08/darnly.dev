@@ -180,6 +180,12 @@ export const TOOLS: Item[] = [
     name: '.gitignore generator',
     blurb: 'A .gitignore for your stack that keeps .env files and keys out of git, plus a check for what would leak.',
   },
+  {
+    slug: 'base64-encoder',
+    name: 'Base64 encoder',
+    blurb: 'Encode and decode Base64 as you type, or turn a picture into a data URI to paste into your code.',
+    category: 'Code helpers',
+  },
 ];
 
 // Same for guides.
