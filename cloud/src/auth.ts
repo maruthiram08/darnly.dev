@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import { HttpError, newId, newToken, sha256 } from './util';
+import { countSignup } from './limits';
 
 export interface User {
   id: string;
@@ -34,6 +35,7 @@ export async function upsertUser(env: Env, who: GoogleIdentity): Promise<User> {
     if (found.email !== who.email) await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(who.email, found.id).run();
     return { id: found.id, email: who.email };
   }
+  await countSignup(env);
   const user = { id: newId('u'), email: who.email };
   await env.DB.prepare('INSERT INTO users (id, google_sub, email, created_at) VALUES (?, ?, ?, ?)')
     .bind(user.id, who.sub, who.email, Date.now())
