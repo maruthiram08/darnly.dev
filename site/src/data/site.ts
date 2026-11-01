@@ -128,6 +128,11 @@ export const TOOLS: Item[] = [
     name: 'Logo maker',
     blurb: 'A simple logo from your project’s name, an icon, a font and colors. SVG, PNG, app icon and favicons.',
   },
+  {
+    slug: 'cookie-banner-generator',
+    name: 'Cookie banner generator',
+    blurb: 'Design a cookie consent banner live and copy a tiny snippet that holds back analytics until people agree.',
+  },
 ];
 
 // Same for guides.
