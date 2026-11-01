@@ -1,13 +1,18 @@
 ---
 // The "Darnly can also..." strip under every tool's result.
 import { storeUrl } from '../data/site';
-interface Props { source: string }
-const { source } = Astro.props;
+// lead/text let a tool swap in its own line; both fall back to the default pitch.
+interface Props { source: string; lead?: string; text?: string }
+const {
+  source,
+  lead = 'Spot a bug on your site?',
+  text = 'Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it.',
+} = Astro.props;
 ---
 <aside class="darnly-strip" aria-label="About Darnly">
   <div>
     <span class="eyebrow">Made by Darnly</span>
-    <p><strong>Spot a bug on your site?</strong> Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it.</p>
+    <p><strong>{lead}</strong> {text}</p>
   </div>
   <a class="add" href={storeUrl(source)}>Add to Chrome, it's free</a>
 </aside>

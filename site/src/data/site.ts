@@ -190,6 +190,11 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'before-after-maker',
+    category: 'Images',
+    name: 'Before and after image maker',
+    blurb: 'Drop two screenshots and get a side-by-side picture or an animated swipe GIF or video for your “I fixed it” post.',
   },
 ];
 
