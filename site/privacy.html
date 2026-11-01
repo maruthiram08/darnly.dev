@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy policy · Darnly</title>
+<meta name="description" content="What Darnly reads when you capture a bug, and where it goes.">
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600&display=swap">
+<style>
+:root { --sky: #0593C6; --pink: #D83995; --white: #FCFFFF; --ink: #0B2230; --ink-soft: #4A6472; --line: #D7E9F0;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; --body: "Figtree", "Segoe UI", system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 17px/1.65 var(--body); }
+header { background: var(--sky); color: var(--white); }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+header .wrap { padding-block: 20px; display: flex; align-items: center; gap: 10px; }
+header a { color: inherit; text-decoration: none; font: 700 22px/1 var(--display); display: flex; align-items: center; gap: 10px; }
+header img { width: 28px; height: 28px; border-radius: 7px; }
+main .wrap { padding-block: 48px 80px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.02em; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(32px, 6vw, 46px); margin: 0 0 8px; }
+h2 { font-size: 24px; margin: 40px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 19px; margin: 28px 0 6px; }
+p, li { color: var(--ink); }
+ul { padding-left: 22px; }
+li { margin: 4px 0; }
+a { color: var(--sky); }
+strong { font-weight: 600; }
+code { font-size: 0.92em; background: #EEF8FB; padding: 1px 5px; border-radius: 5px; }
+footer { border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 15px; }
+footer .wrap { padding-block: 24px; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="/"><img src="/icon.png" alt="">darnly</a></div></header>
+<main><div class="wrap">
+<h1>Darnly privacy policy</h1>
+<p>Last updated: 1 November 2026</p>
+<p>Darnly is a Chrome extension that turns a bug you see on a web page into a report your AI coding agent can read. This policy explains what it touches and where that goes.</p>
+<h2>The short version</h2>
+<p>By default Darnly has no account and sends nothing to us. Every report stays on your computer until you choose to paste or share it.</p>
+<p>From version 0.2.0 there is one exception, and only if you turn it on: the <strong>cloud inbox</strong>, for projects whose code isn&#39;t on your computer. If you sign in to it, each bug you capture is sent to your private Darnly inbox so your coding agent can read it. The section &quot;The cloud inbox&quot; below explains exactly what that means.</p>
+<h2>What Darnly reads, and only when you capture</h2>
+<p>When you press the Darnly shortcut and click part of a page, Darnly reads:</p>
+<ul>
+<li>a screenshot of the visible page;</li>
+<li>details about the element you clicked: its text, HTML, styles, size and position, and its React component name and source file when the page exposes them;</li>
+<li>the page address and title;</li>
+<li>console errors and failed network requests from about the last 60 seconds, on localhost and on sites you switch recording on for. On other sites, only failed requests the browser already lists for the page;</li>
+<li>the note you type.</li>
+</ul>
+<p>Darnly does not read pages you do not capture. On localhost, and on sites you switch on, a small recorder keeps the last 60 seconds of errors in the page&#39;s memory, so they are ready if you capture. That buffer never leaves the page unless you capture.</p>
+<h2>What Darnly hides</h2>
+<p>Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys and secret-looking query parameters. These are replaced with <code>[hidden]</code>.</p>
+<h2>Where reports go</h2>
+<ul>
+<li><p><strong>Into your project folder</strong>, if you link one. Reports are written to a <code>.darnly/</code> folder inside it, which Darnly also adds to <code>.gitignore</code> so it isn&#39;t committed.</p>
+</li>
+<li><p><strong>Onto your clipboard</strong>, if you click a copy button. You decide where to paste it.</p>
+</li>
+<li><p><strong>Into your Darnly cloud inbox</strong>, only if you chose &quot;My code is in the cloud&quot; and signed in (version 0.2.0 and later).</p>
+</li>
+</ul>
+<p>Darnly keeps the link to your project folder, your settings and (if you use the cloud inbox) your sign-in, in Chrome&#39;s own storage on your computer.</p>
+<h2>The cloud inbox (optional, version 0.2.0 and later)</h2>
+<p><strong>What is sent:</strong> for each bug you capture while signed in, the report (the same text you would otherwise save or paste), the marked screenshot, and the recent errors, all after the secrets above have been removed on your computer. Also your Google account&#39;s email address and Google&#39;s account id, to know whose inbox it is.</p>
+<p><strong>Where it lives:</strong> on Cloudflare, which runs Darnly cloud for us (a database for the bug list, file storage for screenshots and reports). Data is encrypted at rest by Cloudflare.</p>
+<p><strong>Who can see it:</strong> only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them and mark them fixed. It can&#39;t see anyone else&#39;s bugs.</p>
+<p><strong>How long it&#39;s kept:</strong> a bug you&#39;ve marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they&#39;re fixed or you delete them. &quot;Delete all my cloud bugs&quot; in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.</p>
+<p><strong>What we don&#39;t do with it:</strong> we don&#39;t read your bugs, sell them, use them for advertising, or train AI models on them. We look at stored data only if you ask us to help with a problem, or if the law requires it.</p>
+<h2>What Darnly never does</h2>
+<ul>
+<li>It never sends data anywhere unless you turned on the cloud inbox, and then only to your own inbox.</li>
+<li>It never sells or shares data with third parties, and it has no analytics or tracking.</li>
+<li>It never uses data for anything except the bug reports you asked for.</li>
+</ul>
+<h2>Permissions, and why</h2>
+<ul>
+<li><strong>activeTab and scripting:</strong> to show the element picker and take the screenshot on the tab where you pressed the shortcut.</li>
+<li><strong>sidePanel:</strong> the Darnly panel where you type your note.</li>
+<li><strong>storage:</strong> your settings and the linked folder.</li>
+<li><strong>offscreen:</strong> keeps folder access alive so Chrome doesn&#39;t ask again every time the panel closes.</li>
+<li><strong>webRequest:</strong> to notice failed requests (like a missing image) on localhost and sites you switch on.</li>
+<li><strong>Optional access to sites:</strong> asked for one site at a time, only when you click &quot;Record errors on this site&quot;.</li>
+<li><strong>identity</strong> (version 0.2.0 and later): &quot;Sign in with Google&quot; for the cloud inbox. Used only when you click it.</li>
+</ul>
+<h2>Contact</h2>
+<p><a href="mailto:hello@darnly.dev">hello@darnly.dev</a></p>
+
+
+</div></main>
+<footer><div class="wrap">Questions: hello@darnly.dev · <a href="/">darnly.dev</a></div></footer>
+</body>
+</html>
