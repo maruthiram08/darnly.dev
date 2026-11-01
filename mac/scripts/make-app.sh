@@ -3,7 +3,7 @@
 # Signed ad hoc by default (runs on this Mac). Set DARNLY_SIGN_ID to sign with a Developer ID; make-dmg.sh does that.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${DARNLY_VERSION:-0.1.0}"
+VERSION="${DARNLY_VERSION:-0.2.0}"
 swift build -c release --arch arm64 --arch x86_64
 BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/Darnly"
 APP="build/Darnly.app"
