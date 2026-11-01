@@ -23,6 +23,11 @@ export const TOOLS: Item[] = [
     name: 'Meta tag generator',
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
+  {
+    slug: 'responsive-checker',
+    name: 'Responsive checker',
+    blurb: 'See any page at phone, tablet and desktop widths side by side.',
+  },
 ];
 
 // Same for guides.

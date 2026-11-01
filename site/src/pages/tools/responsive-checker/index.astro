@@ -1,0 +1,73 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of your page. It needs to be live on the internet, starting with <code>https://</code>.',
+  'See it at phone (390 px), tablet (768 px) and desktop (1280 px) widths side by side. Each view is the real page, so you can scroll and click inside it.',
+  'Spot something broken? Use “Open at this width” to look closer, then tell your AI coding agent the width and what you see.',
+];
+
+const faq = [
+  { q: 'Why is one of the boxes blank?', a: 'Many sites (Google, GitHub, banks and most big apps) tell browsers not to show them inside other pages. That’s a safety setting on their side, so no checker that shows the live page can display them. Use “Open at this width” to see the page in its own window at that size.' },
+  { q: 'Can I check my site on localhost?', a: 'No. This page runs on the internet, so it can’t see your computer. Deploy your site (a Vercel, Netlify or Cloudflare preview link works), then paste that address.' },
+  { q: 'Is this the same as a real phone?', a: 'It shows the page at the same width a phone uses, which is what decides most layout problems. Touch, the on-screen keyboard and the phone’s own browser can still differ, so check on a real phone before you launch.' },
+  { q: 'Why these three widths?', a: '390 px is a modern iPhone, 768 px is an iPad held upright, and 1280 px is a common laptop. If a layout works at all three, it usually works in between too.' },
+  { q: 'Is anything sent to Darnly?', a: 'No. Your browser loads the page straight from your site. Darnly never sees it.' },
+];
+---
+<ToolPage
+  slug="responsive-checker"
+  title="Free responsive checker: see your site on phone, tablet and desktop · Darnly"
+  description="Paste a URL and see your page at phone, tablet and desktop widths side by side. Free, instant, and it runs in your browser."
+  h1="Responsive checker: phone, tablet and desktop at once"
+  lede="Paste your page’s address and see it at 390, 768 and 1280 pixels wide, side by side. Scroll and click inside each one, just like the real thing."
+  steps={steps}
+  faq={faq}
+>
+  <div class="rc">
+    <form class="bar" id="rc-form" novalidate>
+      <label class="sr" for="rc-url">Page address</label>
+      <input id="rc-url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://your-site.com" />
+      <button type="submit" class="primary">Check</button>
+    </form>
+    <p class="error" id="rc-error" role="alert" hidden></p>
+
+    <div class="result" id="rc-result" hidden>
+      <p class="hint">
+        <strong>See a blank box?</strong> That site blocks being shown inside other pages, which many big sites do for safety. It isn’t a problem with your layout. Press “Open at this width” to see it in its own window instead.
+      </p>
+
+      <div class="views" id="rc-views"></div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/responsive-checker';
+</script>
+
+<style>
+  .rc { display: grid; gap: 20px; }
+  .bar { display: flex; gap: 10px; }
+  .bar input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); }
+  .bar input:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .primary { font: 700 16px/1 var(--body); padding: 0 22px; border: 0; border-radius: 12px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .primary:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .error { margin: 0; color: #B4234F; }
+  .result { display: grid; gap: 16px; }
+  .views { display: grid; grid-template-columns: minmax(0, 390fr) minmax(0, 620fr) minmax(0, 900fr); gap: 16px; align-items: start; }
+  .hint { margin: 0; padding: 14px 16px; border-radius: 12px; background: var(--wash); color: var(--ink-soft); font-size: 15px; }
+  .hint strong { color: var(--ink); }
+  :global(.rc-view) { display: grid; gap: 8px; min-width: 0; justify-items: start; }
+    :global(.rc-name) { font: 500 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+  :global(.rc-open) { font: 600 13px/1 var(--body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); cursor: pointer; }
+  :global(.rc-open:hover) { border-color: var(--sky); }
+  :global(.rc-screen) { width: 100%; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  :global(.rc-screen iframe) { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #fff; }
+  @media (max-width: 760px) {
+    .views { grid-template-columns: minmax(0, 1fr); }
+    .bar { flex-direction: column; }
+    .primary { padding: 14px 22px; }
+  }
+</style>
