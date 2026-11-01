@@ -1,0 +1,161 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop your screenshot on the preview, paste it with <code>Ctrl+V</code> (<code>⌘V</code> on a Mac), or click “Choose a screenshot”. Until you do, the preview shows a sample.',
+  'Pick where you’ll post it: X, LinkedIn, square or story. Then pick a frame (browser window or phone) and a background. The preview updates as you click.',
+  'Fine-tune the space around it, the rounded corners and the shadow, and add a caption if you like. Then click “Download PNG”, or “Copy image” and paste it straight into your post.',
+];
+
+const faq = [
+  { q: 'Is my screenshot uploaded?', a: 'No. The picture is drawn in your browser. Your screenshot never leaves your computer.' },
+  { q: 'What sizes do the presets make?', a: 'X: 1920×1080 (16:9). LinkedIn: 1200×627 (1.91:1). Square: 1080×1080. Story: 1080×1920 (9:16) for Instagram, TikTok and LinkedIn stories. “Fit” makes the picture just big enough for your screenshot plus the space around it.' },
+  { q: 'Why doesn’t “Copy image” work in my browser?', a: 'Copying pictures needs a recent Chrome, Edge or Safari, and Firefox 127 or newer. If it fails, use “Download PNG” and attach the file to your post.' },
+  { q: 'My screenshot looks blurry. How do I fix that?', a: 'Take the screenshot at full size. On a Mac, <code>⌘⇧4</code> gives a sharp, double-size picture. Very small screenshots get stretched to fill the frame, which softens them. A smaller padding or the “Fit” size helps too.' },
+  { q: 'Can I use it for a phone app?', a: 'Yes. Pick “Phone” as the frame and “Story” or “Square” as the size. Tall screenshots from your phone look best there.' },
+];
+---
+<ToolPage
+  slug="screenshot-beautifier"
+  title="Screenshot beautifier: make your screenshot post-ready · Darnly"
+  description="Drop a screenshot and get it framed in a browser window or phone, on a gradient, with padding, rounded corners and a shadow. Sized for X, LinkedIn, square and stories. Free, and nothing is uploaded."
+  h1="Screenshot beautifier: make your screenshot post-ready"
+  lede="Drop or paste a screenshot to put it in a clean browser window or phone frame, on a nice background, sized for X, LinkedIn or a story. Download it or copy it straight into your post. Nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sb">
+    <div class="stage" id="sb-stage">
+      <canvas id="sb-canvas" width="1920" height="1080" role="img" aria-label="Preview of your framed screenshot"></canvas>
+      <div class="drop-hint" id="sb-hint">
+        <strong>This is a sample.</strong>
+        <span class="long">Drop your screenshot here, or paste it with Ctrl+V / ⌘V</span>
+        <span class="short">Tap to add your own screenshot</span>
+      </div>
+      <div class="drop-over" id="sb-over" hidden>Drop to use this screenshot</div>
+    </div>
+
+    <div class="top-actions">
+      <label class="pick">
+        <input id="sb-file" type="file" accept="image/*" />
+        <span id="sb-file-text">Choose a screenshot</span>
+      </label>
+      <button id="sb-download" type="button" class="primary">Download PNG</button>
+      <button id="sb-copy" type="button" class="ghost">Copy image</button>
+      <p class="status" id="sb-status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="error" id="sb-error" role="alert" hidden></p>
+
+    <div class="controls">
+      <div class="group wide">
+        <span class="label">Size</span>
+        <div class="chips" id="sb-size">
+          <button type="button" data-v="x" aria-pressed="true">X <small>16:9</small></button>
+          <button type="button" data-v="linkedin" aria-pressed="false">LinkedIn <small>1.91:1</small></button>
+          <button type="button" data-v="square" aria-pressed="false">Square <small>1:1</small></button>
+          <button type="button" data-v="story" aria-pressed="false">Story <small>9:16</small></button>
+          <button type="button" data-v="fit" aria-pressed="false">Fit <small>no crop</small></button>
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Frame</span>
+        <div class="chips" id="sb-frame">
+          <button type="button" data-v="safari" aria-pressed="true">Browser, simple</button>
+          <button type="button" data-v="chrome" aria-pressed="false">Browser with tab</button>
+          <button type="button" data-v="phone" aria-pressed="false">Phone</button>
+          <button type="button" data-v="none" aria-pressed="false">No frame</button>
+        </div>
+        <div class="chips small" id="sb-mode">
+          <button type="button" data-v="light" aria-pressed="true">Light</button>
+          <button type="button" data-v="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Background</span>
+        <div class="bgs" id="sb-bgs"></div>
+        <div class="custom">
+          <label>From <input id="sb-c1" type="color" value="#38C6F4" /></label>
+          <label class="check"><input id="sb-grad" type="checkbox" checked /> Fade to</label>
+          <input id="sb-c2" type="color" value="#0593C6" aria-label="Second background color" />
+        </div>
+      </div>
+
+      <label class="group">
+        <span class="label">Space around <output id="sb-pad-v">10%</output></span>
+        <input id="sb-pad" type="range" min="0" max="24" value="10" />
+      </label>
+      <label class="group">
+        <span class="label">Rounded corners <output id="sb-radius-v">12</output></span>
+        <input id="sb-radius" type="range" min="0" max="40" value="12" />
+      </label>
+      <label class="group">
+        <span class="label">Shadow <output id="sb-shadow-v">Medium</output></span>
+        <input id="sb-shadow" type="range" min="0" max="3" value="2" />
+      </label>
+      <label class="group">
+        <span class="label">Address in the bar <span class="opt">optional</span></span>
+        <input id="sb-url" type="text" maxlength="60" value="yourapp.com" />
+      </label>
+      <label class="group wide">
+        <span class="label">Caption <span class="opt">optional</span></span>
+        <input id="sb-caption" type="text" maxlength="90" placeholder="Shipped dark mode today 🌙" />
+      </label>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/screenshot-beautifier';
+</script>
+
+<style>
+  .sb { display: grid; gap: 20px; min-width: 0; }
+  .sb [hidden] { display: none !important; }
+  .stage { position: relative; display: grid; place-items: center; padding: 16px; border-radius: 20px; border: 1px solid var(--line); min-height: 240px;
+    background: repeating-conic-gradient(#EEF3F5 0% 25%, #FFFFFF 0% 50%) 0 0 / 20px 20px; }
+  .stage canvas { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; border-radius: 6px; box-shadow: 0 10px 30px rgba(11, 34, 48, 0.12); }
+  .drop-hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: grid; gap: 2px; justify-items: center; text-align: center; max-width: calc(100% - 40px);
+    padding: 10px 16px; border-radius: 14px; background: rgba(11, 34, 48, 0.82); color: #FCFFFF; font-size: 14px; pointer-events: none; }
+  .drop-hint .short { display: none; }
+  @media (max-width: 520px) { .drop-hint .short { display: inline; } }
+  .drop-over { position: absolute; inset: 8px; display: grid; place-items: center; border: 3px dashed var(--sky); border-radius: 16px; background: rgba(238, 248, 251, 0.9); font: 700 22px/1.2 var(--display); color: var(--ink); pointer-events: none; }
+  .top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .pick { position: relative; padding: 13px 20px; border: 1px dashed var(--sky); border-radius: 999px; background: var(--wash); font-weight: 600; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .primary:hover { background: #047FAB; }
+  .ghost { font: 600 16px/1 var(--body); padding: 14px 20px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .error { margin: 0; color: #B4234F; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 20px 28px; padding: 20px; border-radius: 16px; background: var(--wash); }
+  .wide { grid-column: 1 / -1; }
+  .group { display: grid; gap: 8px; min-width: 0; }
+  .label { font-weight: 600; font-size: 15px; display: flex; gap: 8px; align-items: baseline; }
+  .label output { font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+  .opt { font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { font: 600 14px/1 var(--body); padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .chips button small { font: 400 12px/1 var(--mono); color: var(--ink-soft); margin-left: 4px; }
+  .chips button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .chips button[aria-pressed='true'] small { color: #9CC3D4; }
+  .chips.small button { padding: 8px 12px; font-size: 13px; }
+  .bgs { display: flex; flex-wrap: wrap; gap: 10px; }
+  .bgs :global(button) { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--white); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .bgs :global(button[aria-pressed='true']) { box-shadow: 0 0 0 3px var(--ink); }
+  .custom { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 14px; }
+  .custom label { display: flex; align-items: center; gap: 8px; }
+  .custom input[type='color'] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .custom input:disabled { opacity: 0.4; }
+  .group input[type='range'] { width: 100%; accent-color: var(--sky); }
+  .group input[type='text'] { font: 400 16px/1.4 var(--body); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); width: 100%; }
+  @media (max-width: 520px) {
+    .stage { padding: 8px; }
+    .drop-hint { bottom: 14px; font-size: 13px; padding: 8px 12px; }
+    .drop-hint .long { display: none; }
+    .top-actions > * { flex: 1 1 auto; text-align: center; }
+  }
+</style>
