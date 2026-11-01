@@ -4,5 +4,7 @@
   // The site is built with Astro in site/; this runs before every deploy.
   "build": { "command": "npm ci --prefix site && npm run build --prefix site" },
   "assets": { "directory": "./site/dist" },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
+  "previews": {}
 }
