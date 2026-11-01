@@ -6,12 +6,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkey: Hotkey?
     private let picker = Picker()
     private let notePanel = NotePanel()
+    private let welcome = WelcomeWindow()
     private var busy = false
     private var frozen: Screenshot.Frozen?
 
     private var projectURL: URL? {
         get { UserDefaults.standard.string(forKey: "projectPath").map { URL(fileURLWithPath: $0, isDirectory: true) } }
-        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu() }
+        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu(); welcome.refresh() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -22,9 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
         hotkey = Hotkey { [weak self] in self?.capture() }
-        // Ask for Accessibility once (to name the element under the click). Screen Recording is asked on the first capture.
-        _ = Probe.isTrusted(prompt: true)
-        if projectURL == nil { chooseProject() }
+        // First launch: the welcome screen walks through the folder, the two permissions and the hotkey.
+        if !UserDefaults.standard.bool(forKey: "welcomeShown") { showWelcome() }
+        else if projectURL == nil { chooseProject() }
     }
 
     private func rebuildMenu() {
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Choose project folder…", #selector(chooseProject)))
         menu.addItem(item("Open inbox in Finder", #selector(openInbox)))
         menu.addItem(.separator())
+        menu.addItem(item("How to use Darnly…", #selector(showWelcome)))
         menu.addItem(item("Permissions…", #selector(openPermissions)))
         menu.addItem(item("Quit Darnly", #selector(NSApplication.terminate(_:)), target: NSApp))
         statusItem.menu = menu
@@ -52,6 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureFromMenu() { capture() }
+
+    @objc private func showWelcome() {
+        welcome.show(project: { [weak self] in self?.projectURL }, chooseProject: { [weak self] in self?.chooseProject() })
+    }
 
     @objc private func chooseProject() {
         let panel = NSOpenPanel()
