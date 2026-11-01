@@ -1,0 +1,189 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Point at sibling tools once they ship.
+const related = ['markdown-preview', 'readme-generator']
+  .map((s) => TOOLS.find((t) => t.slug === s))
+  .filter((t): t is NonNullable<typeof t> => Boolean(t));
+
+const steps = [
+  'Type into the grid like a spreadsheet. Enter moves down, Tab moves across, and a new row appears when you reach the end. Use the buttons above each column to line it up left, center or right.',
+  'Have the data somewhere else? Copy cells from Excel, Google Sheets or Notion and paste them into any cell, or paste a whole Markdown table to tidy it up.',
+  'Check “How it looks”, then copy the Markdown for your README, docs or a prompt for your AI agent. HTML and CSV are one click away.',
+];
+
+const faq = [
+  { q: 'How do I make a table in Markdown?', a: 'Put a pipe <code>|</code> between cells, and a line of dashes under the header row: <code>| Name | Price |</code>, then <code>| --- | --- |</code>, then one line per row. This tool writes all of that for you and lines the columns up so the file is easy to read too.' },
+  { q: 'How do I align a column?', a: 'Add colons to the dashes under the header: <code>:---</code> is left, <code>:---:</code> is center and <code>---:</code> is right. Here you just click the alignment buttons above each column. Right-aligned is best for prices and numbers.' },
+  { q: 'Can I paste from Excel or Google Sheets?', a: 'Yes. Select the cells, copy them, click a cell in the grid and paste. The table grows to fit. CSV works the same way, or use “Paste a table or CSV” to load a whole file’s worth at once.' },
+  { q: 'How do I put a | or a line break inside a cell?', a: 'Just type it. A pipe is written as <code>\\|</code> so it doesn’t split the cell, and a line break becomes <code>&lt;br&gt;</code>, which GitHub shows as a new line inside the cell.' },
+  { q: 'Can I use bold, links or code in a cell?', a: 'Yes, the usual Markdown works: <code>**bold**</code>, <code>*italic*</code>, <code>`code`</code>, <code>~~strike~~</code> and <code>[text](https://link)</code>. The preview shows them the way GitHub will.' },
+  { q: 'Where do Markdown tables work?', a: 'GitHub and GitLab READMEs, issues and pull requests, Notion, Obsidian, Docusaurus, Astro and most docs sites, plus chats with Claude, ChatGPT and Cursor. Tables are part of GitHub Flavored Markdown, so a few very old Markdown tools show them as plain text.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser. Your last table is kept in this browser so it’s still there if you come back.' },
+];
+---
+<ToolPage
+  slug="markdown-table-generator"
+  title="Markdown table generator: edit like a spreadsheet · Darnly"
+  description="Free Markdown table generator. Edit cells like a spreadsheet, set column alignment, paste from Excel, Google Sheets or CSV, and copy clean Markdown, HTML or CSV with a live preview."
+  h1="Markdown table generator"
+  lede="Edit your table like a spreadsheet, or paste it from Excel, Sheets or a CSV. See how it looks and copy neat Markdown for your README, docs or AI prompt. Nothing leaves your browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="mt">
+    <section class="editor" aria-label="Edit your table">
+      <div class="bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="title">Your table</span>
+        <span class="size" id="mt-size"></span>
+      </div>
+      <div class="grid-wrap" id="mt-grid-wrap">
+        <table class="grid">
+          <thead id="mt-grid-head"></thead>
+          <tbody id="mt-grid-body"></tbody>
+        </table>
+      </div>
+      <div class="tools">
+        <button type="button" class="ghost" id="mt-add-row">+ Row</button>
+        <button type="button" class="ghost" id="mt-add-col">+ Column</button>
+        <button type="button" class="ghost" id="mt-transpose" title="Turn rows into columns">Swap rows and columns</button>
+        <span class="grow"></span>
+        <button type="button" class="link" id="mt-sample">Sample</button>
+        <button type="button" class="link" id="mt-clear">Start blank</button>
+      </div>
+      <p class="tip">Tip: copy cells from Excel or Google Sheets and paste them into any cell.</p>
+    </section>
+
+    <p class="status" id="mt-status" role="status" aria-live="polite"></p>
+
+    <div class="result">
+      <section class="pane look" aria-label="How it looks">
+        <h2 class="plabel">How it looks</h2>
+        <div class="preview" id="mt-preview"></div>
+      </section>
+
+      <section class="pane code" aria-label="Copy your table">
+        <div class="tabs" id="mt-tabs" role="tablist" aria-label="Format">
+          <button type="button" role="tab" data-format="markdown" aria-selected="true">Markdown</button>
+          <button type="button" role="tab" data-format="html" aria-selected="false">HTML</button>
+          <button type="button" role="tab" data-format="csv" aria-selected="false">CSV</button>
+        </div>
+        <pre class="out" id="mt-out" tabindex="0" aria-label="Your table as text"></pre>
+        <label class="opt" id="mt-pretty-wrap"><input type="checkbox" id="mt-pretty" checked /> Line up the columns</label>
+        <div class="actions">
+          <button type="button" class="primary" id="mt-copy">Copy Markdown</button>
+          <button type="button" class="ghost" id="mt-download">Download .md</button>
+        </div>
+      </section>
+    </div>
+
+    <details class="fold" id="mt-import-fold">
+      <summary>Paste a table or CSV</summary>
+      <p class="hint">A Markdown table, CSV, or cells copied from a spreadsheet. It replaces the table above.</p>
+      <label class="sr" for="mt-import">Table to load</label>
+      <textarea id="mt-import" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder={'| Name | Price |\n| --- | ---: |\n| Basic | $9 |\n\nor\n\nName,Price\nBasic,$9'}></textarea>
+      <div class="actions">
+        <button type="button" class="primary" id="mt-load">Load into the grid</button>
+      </div>
+    </details>
+
+    {related.length > 0 && (
+      <div class="actions">
+        {related.map((t) => <a class="ghost" href={`/tools/${t.slug}/`}>{t.name}</a>)}
+      </div>
+    )}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/markdown-table-generator';
+</script>
+
+<style>
+  .mt { display: grid; gap: 20px; min-width: 0; }
+  .mt [hidden] { display: none !important; }
+
+  .editor { border: 1px solid var(--line); border-radius: 20px; background: var(--white); overflow: hidden; min-width: 0; box-shadow: 0 10px 30px -18px rgba(11, 34, 48, 0.35); }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--wash); border-bottom: 1px solid var(--line); }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .title { font-weight: 700; }
+  .size { margin-left: auto; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+
+  .grid-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+  .grid { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+  .grid :global(thead th) { position: sticky; top: 0; z-index: 2; background: var(--white); padding: 8px 6px 6px; border-bottom: 1px solid var(--line); }
+  .grid :global(thead th:first-child) { left: 0; z-index: 3; background: var(--wash); border-right: 1px solid var(--line); }
+  .grid :global(.colctl) { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .grid :global(.seg) { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .grid :global(.seg button) { display: grid; place-items: center; width: 28px; height: 26px; padding: 0; border: 0; background: var(--white); color: var(--ink-soft); cursor: pointer; }
+  .grid :global(.seg button + button) { border-left: 1px solid var(--line); }
+  .grid :global(.seg button:hover) { color: var(--ink); background: var(--wash); }
+  .grid :global(.seg button[aria-pressed="true"]) { background: var(--sky); color: var(--white); }
+  .grid :global(.x) { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-soft); font: 400 18px/1 var(--body); cursor: pointer; }
+  .grid :global(.x:hover:not(:disabled)) { background: #FCE7F1; color: #B4234F; }
+  .grid :global(.x:disabled) { opacity: 0.3; cursor: default; }
+
+  .grid :global(tbody th) { position: sticky; left: 0; z-index: 1; width: 44px; min-width: 44px; padding: 0 4px; background: var(--wash); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font: 500 12px/1 var(--mono); color: var(--ink-soft); text-align: center; }
+  .grid :global(tbody th .x) { display: none; }
+  .grid :global(tbody tr:hover th .rnum), .grid :global(tbody tr:focus-within th .rnum) { display: none; }
+  .grid :global(tbody tr:hover th .x), .grid :global(tbody tr:focus-within th .x) { display: inline-block; }
+  .grid :global(.rlabel) { font: 700 10px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; }
+  .grid :global(td) { padding: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .grid :global(td input) { box-sizing: border-box; width: 100%; min-width: 140px; padding: 11px 12px; border: 0; background: transparent; font: 400 15px/1.3 var(--body); color: var(--ink); }
+  .grid :global(td input:focus) { outline: 2px solid var(--sky); outline-offset: -2px; background: #F4FBFE; }
+  .grid :global(tr.hdr td) { background: #F6FAFC; border-bottom: 2px solid var(--line); }
+  .grid :global(tr.hdr td input) { font-weight: 700; }
+  .grid :global(td input::placeholder) { color: #A9BCC6; font-weight: 400; }
+
+  .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px 0; }
+  .grow { flex: 1; }
+  .tip { margin: 0; padding: 8px 16px 14px; font-size: 14px; color: var(--ink-soft); }
+  .link { padding: 6px 8px; border: 0; background: none; font: 600 14px/1 var(--body); color: var(--sky); cursor: pointer; }
+  .link:hover { text-decoration: underline; }
+
+  .status { margin: -14px 0 -14px; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .status :global(.undo) { margin-left: 6px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); font: 600 14px/1 var(--body); color: var(--ink); cursor: pointer; }
+
+  .result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+  .pane { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--white); }
+  .plabel { margin: 0; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+
+  /* Close to how GitHub draws a table in a README. */
+  .preview { overflow-x: auto; padding: 4px 2px; }
+  .preview :global(table) { border-collapse: collapse; font: 400 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; color: #1F2328; }
+  .preview :global(th), .preview :global(td) { padding: 6px 13px; border: 1px solid #D1D9E0; }
+  .preview :global(th) { font-weight: 600; }
+  .preview :global(tbody tr:nth-child(even)) { background: #F6F8FA; }
+  .preview :global(code) { padding: 0.2em 0.4em; border-radius: 6px; background: rgba(129, 139, 152, 0.15); font: 85% var(--mono); }
+  .preview :global(a) { color: #0969DA; }
+
+  .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); justify-self: start; }
+  .tabs button { padding: 7px 14px; border: 0; border-radius: 999px; background: none; font: 600 14px/1 var(--body); color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(11, 34, 48, 0.15); }
+  .out { margin: 0; min-height: 160px; max-height: 360px; overflow: auto; padding: 14px; border-radius: 14px; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; white-space: pre; tab-size: 2; }
+  .opt { display: flex; gap: 6px; align-items: center; font-size: 15px; cursor: pointer; }
+
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .hint { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  textarea { box-sizing: border-box; width: 100%; height: 180px; margin: 0 0 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); font: 400 13px/1.6 var(--mono); resize: vertical; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+
+  @media (max-width: 820px) {
+    .result { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .grid :global(td input) { min-width: 112px; font-size: 16px; }
+    .tools .ghost { padding: 9px 12px; font-size: 14px; }
+    .pane { padding: 14px; }
+  }
+</style>

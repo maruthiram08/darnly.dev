@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'markdown-table-generator',
+    name: 'Markdown table generator',
+    blurb: 'Edit a table like a spreadsheet or paste from Excel, and copy it as Markdown, HTML or CSV.',
+    category: 'Code helpers',
+  },
 ];
 
 // Same for guides.
