@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// The element under the click, from macOS accessibility.
 public struct ElementInfo: Equatable, Codable {
