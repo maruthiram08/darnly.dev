@@ -104,6 +104,11 @@ export const TOOLS: Item[] = [
     blurb: 'px to rem and back, live, with the matching Tailwind class and a ruler at real size.',
   },
   {
+    slug: 'css-gradient-generator',
+    name: 'CSS gradients and shadows',
+    blurb: 'Make gradients with draggable colors and soft layered shadows, then copy CSS or Tailwind.',
+  },
+  {
     slug: 'privacy-policy-generator',
     name: 'Privacy policy generator',
     blurb: 'A plain-English privacy policy and terms for your app, naming the services you use. Not legal advice.',
