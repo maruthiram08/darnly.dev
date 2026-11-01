@@ -83,6 +83,11 @@ export const TOOLS: Item[] = [
     name: 'Tailwind color shades',
     blurb: 'Turn one brand color into an even 50–950 Tailwind scale, ready for v4, v3 or CSS.',
   },
+  {
+    slug: 'json-to-typescript',
+    name: 'JSON to TypeScript',
+    blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
+  },
 ];
 
 // Same for guides.
