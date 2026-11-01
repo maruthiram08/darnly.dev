@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'css-to-tailwind',
+    category: 'Code helpers',
+    name: 'CSS to Tailwind',
+    blurb: 'Paste CSS and get Tailwind classes for each element, with a side-by-side preview that shows they match.',
+  },
 ];
 
 // Same for guides.
