@@ -1,0 +1,208 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type your project’s name. The logo updates as you type, on a light and a dark background.',
+  'Pick an icon, a font, colors and a layout. Not sure? Press “Surprise me” until something clicks.',
+  'Download the PNG or SVG for your site, the 1024 px app icon, or send it straight to the favicon generator.',
+];
+
+const faq = [
+  { q: 'Can I use the logo for my project or business?', a: 'Yes. The icons are from <a href="https://lucide.dev">Lucide</a> (ISC license) and the fonts are from Google Fonts (SIL Open Font License). Both allow commercial use, and you don’t need to credit anyone.' },
+  { q: 'Is anything uploaded?', a: 'No. The logo is drawn in your browser and the files are made on your computer.' },
+  { q: 'Should I use the SVG or the PNG?', a: 'Use the SVG on your website: it stays sharp at every size. The font is built into the file, so it looks right in browsers. Use the PNG for design tools, slides, social profiles and anywhere that doesn’t take SVG.' },
+  { q: 'Why is there a dark version?', a: 'If your text color would be hard to read on a dark background, the dark version swaps it for a light one. Use it for dark mode or dark headers.' },
+  { q: 'How do I add it to my project?', a: 'Put the file in your <code>public/</code> folder and ask your AI coding agent: “Use /logo.svg as the logo in the header.” For the browser tab icon, press “Make favicons from this”.' },
+  { q: 'Is this good enough for a real brand?', a: 'It’s made for day one: a clean, readable mark so your project doesn’t launch with no logo. When you’re ready for a custom brand, hand this to a designer as a starting point.' },
+];
+---
+<ToolPage
+  slug="logo-maker"
+  title="Free logo maker for your project: SVG and PNG · Darnly"
+  description="Make a simple logo from your project’s name, an icon, a font and colors. Download SVG, PNG, a 1024 px app icon and favicons. Free, no sign-up, nothing uploaded."
+  h1="Logo maker: a simple logo for your project"
+  lede="Type your project’s name, pick an icon, a font and colors, and download a clean logo as SVG or PNG, plus the app icon and favicons. No sign-up, and it all runs in your browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="lm">
+    <div class="stage" aria-label="Logo preview">
+      <div class="card light"><div class="logo" id="lm-light"></div><span class="tag">Light</span></div>
+      <div class="card dark"><div class="logo" id="lm-dark"></div><span class="tag">Dark</span></div>
+      <div class="small">
+        <figure class="phone">
+          <div class="app" id="lm-app"></div>
+          <figcaption id="lm-app-label">Lumen</figcaption>
+        </figure>
+        <div class="tabs">
+          <div class="tab" aria-label="Preview in a browser tab">
+            <span class="tab-pill"><canvas id="lm-tab-icon" width="16" height="16"></canvas><span id="lm-tab-title">Lumen</span></span>
+          </div>
+          <div class="favs">
+            <figure><canvas id="lm-fav-32" width="32" height="32"></canvas><figcaption>32 px</figcaption></figure>
+            <figure><canvas id="lm-fav-16" width="16" height="16"></canvas><figcaption>16 px</figcaption></figure>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="seg" role="group" aria-label="Which version to download">
+        <button type="button" data-variant="light">For light backgrounds</button>
+        <button type="button" data-variant="dark">For dark backgrounds</button>
+      </div>
+      <div class="buttons">
+        <button type="button" class="primary" id="lm-dl-png">Download PNG</button>
+        <button type="button" class="primary" id="lm-dl-svg">Download SVG</button>
+        <button type="button" class="ghost" id="lm-dl-icon">App icon (1024 px)</button>
+        <button type="button" class="ghost" id="lm-favicons">Make favicons from this →</button>
+      </div>
+      <p class="status" id="lm-status" role="status" hidden></p>
+    </div>
+
+    <div class="controls">
+      <div class="row name-row">
+        <label class="name">
+          <span>Project name</span>
+          <input id="lm-name" type="text" value="Lumen" maxlength="32" autocomplete="off" spellcheck="false" />
+        </label>
+        <button type="button" class="ghost shuffle" id="lm-shuffle">Surprise me</button>
+      </div>
+
+      <div class="row two">
+        <div class="field">
+          <span class="label">Layout</span>
+          <div class="seg" role="group" aria-label="Layout">
+            <button type="button" data-layout="left">Icon left</button>
+            <button type="button" data-layout="above">Icon above</button>
+            <button type="button" data-layout="wordmark">Name only</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Icon style</span>
+          <div class="seg" role="group" aria-label="Icon style">
+            <button type="button" data-style="tile">Square</button>
+            <button type="button" data-style="circle">Circle</button>
+            <button type="button" data-style="plain">Plain</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Colors</span>
+        <div class="colors">
+          <div class="presets" id="lm-presets" role="group" aria-label="Color presets"></div>
+          <label class="pick">Icon <input id="lm-brand" type="color" /></label>
+          <label class="pick">Text <input id="lm-text" type="color" /></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Font</span>
+        <div class="fonts" id="lm-fonts" role="group" aria-label="Font"></div>
+      </div>
+
+      <div class="field">
+        <div class="icon-head">
+          <span class="label">Icon</span>
+          <input id="lm-icon-search" type="search" placeholder="Search icons, e.g. rocket" aria-label="Search icons" />
+        </div>
+        <div class="icons" id="lm-icons" role="group" aria-label="Icon"></div>
+        <p class="empty" id="lm-icon-empty" hidden>No icon matches that. Try a simpler word, like “star” or “code”.</p>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Technical details: the SVG code</summary>
+      <p>This is the SVG for the version picked above, without the built-in font, so it’s easy to read and paste. The downloaded file includes the font.</p>
+      <div class="code">
+        <div class="code-head"><span>logo.svg</span><button id="lm-copy-svg" type="button">Copy</button></div>
+        <pre id="lm-svg-code"></pre>
+      </div>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/logo-maker';
+</script>
+
+<style>
+  .lm [hidden] { display: none !important; }
+  .lm { display: grid; gap: 22px; }
+
+  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { position: relative; display: grid; place-items: center; min-height: 260px; padding: 36px 28px; border-radius: 22px; border: 1px solid var(--line); }
+  .card.light { background: #FFFFFF; }
+  .card.dark { background: #0E1A22; border-color: #0E1A22; }
+  .logo { display: grid; place-items: center; width: 100%; }
+  .logo :global(svg) { display: block; width: auto; height: auto; max-width: 100%; max-height: 150px; }
+  .tag { position: absolute; top: 12px; left: 14px; font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+  .dark .tag { color: #7F98A6; }
+
+  .small { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 22px 36px; padding: 20px 24px; border-radius: 22px; background: var(--wash); }
+  .phone { margin: 0; display: grid; justify-items: center; gap: 8px; padding: 18px 26px; border-radius: 18px; background: linear-gradient(160deg, #3B5A6E, #142B38); }
+  .app { width: 72px; height: 72px; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.3)); }
+  .app :global(svg) { display: block; width: 72px; height: 72px; }
+  .phone figcaption { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #FFFFFF; font: 500 12px/1 var(--body); }
+  .tabs { display: grid; gap: 14px; }
+  .tab { padding: 8px 10px 0; background: #DEE3E8; border-radius: 12px 12px 0 0; width: 260px; }
+  .tab-pill { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #FFFFFF; border-radius: 10px 10px 0 0; font-size: 13px; overflow: hidden; white-space: nowrap; }
+  .tab-pill canvas { flex: none; }
+  .favs { display: flex; align-items: flex-end; gap: 18px; }
+  .favs figure { margin: 0; display: grid; justify-items: center; gap: 6px; }
+  .favs figcaption { font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+
+  .actions { display: grid; gap: 12px; justify-items: start; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+  button.primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  button.primary:hover { background: #047FAB; }
+  button.ghost { font: 600 15px/1 var(--body); padding: 14px 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  button.ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; color: #13795B; font-weight: 500; }
+
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--wash); border: 1px solid var(--line); }
+  .seg button { font: 500 14px/1 var(--body); padding: 9px 13px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--white); box-shadow: 0 1px 3px rgba(11, 34, 48, 0.15); font-weight: 600; }
+
+  .controls { display: grid; gap: 22px; padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--white); }
+  .row { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: end; }
+  .field { display: grid; gap: 10px; }
+  .label, .name span { font: 600 14px/1 var(--body); color: var(--ink-soft); }
+  .name { display: grid; gap: 10px; flex: 1 1 260px; }
+  .name input { font: 600 22px/1.2 var(--body); padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); min-width: 0; }
+  .name input:focus, .icon-head input:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+
+  .colors { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets :global(.swatch) { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--white); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .presets :global(.swatch[aria-pressed='true']) { box-shadow: 0 0 0 2px var(--ink); }
+  .pick { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .pick input { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); cursor: pointer; }
+
+  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+  .fonts :global(button) { font-size: 18px; padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fonts :global(button[aria-pressed='true']), .icons :global(button[aria-pressed='true']) { border-color: var(--sky); box-shadow: 0 0 0 2px var(--sky); }
+
+  .icon-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .icon-head input { font: inherit; font-size: 15px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; width: min(260px, 100%); }
+  .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 236px; overflow-y: auto; padding: 4px; }
+  .icons :global(button) { display: grid; place-items: center; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .icons :global(button:hover) { border-color: var(--sky); color: var(--sky); }
+  .empty { margin: 0; color: var(--ink-soft); }
+
+  .tech summary { cursor: pointer; font-weight: 600; color: var(--ink-soft); }
+  .tech p { color: var(--ink-soft); }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; max-height: 260px; overflow: auto; font: 400 12px/1.6 var(--mono); white-space: pre-wrap; word-break: break-all; }
+
+  @media (max-width: 640px) {
+    .stage { grid-template-columns: 1fr; }
+    .card { min-height: 180px; padding: 30px 18px; }
+    .controls { padding: 18px; }
+    .tab { width: 220px; }
+    .buttons button { flex: 1 1 auto; }
+  }
+</style>
