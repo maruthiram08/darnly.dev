@@ -18,8 +18,23 @@
 //   Screenshots of the page at 390, 768 and 1280 px wide, for sites that block frames. Uses
 //   Browser Rendering, so it has stricter limits: 3 a minute per visitor and 20 a minute site-wide,
 //   a one hour cache, a 25 second budget, and every address the browser loads is checked.
+//
+// GET /api/colors?url=https://example.com
+//   Same guards. Reads the page and its stylesheets and returns its color palette, for the
+//   website color finder at /tools/website-color-finder/.
+//
+// GET /api/launch?url=https://example.com
+//   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
+//   and grades each launch basic, for the launch checker at /tools/launch-checker/.
+//
+// GET /api/stack?url=https://example.com
+//   Same guards. Reads the page, its response headers and a few of its own files and returns
+//   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
 
 import { findFonts } from './fonts';
+import { findColors } from './colors';
+import { checkLaunch, type Probe } from './launch';
+import { findStack } from './stack';
 import { takeShots } from './shots';
 
 interface Env {
@@ -44,6 +59,9 @@ export default {
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/frame') return frameApi(req, url, env, ctx);
     if (url.pathname === '/api/shots') return shotsApi(req, url, env, ctx);
+    if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
+    if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
+    if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -131,6 +149,49 @@ export function frameRule(h: Headers): 'allowed' | 'blocked' {
   }
   const xfo = (h.get('x-frame-options') ?? '').toLowerCase();
   return /deny|sameorigin/.test(xfo) ? 'blocked' : 'allowed';
+}
+
+// /api/stack: what a page was built with, hosted on and tracked by.
+function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('stack', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
+  }));
+}
+
+// /api/launch: is this site ready to launch? Extra files are read with the same address rules.
+function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const probe = async (raw: string, accept: string): Promise<Probe | null> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
+      return { status: res.status, url: final, type: res.headers.get('content-type') ?? '', text: await readLimited(res, 300_000) };
+    } catch {
+      return null;
+    }
+  };
+  return pageTool('launch', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    // Our own pages are read from the site files, which never see the http→https redirect.
+    ...(await checkLaunch(p.html, p.finalUrl, probe, { probeHttp: !isOwnHost(new URL(p.finalUrl), url) })),
+  }));
+}
+
+// /api/colors: a page's color palette from its CSS.
+function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('colors', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.

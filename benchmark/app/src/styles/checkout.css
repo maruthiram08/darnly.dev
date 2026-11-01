@@ -1,0 +1,12 @@
+.checkout { display: grid; grid-template-columns: 1fr 320px; gap: 32px; }
+.checkout h1 { grid-column: 1 / -1; }
+.checkout-form { display: grid; gap: 14px; align-content: start; }
+.checkout-form label { display: grid; gap: 4px; }
+.checkout-form input, .checkout-form select { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font: inherit; background: var(--bg); color: var(--text); }
+
+.checkout-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.checkout-actions .btn,
+.btn.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}

@@ -34,6 +34,46 @@ export const TOOLS: Item[] = [
     blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
   },
   {
+    slug: 'image-compressor',
+    name: 'Image compressor',
+    blurb: 'Shrink images to WebP, JPG or PNG and see the size before and after.',
+  },
+  {
+    slug: 'image-converter',
+    name: 'Image converter',
+    blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
+  },
+  {
+    slug: 'og-image-generator',
+    name: 'OG image generator',
+    blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
+  },
+  {
+    slug: 'launch-checker',
+    name: 'Launch checker',
+    blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
+  },
+  {
+    slug: 'website-color-finder',
+    name: 'Website color finder',
+    blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
+  },
+  {
+    slug: 'tech-stack-finder',
+    name: 'Tech stack finder',
+    blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
+  },
+  {
+    slug: 'app-icon-generator',
+    name: 'App icon generator',
+    blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
+  },
+  {
+    slug: 'contrast-checker',
+    name: 'Color contrast checker',
+    blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
+  },
+  {
     slug: 'responsive-checker',
     name: 'Responsive checker',
     blurb: 'See any page at phone, tablet and desktop widths side by side.',
