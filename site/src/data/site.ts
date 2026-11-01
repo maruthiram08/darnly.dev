@@ -33,6 +33,11 @@ export const TOOLS: Item[] = [
     name: 'Color palette from image',
     blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
   },
+  {
+    slug: 'launch-checker',
+    name: 'Launch checker',
+    blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
+  },
 ];
 
 // Same for guides.
