@@ -2,6 +2,8 @@ import { defineConfig } from 'wxt';
 import tailwindcss from '@tailwindcss/vite';
 import { PRODUCT } from './src/config/product';
 
+const GOOGLE_CLIENT_ID = '707818170740-n9bp4nmkrt8avl5p29452d59cve587as.apps.googleusercontent.com';
+
 export default defineConfig({
   srcDir: 'src',
   outDir: process.env.DARNLY_E2E ? '.output-e2e' : '.output',
@@ -16,8 +18,9 @@ export default defineConfig({
     // An unpacked build gets a random id, and Google sign-in only works for the store id. Setting the store
     // item's public key (Developer Dashboard → Package → Public key) gives an unpacked build the same id.
     ...(process.env.DARNLY_MANIFEST_KEY ? { key: process.env.DARNLY_MANIFEST_KEY } : {}),
-    ...(process.env.DARNLY_GOOGLE_CLIENT_ID
-      ? { oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] } }
+    // Google sign-in for the cloud inbox (public id of the "Chrome extension" OAuth client). Override with DARNLY_GOOGLE_CLIENT_ID.
+    ...((process.env.DARNLY_GOOGLE_CLIENT_ID ?? GOOGLE_CLIENT_ID)
+      ? { oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID ?? GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] } }
       : {}),
     // Production sites are switched on one at a time from the side panel; Chrome asks to confirm each.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
