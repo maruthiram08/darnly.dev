@@ -48,6 +48,11 @@ export const TOOLS: Item[] = [
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
   },
+  {
+    slug: 'launch-checker',
+    name: 'Launch checker',
+    blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
+  },
 ];
 
 // Same for guides.
