@@ -133,6 +133,11 @@ export const TOOLS: Item[] = [
     name: 'Cookie banner generator',
     blurb: 'Design a cookie consent banner live and copy a tiny snippet that holds back analytics until people agree.',
   },
+  {
+    slug: 'hex-to-tailwind',
+    name: 'Hex to Tailwind',
+    blurb: 'Paste any color and see the nearest Tailwind colors side by side, then copy the class.',
+  },
 ];
 
 // Same for guides.
