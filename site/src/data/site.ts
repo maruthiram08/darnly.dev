@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'exif-remover',
+    category: 'Security',
+    name: 'EXIF remover',
+    blurb: 'See if your photos show where you live, then remove the location, date and camera info in one click.',
+  },
 ];
 
 // Same for guides.
