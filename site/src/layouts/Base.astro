@@ -8,10 +8,21 @@ interface Props {
   ogTitle?: string;
   ogDescription?: string;
   noindex?: boolean;
+  image?: string; // share picture, 1200×630, path under public/
+  imageAlt?: string;
 }
 
-const { title, description, ogTitle = title, ogDescription = description, noindex = false } = Astro.props;
+const {
+  title,
+  description,
+  ogTitle = title,
+  ogDescription = description,
+  noindex = false,
+  image = '/og/default.jpg',
+  imageAlt = 'Darnly: spot a bug, point at it, your agent fixes it.',
+} = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const imageUrl = new URL(image, Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -22,6 +33,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <meta name="description" content={description}>
 <meta property="og:title" content={ogTitle}>
 <meta property="og:description" content={ogDescription}>
+<meta property="og:url" content={canonical}>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Darnly">
+<meta property="og:image" content={imageUrl}>
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content={imageAlt}>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@darnlyhq">
 <link rel="canonical" href={canonical}>
 {noindex && <meta name="robots" content="noindex">}
 <link rel="icon" href="/icon.png">

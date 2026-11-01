@@ -19,6 +19,11 @@ export const TOOLS: Item[] = [
     blurb: 'See how your link looks on X, LinkedIn, WhatsApp and Slack, and what to fix.',
   },
   {
+    slug: 'meta-tag-generator',
+    name: 'Meta tag generator',
+    blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
+  },
+  {
     slug: 'og-image-generator',
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',

@@ -13,6 +13,7 @@ export default defineConfig({
   site: 'https://darnly.dev',
   trailingSlash: 'ignore',
   // Point Vite at this folder's tsconfig so it doesn't pick up the extension's one at the repo root.
-  vite: { tsconfig: './tsconfig.json' },
+  // assetsInlineLimit 0: never inline small scripts, because the site's CSP blocks inline scripts.
+  vite: { tsconfig: './tsconfig.json', build: { assetsInlineLimit: 0 } },
   integrations: [sitemap({ filter: (page) => !hidden.includes(page) })],
 });

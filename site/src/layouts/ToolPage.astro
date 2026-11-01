@@ -5,6 +5,8 @@ import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import DarnlyStrip from '../components/DarnlyStrip.astro';
 import { TOOLS } from '../data/site';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 interface Props {
   slug: string;
@@ -20,6 +22,8 @@ const { slug, title, description, h1, lede, steps, faq } = Astro.props;
 const source = `tool-${slug}`;
 const others = TOOLS.filter((t) => t.slug !== slug).slice(0, 3);
 const canonical = new URL(`/tools/${slug}/`, Astro.site).toString();
+// Each tool can have its own share picture at public/og/tools/<slug>.jpg; otherwise the site's default is used.
+const image = existsSync(join(process.cwd(), 'public/og/tools', `${slug}.jpg`)) ? `/og/tools/${slug}.jpg` : undefined;
 
 // Lets search engines show this page as a free web app with its questions.
 const jsonLd = JSON.stringify([
@@ -40,7 +44,7 @@ const jsonLd = JSON.stringify([
   },
 ]);
 ---
-<Base title={title} description={description}>
+<Base title={title} description={description} image={image} imageAlt={`${h1.split(":")[0]}, a free tool from Darnly`}>
   <script slot="head" type="application/ld+json" set:html={jsonLd} />
   <SiteHeader source={source} />
   <main class="wrap tool-page">
