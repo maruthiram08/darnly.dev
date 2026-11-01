@@ -11,12 +11,25 @@
   "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "2a549817cf404a31a65609b3a5e47800" }],
   // Served at https://api.darnly.dev (Cloudflare creates the DNS record on deploy).
   "routes": [{ "pattern": "api.darnly.dev", "custom_domain": true }],
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Hourly: the spend meter (src/spend.ts). At 03:17 UTC it also deletes old fixed bugs.
+  "triggers": { "crons": ["17 * * * *"] },
+  // Per-IP limits: 20 uploads/sign-ins a minute, 300 requests a minute in all. namespace_id is any number unique in the account.
+  "ratelimits": [
+    { "name": "WRITE_LIMITER", "namespace_id": "4101", "simple": { "limit": 20, "period": 60 } },
+    { "name": "ANY_LIMITER", "namespace_id": "4102", "simple": { "limit": 300, "period": 60 } }
+  ],
+  // Keep variables added in the dashboard (like UPLOADS_OFF) when deploying.
+  "keep_vars": true,
   "vars": {
     "PUBLIC_URL": "https://api.darnly.dev",
     // OAuth client id of type "Chrome extension" from Google Cloud Console. Tokens for any other client are refused.
     "GOOGLE_EXTENSION_CLIENT_ID": "707818170740-n9bp4nmkrt8avl5p29452d59cve587as.apps.googleusercontent.com",
     // OAuth client id of type "Web application" for agent sign-in. Its secret is set with `wrangler secret put GOOGLE_WEB_CLIENT_SECRET`.
+    // Spend meter: pause uploads at $50 of usage this billing month, take api.darnly.dev offline at $85.
+    // With the $5 plan and up to an hour of lag, the month stays under $100. Needs CF_ACCOUNT_ID + CF_API_TOKEN secrets.
+    "SPEND_PAUSE_USD": "50",
+    "SPEND_STOP_USD": "85",
+    "WORKER_NAME": "darnly-cloud",
     "GOOGLE_WEB_CLIENT_ID": "707818170740-qvuscm010h8l15ldp5ebprdjui5pkoj0.apps.googleusercontent.com"
   },
   "observability": { "enabled": true }

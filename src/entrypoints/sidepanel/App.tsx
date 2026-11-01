@@ -28,6 +28,22 @@ interface SiteStatus {
 
 type Stage = 'idle' | 'picking' | 'note' | 'saved';
 
+
+/** Plain words for the cloud's limit errors. Anything else shows its code. */
+function cloudReason(e: unknown): string {
+  const code = (e as Error).message;
+  const words: Record<string, string> = {
+    daily_limit: 'you reached today\'s limit of 200 cloud bugs',
+    too_many_this_hour: 'too many bugs this hour',
+    inbox_full: 'your cloud inbox has 500 waiting bugs',
+    storage_full: 'your cloud inbox is full',
+    cloud_busy: 'Darnly cloud is busy today',
+    uploads_paused: 'cloud uploads are paused for now',
+    slow_down: 'too many requests, try again in a minute',
+  };
+  return words[code] ?? code;
+}
+
 export function App() {
   const [stage, setStage] = useState<Stage>('idle');
   const [capture, setCapture] = useState<PendingCapture | null>(null);
@@ -348,7 +364,7 @@ export function App() {
         refreshCloud(session);
       } catch (e) {
         done('');
-        setMessage(`Couldn't send it to your Darnly inbox (${(e as Error).message}). Copy it into your agent below instead.`);
+        setMessage(`Couldn't send it to your Darnly inbox (${cloudReason(e)}). Copy it into your agent below instead.`);
       }
       return;
     }
