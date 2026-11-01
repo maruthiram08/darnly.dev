@@ -117,6 +117,11 @@ describe('cloud inbox API', () => {
     const big = new Uint8Array(5 * 1024 * 1024 + 10);
     big.set(PNG.slice(0, 8));
     expect((await upload(token, { picture: big })).status).toBe(413);
+    const form = new FormData();
+    form.set('meta', JSON.stringify({ title: 'x', pageUrl: 'https://a.example/' }));
+    form.set('report', '# x');
+    form.set('reference', new File([new TextEncoder().encode('not a png')], 'r.png', { type: 'image/png' }));
+    expect((await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form })).status).toBe(415);
   });
 
   it('deletes all bugs and files, and deleting the account signs out', async () => {

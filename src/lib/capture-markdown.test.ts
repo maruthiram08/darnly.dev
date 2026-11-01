@@ -27,6 +27,7 @@ describe('captureMarkdown', () => {
     expect(md).toContain('# Bug on /checkout: button "Pay now"');
     expect(md).toContain('**Expected:** Pay now should open the payment form');
     expect(md).toContain('**Screenshot:** .darnly/inbox/2026-11-01-0140-pay-now-should-open.png');
+    expect(md).not.toContain('What it should look like');
     expect(md).toContain('- selector: `button[data-testid="pay-now"]`');
     expect(md).toContain('opacity: 0.5; pointer-events: none');
     expect(md).toContain('page_title: "Checkout | My shop"');
@@ -160,5 +161,13 @@ describe('page data fence', () => {
     expect(md.split('<!-- darnly:page-data:end -->').length).toBe(2); // the fake marker was removed
     expect(md).toContain('````html'); // fence longer than the page's own backticks
     expect(md.indexOf('rm -rf')).toBeLessThan(end);
+  });
+  it('names the picture of what it should look like, before the page data', () => {
+    const local = captureMarkdown({ ...base, reference: true });
+    const at = local.indexOf('**What it should look like:** .darnly/inbox/2026-11-01-0140-pay-now-should-open.reference.png');
+    expect(at).toBeGreaterThan(0);
+    expect(at).toBeLessThan(local.indexOf('<!-- darnly:page-data:start -->'));
+    expect(captureMarkdown({ ...base, reference: true, forCloud: true })).toContain('the second picture returned with this bug');
+    expect(captureMarkdown({ ...base, reference: true, forPaste: true })).not.toContain('What it should look like');
   });
 });

@@ -100,6 +100,14 @@ try {
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   await panel.getByLabel('What did you expect?').fill('Pay now should open the payment form');
+  // Paste a picture of what it should look like (a 1x1 PNG), the way Cmd+V with a screenshot would.
+  await panel.getByLabel('What did you expect?').evaluate((el) => {
+    const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='), (c) => c.charCodeAt(0));
+    const dt = new DataTransfer();
+    dt.items.add(new File([bytes], 'want.png', { type: 'image/png' }));
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+  await panel.getByText('Picture of what you want added').waitFor({ timeout: 3000 }).catch(() => fail('pasted picture not shown'));
   // Impatient double press: still one bug.
   await Promise.all([panel.getByLabel('What did you expect?').press('Enter'), panel.getByLabel('What did you expect?').press('Enter').catch(() => {})]);
   await panel.getByText('Sent to your Darnly inbox').waitFor({ timeout: 8000 }).catch(() => fail('not sent to the cloud'));
@@ -129,6 +137,8 @@ try {
     const got = await client.callTool({ name: 'get_bug', arguments: { id: bug.id } });
     if (!got.content[0].text.includes('Pay now should open the payment form')) fail('MCP get_bug missing the note');
     if (got.content[1]?.type !== 'image') fail('MCP get_bug missing the picture');
+    if (got.content[3]?.type !== 'image' || !String(got.content[2]?.text).includes('What it should look like')) fail('MCP get_bug missing the picture of what it should look like');
+    if (!got.content[0].text.includes('the second picture returned with this bug')) fail('report does not mention the reference picture');
     await client.callTool({ name: 'mark_fixed', arguments: { id: bug.id, note: 'wired Pay now to openPaymentForm()' } });
     await client.close();
     await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 12000 }).catch(() => fail('fixed nudge missing'));
