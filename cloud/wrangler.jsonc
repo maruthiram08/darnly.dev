@@ -9,6 +9,8 @@
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "darnly-bugs" }],
   "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "2a549817cf404a31a65609b3a5e47800" }],
+  // Served at https://api.darnly.dev (Cloudflare creates the DNS record on deploy).
+  "routes": [{ "pattern": "api.darnly.dev", "custom_domain": true }],
   "triggers": { "crons": ["17 3 * * *"] },
   "vars": {
     "PUBLIC_URL": "https://api.darnly.dev",
