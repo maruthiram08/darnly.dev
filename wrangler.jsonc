@@ -7,10 +7,12 @@
   "main": "site/worker/index.ts",
   "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   // Free tools that fetch other sites: at most 20 checks a minute per visitor.
+  // The sitemap generator also gets 2 crawls a minute, since one crawl reads up to 100 pages.
   // The page speed checker waits on Google for up to a minute per test: at most 2 a minute per visitor.
   "ratelimits": [
     { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
-    { "name": "PSI_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } }
+    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
+    { "name": "PSI_LIMIT", "namespace_id": "4820", "simple": { "limit": 2, "period": 60 } }
   ],
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).

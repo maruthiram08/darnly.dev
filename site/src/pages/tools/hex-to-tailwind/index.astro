@@ -1,0 +1,160 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your color. Hex (<code>#0593c6</code>), <code>rgb()</code>, <code>hsl()</code> and color names all work, or use the color picker. In Chrome and Edge you can also pick any color on your screen.',
+  'The preview at the top puts your color next to the 3 closest Tailwind colors. The bar under each one shows how close it is.',
+  'Click “Copy class” to copy it, like <code>bg-sky-600</code>. Switch to <code>text</code> or <code>border</code> first if that’s what you need. If nothing is close, copy the exact value instead.',
+];
+
+const faq = [
+  { q: 'Which Tailwind version should I pick?', a: 'If your CSS file starts with <code>@import "tailwindcss";</code> and there’s no <code>tailwind.config.js</code>, you’re on v4. If you have a <code>tailwind.config.js</code> or <code>tailwind.config.ts</code> file, you’re on v3. The color names are the same, but v4 changed the exact shades a little, so the closest match can differ.' },
+  { q: 'How do you decide which color is closest?', a: 'We compare colors in OKLCH (OKLab), a color space built around how people actually see color, so “closest” means closest to your eye, not closest in hex digits. A score under 1.5 usually looks the same side by side.' },
+  { q: 'What if no Tailwind color is close?', a: 'Use the exact value, like <code>bg-[#1A2B3C]</code>. Tailwind accepts any color in square brackets. If it’s your brand color and you use it a lot, make a full shade scale from it with our Tailwind color generator and add it to your theme.' },
+  { q: 'Why does the v4 swatch look a bit brighter?', a: 'Tailwind v4 colors are defined in OKLCH and some go beyond what older screens can show. On a wide-color screen they can look richer than their hex code. The hex we show is the nearest one any screen can show.' },
+  { q: 'Can I share a result?', a: 'Yes. The page address updates as you type, with <code>?c=</code> for your color. Click “Copy link” and send it to anyone.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="hex-to-tailwind"
+  title="Hex to Tailwind: find the nearest Tailwind color · Darnly"
+  description="Paste a hex, rgb or hsl color and see the 3 nearest Tailwind CSS colors side by side, for v4 and v3, with how close each one is. Copy the class like bg-sky-600. Free."
+  h1="Hex to Tailwind: the nearest Tailwind color"
+  lede="Paste any color and see the closest Tailwind colors right next to it, with a bar that shows how close each one is. Copy the class in one click, or the exact value if nothing is close."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ht">
+    <div class="stage" aria-label="Your color next to the nearest Tailwind colors">
+      <div class="you" id="ht-you">
+        <span class="rank">Your color</span>
+        <strong id="ht-you-hex">#0593C6</strong>
+      </div>
+      <ol class="matches" id="ht-matches"></ol>
+    </div>
+    <p class="verdict" id="ht-verdict" role="status" aria-live="polite"></p>
+
+    <div class="controls">
+      <div class="input">
+        <label for="ht-text">Your color</label>
+        <div class="field">
+          <input id="ht-picker" type="color" value="#0593c6" aria-label="Pick a color" />
+          <input id="ht-text" type="text" value="#0593C6" spellcheck="false" autocomplete="off" />
+          <button id="ht-drop" type="button" class="drop" hidden title="Pick a color from your screen">Pick from screen</button>
+        </div>
+        <p class="bad" id="ht-error" role="alert" hidden>We can’t read that color. Try a hex code like #1a2b3c.</p>
+      </div>
+      <div class="toggles">
+        <div class="seg" role="group" aria-label="Tailwind version">
+          <span>Tailwind</span>
+          <button type="button" data-version="v4" aria-pressed="true">v4</button>
+          <button type="button" data-version="v3" aria-pressed="false">v3</button>
+        </div>
+        <div class="seg" role="group" aria-label="Use it for">
+          <span>Use for</span>
+          <button type="button" data-prefix="bg" aria-pressed="true">bg</button>
+          <button type="button" data-prefix="text" aria-pressed="false">text</button>
+          <button type="button" data-prefix="border" aria-pressed="false">border</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="none" id="ht-none">
+      <div>
+        <strong>Need the exact color?</strong>
+        <span>Tailwind takes any color in square brackets.</span>
+      </div>
+      <code id="ht-arb">bg-[#0593C6]</code>
+      <button id="ht-arb-copy" type="button" class="ghost">Copy exact value</button>
+      <a id="ht-scale" class="ghost" href="/tools/tailwind-color-generator/">Make a full scale from this color</a>
+    </div>
+
+    <details class="more">
+      <summary>See the numbers</summary>
+      <table>
+        <thead><tr><th>Tailwind color</th><th>Value</th><th>Hex</th><th>Distance</th></tr></thead>
+        <tbody id="ht-table"></tbody>
+      </table>
+      <p class="hint">Distance is the OKLab difference × 100. Under 1.5 usually looks the same, under 4 is very close, under 8 is close.</p>
+    </details>
+
+    <div class="actions">
+      <button id="ht-link" type="button" class="ghost">Copy link</button>
+      <p class="status" id="ht-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/hex-to-tailwind';
+</script>
+
+<style>
+  .ht { display: grid; gap: 20px; min-width: 0; }
+  .ht [hidden] { display: none !important; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.9fr); gap: 12px; padding: 12px; border-radius: 24px; border: 1px solid var(--line); background: var(--white); }
+  .you { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-height: 300px; padding: 20px; border-radius: 16px; background: #0593C6; color: #fff; transition: background 0.15s; }
+  .you strong { font: 800 34px/1 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  .you .rank, .matches :global(.rank) { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+  .matches { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .matches :global(li) { display: grid; grid-template-rows: 1fr auto auto; gap: 10px; min-width: 0; }
+  .matches :global(.sw) { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-height: 190px; padding: 16px; border-radius: 16px; border: 1px solid rgba(11, 34, 48, 0.08); }
+  .matches :global(.sw strong) { font: 700 17px/1.2 var(--mono); overflow-wrap: anywhere; }
+  .matches :global(.meter) { display: grid; gap: 6px; padding: 0 4px; }
+  .matches :global(.mlabel) { font-size: 14px; font-weight: 600; }
+  .matches :global(.track) { height: 8px; border-radius: 999px; background: var(--wash); overflow: hidden; }
+  .matches :global(.fill) { height: 100%; border-radius: 999px; background: #E0A100; transition: width 0.2s; }
+  .matches :global(li.same .fill), .matches :global(li.very .fill) { background: #12A150; }
+  .matches :global(li.far .fill) { background: #D14363; }
+  .matches :global(.copy) { justify-self: stretch; font: 600 14px/1 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .matches :global(.copy:hover) { border-color: var(--sky); }
+  .verdict { margin: -6px 0 0; font: 600 18px/1.4 var(--body); }
+  .verdict:global(.same), .verdict:global(.very) { color: #0B6B3A; }
+  .verdict:global(.far) { color: #9C1C44; }
+  .controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; }
+  .input { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+  .input label { font-weight: 600; }
+  .field { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .field:focus-within { border-color: var(--sky); }
+  .field input[type='color'] { flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+  .field input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .field input[type='color']::-webkit-color-swatch { border: 0; border-radius: 9px; }
+  .field input[type='text'] { flex: 1; min-width: 0; font: 500 18px/1.2 var(--mono); padding: 10px 6px; border: 0; background: none; color: var(--ink); }
+  .field input[type='text']:focus { outline: none; }
+  .drop { flex: none; font: 600 14px/1 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .drop:hover { border-color: var(--sky); }
+  .bad { margin: 0; color: #B4234F; font-size: 14px; }
+  .toggles { display: grid; gap: 8px; }
+  .seg { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); }
+  .seg span { min-width: 70px; padding: 0 8px; font-size: 14px; color: var(--ink-soft); }
+  .seg button { font: 600 14px/1 var(--mono); padding: 9px 12px; border: 0; border-radius: 999px; background: none; color: var(--ink); cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .none { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 16px 20px; border-radius: 16px; background: var(--wash); }
+  .none:global(.far) { background: #FBE0E8; }
+  .none div { display: grid; gap: 2px; flex: 1 1 220px; }
+  .none div span { font-size: 14px; color: var(--ink-soft); }
+  .none code { font: 600 15px/1 var(--mono); padding: 10px 12px; border-radius: 10px; background: var(--white); overflow-wrap: anywhere; }
+  .more { padding: 4px 20px; border-radius: 16px; background: var(--wash); }
+  .more summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .more table { width: 100%; border-collapse: collapse; font: 14px/1.4 var(--mono); }
+  .more th, .more :global(td) { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .more th { font: 600 13px/1.3 var(--body); color: var(--ink-soft); }
+  .hint { margin: 10px 0 16px; font-size: 14px; color: var(--ink-soft); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .stage { grid-template-columns: minmax(0, 1fr); }
+    .you { min-height: 150px; }
+    .matches :global(.sw) { min-height: 120px; padding: 12px; }
+    .matches :global(.sw strong) { font-size: 14px; }
+    .controls { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .matches { grid-template-columns: minmax(0, 1fr); }
+    .matches :global(li) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto; }
+    .matches :global(.sw) { grid-row: span 2; min-height: 96px; }
+  }
+</style>

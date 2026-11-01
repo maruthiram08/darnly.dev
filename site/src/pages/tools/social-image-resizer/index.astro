@@ -1,0 +1,185 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { SLOTS, BACKGROUNDS } from '../../../scripts/social-image-slots';
+
+const steps = [
+  'Drop in one picture, or paste it. You see it cropped right away for X, LinkedIn, Instagram, YouTube and a profile picture.',
+  'Drag inside any frame to move the crop, and use the zoom slider to get closer. Switch on "What gets covered" to see where your profile photo or the video length sits on top.',
+  'Download the size you need, or all of them at once as a ZIP. Every file comes out at the exact size each site asks for.',
+];
+
+const faq = [
+  { q: 'Are my pictures uploaded anywhere?', a: 'No. The cropping and resizing happen in your browser. Your picture never leaves your computer.' },
+  { q: 'What size is an X (Twitter) header?', a: '1500 × 500 pixels, a 3:1 strip. Your profile photo covers part of the bottom left, so keep faces and text away from that corner.' },
+  { q: 'What size is a LinkedIn banner?', a: '1584 × 396 pixels, a 4:1 strip. On your profile your photo covers part of the left side, so put the important part in the middle or on the right.' },
+  { q: 'What size should an Instagram post be?', a: '1080 × 1080 for a square post, or 1080 × 1350 for a tall (4:5) post, which takes up more of the screen in the feed.' },
+  { q: 'What size is a YouTube thumbnail?', a: '1280 × 720 pixels (16:9), under 2 MB. The video length is shown in the bottom right corner, so keep that spot clear.' },
+  { q: 'Why is the profile picture square when the preview is round?', a: 'Every site asks for a square picture and cuts it into a circle itself. The round preview shows you what people will see.' },
+  { q: 'What if my picture is smaller than a size?', a: 'It is still made at the exact size, but it is stretched, so it can look soft. The frame says “Your picture is small for this” when that happens. Start from a bigger picture if you can.' },
+];
+---
+<ToolPage
+  slug="social-image-resizer"
+  title="Free social media image resizer: X, LinkedIn, Instagram, YouTube · Darnly"
+  description="Resize one picture for every social media size at once: X header, LinkedIn banner, Instagram post, YouTube thumbnail and profile picture. Drag to crop. Free, nothing is uploaded."
+  h1="Social media image resizer: every size from one picture"
+  lede="Drop in one picture and see it cropped for X, LinkedIn, Instagram, YouTube and your profile photo. Drag to move each crop, then download one or all."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sr" id="sr">
+    <label class="drop" id="sr-drop">
+      <input id="sr-file" type="file" accept="image/*" />
+      <span class="drop-icon" aria-hidden="true">＋</span>
+      <span class="drop-text"><strong id="sr-drop-title">Drop your picture here</strong>
+      <span id="sr-drop-text">or click to choose one. You can also paste. Below is a sample until you do.</span></span>
+    </label>
+    <p class="error" id="sr-error" role="alert" hidden></p>
+
+    <div class="bar">
+      <fieldset class="seg" aria-label="How to fit the picture">
+        <label><input type="radio" name="sr-mode" value="fill" checked /> Fill the frame</label>
+        <label><input type="radio" name="sr-mode" value="fit" /> Show it all</label>
+      </fieldset>
+      <label class="toggle"><input id="sr-cover" type="checkbox" checked /> What gets covered</label>
+      <fieldset class="seg" aria-label="File type">
+        <label><input type="radio" name="sr-type" value="image/jpeg" checked /> JPG</label>
+        <label><input type="radio" name="sr-type" value="image/png" /> PNG</label>
+      </fieldset>
+    </div>
+
+    <div class="bgrow">
+      <span class="bg-label">Background</span>
+      <div class="swatches" id="sr-bgs" role="radiogroup" aria-label="Background around the picture">
+        {BACKGROUNDS.map((b) => (
+          <button type="button" role="radio" aria-checked={b.key === 'blur' ? 'true' : 'false'} class={`sw sw-${b.key}`} data-bg={b.key} title={b.name} aria-label={b.name} style={b.css ? `background: ${b.css}` : undefined}></button>
+        ))}
+        <label class="sw sw-custom" title="Pick any color"><input id="sr-bg" type="color" value="#ff5a5f" aria-label="Pick any background color" /></label>
+      </div>
+      <label class="space">Space around <input id="sr-pad" type="range" min="0" max="30" value="0" /></label>
+    </div>
+
+    <ul class="grid" id="sr-grid">
+      {SLOTS.map((s) => (
+        <li class={`card ${s.wide ? 'wide' : ''}`} data-key={s.key}>
+          <div class="card-top">
+            <span class="name"><span class={`net net-${s.net}`} aria-hidden="true">{s.badge}</span>{s.name}</span>
+            <span class="size">{s.w} × {s.h}</span>
+          </div>
+          <div class={`frame ${s.round ? 'round' : ''}`} style={`aspect-ratio: ${s.w} / ${s.h}`}>
+            <canvas aria-label={`Preview of the ${s.name}. Drag to move the crop.`} role="img" tabindex="0"></canvas>
+          </div>
+          {s.cover && <p class="cover-tip"><span aria-hidden="true"></span>{s.cover.tip}</p>}
+          <div class="card-bottom">
+            <label class="zoom">Zoom <input type="range" min="100" max="400" value="100" aria-label={`Zoom for ${s.name}`} /></label>
+            <button type="button" class="dl">Download</button>
+          </div>
+          <p class="warn" hidden>Your picture is small for this, so it may look soft.</p>
+        </li>
+      ))}
+    </ul>
+
+    <div class="actions">
+      <button id="sr-zip" type="button" class="primary">Download all ({SLOTS.length} files, ZIP)</button>
+      <button id="sr-reset" type="button" class="ghost">Center every crop</button>
+    </div>
+
+    <details class="details">
+      <summary>All sizes and limits</summary>
+      <table>
+        <thead><tr><th>Where</th><th>Size</th><th>Shape</th><th>Good to know</th></tr></thead>
+        <tbody>
+          {SLOTS.map((s) => (
+            <tr><td>{s.name}</td><td>{s.w} × {s.h}</td><td>{s.ratio}</td><td>{s.note}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <p>The background shows when you pick “Show it all” or add space around, which is handy for logos and screenshots. JPG is smaller and right for photos. Pick PNG for logos, text or sharp edges. Files are made in your browser with a canvas, and the covered areas are close guides, not exact: each app moves them a little between phone and desktop.</p>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/social-image-resizer';
+</script>
+
+<style>
+  .sr { display: grid; gap: 18px; min-width: 0; }
+  .sr [hidden] { display: none !important; }
+  .drop { position: relative; display: flex; align-items: center; gap: 16px; padding: 18px 22px; border: 2px dashed var(--line); border-radius: 18px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .drop-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--sky); color: var(--white); font: 700 24px/1 var(--body); }
+  .drop-text { display: grid; gap: 2px; min-width: 0; }
+  .drop strong { font: 700 20px/1.2 var(--display); }
+  .drop-text span { color: var(--ink-soft); font-size: 15px; }
+  .error { margin: 0; color: #B4234F; }
+
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  .seg { display: inline-flex; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); }
+  .seg label { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 15px; }
+  .seg label:has(input:checked) { background: var(--sky); color: var(--white); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .bgrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  .bg-label { font-weight: 600; font-size: 15px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { position: relative; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid rgba(15, 23, 42, 0.18); cursor: pointer; overflow: hidden; }
+  .sw[aria-checked='true'] { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .sw:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .sw-blur { background: linear-gradient(135deg, #7DD3F5, #3C8F6E); }
+  .sw-blur::after { content: 'Blur'; position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px/1 var(--body); color: #fff; backdrop-filter: blur(2px); }
+  .sw-custom { background: conic-gradient(#f43f5e, #f59e0b, #84cc16, #06b6d4, #6366f1, #d946ef, #f43f5e); }
+  .sw-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  .sw-custom:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .space { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+  .space input { width: 120px; accent-color: var(--sky); }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--sky); }
+
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; min-width: 0; }
+  .card { display: grid; align-content: start; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); min-width: 0; }
+  .card.wide { grid-column: 1 / -1; }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .net { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font: 700 12px/1 var(--body); color: #fff; }
+  .net-x { background: #111; }
+  .net-li { background: #0A66C2; }
+  .net-ig { background: linear-gradient(135deg, #F9A33A, #E1306C 55%, #833AB4); }
+  .net-yt { background: #E62117; }
+  .net-any { background: var(--ink-soft); }
+  .size { font: 500 13px/1 var(--mono); color: var(--ink-soft); white-space: nowrap; }
+  .frame { position: relative; width: 100%; border-radius: 10px; overflow: hidden; background: repeating-conic-gradient(#eef1f4 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .frame.round { max-width: 240px; justify-self: center; border-radius: 50%; }
+  .frame canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  .frame canvas:active { cursor: grabbing; }
+  .frame canvas:focus-visible { outline: 3px solid var(--pink); outline-offset: -3px; }
+  .cover-tip { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .cover-tip span { flex: none; width: 14px; height: 14px; border-radius: 50%; background: rgba(15, 23, 42, 0.55); border: 1.5px dashed var(--ink-soft); }
+  .sr:global(.no-cover) .cover-tip { display: none; }
+  .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .zoom { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); flex: 1; min-width: 0; }
+  .zoom input { flex: 1; min-width: 0; accent-color: var(--sky); }
+  .dl { font: 600 14px/1 var(--body); padding: 10px 14px; border: 0; border-radius: 999px; background: var(--wash); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .dl:hover { background: var(--sky); color: var(--white); }
+  .warn { margin: 0; font-size: 13px; color: #9A5B00; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .actions button.primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .actions button.primary:hover { background: #047FAB; }
+  .actions button.ghost { font: 600 16px/1 var(--body); padding: 15px 22px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .actions button:disabled { opacity: 0.6; cursor: wait; }
+
+  .details { border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; background: var(--white); min-width: 0; }
+  .details summary { cursor: pointer; font-weight: 600; }
+  .details table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; display: block; overflow-x: auto; }
+  .details th, .details td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .details td:nth-child(2) { font-family: var(--mono); white-space: nowrap; }
+  .details p { color: var(--ink-soft); font-size: 14px; }
+
+  @media (max-width: 560px) {
+    .drop { padding: 14px 16px; }
+    .bar { gap: 10px; }
+  }
+</style>
