@@ -33,6 +33,11 @@ export const TOOLS: Item[] = [
     name: 'Color palette from image',
     blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
   },
+  {
+    slug: 'image-compressor',
+    name: 'Image compressor',
+    blurb: 'Shrink images to WebP, JPG or PNG and see the size before and after.',
+  },
 ];
 
 // Same for guides.
