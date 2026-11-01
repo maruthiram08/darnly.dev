@@ -13,9 +13,9 @@ async function signIn(email: string): Promise<string> {
   return ((await res.json()) as { token: string }).token;
 }
 
-function upload(token: string, opts: { picture?: Uint8Array; report?: string; title?: string } = {}) {
+function upload(token: string, opts: { picture?: Uint8Array; report?: string; title?: string; clientId?: string } = {}) {
   const form = new FormData();
-  form.set('meta', JSON.stringify({ title: opts.title ?? 'Pay now does nothing', pageUrl: 'https://counterdraft.com/checkout?x=1' }));
+  form.set('meta', JSON.stringify({ title: opts.title ?? 'Pay now does nothing', pageUrl: 'https://counterdraft.com/checkout?x=1', clientId: opts.clientId }));
   form.set('report', new File([opts.report ?? '# Bug on /checkout: PayButton\n\n**Expected:** Pay now opens the form'], 'report.md', { type: 'text/markdown' }));
   form.set('picture', new File([opts.picture ?? PNG], 'picture.png', { type: 'image/png' }));
   form.set('logs', '{"entries":[]}');
@@ -79,6 +79,25 @@ describe('cloud inbox API', () => {
     // Bob deleting "all" his bugs leaves Alice's alone.
     await SELF.fetch(`${BASE}/v1/bugs`, { method: 'DELETE', ...auth(bob) });
     expect((await SELF.fetch(`${BASE}/v1/bugs/${bug.id}`, auth(alice))).status).toBe(200);
+  });
+
+  it('saves a capture once, however many times Save is pressed', async () => {
+    const token = await signIn('clicks-save-a-lot@example.com');
+    const clientId = 'c0ffee00-1111-4222-8333-444455556666';
+    const first = (await (await upload(token, { clientId })).json()) as { id: string };
+    // A second press after the first finished, then three at once while nothing has finished.
+    const again = (await (await upload(token, { clientId })).json()) as { id: string };
+    const burst = await Promise.all([1, 2, 3].map(() => upload(token, { clientId: 'burst-' + clientId })));
+    const burstIds = new Set(await Promise.all(burst.map(async (r) => ((await r.json()) as { id: string }).id)));
+    expect(again.id).toBe(first.id);
+    expect(burstIds.size).toBe(1);
+    const list = (await (await SELF.fetch(`${BASE}/v1/bugs`, auth(token))).json()) as { bugs: { id: string }[] };
+    expect(list.bugs).toHaveLength(2);
+    // Without an id (older extension builds) every upload is still its own bug.
+    await upload(token);
+    await upload(token);
+    const after = (await (await SELF.fetch(`${BASE}/v1/bugs`, auth(token))).json()) as { bugs: { id: string }[] };
+    expect(after.bugs).toHaveLength(4);
   });
 
   it('accepts a bug without a picture', async () => {

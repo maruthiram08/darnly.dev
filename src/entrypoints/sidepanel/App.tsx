@@ -278,7 +278,22 @@ export function App() {
     };
   };
 
+  // One save at a time: a slow upload must not turn extra clicks or Enter presses into copies.
+  const [saving, setSaving] = useState(false);
+  const savingNow = useRef(false);
+  const uploadKey = useRef<{ for: unknown; key: string } | null>(null);
   const save = async () => {
+    if (!capture || savingNow.current) return;
+    savingNow.current = true;
+    setSaving(true);
+    try {
+      await saveOnce();
+    } finally {
+      savingNow.current = false;
+      setSaving(false);
+    }
+  };
+  const saveOnce = async () => {
     if (!capture) return;
     const { id, markdown, paste, cloud: cloudReport } = build(capture);
     const files: Record<string, Blob | string> = { [`${id}.md`]: markdown };
@@ -320,7 +335,9 @@ export function App() {
     // Cloud project, signed in: send it to the Darnly inbox, where the agent reads it through MCP.
     if (!folder && session) {
       try {
+        if (uploadKey.current?.for !== capture) uploadKey.current = { for: capture, key: crypto.randomUUID() };
         await uploadBug(session, {
+          clientId: uploadKey.current.key,
           title: headingFrom(note, capture.element),
           pageUrl: capture.page.url,
           report: cloudReport,
@@ -466,7 +483,9 @@ export function App() {
             placeholder="What should it do or look like? e.g. Should look flat, like the Beliefs pills"
           />
           <div className="flex gap-2">
-            <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white" onClick={save}>Save (Enter)</button>
+            <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white disabled:opacity-60" onClick={save} disabled={saving}>
+              {saving ? (!folder && session ? 'Sending…' : 'Saving…') : 'Save (Enter)'}
+            </button>
             <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(build(capture).paste)}>Copy as prompt</button>
             <button className="rounded-lg px-3 text-gray-500" onClick={() => { setStage('idle'); setCapture(null); }}>Cancel</button>
           </div>
