@@ -1,0 +1,36 @@
+---
+// Every page's <head>: title, description, social preview, canonical URL and fonts.
+import '../styles/base.css';
+
+interface Props {
+  title: string;
+  description: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  noindex?: boolean;
+}
+
+const { title, description, ogTitle = title, ogDescription = description, noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{title}</title>
+<meta name="description" content={description}>
+<meta property="og:title" content={ogTitle}>
+<meta property="og:description" content={ogDescription}>
+<link rel="canonical" href={canonical}>
+{noindex && <meta name="robots" content="noindex">}
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<slot name="head" />
+</head>
+<body>
+<slot />
+</body>
+</html>

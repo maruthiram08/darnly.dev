@@ -1,0 +1,29 @@
+/* Shared by every page: brand tokens, type, buttons, footer. Page-specific styles live next to the page. */
+:root {
+  --sky: #0593C6;
+  --pink: #D83995;
+  --white: #FCFFFF;
+  --ink: #0B2230;
+  --ink-soft: #4A6472;
+  --line: #D7E9F0;
+  --wash: #EEF8FB;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 17px/1.6 var(--body); }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+.eyebrow { font: 500 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sky); }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 6px; }
+
+footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer .lists { display: flex; flex-wrap: wrap; gap: 12px 48px; width: 100%; margin-bottom: 12px; }
+footer .lists h2 { font: 600 14px/1.4 var(--body); letter-spacing: 0; color: var(--ink); margin-bottom: 6px; }
+footer .lists ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
