@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'image-watermark',
+    category: 'Images',
+    name: 'Image watermark',
+    blurb: 'Add your name or logo to one picture or a whole batch: corners or tiled, any opacity, color and angle. Download as a ZIP.',
+  },
 ];
 
 // Same for guides.
