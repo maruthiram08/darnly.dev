@@ -88,6 +88,11 @@ export const TOOLS: Item[] = [
     name: 'JSON to TypeScript',
     blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
   },
+  {
+    slug: 'html-to-jsx',
+    name: 'HTML to JSX',
+    blurb: 'Paste HTML and get JSX for React, with a live preview and every fix listed.',
+  },
 ];
 
 // Same for guides.

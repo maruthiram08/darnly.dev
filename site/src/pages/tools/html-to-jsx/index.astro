@@ -1,0 +1,117 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste HTML into the box, for example a template, a snippet from a UI kit, or something you copied from a website. Or start from the example that’s already there.',
+  'Check the preview to see it’s the right piece. The JSX appears next to it right away, with every fix listed on top: <code>class</code> to <code>className</code>, styles to objects, tags closed, comments and SVG attributes fixed.',
+  'Copy the JSX, or copy the prompt and paste it into Claude Code, Cursor or Codex so your agent adds it to your project as a component.',
+];
+
+const faq = [
+  { q: 'Is my HTML sent anywhere?', a: 'No. The conversion runs in your browser. Your HTML never leaves your computer.' },
+  { q: 'Why can’t I paste HTML straight into React?', a: 'JSX looks like HTML but has different rules. <code>class</code> is a reserved word in JavaScript so it’s <code>className</code>, <code>style</code> takes an object instead of text, every tag must be closed (<code>&lt;br /&gt;</code>), comments are written <code>{/* like this */}</code>, and SVG attributes like <code>stroke-width</code> become <code>strokeWidth</code>. This tool does all of that for you.' },
+  { q: 'What does “Wrap in a component” do?', a: 'It puts the JSX inside <code>export default function YourName() { return (…) }</code>, so you can save it as a file like <code>YourName.jsx</code> or <code>YourName.tsx</code> and use it as <code>&lt;YourName /&gt;</code>. Untick it to get only the JSX.' },
+  { q: 'What does “Inline styles to Tailwind” do?', a: 'If your project uses Tailwind, it moves inline styles into Tailwind classes when there’s a class that means the same thing, like <code>display: flex</code> to <code>flex</code> or <code>padding: 16px</code> to <code>p-4</code>. Anything without an exact class stays in <code>style</code>, so nothing changes how it looks.' },
+  { q: 'Why did value become defaultValue?', a: 'In React, an input with <code>value</code> can’t be typed into unless you also handle changes. <code>defaultValue</code> (and <code>defaultChecked</code> for checkboxes) keeps the field working like it did in plain HTML.' },
+  { q: 'What happens to scripts and onclick?', a: 'Scripts don’t run when React renders them, and inline <code>onclick="…"</code> code becomes an arrow function like <code>onClick={() =&gt; { … }}</code>. The tool warns you when it sees either, so you or your agent can move that code into the component.' },
+  { q: 'The preview looks plain. Is something wrong?', a: 'The preview shows your HTML with its inline styles and <code>&lt;style&gt;</code> tags. Classes from Tailwind, Bootstrap or your own CSS files won’t show here because those files aren’t loaded, but the JSX keeps every class.' },
+];
+---
+<ToolPage
+  slug="html-to-jsx"
+  title="HTML to JSX converter for React (free, private) · Darnly"
+  description="Paste HTML and get JSX for React: class to className, styles to objects, tags closed, SVG fixed, with a live preview. Optional Tailwind and component wrapper."
+  h1="HTML to JSX: paste HTML, get React code"
+  lede="Paste any HTML and get JSX you can drop into a React component, with a live preview so you know you copied the right piece. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="hj">
+    <div class="grid">
+      <div class="side">
+        <div class="pane-head">
+          <span class="lab">What it looks like</span>
+          <span class="hint">Live preview</span>
+        </div>
+        <div class="preview" id="hj-preview" aria-label="Preview of your HTML"></div>
+
+        <div class="pane-head">
+          <label for="hj-input" class="lab">Your HTML</label>
+          <div class="head-btns">
+            <button id="hj-example" type="button" class="ghost">Example</button>
+            <button id="hj-clear" type="button" class="ghost">Clear</button>
+          </div>
+        </div>
+        <textarea id="hj-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder='<div class="card">Paste HTML here</div>'></textarea>
+      </div>
+
+      <div class="side">
+        <div class="verdict" id="hj-verdict" aria-live="polite">
+          <p class="v-title" id="hj-v-title">Paste HTML to get JSX</p>
+          <ul class="chips" id="hj-chips"></ul>
+        </div>
+        <ul class="warn" id="hj-warn" hidden></ul>
+
+        <div class="code">
+          <div class="code-head">
+            <span class="code-lab" id="hj-code-lab">JSX</span>
+            <button id="hj-copy" type="button" class="copy">Copy JSX</button>
+          </div>
+          <pre id="hj-code" tabindex="0"></pre>
+        </div>
+
+        <div class="options">
+          <label class="check"><input id="hj-wrap" type="checkbox" checked /> Wrap in a component</label>
+          <label class="name" id="hj-name-wrap">named <input id="hj-name" type="text" maxlength="60" value="SignupCard" autocomplete="off" spellcheck="false" aria-label="Component name" /></label>
+          <label class="check"><input id="hj-tw" type="checkbox" /> Inline styles to Tailwind</label>
+        </div>
+
+        <button id="hj-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/html-to-jsx';
+</script>
+
+<style>
+  .hj { min-width: 0; }
+  .hj [hidden] { display: none !important; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .side { display: grid; gap: 12px; min-width: 0; }
+  .pane-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .lab { font-weight: 600; }
+  .hint { font-size: 13px; color: var(--ink-soft); }
+  .head-btns { display: flex; gap: 8px; }
+  .ghost { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .preview { position: relative; height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 16px; background: #fff; transform: translateZ(0); contain: paint; }
+  textarea { width: 100%; min-height: 260px; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; tab-size: 2; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .verdict { padding: 16px 18px; border-radius: 16px; background: #E8F7EF; color: #14532D; }
+  .verdict.empty { background: var(--wash); color: var(--ink-soft); }
+  .v-title { margin: 0; font-weight: 700; font-size: 18px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .chips:empty { display: none; }
+  .chips :global(li) { font: 500 13px/1 var(--mono); padding: 7px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.75); color: #14532D; }
+  .warn { margin: 0; padding: 12px 16px 12px 34px; border-radius: 12px; background: #FFF6E0; color: #6B4A00; font-size: 14px; display: grid; gap: 6px; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px 8px 16px; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-lab { font: 500 13px/1 var(--mono); color: #8FB4C4; }
+  .copy { font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 8px; border: 0; background: var(--sky); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; height: 440px; overflow: auto; font: 400 13px/1.7 var(--mono); font-variant-ligatures: none; tab-size: 2; }
+  .options { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .name { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-soft); margin-left: -8px; }
+  .name input { width: 150px; font: 400 14px/1.2 var(--mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+  .name.off { opacity: 0.45; }
+  .primary { justify-self: start; font: 600 15px/1 var(--body); padding: 13px 20px; border-radius: 999px; border: 0; background: var(--pink); color: var(--white); cursor: pointer; }
+  @media (max-width: 820px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .preview { height: 280px; }
+    .code pre { height: 360px; }
+    textarea { min-height: 200px; }
+  }
+</style>
