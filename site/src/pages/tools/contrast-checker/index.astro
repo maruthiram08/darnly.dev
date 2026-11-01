@@ -1,0 +1,160 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Link to the Tailwind shade generator once it ships, so the two tools point at each other.
+const tailwind = TOOLS.find((t) => t.slug === 'tailwind-color-generator');
+
+const steps = [
+  'Type or paste your text color and your background color. Hex (<code>#0593c6</code>), <code>rgb()</code>, <code>hsl()</code> and color names all work, or pick one with the swatch.',
+  'The preview at the top shows your colors live, with a check or a cross on each kind of text. Open “See every WCAG level” for the AA and AAA details.',
+  'If it fails, we suggest the nearest text color that passes. It keeps the same hue and only gets lighter or darker. Click “Use this”, or copy a prompt that tells your AI coding agent to make the change.',
+];
+
+const faq = [
+  { q: 'What contrast ratio do I need?', a: 'WCAG AA, the level most laws and audits ask for, needs <strong>4.5:1</strong> for normal text and <strong>3:1</strong> for large text. AAA, the stricter level, needs 7:1 and 4.5:1. Buttons, icons and input borders need 3:1 against what is next to them.' },
+  { q: 'What counts as large text?', a: 'Text that is at least 24px (18pt), or at least 18.66px (14pt) and bold. Most body text, labels and button text is “normal” text.' },
+  { q: 'How is the suggested color picked?', a: 'We keep your color’s hue and saturation and only move its lightness, darker or lighter, until it passes. Then we show the one that changed least, so it still looks like your brand color.' },
+  { q: 'What about see-through colors?', a: 'If the text color has transparency, we mix it over the background first. If the background has transparency, we mix it over white. That’s what your visitors actually see.' },
+  { q: 'Can I share a result?', a: 'Yes. The page address updates as you type, with <code>?fg=</code> and <code>&amp;bg=</code> for the two colors. Click “Copy link” and send it to anyone.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="contrast-checker"
+  title="Color contrast checker: WCAG AA and AAA pass or fail · Darnly"
+  description="Check if your text color is readable on its background. Get the WCAG contrast ratio, AA and AAA pass or fail, a live preview, and the nearest color that passes. Free."
+  h1="Color contrast checker: is your text readable?"
+  lede="Enter a text color and a background color to get the WCAG contrast ratio and a clear pass or fail for AA and AAA. If it fails, get the nearest passing color in one click."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cc">
+    <div class="stage" id="cc-sample" aria-label="Live preview of your two colors">
+      <div class="badge">
+        <strong id="cc-ratio">3.5:1</strong>
+        <span id="cc-verdict">Only passes for large text</span>
+      </div>
+      <div class="line"><p class="big">Large headline text</p><span class="tag" data-min="3">Large text</span></div>
+      <div class="line"><p>Normal text, like a paragraph, a label or a menu link.</p><span class="tag" data-min="4.5">Normal text</span></div>
+      <div class="line"><p class="small">Small print, like a caption or helper text.</p><span class="tag" data-min="4.5">Small text</span></div>
+      <div class="line"><span class="fake-btn">Button</span><span class="tag" data-min="3">Buttons and icons</span></div>
+    </div>
+
+    <div class="pickers">
+      <div class="picker">
+        <label for="cc-fg-text">Text color</label>
+        <div class="field">
+          <input id="cc-fg-swatch" type="color" value="#0593c6" aria-label="Pick text color" />
+          <input id="cc-fg-text" type="text" value="#0593C6" spellcheck="false" autocomplete="off" />
+        </div>
+        <p class="bad" id="cc-fg-error" role="alert" hidden>We can’t read that color. Try a hex code like #1a2b3c.</p>
+      </div>
+      <button id="cc-swap" type="button" class="swap" aria-label="Swap text and background colors" title="Swap colors">⇄</button>
+      <div class="picker">
+        <label for="cc-bg-text">Background color</label>
+        <div class="field">
+          <input id="cc-bg-swatch" type="color" value="#ffffff" aria-label="Pick background color" />
+          <input id="cc-bg-text" type="text" value="#FFFFFF" spellcheck="false" autocomplete="off" />
+        </div>
+        <p class="bad" id="cc-bg-error" role="alert" hidden>We can’t read that color. Try a hex code like #ffffff.</p>
+      </div>
+    </div>
+
+    <details class="score">
+      <summary>See every WCAG level (AA and AAA)</summary>
+      <ul class="checks" id="cc-checks">
+        <li data-min="4.5"><b>AA</b> normal text <em>4.5:1</em><span class="pill"></span></li>
+        <li data-min="3"><b>AA</b> large text <em>3:1</em><span class="pill"></span></li>
+        <li data-min="7"><b>AAA</b> normal text <em>7:1</em><span class="pill"></span></li>
+        <li data-min="4.5"><b>AAA</b> large text <em>4.5:1</em><span class="pill"></span></li>
+        <li data-min="3"><b>UI</b> buttons, icons, borders <em>3:1</em><span class="pill"></span></li>
+      </ul>
+    </details>
+
+    <div class="fix" id="cc-fix" hidden>
+      <h2>Colors that pass</h2>
+      <p class="hint">Same hue, only lighter or darker. Pick the one you like.</p>
+      <ul class="suggest" id="cc-suggest"></ul>
+      <button id="cc-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+    </div>
+
+    <div class="actions">
+      <button id="cc-link" type="button" class="ghost">Copy link</button>
+      {tailwind && <a class="ghost" href={`/tools/${tailwind.slug}/`}>Make a Tailwind shade scale</a>}
+      <p class="status" id="cc-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/contrast-checker';
+</script>
+
+<style>
+  .cc { display: grid; gap: 24px; min-width: 0; }
+  .cc [hidden] { display: none !important; }
+  .pickers { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: end; }
+  .picker { display: grid; gap: 8px; min-width: 0; }
+  .picker label { font-weight: 600; }
+  .field { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .field:focus-within { border-color: var(--sky); }
+  .field input[type='color'] { flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+  .field input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .field input[type='color']::-webkit-color-swatch { border: 0; border-radius: 9px; }
+  .field input[type='text'] { flex: 1; min-width: 0; font: 500 18px/1.2 var(--mono); padding: 10px 6px; border: 0; background: none; color: var(--ink); }
+  .field input[type='text']:focus { outline: none; }
+  .bad { margin: 0; color: #B4234F; font-size: 14px; }
+  .swap { width: 48px; height: 48px; margin-bottom: 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+  .swap:hover { border-color: var(--sky); }
+  .stage { position: relative; display: grid; gap: 18px; padding: 32px; padding-right: 250px; min-height: 280px; border-radius: 24px; border: 1px solid var(--line); background: #FFFFFF; color: #0593C6; overflow-wrap: anywhere; transition: background 0.15s, color 0.15s; }
+  .badge { position: absolute; top: 20px; right: 20px; width: 200px; display: grid; gap: 4px; padding: 16px; border-radius: 16px; background: var(--white); color: var(--ink); box-shadow: 0 8px 28px rgba(11, 34, 48, 0.16); }
+  .badge strong { font: 800 46px/1 var(--display); letter-spacing: -0.03em; }
+  .badge span { font-size: 15px; color: var(--ink-soft); }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .line p { margin: 0; }
+  .stage .big { font: 700 32px/1.15 var(--display); letter-spacing: -0.02em; }
+  .stage .small { font-size: 13px; }
+  .tag { flex: none; font: 700 12px/1 var(--mono); padding: 6px 9px; border-radius: 999px; background: #EEE; color: #333; }
+  .tag:global(.pass) { background: #D6F5E3; color: #0B6B3A; }
+  .tag:global(.pass)::before { content: '✓ '; }
+  .tag:global(.fail) { background: #FBE0E8; color: #9C1C44; }
+  .tag:global(.fail)::before { content: '✗ '; }
+  .score { padding: 4px 20px; border-radius: 16px; background: var(--wash); }
+  .score summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .score .checks { padding-bottom: 16px; }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .checks li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; font-size: 15px; }
+  .checks b { font: 700 13px/1 var(--mono); }
+  .checks em { font: 400 13px/1 var(--mono); font-style: normal; color: var(--ink-soft); }
+  .pill { min-width: 52px; text-align: center; font: 700 12px/1 var(--mono); padding: 6px 8px; border-radius: 999px; }
+  .checks :global(li.pass .pill) { background: #D6F5E3; color: #0B6B3A; }
+  .checks :global(li.pass .pill)::before { content: 'Pass'; }
+  .checks :global(li.fail .pill) { background: #FBE0E8; color: #9C1C44; }
+  .checks :global(li.fail .pill)::before { content: 'Fail'; }
+  .fake-btn { margin-top: 6px; padding: 10px 18px; border-radius: 999px; border: 2px solid currentColor; font-weight: 600; }
+  .fix { display: grid; gap: 12px; }
+  .fix h2 { font-size: 24px; }
+  .hint { margin: 0; color: var(--ink-soft); }
+  .suggest { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .suggest :global(li) { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; }
+  .suggest :global(.demo) { padding: 14px; border-radius: 10px; font-weight: 600; }
+  .suggest :global(.meta) { display: flex; justify-content: space-between; gap: 8px; font: 500 14px/1.4 var(--mono); }
+  .suggest :global(.meta span) { color: var(--ink-soft); }
+  .suggest :global(.label) { font-size: 14px; color: var(--ink-soft); }
+  .suggest :global(button) { justify-self: start; font: 600 14px/1 var(--body); padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .suggest :global(button:hover) { border-color: var(--sky); }
+  .primary { justify-self: start; font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 640px) {
+    .pickers { grid-template-columns: minmax(0, 1fr); }
+    .swap { justify-self: center; margin: 0; transform: rotate(90deg); }
+    .stage { padding: 20px; min-height: 0; }
+    .badge { position: static; width: auto; padding: 12px 14px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+    .badge strong { font-size: 36px; }
+    .stage .big { font-size: 26px; }
+  }
+</style>
