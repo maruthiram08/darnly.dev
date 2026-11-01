@@ -101,3 +101,8 @@ export async function deleteExpiredSessions(env: Env, now = Date.now()): Promise
   const res = await env.DB.prepare('DELETE FROM sessions WHERE last_used_at < ?').bind(now - SESSION_IDLE_MS).run();
   return res.meta.changes ?? 0;
 }
+
+/** Signs out every extension session of this user. */
+export async function deleteAllSessions(env: Env, userId: string): Promise<void> {
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+}

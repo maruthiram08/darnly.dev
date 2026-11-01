@@ -166,4 +166,27 @@ describe('cloud inbox API', () => {
     expect(await deleteExpiredSessions(env as never)).toBeGreaterThanOrEqual(1);
     expect((await SELF.fetch(`${BASE}/v1/me`, auth(other))).status).toBe(401);
   });
+
+  it('signs out everywhere', async () => {
+    const a = await signIn('everywhere@example.com');
+    const b = await signIn('everywhere@example.com');
+    const res = await SELF.fetch(`${BASE}/v1/auth/logout-all`, { method: 'POST', ...auth(a) });
+    expect(res.status).toBe(200);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(a))).status).toBe(401);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(b))).status).toBe(401);
+  });
+
+  it('allows only the Darnly extension in CORS outside local development', async () => {
+    const res = await SELF.fetch(`${BASE}/v1/health`, { headers: { origin: 'chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj' } });
+    expect(res.headers.get('access-control-allow-origin')).toBe('chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj');
+    const web = await SELF.fetch(`${BASE}/v1/health`, { headers: { origin: 'https://evil.example' } });
+    expect(web.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('refuses an upload that does not declare its size', async () => {
+    const token = await signIn('chunked@example.com');
+    const body = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('x')); c.close(); } });
+    const res = await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'multipart/form-data; boundary=x' }, body, duplex: 'half' } as RequestInit);
+    expect(res.status).toBe(411);
+  });
 });

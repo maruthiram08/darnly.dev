@@ -39,15 +39,63 @@ export async function mcpUrl(): Promise<string> {
   return (await cloudUrl()) + MCP_PATH;
 }
 
-export async function loadSession(): Promise<CloudSession | null> {
-  const { cloudSession } = await chrome.storage.local.get('cloudSession').catch(() => ({ cloudSession: undefined }));
-  const s = cloudSession as Partial<CloudSession> | undefined;
+/*
+ * The session token lives in the extension's own IndexedDB, not chrome.storage.local:
+ * content scripts (which share a process with the web page) can read chrome.storage.local,
+ * but never the extension origin's IndexedDB.
+ */
+const SECRETS_DB = 'darnly-secrets';
+const SECRETS_STORE = 'kv';
+const SESSION_KEY = 'cloudSession';
+
+function secretsDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SECRETS_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(SECRETS_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function secretGet(key: string): Promise<unknown> {
+  const db = await secretsDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(SECRETS_STORE).objectStore(SECRETS_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function secretSet(key: string, value: unknown | null): Promise<void> {
+  const db = await secretsDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(SECRETS_STORE, 'readwrite');
+    if (value == null) tx.objectStore(SECRETS_STORE).delete(key);
+    else tx.objectStore(SECRETS_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function asSession(v: unknown): CloudSession | null {
+  const s = v as Partial<CloudSession> | undefined;
   return s && typeof s.token === 'string' && typeof s.email === 'string' ? { token: s.token, email: s.email } : null;
 }
 
+export async function loadSession(): Promise<CloudSession | null> {
+  // Builds up to 0.2.0 kept the session in chrome.storage.local: move it over once, then delete it there.
+  const { cloudSession: old } = await chrome.storage.local.get('cloudSession').catch(() => ({ cloudSession: undefined }));
+  const moved = asSession(old);
+  if (old !== undefined) {
+    if (moved) await secretSet(SESSION_KEY, moved);
+    await chrome.storage.local.remove('cloudSession').catch(() => {});
+    if (moved) return moved;
+  }
+  return asSession(await secretGet(SESSION_KEY).catch(() => null));
+}
+
 async function saveSession(s: CloudSession | null): Promise<void> {
-  if (s) await chrome.storage.local.set({ cloudSession: s });
-  else await chrome.storage.local.remove('cloudSession');
+  await secretSet(SESSION_KEY, s);
 }
 
 async function call<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
@@ -81,6 +129,12 @@ export async function signInForDev(email: string): Promise<CloudSession> {
   const s = { token: r.token, email: r.email };
   await saveSession(s);
   return s;
+}
+
+/** Signs out every copy of Darnly on every computer, and disconnects every coding agent. */
+export async function signOutEverywhere(s: CloudSession): Promise<void> {
+  await call('/v1/auth/logout-all', { method: 'POST', token: s.token });
+  await saveSession(null);
 }
 
 export async function signOut(s: CloudSession): Promise<void> {

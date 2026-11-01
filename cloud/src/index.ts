@@ -2,14 +2,21 @@ import { OAuthProvider, type OAuthHelpers } from '@cloudflare/workers-oauth-prov
 import type { Env } from './env';
 import { mcpFetch } from './mcp';
 import { oauthRoute } from './oauth';
-import { deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
+import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
 
-/** The extension is the only browser caller. Requests carry a bearer token, never cookies. */
-function corsHeaders(req: Request): Record<string, string> {
+/** The Chrome Web Store id of the Darnly extension (tester builds get the same id from the store key). */
+const EXTENSION_ORIGIN = 'chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj';
+
+/**
+ * The extension is the only browser caller. Requests carry a bearer token, never cookies.
+ * Only the Darnly extension is allowed; local development (random unpacked ids) allows any extension.
+ */
+function corsHeaders(req: Request, env: Env): Record<string, string> {
   const origin = req.headers.get('origin') ?? '';
-  if (!origin.startsWith('chrome-extension://')) return {};
+  const allowed = origin === EXTENSION_ORIGIN || (env.ALLOW_DEV_LOGIN === 'true' && origin.startsWith('chrome-extension://'));
+  if (!allowed) return {};
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
@@ -17,6 +24,14 @@ function corsHeaders(req: Request): Record<string, string> {
     'access-control-max-age': '86400',
     vary: 'origin',
   };
+}
+
+/** Disconnects every coding agent this user connected (their MCP tokens stop working). */
+async function revokeAgents(env: Env, userId: string): Promise<void> {
+  const helpers = (env as Env & { OAUTH_PROVIDER?: OAuthHelpers }).OAUTH_PROVIDER;
+  if (!helpers) return;
+  const { items } = await helpers.listUserGrants(userId);
+  await Promise.all(items.map((g) => helpers.revokeGrant(g.id, userId)));
 }
 
 async function route(req: Request, env: Env): Promise<Response> {
@@ -38,13 +53,15 @@ async function route(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(env, req);
 
   if (path === '/v1/me' && method === 'GET') return json({ email: user.email });
+  // "Sign out everywhere": every extension session and every connected agent, for a lost laptop or a leaked token.
+  if (path === '/v1/auth/logout-all' && method === 'POST') {
+    await revokeAgents(env, user.id);
+    await deleteAllSessions(env, user.id);
+    return json({ ok: true });
+  }
   if (path === '/v1/me' && method === 'DELETE') {
     // Disconnect every agent first, then delete the bugs and the account.
-    const helpers = (env as Env & { OAUTH_PROVIDER?: OAuthHelpers }).OAUTH_PROVIDER;
-    if (helpers) {
-      const { items } = await helpers.listUserGrants(user.id);
-      await Promise.all(items.map((g) => helpers.revokeGrant(g.id, user.id)));
-    }
+    await revokeAgents(env, user.id);
     await deleteAccount(env, user.id);
     return json({ ok: true });
   }
@@ -76,7 +93,7 @@ const appHandler = {
   async fetch(req: Request, env: Env): Promise<Response> {
     const signInPage = oauthRoute(req, env);
     if (signInPage) return signInPage;
-    const cors = corsHeaders(req);
+    const cors = corsHeaders(req, env);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
     try {
