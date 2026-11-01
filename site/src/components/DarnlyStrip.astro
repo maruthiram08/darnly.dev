@@ -1,0 +1,21 @@
+---
+// The "Darnly can also..." strip under every tool's result.
+import { storeUrl } from '../data/site';
+interface Props { source: string }
+const { source } = Astro.props;
+---
+<aside class="darnly-strip" aria-label="About Darnly">
+  <div>
+    <span class="eyebrow">Made by Darnly</span>
+    <p><strong>Spot a bug on your site?</strong> Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it.</p>
+  </div>
+  <a class="add" href={storeUrl(source)}>Add to Chrome, it's free</a>
+</aside>
+<style>
+  .darnly-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; margin-top: 48px; padding: 28px; border-radius: 20px; background: var(--ink); color: var(--white); }
+  .darnly-strip .eyebrow { color: #7FD3F2; }
+  .darnly-strip p { margin: 8px 0 0; max-width: 60ch; color: #D9EEF6; }
+  .darnly-strip strong { color: var(--white); }
+  .add { flex: none; text-decoration: none; font-weight: 600; padding: 14px 20px; border-radius: 999px; background: var(--white); color: var(--ink); }
+  .add:hover { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3); }
+</style>
