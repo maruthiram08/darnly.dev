@@ -32,6 +32,8 @@ When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or
 
 Click to capture · ↑ / ↓ make the box bigger or smaller · W captures the whole window · Esc cancels.
 
+Menu bar and notch apps work too: open the app's panel first, then press Option+Shift+D. The picker doesn't take focus, so the panel stays open while you pick.
+
 ## Tests
 
 `swift test` runs the report, redaction and log-parsing tests. GitHub Actions runs them on every change under `mac/` and uploads an unsigned `Darnly-mac` zip.
