@@ -1,0 +1,1 @@
+date,project,bug (one line),way (plain or darnly),cost from /cost ($),tool calls (count in the session),greps or searches,follow-up questions the agent asked,fixed first try? (yes/no),notes
