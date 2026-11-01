@@ -174,6 +174,12 @@ export const TOOLS: Item[] = [
     name: 'Cron expression generator',
     blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
   },
+  {
+    slug: 'gitignore-generator',
+    category: 'Code helpers',
+    name: '.gitignore generator',
+    blurb: 'A .gitignore for your stack that keeps .env files and keys out of git, plus a check for what would leak.',
+  },
 ];
 
 // Same for guides.
