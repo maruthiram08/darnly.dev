@@ -1,0 +1,13 @@
+{
+  "name": "darnly-benchmark",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run": "node run.mjs",
+    "check": "node check.mjs app",
+    "summary": "node summarize.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
