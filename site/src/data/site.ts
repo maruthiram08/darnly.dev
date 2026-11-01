@@ -88,6 +88,11 @@ export const TOOLS: Item[] = [
     name: 'JSON to TypeScript',
     blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
   },
+  {
+    slug: 'api-key-leak-checker',
+    name: 'API key leak checker',
+    blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
+  },
 ];
 
 // Same for guides.
