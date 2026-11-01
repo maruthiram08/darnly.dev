@@ -25,7 +25,7 @@ Use `Darnly.app` for daily use: macOS then lists the permissions under **Darnly*
 
 You can also open `mac/Package.swift` in Xcode and press Run.
 
-On first use macOS asks for two permissions (System Settings → Privacy & Security):
+On first launch a welcome screen walks you through choosing the project folder, the two permissions and the hotkey (reopen it from the menu: How to use Darnly). macOS needs two permissions (System Settings → Privacy & Security):
 - **Accessibility**, to know which button or text you clicked;
 - **Screen Recording**, for the screenshot.
 
