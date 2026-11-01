@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'loader-generator',
+    category: 'Design',
+    name: 'CSS loading spinners',
+    blurb: '20 pure-CSS spinners, dots and bars plus a skeleton card builder. Copy HTML and CSS, Tailwind or React.',
+  },
 ];
 
 // Same for guides.
