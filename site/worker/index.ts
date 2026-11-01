@@ -45,11 +45,15 @@ async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<
 
   let res: Response;
   try {
-    res = await fetch(target.href, {
-      headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
+    // so pages on darnly.dev are read straight from the site's own files.
+    res = isOwnHost(target, url)
+      ? await ownPage(target, env)
+      : await fetch(target.href, {
+          headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
   } catch {
     return json({ error: 'We couldn’t reach that page. Check the address, and that the site is public.' }, 502);
   }
@@ -59,6 +63,9 @@ async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<
   if (typeof finalCheck === 'string') return json({ error: 'That page redirects somewhere we can’t check.' }, 400);
 
   const type = res.headers.get('content-type') ?? '';
+  if (!type.includes('html') && res.status >= 400) {
+    return json({ error: `That site answered with error ${res.status}. It may be down, or it may block automated checks.` }, 422);
+  }
   if (!type.includes('html')) {
     return json({ error: `That address returns ${type.split(';')[0] || 'something'} rather than a web page.` }, 422);
   }
@@ -68,6 +75,27 @@ async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<
   const body = json({ url: target.href, finalUrl, status: res.status, ...tags }, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+const OWN_HOSTS = ['darnly.dev', 'www.darnly.dev'];
+function isOwnHost(target: URL, self: URL): boolean {
+  const h = target.hostname.toLowerCase();
+  return OWN_HOSTS.includes(h) || target.host === self.host;
+}
+
+// Reads one of our own pages from the site files, following its redirects (like /tools → /tools/).
+async function ownPage(target: URL, env: Env): Promise<Response> {
+  let u = target;
+  for (let i = 0; i < 4; i++) {
+    const res = await env.ASSETS.fetch(new Request(u.href, { headers: { accept: 'text/html' }, redirect: 'manual' }));
+    const loc = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!loc) {
+      // Responses from the assets binding have no url; give the page's real address back.
+      return new Response(res.body, { status: res.status, headers: res.headers, url: u.href } as ResponseInit);
+    }
+    u = new URL(loc, u);
+  }
+  throw new Error('Too many redirects');
 }
 
 // Only public web addresses: no localhost, private networks, raw IPv6 or odd ports.
