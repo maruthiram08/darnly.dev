@@ -26,6 +26,11 @@ footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 footer .lists { display: flex; flex-wrap: wrap; gap: 12px 48px; width: 100%; margin-bottom: 12px; }
 footer .lists h2 { font: 600 14px/1.4 var(--body); letter-spacing: 0; color: var(--ink); margin-bottom: 6px; }
+footer .lists ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 footer .lists > div { flex: 1 1 200px; min-width: 0; }
-footer .lists > div:first-child { flex: 3 1 480px; }
-footer .lists ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 24px; }
+footer .lists > .tools { flex: 4 1 640px; }
+footer .tools-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
+footer .tools-head h2 { margin-bottom: 0; }
+footer .tools-head a, footer .lists a.more { color: var(--sky); font-weight: 600; text-decoration: none; }
+footer .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px 28px; }
+footer .cats h3 { font: 600 12px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
