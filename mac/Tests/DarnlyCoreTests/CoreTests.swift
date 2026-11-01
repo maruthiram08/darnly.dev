@@ -89,6 +89,14 @@ final class ReportTests: XCTestCase {
         XCTAssertFalse(md.contains("supersecretvalue"))
     }
 
+    func testHiddenWindowSaysWhyThereIsNoPicture() {
+        var c = sample(element: ElementInfo(role: "AXTextField", title: "Search the hub", frame: .zero))
+        c.noScreenshotReason = "ContextShot hides this window from screenshots."
+        let md = Report.markdown(c)
+        XCTAssertTrue(md.contains("**Screenshot:** none. ContextShot hides this window from screenshots."))
+        XCTAssertFalse(md.contains(".png"))
+    }
+
     func testWholeWindowAndTitle() {
         let md = Report.markdown(sample())
         XCTAssertTrue(md.contains("whole window"))
