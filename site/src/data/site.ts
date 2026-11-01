@@ -24,6 +24,11 @@ export const TOOLS: Item[] = [
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
   {
+    slug: 'color-palette-from-image',
+    name: 'Color palette from image',
+    blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
+  },
+  {
     slug: 'og-image-generator',
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
