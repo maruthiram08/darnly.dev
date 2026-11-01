@@ -263,7 +263,7 @@ export function parseRules(css: string): Rule[] {
   return out;
 }
 
-function resolveVars(v: string, vars: Map<string, string>): string {
+export function resolveVars(v: string, vars: Map<string, string>): string {
   let out = v;
   for (let i = 0; i < 6 && out.includes('var('); i++) {
     out = out.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\))?[^()]*))?\)/g, (_, name: string, fallback?: string) => vars.get(name) ?? fallback ?? '');
@@ -379,7 +379,7 @@ function isAccent([r, g, b]: RGBA): boolean {
   return s >= 0.35 && l >= 0.18 && l <= 0.85;
 }
 
-const toHex = ([r, g, b]: RGBA) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+export const toHex = ([r, g, b]: RGBA) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
 const rgbOf = (hex: string): RGBA => parseColor(hex)!;
 
 function dist([r1, g1, b1]: RGBA, [r2, g2, b2]: RGBA): number {

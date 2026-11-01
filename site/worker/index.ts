@@ -18,18 +18,37 @@
 //   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
 //   and grades each launch basic, for the launch checker at /tools/launch-checker/.
 //
+// GET /api/design?url=https://example.com
+//   Same guards. Reads the page and its stylesheets once and returns its colors, fonts, type
+//   scale, spacing, radius, shadows, buttons and cards, for the DESIGN.md generator at
+//   /tools/design-md-generator/.
+//
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/sitemap?url=https://example.com
+//   Same guards, plus its own limit of 2 crawls a minute per visitor. Follows links on the same
+//   host (up to 100 pages, 4 at a time) and returns the pages for sitemap.xml and robots.txt,
+//   for the sitemap generator at /tools/sitemap-generator/.
+//
+// GET /api/secrets?url=https://example.com
+//   Same guards, but never cached. Reads the page and up to 20 of its own JavaScript files and
+//   reports secret API keys anyone can copy, for the API key leak checker at
+//   /tools/api-key-leak-checker/. Only masked previews (sk-ab…9f2) are ever sent back.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
+import { findDesign } from './design';
 import { findStack } from './stack';
+import { crawl, type Fetched } from './sitemap';
+import { findLeaks } from './secrets';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
-  FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  FETCH_LIMIT?: RateLimit;
+  CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -45,12 +64,16 @@ export default {
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
+    if (url.pathname === '/api/design') return designApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
+    if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
+type RateLimit = { limit(o: { key: string }): Promise<{ success: boolean }> };
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 
@@ -77,6 +100,24 @@ function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
   }));
+}
+
+// /api/secrets: secret keys in a page's own JavaScript. Not cached, so a re-check after a fix is fresh.
+function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'secrets',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({
+      url: p.target.href,
+      finalUrl: p.finalUrl,
+      status: p.status,
+      ...(await findLeaks(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'application/javascript,*/*;q=0.1', 2_000_000))),
+    }),
+    { cache: false, maxBytes: 2_000_000 },
+  );
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
@@ -112,8 +153,55 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
   }));
 }
 
+// /api/sitemap: crawl one site and list the pages for sitemap.xml. Every page goes through get().
+function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const fetchPage = async (raw: string, accept: string): Promise<Fetched | null> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
+      const type = res.headers.get('content-type') ?? '';
+      const readable = /html|text\/plain/i.test(type) || !type;
+      const text = readable && res.status < 400 ? await readLimited(res, 500_000) : '';
+      if (!text) res.body?.cancel().catch(() => {});
+      return { status: res.status, url: final, type, lastModified: res.headers.get('last-modified'), robotsHeader: res.headers.get('x-robots-tag'), text };
+    } catch {
+      return null;
+    }
+  };
+  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
+// /api/design: a page's design system (colors, fonts, type scale, spacing, shape, components).
+function designApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('design', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findDesign(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
-async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>): Promise<Response> {
+// Options: cache (false = never cached), maxBytes, cacheSeconds, and an extra rate limit.
+type ToolOptions = { cache?: boolean; maxBytes?: number; cacheSeconds?: number; limit?: RateLimit; limitError?: string };
+async function pageTool(
+  name: string,
+  req: Request,
+  url: URL,
+  env: Env,
+  ctx: Ctx,
+  run: (p: Page) => Promise<unknown>,
+  opts: ToolOptions = {},
+): Promise<Response> {
+  const useCache = opts.cache !== false;
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
 
   const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
@@ -121,13 +209,18 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
 
   const cache = (caches as unknown as { default: Cache }).default;
   const cacheKey = new Request(`https://darnly.dev/api/${name}?url=${encodeURIComponent(target.href)}`);
-  const hit = await cache.match(cacheKey);
+  const hit = useCache ? await cache.match(cacheKey) : undefined;
   if (hit) return hit;
 
   if (env.FETCH_LIMIT) {
     const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
     const { success } = await env.FETCH_LIMIT.limit({ key: who });
     if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+  if (opts.limit) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await opts.limit.limit({ key: who });
+    if (!success) return json({ error: opts.limitError ?? 'Too many checks in a minute. Wait a moment and try again.' }, 429);
   }
 
   let res: Response;
@@ -149,8 +242,10 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
     return json({ error: `That address returns ${type.split(';')[0] || 'something'} rather than a web page.` }, 422);
   }
 
-  const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
+  const html = await readLimited(res, opts.maxBytes ?? MAX_BYTES);
+  const data = await run({ target, finalUrl, status: res.status, html, headers: res.headers });
+  if (!useCache) return json(data);
+  const body = json(data, 200, opts.cacheSeconds ?? CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
@@ -163,13 +258,13 @@ function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
-async function fetchText(raw: string, self: URL, env: Env, accept: string): Promise<string | null> {
+async function fetchText(raw: string, self: URL, env: Env, accept: string, max = 500_000): Promise<string | null> {
   const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
   if (typeof t === 'string') return null;
   try {
     const res = await get(t, self, env, accept, 5_000);
     if (!res.ok || typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') === 'string') return null;
-    return await readLimited(res, 500_000);
+    return await readLimited(res, max);
   } catch {
     return null;
   }

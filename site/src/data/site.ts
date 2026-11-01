@@ -59,6 +59,11 @@ export const TOOLS: Item[] = [
     blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
   },
   {
+    slug: 'design-md-generator',
+    name: 'DESIGN.md generator',
+    blurb: 'Turn any website into a DESIGN.md style guide, so your AI agent builds in the same colors, fonts and spacing.',
+  },
+  {
     slug: 'tech-stack-finder',
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
@@ -72,6 +77,26 @@ export const TOOLS: Item[] = [
     slug: 'contrast-checker',
     name: 'Color contrast checker',
     blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
+  },
+  {
+    slug: 'tailwind-color-generator',
+    name: 'Tailwind color shades',
+    blurb: 'Turn one brand color into an even 50–950 Tailwind scale, ready for v4, v3 or CSS.',
+  },
+  {
+    slug: 'json-to-typescript',
+    name: 'JSON to TypeScript',
+    blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
+  },
+  {
+    slug: 'api-key-leak-checker',
+    name: 'API key leak checker',
+    blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
+  },
+  {
+    slug: 'sitemap-generator',
+    name: 'Sitemap generator',
+    blurb: 'A sitemap.xml and robots.txt for your site in seconds, plus the broken links we found.',
   },
   {
     slug: 'privacy-policy-generator',
