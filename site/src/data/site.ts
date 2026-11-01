@@ -158,6 +158,11 @@ export const TOOLS: Item[] = [
     name: 'App Store screenshot maker',
     blurb: 'Your app screenshots in a device frame with a headline, at every App Store and Google Play size.',
   },
+  {
+    slug: 'regex-tester',
+    name: 'Regex tester',
+    blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
+  },
 ];
 
 // Same for guides.

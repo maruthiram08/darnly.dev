@@ -1,0 +1,198 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const json = TOOLS.find((t) => t.slug === 'json-to-typescript');
+
+const steps = [
+  'Type a pattern in the top box, or pick a common one like Email or Date. Paste your own text below it, and every match lights up as you type, with each group in its own colour.',
+  'Read “What this pattern means”: every piece of the pattern explained in plain English, in order, so you can see why something matches or doesn’t.',
+  'Copy it as JavaScript, Python or a Zod <code>.regex()</code>. Found a pattern in your code you don’t understand? Paste it in and use “Copy prompt for your AI agent” to have Claude Code, Cursor or Codex check it against your project.',
+];
+
+const faq = [
+  { q: 'What is a regex?', a: 'A regular expression (regex) is a short pattern that describes text, like “an @ with letters on both sides”. Code uses it to check form fields, find things in text, or clean data. This tool shows what a pattern matches and explains it in plain words.' },
+  { q: 'Which regex flavour is this?', a: 'JavaScript, the same engine your browser and Node.js use. Python is very close: “Copy as Python” converts named groups and the few other differences for you, and adds a note when something needs the <code>regex</code> package.' },
+  { q: 'What do the flags do?', a: '<strong>g</strong> finds every match instead of the first. <strong>i</strong> ignores capital letters. <strong>m</strong> makes <code>^</code> and <code>$</code> work per line. <strong>s</strong> lets <code>.</code> match line breaks. <strong>u</strong> turns on Unicode features like <code>\\p{L}</code>. <strong>y</strong> only matches exactly where the last match ended.' },
+  { q: 'Why does my pattern match part of a word I didn’t want?', a: 'A regex finds the pattern anywhere unless you pin it. Add <code>^</code> at the start and <code>$</code> at the end to make the whole value match, or <code>\\b</code> to match whole words only.' },
+  { q: 'What does “Too slow” mean?', a: 'Some patterns, often a repeat inside a repeat like <code>(a+)+</code>, take forever on certain text. That can freeze a page or a server. The tester stops after a second and a half and tells you, so you can rewrite it before it ships.' },
+  { q: 'Is my text uploaded?', a: 'No. Everything runs in your browser. The share link only contains your pattern, flags and test text if you copy it.' },
+];
+---
+<ToolPage
+  slug="regex-tester"
+  title="Regex tester with plain-English explanation · Darnly"
+  description="Test a regular expression live: matches and groups light up in your text, every part of the pattern is explained in plain English, and you can copy it as JavaScript, Python or Zod. Free, nothing uploaded."
+  h1="Regex tester, explained in plain English"
+  lede="Type a pattern and some text. Matches light up as you type, every part of the pattern is explained in plain words, and you can copy it as JavaScript, Python or Zod."
+  steps={steps}
+  faq={faq}
+>
+  <div class="rx">
+    <div class="stage" aria-label="Live test">
+      <div class="lib-row">
+        <span class="lbl">Try</span>
+        <div class="libs" id="rx-lib"></div>
+      </div>
+
+      <div class="pat">
+        <label class="sr" for="rx-pattern">Pattern</label>
+        <span class="slash" aria-hidden="true">/</span>
+        <input id="rx-pattern" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a pattern, like \d+" />
+        <span class="slash" aria-hidden="true">/<span id="rx-flag-text" class="ftext"></span></span>
+      </div>
+      <div class="flags" id="rx-flags" role="group" aria-label="Flags"></div>
+      <p class="about" id="rx-about" hidden></p>
+
+      <div class="head">
+        <span class="lbl">Your text</span>
+        <span class="verdict" id="rx-verdict" role="status" aria-live="polite"></span>
+      </div>
+      <p class="bad" id="rx-error" role="alert" hidden></p>
+      <div class="editor">
+        <div class="paint" id="rx-paint" aria-hidden="true"></div>
+        <label class="sr" for="rx-text">Text to test</label>
+        <textarea id="rx-text" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      </div>
+
+      <ol class="list" id="rx-list" aria-label="Matches"></ol>
+      <p class="more" id="rx-more" hidden></p>
+    </div>
+
+    <section class="card">
+      <h2>What this pattern means</h2>
+      <ol class="parts" id="rx-parts"></ol>
+      <ul class="flag-notes" id="rx-flag-notes"></ul>
+    </section>
+
+    <details class="fold">
+      <summary>Copy as code: JavaScript, Python or Zod</summary>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-lang="js" aria-selected="true">JavaScript</button>
+        <button type="button" role="tab" data-lang="py" aria-selected="false">Python</button>
+        <button type="button" role="tab" data-lang="zod" aria-selected="false">Zod</button>
+      </div>
+      <pre id="rx-code" tabindex="0" aria-label="Code"></pre>
+      <div class="actions">
+        <button id="rx-copy-code" type="button" class="primary">Copy code</button>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="rx-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+      <button id="rx-link" type="button" class="ghost">Copy link</button>
+      {json && <a class="ghost" href={`/tools/${json.slug}/`}>JSON to TypeScript</a>}
+      <p class="status" id="rx-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/regex-tester';
+</script>
+
+<style>
+  .rx { display: grid; gap: 24px; min-width: 0; }
+  .rx [hidden] { display: none !important; }
+  .stage { display: grid; gap: 14px; padding: 28px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .lbl { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .lib-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .libs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .libs :global(.lib) { font: 600 14px/1 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .libs :global(.lib:hover) { border-color: var(--sky); }
+  .libs :global(.lib.on) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+  .pat { display: flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 16px; border: 2px solid var(--ink); background: var(--white); min-width: 0; }
+  .pat:focus-within { border-color: var(--sky); }
+  .slash { font: 500 28px/1 var(--mono); color: var(--ink-soft); white-space: nowrap; }
+  .ftext { color: var(--sky); font-weight: 700; }
+  #rx-pattern { flex: 1; width: 0; min-width: 0; font: 600 24px/1.3 var(--mono); padding: 10px 0; border: 0; background: none; color: var(--ink); font-variant-ligatures: none; }
+  #rx-pattern:focus { outline: none; }
+
+  .flags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .flags :global(.flag) { font: 500 13px/1 var(--body); padding: 7px 11px; border-radius: 999px; border: 1px dashed var(--ink-soft); background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .flags :global(.flag b) { font: 700 14px/1 var(--mono); }
+  .flags :global(.flag[aria-pressed='true']) { border: 1px solid var(--sky); background: #DDF2FA; color: var(--ink); }
+  .about { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+  .verdict { font: 800 20px/1 var(--display); padding: 8px 14px; border-radius: 999px; background: var(--white); color: var(--ink); }
+  .verdict:global(.yes) { background: #D3F4E0; color: #0B6B3A; }
+  .verdict:global(.no) { background: var(--white); color: var(--ink-soft); }
+  .verdict:global(.bad), .verdict:global(.slow) { background: #FCE1EA; color: #B4234F; }
+  .bad { margin: 0; color: #B4234F; font-size: 15px; }
+
+  /* The text box sits on top of a painted copy of the same text, so matches show through. */
+  .editor { position: relative; min-width: 0; border-radius: 16px; border: 1px solid var(--line); background: var(--white); }
+  .editor:focus-within { border-color: var(--sky); }
+  .paint, #rx-text { box-sizing: border-box; margin: 0; padding: 16px; font: 400 17px/1.7 var(--mono); font-variant-ligatures: none; letter-spacing: 0; tab-size: 4; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
+  .paint { position: absolute; inset: 0; color: transparent; overflow: hidden; pointer-events: none; }
+  #rx-text { position: relative; display: block; width: 100%; min-height: 200px; border: 0; border-radius: 16px; background: transparent; color: var(--ink); caret-color: var(--ink); resize: none; overflow: hidden; }
+  #rx-text:focus { outline: none; }
+  .paint :global(mark) { color: transparent; border-radius: 3px; }
+  .paint :global(mark.hit) { background: #BDE6F6; }
+  .paint :global(mark.hit.alt) { background: #9CD8F0; }
+  .paint :global(mark.zero) { background: none; box-shadow: -2px 0 0 var(--pink); }
+  .paint :global(mark.grp) { background: none; }
+  .paint :global(.g0) { box-shadow: inset 0 -4px 0 #EC4899; }
+  .paint :global(.g1) { box-shadow: inset 0 -4px 0 #F59E0B; }
+  .paint :global(.g2) { box-shadow: inset 0 -4px 0 #10B981; }
+  .paint :global(.g3) { box-shadow: inset 0 -4px 0 #8B5CF6; }
+  .paint :global(.g4) { box-shadow: inset 0 -4px 0 #EF4444; }
+  .paint :global(.g5) { box-shadow: inset 0 -4px 0 #0EA5E9; }
+
+  .list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 320px; overflow: auto; }
+  .list :global(li) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--white); cursor: pointer; min-width: 0; }
+  .list :global(li:hover), .list :global(li:focus) { outline: 2px solid var(--sky); outline-offset: -2px; }
+  .list :global(.num) { font: 700 12px/1 var(--mono); color: var(--ink-soft); min-width: 1.6em; }
+  .list :global(.val) { font: 600 15px/1.4 var(--mono); color: var(--ink); background: #BDE6F6; padding: 2px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+  .list :global(.where) { font-size: 13px; color: var(--ink-soft); }
+  .list :global(.gchip) { font: 500 13px/1.3 var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--wash); border-bottom: 3px solid; overflow-wrap: anywhere; }
+  .list :global(.gchip.g0) { border-color: #EC4899; }
+  .list :global(.gchip.g1) { border-color: #F59E0B; }
+  .list :global(.gchip.g2) { border-color: #10B981; }
+  .list :global(.gchip.g3) { border-color: #8B5CF6; }
+  .list :global(.gchip.g4) { border-color: #EF4444; }
+  .list :global(.gchip.g5) { border-color: #0EA5E9; }
+  .more { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .card { padding: 20px 24px; border-radius: 20px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .card h2 { margin: 0 0 12px; font: 700 22px/1.2 var(--display); }
+  .parts { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); column-gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .parts :global(.part) { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+  .parts :global(.part code) { margin-left: calc(var(--d, 0) * 22px); }
+  .parts :global(.part:last-child) { border-bottom: 0; }
+  .parts :global(.part.empty) { display: block; color: var(--ink-soft); }
+  .parts :global(.part code) { font: 600 15px/1.4 var(--mono); padding: 2px 8px; border-radius: 6px; background: var(--wash); color: var(--ink); overflow-wrap: anywhere; justify-self: start; max-width: 100%; }
+  .parts :global(.k-group code), .parts :global(.k-look code) { background: #EDE7FB; }
+  .parts :global(.k-anchor code) { background: #FDE8F1; }
+  .parts :global(.k-class code), .parts :global(.k-any code) { background: #DDF2FA; }
+  .parts :global(.k-or code) { background: var(--ink); color: var(--white); }
+  .parts :global(.k-or span) { font-weight: 700; }
+  .parts :global(.k-group span), .parts :global(.k-look span) { font-weight: 600; }
+  .flag-notes { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+  .flag-notes :global(code) { font: 700 13px/1 var(--mono); padding: 2px 6px; border-radius: 6px; background: #DDF2FA; color: var(--ink); }
+
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .tabs button { font: 600 14px/1 var(--body); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .fold pre { margin: 0 0 12px; padding: 14px; border-radius: 14px; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); white-space: pre; overflow: auto; }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 640px) {
+    .stage { padding: 18px; }
+    #rx-pattern { font-size: 18px; }
+    .slash { font-size: 22px; }
+    .paint, #rx-text { font-size: 15px; padding: 12px; }
+    .parts { grid-template-columns: minmax(0, 1fr); }
+    .parts :global(.part) { grid-template-columns: minmax(0, 1fr); gap: 4px; padding-left: calc(var(--d, 0) * 14px); }
+    .parts :global(.part code) { margin-left: 0; }
+  }
+</style>
