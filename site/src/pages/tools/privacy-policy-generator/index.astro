@@ -1,0 +1,198 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Fill in your app’s name, your name or company and a contact email. Anything you leave blank shows up <mark>highlighted</mark> in the preview so you can spot it.',
+  'Tick what your app collects, which services it uses (Supabase, Stripe, Google Analytics, OpenAI and so on) and where your users are. The policy and terms rewrite themselves as you go, and name each service with a link to its own privacy policy.',
+  'Switch between the Privacy Policy and Terms of Service tabs, then copy each one as Markdown or HTML, download it, or copy a prompt that asks your AI coding agent to add both pages to your app.',
+];
+
+const faq = [
+  { q: 'Is this legal advice?', a: 'No. It’s a clear, plain-English starting point built from templates. Read it, make sure it matches what your app really does, and ask a lawyer if your app handles health data, money for other people, children’s data or anything high risk.' },
+  { q: 'Is it good enough for the App Store, Google Play or Stripe?', a: 'They ask for a public link to a privacy policy that says what you collect and how people can delete their data. This one covers both. Put it on a page like <code>yoursite.com/privacy</code> and paste that link into App Store Connect, the Play Console or Stripe. Apple also requires that people can delete their account inside the app.' },
+  { q: 'Do I need the GDPR or CCPA sections?', a: 'If anyone in the EU or UK can use your app, include the GDPR part. If people in California can use it, include the CCPA part. Most apps on the internet can be used from anywhere, so we tick all regions by default.' },
+  { q: 'Why does it name the services I use?', a: 'Privacy laws and app stores expect you to say who else gets your users’ data. Naming Supabase, Stripe or OpenAI, with a link to their policy, is clearer than saying “third parties”.' },
+  { q: 'Does it use AI or upload my answers?', a: 'No. It’s built from fixed templates, and everything happens in your browser. Nothing you type is sent anywhere.' },
+  { q: 'Do I need a cookie banner?', a: 'If you have visitors from the EU or UK and use cookies for analytics or ads, usually yes. Essential cookies, like the one that keeps people signed in, don’t need consent. Cookie-free analytics such as Plausible usually don’t need a banner.' },
+];
+---
+<ToolPage
+  slug="privacy-policy-generator"
+  title="Free privacy policy and terms generator for apps · Darnly"
+  description="Generate a plain-English privacy policy and terms of service for your web or mobile app. Names Supabase, Stripe, OpenAI and more, with GDPR and CCPA sections. Copy as Markdown or HTML. Free, no sign-up."
+  h1="Privacy policy and terms for your app"
+  lede="Tick a few boxes and get a clear privacy policy and terms of service that name the services you actually use. Ready for the App Store, Google Play and Stripe. Free, and nothing leaves your browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="pp">
+    <section class="preview" aria-label="Live preview">
+      <p class="legal"><strong>This is a starting point, not legal advice.</strong> Read it before you publish, and make sure it matches what your app really does.</p>
+      <p class="verdict todo" id="pp-verdict" role="status">5 blanks to fill</p>
+      <div class="tabs" role="tablist" aria-label="Which document">
+        <button type="button" role="tab" data-tab="privacy" aria-selected="true">Privacy policy</button>
+        <button type="button" role="tab" data-tab="terms" aria-selected="false">Terms of service</button>
+      </div>
+      <article class="paper" id="pp-paper" tabindex="0" aria-live="polite"></article>
+      <ul class="chips" id="pp-chips" aria-label="What this covers"></ul>
+      <div class="actions">
+        <button type="button" class="primary" id="pp-copy-md">Copy Markdown</button>
+        <button type="button" class="ghost" id="pp-copy-html">Copy HTML</button>
+        <button type="button" class="ghost" id="pp-dl-md">Download .md</button>
+        <button type="button" class="ghost" id="pp-dl-html">Download .html</button>
+        <button type="button" class="ghost" id="pp-prompt">Copy prompt for your AI agent</button>
+      </div>
+      <p class="status" id="pp-status" role="status"></p>
+    </section>
+
+    <form class="questions" id="pp-form" autocomplete="off">
+      <fieldset>
+        <legend><span>1</span> About your app</legend>
+        <label>App name<input name="app" type="text" placeholder="Acme Notes" maxlength="80" /></label>
+        <label>Your name or company<input name="owner" type="text" placeholder="Acme Labs Ltd" maxlength="120" /></label>
+        <label>Contact email<input name="email" type="email" placeholder="privacy@acme.app" maxlength="120" /></label>
+        <label>Website<input name="url" type="text" placeholder="acme.app" maxlength="200" inputmode="url" /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>2</span> What kind of app is it?</legend>
+        <div class="pills">
+          <label class="pill"><input type="checkbox" name="platform" value="web" checked /><span>Web app or site</span></label>
+          <label class="pill"><input type="checkbox" name="platform" value="mobile" /><span>Mobile app (iOS or Android)</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>3</span> What do you collect?</legend>
+        <div class="pills">
+          <label class="pill"><input type="checkbox" name="collect" value="account" checked /><span>Email and name (accounts)</span></label>
+          <label class="pill"><input type="checkbox" name="collect" value="payments" /><span>Payments</span></label>
+          <label class="pill"><input type="checkbox" name="collect" value="analytics" /><span>Analytics</span></label>
+          <label class="pill"><input type="checkbox" name="collect" value="cookies" /><span>Cookies</span></label>
+          <label class="pill"><input type="checkbox" name="collect" value="content" /><span>Things users type or upload</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>4</span> Which services do you use?</legend>
+        <div id="pp-services" class="services"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>5</span> Where are your users?</legend>
+        <div class="pills">
+          <label class="pill"><input type="checkbox" name="region" value="eu" checked /><span>EU or UK</span></label>
+          <label class="pill"><input type="checkbox" name="region" value="us" checked /><span>United States</span></label>
+          <label class="pill"><input type="checkbox" name="region" value="other" checked /><span>Everywhere else</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>6</span> Is it made for children?</legend>
+        <label class="pill"><input type="checkbox" name="kids" /><span>Yes, it’s meant for kids under 13</span></label>
+        <p class="warn" id="pp-kids-warn" hidden>Apps for children have extra rules (COPPA in the US, and stricter GDPR rules in the EU and UK), and the App Store and Google Play review them closely. Use this only as a draft and have a lawyer check it.</p>
+      </fieldset>
+
+      <fieldset id="pp-refunds" hidden>
+        <legend><span>7</span> Refunds</legend>
+        <select name="refunds" aria-label="Refund policy">
+          <option value="none">No refunds, except where the law requires</option>
+          <option value="14" selected>Full refund within 14 days</option>
+          <option value="30">Full refund within 30 days</option>
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>8</span> Last details</legend>
+        <label>Governing law (for the terms)<input name="law" type="text" placeholder="the State of Delaware, USA" maxlength="120" /></label>
+        <label>Last updated<input name="date" type="date" /></label>
+      </fieldset>
+    </form>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/privacy-policy-generator';
+</script>
+
+<style>
+  .pp [hidden] { display: none !important; }
+  .pp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    grid-template-areas: 'questions preview';
+    gap: 28px;
+    align-items: start;
+  }
+  .preview { grid-area: preview; position: sticky; top: 16px; display: grid; gap: 12px; min-width: 0; }
+  .questions { grid-area: questions; display: grid; gap: 14px; min-width: 0; }
+
+  .legal { margin: 0; padding: 12px 14px; border-radius: 12px; background: #FFF6E5; border: 1px solid #F3D9A4; color: #5A3F00; font-size: 15px; line-height: 1.45; }
+  .verdict { margin: 0; padding: 10px 14px; border-radius: 12px; font: 600 15px/1.4 var(--body); }
+  .verdict.todo { background: #FDEBF4; color: #8E1D5C; }
+  .verdict.ok { background: #E3F6EA; color: #155A2E; }
+  .verdict.todo::before { content: '✎ '; }
+  .verdict.ok::before { content: '✓ '; }
+
+  .tabs { display: flex; gap: 6px; padding: 4px; background: var(--wash); border-radius: 999px; justify-self: start; }
+  .tabs button { font: 600 15px/1 var(--body); padding: 10px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--white); color: var(--ink); box-shadow: 0 1px 4px rgba(11, 34, 48, 0.12); }
+
+  .paper {
+    height: min(64vh, 620px);
+    overflow: auto;
+    padding: 28px 30px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 12px 32px -18px rgba(11, 34, 48, 0.35);
+    font: 15px/1.6 var(--body);
+    color: #1d2b33;
+    overflow-wrap: anywhere;
+  }
+  .paper :global(h1) { font-size: 26px; line-height: 1.15; margin: 0 0 6px; }
+  .paper :global(h2) { font-size: 19px; margin: 24px 0 6px; letter-spacing: -0.01em; }
+  .paper :global(h3) { font-size: 16px; margin: 18px 0 4px; letter-spacing: 0; }
+  .paper :global(p) { margin: 8px 0; }
+  .paper :global(ul) { margin: 8px 0; padding-left: 20px; }
+  .paper :global(li) { margin: 4px 0; }
+  .paper :global(a) { color: var(--sky); }
+  .paper :global(mark.ph), .tool-page :global(.how mark) { background: #FFE58F; color: #5A3F00; padding: 0 3px; border-radius: 4px; }
+
+  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips :global(li) { font: 500 13px/1 var(--mono); padding: 7px 10px; border-radius: 999px; background: var(--wash); color: var(--ink); }
+  .chips :global(li)::before { content: '✓ '; color: var(--sky); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.5em; font-size: 15px; color: var(--ink-soft); }
+
+  fieldset { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 16px; display: grid; gap: 10px; min-width: 0; }
+  legend { padding: 0 6px; font: 600 16px/1.3 var(--body); display: flex; align-items: center; gap: 8px; }
+  legend span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--sky); color: #fff; font: 600 12px/1 var(--mono); }
+  fieldset > label:not(.pill) { display: grid; gap: 4px; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+  input[type='text'], input[type='email'], input[type='date'], select {
+    font: 16px/1.3 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); width: 100%; min-width: 0;
+  }
+  input:focus, select:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+
+  .pills, .services :global(.pills) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill, .services :global(.pill) { position: relative; display: inline-flex; cursor: pointer; }
+  .pill input, .services :global(.pill input) { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .pill span, .services :global(.pill span) { font: 500 14px/1.2 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); }
+  .pill input:checked + span, .services :global(.pill input:checked + span) { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .pill input:checked + span::before, .services :global(.pill input:checked + span::before) { content: '✓ '; }
+  .pill input:focus-visible + span, .services :global(.pill input:focus-visible + span) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .services { display: grid; gap: 10px; }
+  .services :global(.group) { display: grid; gap: 6px; }
+  .services :global(.glabel) { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .warn { margin: 0; padding: 10px 12px; border-radius: 10px; background: #FDEBF4; color: #8E1D5C; font-size: 14px; }
+
+  @media (max-width: 820px) {
+    .pp { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'preview' 'questions'; }
+    .preview { position: static; }
+    .paper { height: 52vh; padding: 20px 18px; }
+  }
+</style>

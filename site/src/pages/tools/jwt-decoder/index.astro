@@ -1,0 +1,178 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your token in the box. You’ll usually find it in your browser’s Network tab, in a request’s <code>Authorization: Bearer …</code> header, or in your auth provider’s dashboard. A <code>Bearer</code> in front is fine.',
+  'The card at the top tells you straight away if the token still works, when it expires, who it belongs to and which service made it. Supabase, Firebase, Clerk, Auth0 and Cognito tokens are recognized and explained.',
+  'To be sure nobody changed it, open <strong>Check the signature</strong> and paste your JWT secret, or a key set (JWKS) address. Open <strong>See the raw header and payload</strong> for every claim in plain words.',
+];
+
+const faq = [
+  { q: 'Is it safe to paste my token here?', a: 'Yes. The token is decoded in your browser and never sent anywhere, not even to us. When you check a signature with a JWKS URL, only that URL is fetched, never your token. Still, treat a live token like a password: anyone who has it can act as that user until it expires.' },
+  { q: 'What is a JWT?', a: 'A JSON Web Token is a small signed note your auth provider gives your app after someone signs in. It has three parts separated by dots: a header (how it was signed), a payload (who the user is, their role, when it expires) and a signature that proves nobody changed it. Decoding it is easy; faking one without the key is not.' },
+  { q: 'Why does it say my Supabase key is dangerous?', a: 'Supabase gives every project two keys. The <code>anon</code> key is public and fine in the browser when Row Level Security is on. The <code>service_role</code> key skips every security rule, so anyone who finds it in your frontend code can read and delete your whole database. Keep it on the server, and if it was ever public, rotate it in Supabase → Project Settings → API.' },
+  { q: 'My token is expired. What should I do?', a: 'Auth tokens are meant to expire, often after an hour. Your app should refresh them automatically, which the Supabase, Firebase and Clerk SDKs do for you. If users get logged out or see 401 errors, check that your code uses the SDK’s current session instead of a token you saved once.' },
+  { q: 'Where do I find my JWT secret?', a: 'In Supabase it’s under Project Settings → JWT Keys (the legacy JWT secret). Projects on the new signing keys use public keys instead: click “Use Supabase Auth’s keys” and we fetch them for you. Firebase, Clerk, Auth0 and Cognito always use public keys, and we fill in the right address.' },
+  { q: 'Which algorithms can it check?', a: 'HS256, HS384 and HS512 with a secret; RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384 and ES512 with a JWKS URL, a JSON Web Key or a PEM public key; and EdDSA in browsers that support Ed25519. Encrypted tokens (JWE, with five parts) can only be read by the server that holds the key.' },
+];
+---
+<ToolPage
+  slug="jwt-decoder"
+  title="JWT decoder: read any JSON Web Token in plain English · Darnly"
+  description="Paste a JWT and see when it expires, who it belongs to, its role and issuer, in plain words. Spots Supabase service_role keys and checks signatures. Nothing is uploaded."
+  h1="JWT decoder: what’s inside your token?"
+  lede="Paste a JSON Web Token to see if it still works, when it expires, who it belongs to and what it’s allowed to do. It runs in your browser, so your token never leaves your computer."
+  steps={steps}
+  faq={faq}
+>
+  <div class="jd">
+    <div class="stage" id="jd-stage" data-tone="ok" aria-live="polite">
+      <div class="verdict">
+        <span class="icon" id="jd-icon" aria-hidden="true">✓</span>
+        <div>
+          <p class="headline" id="jd-headline">Decoding the example token…</p>
+          <p class="subline" id="jd-subline"></p>
+        </div>
+      </div>
+      <div class="alert" id="jd-alert" role="alert" hidden></div>
+      <div class="error" id="jd-error" role="alert" hidden></div>
+      <div class="cards" id="jd-cards"></div>
+      <p class="private">🔒 Your token never leaves your browser.</p>
+    </div>
+
+    <div class="paste">
+      <div class="head">
+        <label for="jd-input" class="lab">Your token</label>
+        <div class="btns">
+          <button id="jd-paste" type="button" class="ghost">Paste</button>
+          <button id="jd-clear" type="button" class="ghost">Clear</button>
+        </div>
+      </div>
+      <textarea id="jd-input" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="eyJhbGciOiJIUzI1NiIs…"></textarea>
+      <p class="examples">Try an example:
+        <button type="button" class="chip" data-example="user">Signed-in user</button>
+        <button type="button" class="chip" data-example="expired">Expired</button>
+        <button type="button" class="chip" data-example="service">Supabase service_role</button>
+      </p>
+    </div>
+
+    <div class="details" id="jd-details">
+      <details class="fold" id="jd-verify">
+        <summary>Check the signature</summary>
+        <div class="fold-body">
+          <label for="jd-key" id="jd-key-label" class="lab">Your JWT secret</label>
+          <textarea id="jd-key" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+          <p class="hint" id="jd-key-hint"></p>
+          <label class="check" id="jd-b64-row"><input type="checkbox" id="jd-b64" /> The secret is base64 encoded</label>
+          <div class="btns">
+            <button id="jd-verify-btn" type="button" class="primary">Check signature</button>
+            <button id="jd-suggest" type="button" class="ghost" hidden></button>
+          </div>
+          <p class="verify-result" id="jd-verify-result" role="status"></p>
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>See the raw header and payload</summary>
+        <div class="fold-body">
+          <p class="hint">The three parts of your token: <span class="key h">header</span> <span class="key p">payload</span> <span class="key s">signature</span></p>
+          <code class="colored" id="jd-colored"></code>
+          <div class="raw">
+            <div><h3>Header</h3><pre id="jd-header"></pre></div>
+            <div><h3>Payload</h3><pre id="jd-payload"></pre></div>
+          </div>
+          <h3>Every claim, explained</h3>
+          <div class="table"><table><tbody id="jd-claims"></tbody></table></div>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button id="jd-copy-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+        <button id="jd-copy-payload" type="button" class="ghost">Copy payload JSON</button>
+        <p class="status" id="jd-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/jwt-decoder';
+</script>
+
+<style>
+  .jd { display: grid; gap: 24px; min-width: 0; }
+  .jd [hidden] { display: none !important; }
+  .stage { display: grid; gap: 20px; padding: 28px; border-radius: 24px; border: 2px solid #9ED9B8; background: #F1FBF5; min-width: 0; transition: background 0.15s, border-color 0.15s; }
+  .stage[data-tone='warn'] { border-color: #F2CF7A; background: #FFF9EA; }
+  .stage[data-tone='bad'] { border-color: #F0A3B9; background: #FFF2F5; }
+  .verdict { display: flex; gap: 16px; align-items: flex-start; }
+  .icon { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 999px; background: #1A9B5A; color: #fff; font: 800 28px/1 var(--display); }
+  .stage[data-tone='warn'] .icon { background: #C98A00; }
+  .stage[data-tone='bad'] .icon { background: #C2224F; }
+  .headline { margin: 0; font: 800 clamp(24px, 3.4vw, 34px)/1.12 var(--display); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .stage[data-tone='bad'] .headline { color: #9C1C44; }
+  .subline { margin: 6px 0 0; color: var(--ink-soft); font-size: 17px; overflow-wrap: anywhere; }
+  .subline:empty { display: none; }
+  .alert { padding: 14px 16px; border-radius: 14px; background: #C2224F; color: #fff; font-size: 16px; }
+  .alert :global(code) { background: rgba(255, 255, 255, 0.18); padding: 1px 5px; border-radius: 5px; }
+  .error { padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px solid #F0A3B9; color: #9C1C44; font-size: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .cards:empty { display: none; }
+  .cards :global(.card) { display: grid; align-content: start; gap: 4px; padding: 14px 16px; border-radius: 16px; background: var(--white); border: 1px solid var(--line); min-width: 0; }
+  .cards :global(.label) { font: 600 12px/1.2 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .cards :global(strong) { font: 700 19px/1.2 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+  .cards :global(strong.mono) { font: 600 16px/1.3 var(--mono); }
+  .cards :global(.note) { font-size: 14px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .cards :global(.card.ok strong) { color: #0B6B3A; }
+  .cards :global(.card.warn strong) { color: #8A5C00; }
+  .cards :global(.card.bad) { border-color: #F0A3B9; }
+  .cards :global(.card.bad strong) { color: #9C1C44; }
+  .cards :global(.link) { justify-self: start; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--sky); font: 600 14px/1.3 var(--body); cursor: pointer; }
+  .private { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .paste { display: grid; gap: 8px; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .lab { font-weight: 600; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  textarea { width: 100%; min-width: 0; box-sizing: border-box; font: 400 14px/1.5 var(--mono); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; word-break: break-all; }
+  textarea:focus { outline: none; border-color: var(--sky); }
+  .examples { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-soft); }
+  .chip { font: 600 14px/1 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--wash); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .details { display: grid; gap: 14px; min-width: 0; }
+  .fold { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .fold-body { display: grid; gap: 10px; padding-bottom: 18px; min-width: 0; }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+  .verify-result { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink-soft); }
+  .verify-result:empty { display: none; }
+  .verify-result.ok { color: #0B6B3A; }
+  .verify-result.bad { color: #9C1C44; }
+  .colored { display: block; padding: 12px 14px; border-radius: 12px; background: var(--white); font: 13px/1.5 var(--mono); word-break: break-all; }
+  .colored :global(.h), .key.h { color: #C2224F; }
+  .colored :global(.p), .key.p { color: #7B3FC4; }
+  .colored :global(.s), .key.s { color: #0478A3; }
+  .key { font: 600 13px/1 var(--mono); margin-left: 6px; }
+  .raw { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
+  .raw h3, .fold-body h3 { margin: 6px 0; font-size: 16px; }
+  pre { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--white); font: 13px/1.5 var(--mono); overflow: auto; max-height: 360px; }
+  .table { overflow-x: auto; background: var(--white); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .table :global(th), .table :global(td) { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .table :global(tr:first-child th), .table :global(tr:first-child td) { border-top: 0; }
+  .table :global(td:last-child) { word-break: break-all; }
+  .table :global(td:nth-child(2)) { color: var(--ink-soft); min-width: 160px; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { justify-self: start; font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .primary:disabled { opacity: 0.6; cursor: wait; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 640px) {
+    .stage { padding: 18px; }
+    .icon { width: 44px; height: 44px; font-size: 22px; }
+    .raw { grid-template-columns: minmax(0, 1fr); }
+    .cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .cards :global(strong) { font-size: 17px; }
+  }
+</style>
