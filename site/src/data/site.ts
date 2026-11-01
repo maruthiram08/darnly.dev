@@ -13,6 +13,11 @@ export const TOOLS: Item[] = [
     name: 'Favicon generator',
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
+  {
+    slug: 'og-image-generator',
+    name: 'OG image generator',
+    blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
+  },
 ];
 
 // Same for guides.
