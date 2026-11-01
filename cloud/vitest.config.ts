@@ -9,7 +9,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc' },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations, ALLOW_DEV_LOGIN: 'true', GOOGLE_EXTENSION_CLIENT_ID: 'test-client.apps.googleusercontent.com' },
+          bindings: { TEST_MIGRATIONS: migrations, ALLOW_DEV_LOGIN: 'true', PUBLIC_URL: 'https://api.darnly.dev', GOOGLE_EXTENSION_CLIENT_ID: 'test-client.apps.googleusercontent.com' },
         },
       }),
     ],

@@ -6,7 +6,7 @@ export interface User {
   email: string;
 }
 
-interface GoogleIdentity {
+export interface GoogleIdentity {
   sub: string;
   email: string;
 }
@@ -28,7 +28,7 @@ async function verifyGoogleToken(env: Env, accessToken: string): Promise<GoogleI
   return { sub: info.sub, email: info.email };
 }
 
-async function upsertUser(env: Env, who: GoogleIdentity): Promise<User> {
+export async function upsertUser(env: Env, who: GoogleIdentity): Promise<User> {
   const found = await env.DB.prepare('SELECT id, email FROM users WHERE google_sub = ?').bind(who.sub).first<User>();
   if (found) {
     if (found.email !== who.email) await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(who.email, found.id).run();

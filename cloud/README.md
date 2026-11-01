@@ -30,6 +30,22 @@ npm run typecheck
 
 Limits: 5 MB per picture, 120 bugs an hour, 500 waiting. Fixed bugs are deleted 30 days after they're fixed (daily cron).
 
+## MCP for coding agents
+
+Agents connect to `<PUBLIC_URL>/mcp` (production: `https://api.darnly.dev/mcp`). It's stateless Streamable HTTP with OAuth 2.1, using Cloudflare's `workers-oauth-provider`, with dynamic client registration at `/register`, so Claude, Claude Code and Cursor can add it as a connector by URL alone.
+
+Sign-in: the agent opens `/authorize`, which shows "Connect <app> to Darnly?" with the app's name and redirect host. The user continues with Google, and the agent gets a token for that user's inbox only. The approval must come from the same browser that saw the page (a `__Host-` cookie), so a forged form post is refused.
+
+Tools:
+
+| Tool | What it does |
+|---|---|
+| `list_bugs` `{status?}` | Waiting bugs by default, newest first, with ids |
+| `get_bug` `{id}` | The report (fenced page data) plus the screenshot as an image |
+| `mark_fixed` `{id, note}` | Marks it fixed; the extension shows the note |
+
+Deleting an account revokes every agent's access.
+
 ## Deploy (first time)
 
 Deploy steps are written up in sprint A4.
