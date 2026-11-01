@@ -128,6 +128,14 @@ describe('captureMarkdown hints', () => {
     expect(md).not.toContain('.darnly/');
     expect(md).toContain('the screenshot pasted with this message');
   });
+  it('never says "no failed requests" right after listing some', () => {
+    const logs = [{ t: Date.now(), kind: 'request' as const, method: 'GET', url: '/api/x', status: 404, ms: 10 }];
+    for (const extra of [{ forPaste: true }, { forCloud: true }, {}]) {
+      const md = captureMarkdown({ ...base, element, recorder: false, logs: logs as never, ...extra });
+      expect(md).toContain('## Failed requests (since the page loaded)');
+      expect(md).not.toContain('No failed requests');
+    }
+  });
   it('tells a cloud agent to mark the bug fixed instead of moving files', () => {
     const md = captureMarkdown({ ...base, element, forCloud: true, logs: [{ t: Date.now(), kind: 'error', message: 'boom' }] });
     expect(md).not.toContain('.darnly/');

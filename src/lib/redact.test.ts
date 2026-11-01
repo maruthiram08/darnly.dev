@@ -54,4 +54,10 @@ describe('redactUrl', () => {
     expect(redactUrl('https://user:pw123@example.com/x')).not.toContain('pw123');
     expect(redactUrl('https://app.com/cb#access_token=abcdef1234567890xyz&x=1')).not.toContain('abcdef1234567890xyz');
   });
+  it('keeps long URL paths readable', () => {
+    const u = 'https://cloudusersettings-pa.clients6.google.com/v1alpha1/settings:getCurrent/AI_CHAT_INCLUDE_PAGE_CONTEXT?key=AIzaSyAbcdefghijklmnopqrstuvwxyz0123456';
+    const out = redactUrl(u);
+    expect(out).toContain('clients6.google.com/v1alpha1/settings:getCurrent/AI_CHAT_INCLUDE_PAGE_CONTEXT');
+    expect(out).not.toContain('AIzaSy');
+  });
 });

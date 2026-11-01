@@ -5,7 +5,7 @@ About 20 minutes, once. Do it in this order. Steps 1 and 2 need the Chrome Web S
 ## 1. Google sign-in (Google Cloud Console)
 
 1. Open https://console.cloud.google.com, create a project called "Darnly".
-2. **APIs & Services → OAuth consent screen:** External, app name Darnly, support email hello@darnly.dev, homepage https://darnly.dev, privacy policy the PRIVACY.md link. Scopes: `openid` and `email` only. Publish it.
+2. **APIs & Services → OAuth consent screen:** External, app name Darnly, user support email: your own Gmail (Google only allows the signed-in account or a Google Group you own), developer contact: hello@darnly.dev, homepage https://darnly.dev, privacy policy the PRIVACY.md link. Scopes: `openid` and `email` only. Publish it.
 3. **Credentials → Create credentials → OAuth client ID → Chrome extension.** Item ID: the store item id. Copy the client id: this is `DARNLY_GOOGLE_CLIENT_ID` (extension build) and `GOOGLE_EXTENSION_CLIENT_ID` (cloud).
 4. **Create credentials → OAuth client ID → Web application.** Authorized redirect URI: `https://api.darnly.dev/oauth/google/callback`. Copy its client id (`GOOGLE_WEB_CLIENT_ID`) and secret (`GOOGLE_WEB_CLIENT_SECRET`).
 

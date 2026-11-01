@@ -14,7 +14,7 @@ const SECRET_PATTERNS: RegExp[] = [
   /\bxox[abprs]-[A-Za-z0-9-]{10,}/g, // Slack
   /\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{12,}/gi,
   /\b[A-Fa-f0-9]{40,}\b/g, // long hex
-  /\b(?=[A-Za-z0-9+/_-]*\d)(?=[A-Za-z0-9+/_-]*[a-z])(?=[A-Za-z0-9+/_-]*[A-Z])[A-Za-z0-9+/_-]{40,}={0,2}/g, // long random base64
+  /\b(?=[A-Za-z0-9+_-]*\d)(?=[A-Za-z0-9+_-]*[a-z])(?=[A-Za-z0-9+_-]*[A-Z])[A-Za-z0-9+_-]{40,}={0,2}/g, // long random token (no '/', so URL paths survive)
 ];
 
 const SECRET_NAME = /token|key|secret|session|^code$|password|passwd|pwd|auth|sig(nature)?|credential|otp|jwt|apikey/i;

@@ -129,8 +129,14 @@ export function captureMarkdown(c: CaptureInput): string {
   if (requests.length) lines.push(c.recorder === false ? '## Failed requests (since the page loaded)' : '## Failed requests (last 60s)', ...requests, '');
   if (logs.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
   if (logs.length && !c.forPaste && !c.forCloud) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
-  else if (c.recorder === false) lines.push('_No failed requests since the page loaded. Console errors are not recorded on this site (recording is off)._', '');
-  else lines.push('No console errors or failed requests in the last 60 seconds.', '');
+  if (!logs.length) {
+    lines.push(
+      c.recorder === false
+        ? '_No failed requests since the page loaded. Console errors are not recorded on this site (recording is off)._'
+        : 'No console errors or failed requests in the last 60 seconds.',
+      '',
+    );
+  }
   for (let i = pageDataFrom; i < lines.length; i++) lines[i] = pageSafe(lines[i]!);
   lines.push(PAGE_DATA_END, '');
   lines.push(
