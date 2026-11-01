@@ -68,6 +68,11 @@ export const TOOLS: Item[] = [
     name: 'App icon generator',
     blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
   },
+  {
+    slug: 'contrast-checker',
+    name: 'Color contrast checker',
+    blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
+  },
 ];
 
 // Same for guides.
