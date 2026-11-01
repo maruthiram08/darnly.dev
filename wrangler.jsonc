@@ -3,7 +3,11 @@
   "compatibility_date": "2026-10-31",
   // The site is built with Astro in site/; this runs before every deploy.
   "build": { "command": "npm ci --prefix site && npm run build --prefix site" },
-  "assets": { "directory": "./site/dist" },
+  // Static pages come from site/dist. Only /api/* runs the Worker (site/worker/index.ts).
+  "main": "site/worker/index.ts",
+  "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  // Free tools that fetch other sites: at most 20 checks a minute per visitor.
+  "ratelimits": [{ "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } }],
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
   "previews": {}
