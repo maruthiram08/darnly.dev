@@ -1,0 +1,240 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { PLATFORMS, EXAMPLE } from '../../../scripts/redirect-rules-generator-core';
+
+const related = ['domain-checker', 'broken-link-checker', 'sitemap-generator']
+  .map((s) => TOOLS.find((t) => t.slug === s))
+  .filter((t): t is NonNullable<typeof t> => !!t);
+
+const steps = [
+  'Paste your old and new addresses, one pair per line, like <code>/old-page /new-page</code>. A spreadsheet or CSV works too: copy two columns, or upload the file.',
+  'Watch the redirect map at the top. Red rows are loops (a page that sends you round in a circle) or chains (one redirect leading to another). Press “Fix chains” to point every old address straight to its final page.',
+  'Pick where your site runs: Vercel, Netlify, Cloudflare, Next.js, nginx or Apache. Copy the file, or copy the prompt and let your AI agent add it for you.',
+];
+
+const faq = [
+  { q: 'Should I use 301 or 302?', a: 'Use <strong>301</strong> when the page has moved for good: Google moves the old page’s ranking to the new one. Use <strong>302</strong> only for something temporary, like a sale page or maintenance. If you’re not sure, it’s a 301.' },
+  { q: 'What is a redirect chain, and why is it bad?', a: 'A chain is when <code>/a</code> sends you to <code>/b</code>, and <code>/b</code> sends you on to <code>/c</code>. Each step is another trip to the server, so the page loads slower, and Google may stop following after a few steps. Point <code>/a</code> straight to <code>/c</code>.' },
+  { q: 'What is a redirect loop?', a: 'When the redirects go round in a circle, like <code>/signup</code> to <code>/register</code> and back to <code>/signup</code>. The page never loads and the browser shows “too many redirects”. This tool marks loops in red before you ship them.' },
+  { q: 'How do I move a whole folder?', a: 'Put a <code>*</code> at the end of both addresses: <code>/blog/* /posts/*</code> sends <code>/blog/hello</code> to <code>/posts/hello</code>. To send everything in the folder to one page, leave the <code>*</code> off the new address: <code>/blog/* /news</code>.' },
+  { q: 'Should my site use www or not?', a: 'Either is fine, but pick one, so every page has a single address and Google doesn’t split its ranking between two. Choose “Add www” or “Remove www” and type your domain, and the tool adds the rule that sends everyone to your choice.' },
+  { q: 'Why doesn’t Cloudflare’s file have the www rule?', a: 'Cloudflare’s <code>_redirects</code> file only knows about paths on your site, not domains. Set up the www redirect in the Cloudflare dashboard instead: your domain → Rules → Redirect Rules, then the ready-made “Redirect from WWW to root” template (or the opposite).' },
+  { q: 'Is anything uploaded?', a: 'No. Your list, your CSV and the rules are all handled in your browser. Nothing is sent to a server.' },
+];
+---
+<ToolPage
+  slug="redirect-rules-generator"
+  title="Redirect generator for Vercel, Netlify, Cloudflare, Next.js, nginx · Darnly"
+  description="Paste old and new URLs (or upload a CSV) and get 301 redirects for vercel.json, Netlify and Cloudflare _redirects, next.config.js, nginx and .htaccess. Spots redirect loops and chains. Free."
+  h1="Redirects for Vercel, Netlify and Cloudflare"
+  lede="Paste your old and new addresses and get the redirect file for your host. A live map shows every redirect, with loops and chains marked in red before they break your site."
+  steps={steps}
+  faq={faq}
+>
+  <div class="rr">
+    <div class="stage" aria-label="Your redirect map">
+      <div class="verdict" id="rr-verdict" data-state="ok">
+        <span class="badge" id="rr-badge" aria-hidden="true">✓</span>
+        <div class="vtext">
+          <p class="vtitle" id="rr-vtitle" aria-live="polite">Checking…</p>
+          <p class="vsub" id="rr-vsub"></p>
+        </div>
+        <button id="rr-fix" type="button" class="primary" hidden>Fix chains</button>
+      </div>
+      <ol class="map" id="rr-map" aria-label="Old address to new address"></ol>
+      <button id="rr-showall" type="button" class="ghost small" hidden></button>
+    </div>
+
+    <div class="input">
+      <div class="input-head">
+        <label for="rr-list">Old and new addresses <span class="opt">one pair per line</span></label>
+        <div class="input-btns">
+          <label class="ghost small file">Upload CSV<input id="rr-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" /></label>
+          <button id="rr-example" type="button" class="ghost small">Example</button>
+          <button id="rr-clear" type="button" class="ghost small">Clear</button>
+        </div>
+      </div>
+      <textarea id="rr-list" rows="9" spellcheck="false" autocomplete="off" wrap="off">{EXAMPLE}</textarea>
+      <ul class="bad" id="rr-bad" role="alert"></ul>
+    </div>
+
+    <div class="opts">
+      <fieldset class="seg-field">
+        <legend>Type</legend>
+        <div class="seg" id="rr-code">
+          <button type="button" data-v="301" aria-pressed="true">301 <span>moved for good</span></button>
+          <button type="button" data-v="302" aria-pressed="false">302 <span>temporary</span></button>
+        </div>
+      </fieldset>
+      <fieldset class="seg-field">
+        <legend>www</legend>
+        <div class="seg" id="rr-host">
+          <button type="button" data-v="leave" aria-pressed="true">Leave it</button>
+          <button type="button" data-v="www" aria-pressed="false">Add www</button>
+          <button type="button" data-v="apex" aria-pressed="false">Remove www</button>
+        </div>
+      </fieldset>
+      <fieldset class="seg-field">
+        <legend>Trailing slash</legend>
+        <div class="seg" id="rr-slash">
+          <button type="button" data-v="leave" aria-pressed="true">Leave it</button>
+          <button type="button" data-v="add" aria-pressed="false">Add /</button>
+          <button type="button" data-v="remove" aria-pressed="false">Remove /</button>
+        </div>
+      </fieldset>
+      <div class="domain" id="rr-domain-wrap" hidden>
+        <label for="rr-domain">Your domain</label>
+        <input id="rr-domain" type="text" inputmode="url" placeholder="mysite.com" autocomplete="off" spellcheck="false" />
+      </div>
+    </div>
+
+    <div class="out">
+      <div class="tabs" role="tablist" aria-label="Where your site runs" id="rr-tabs">
+        {PLATFORMS.map((p, i) => (
+          <button type="button" role="tab" id={`rr-tab-${p.id}`} data-p={p.id} aria-selected={i === 0 ? 'true' : 'false'} aria-controls="rr-panel">{p.label}</button>
+        ))}
+      </div>
+      <div class="panel" id="rr-panel" role="tabpanel">
+        <div class="panel-head">
+          <span class="fname" id="rr-fname">vercel.json</span>
+          <div class="actions">
+            <button id="rr-copy" type="button" class="primary">Copy</button>
+            <button id="rr-dl" type="button" class="ghost">Download</button>
+            <button id="rr-prompt" type="button" class="ghost">Copy as prompt for your AI agent</button>
+            <span class="status" id="rr-status" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <p class="where" id="rr-where"></p>
+        <pre class="code" tabindex="0"><code id="rr-code-out"></code></pre>
+      </div>
+    </div>
+
+    <details class="fold">
+      <summary>What you can paste</summary>
+      <ul class="formats">
+        <li><code>/old /new</code>, <code>/old, /new</code> or <code>/old → /new</code>: one redirect per line.</li>
+        <li>Full addresses work too: <code>https://mysite.com/old https://mysite.com/new</code>. The old one is turned into a path.</li>
+        <li>A whole folder: <code>/blog/* /posts/*</code>. Netlify’s <code>:splat</code> and Vercel’s <code>:path*</code> work as well.</li>
+        <li>A different type for one line: add it at the end, like <code>/sale /deals 302</code>.</li>
+        <li>Two columns copied from Google Sheets or Excel, or a CSV file. A header row like <code>old,new</code> is skipped.</li>
+        <li>Lines starting with <code>#</code> are notes and are skipped.</li>
+      </ul>
+    </details>
+
+    {related.length > 0 && (
+      <p class="more-link">
+        Moving to a new domain or cleaning up old pages? {related.map((t, i) => (
+          <>{i > 0 && (i === related.length - 1 ? ' or ' : ', ')}<a href={`/tools/${t.slug}/`}>{t.name.toLowerCase()}</a></>
+        ))} can help.
+      </p>
+    )}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/redirect-rules-generator';
+</script>
+
+<style>
+  .rr { display: grid; gap: 24px; min-width: 0; }
+  .rr [hidden] { display: none !important; }
+  .stage { display: grid; gap: 18px; padding: 28px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+
+  .verdict { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+  .badge { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font: 800 26px/1 var(--body); color: var(--white); background: #1E8A5A; }
+  .verdict[data-state='bad'] .badge { background: #C8243F; }
+  .verdict[data-state='warn'] .badge { background: #C27A00; }
+  .verdict[data-state='empty'] .badge { background: var(--ink-soft); }
+  .vtext { min-width: 0; }
+  .vtitle { margin: 0; font: 700 26px/1.2 var(--display); color: var(--ink); text-wrap: balance; }
+  .vsub { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; }
+
+  .map { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+  .map :global(li) { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); border-left: 5px solid #1E8A5A; min-width: 0; }
+  .map :global(li.bad) { border-left-color: #C8243F; background: #FFF4F6; border-color: #F3C4CE; }
+  .map :global(li.warn) { border-left-color: #C27A00; background: #FFF9EE; border-color: #F1DDB6; }
+  .map :global(li.dup) { opacity: 0.6; border-left-color: var(--ink-soft); }
+  .map :global(.path) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; min-width: 0; }
+  .map :global(.node) { font: 600 15px/1.35 var(--mono); color: var(--ink); padding: 4px 9px; border-radius: 8px; background: var(--wash); overflow-wrap: anywhere; word-break: break-all; max-width: 100%; }
+  .map :global(.node.ext) { background: #E6DEFA; }
+  .map :global(li.bad .node.hit) { background: #C8243F; color: #fff; }
+  .map :global(.arrow) { display: inline-flex; align-items: center; gap: 0; color: var(--ink-soft); flex: none; }
+  .map :global(.arrow i) { display: block; width: 26px; height: 2px; background: currentColor; }
+  .map :global(.arrow b) { font: 700 11px/1 var(--mono); padding: 3px 5px; border-radius: 6px; border: 1.5px solid currentColor; }
+  .map :global(.arrow::after) { content: ''; border: 5px solid transparent; border-left: 8px solid currentColor; border-right: 0; }
+  .map :global(li.bad .arrow) { color: #C8243F; }
+  .map :global(.loopmark) { font: 800 20px/1 var(--body); color: #C8243F; }
+  .map :global(.why) { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
+  .map :global(li.bad .why) { color: #8E1A31; }
+  .map :global(li.warn .why) { color: #7A4D00; }
+  .map :global(.ln) { font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+  .map :global(.empty) { border-left-color: var(--line); color: var(--ink-soft); }
+
+  .input { display: grid; gap: 10px; min-width: 0; }
+  .input-head { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: end; }
+  .input-head > label { font-weight: 600; }
+  .input-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opt { font-weight: 400; font-size: 14px; color: var(--ink-soft); }
+  textarea { box-sizing: border-box; width: 100%; min-height: 200px; resize: vertical; font: 500 15px/1.6 var(--mono); padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); tab-size: 4; }
+  textarea:focus, input[type='text']:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .file { position: relative; overflow: hidden; display: inline-flex; align-items: center; }
+  .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+  .file:focus-within { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .bad { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; color: #B4234F; }
+  .bad :global(code) { font-size: 13px; }
+
+  .opts { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; }
+  .seg-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+  .seg-field legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--white); gap: 2px; }
+  .seg button { font: 600 15px/1 var(--body); padding: 10px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .seg button span { font-weight: 400; font-size: 13px; color: var(--ink-soft); }
+  .seg button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .seg button[aria-pressed='true'] span { color: #C9DCE4; }
+  .domain { display: grid; gap: 8px; min-width: 0; }
+  .domain label { font-weight: 600; }
+  input[type='text'] { box-sizing: border-box; width: 220px; max-width: 100%; font: 500 16px/1.3 var(--mono); padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  .domain.need input { border-color: #C27A00; box-shadow: 0 0 0 3px #FBEACB; }
+
+  .out { display: grid; gap: 0; min-width: 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { font: 600 15px/1 var(--body); padding: 11px 16px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--wash); color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .panel { display: grid; gap: 12px; padding: 18px; border-radius: 0 16px 16px 16px; background: var(--ink); color: #DCEBF1; min-width: 0; }
+  .panel-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .fname { font: 700 15px/1 var(--mono); color: #fff; }
+  .where { margin: 0; font-size: 14px; line-height: 1.5; color: #A9C3CE; }
+  .where :global(code) { color: #fff; font-size: 13px; }
+  .code { margin: 0; padding: 14px 16px; border-radius: 12px; background: #06161F; overflow: auto; max-height: 460px; min-width: 0; }
+  .code code { font: 500 13.5px/1.6 var(--mono); color: #E8F4F8; white-space: pre; }
+  .code :global(.c) { color: #7E98A4; }
+  .panel .primary { background: var(--sky); }
+  .panel .ghost { background: transparent; color: #fff; border-color: #2D4A58; }
+  .panel .ghost:hover { border-color: var(--sky); }
+  .panel .status { color: #A9C3CE; }
+
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .formats { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; color: var(--ink-soft); }
+  .more-link { margin: 0; color: var(--ink-soft); }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .primary { font: 600 16px/1 var(--body); padding: 13px 20px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .verdict .primary { background: #C8243F; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .small { font-size: 13px; padding: 8px 12px; }
+  .status { font-size: 15px; color: var(--ink-soft); }
+
+  @media (max-width: 640px) {
+    .stage { padding: 18px; }
+    .verdict { grid-template-columns: auto minmax(0, 1fr); }
+    .verdict .primary { grid-column: 1 / -1; justify-self: start; }
+    .badge { width: 42px; height: 42px; font-size: 21px; }
+    .vtitle { font-size: 21px; }
+    .map :global(.node) { font-size: 13.5px; }
+    .map :global(.arrow i) { width: 14px; }
+    .panel { padding: 14px; border-radius: 0 0 16px 16px; }
+  }
+</style>
