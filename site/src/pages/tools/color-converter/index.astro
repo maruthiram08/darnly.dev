@@ -1,0 +1,213 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type or paste a color in any format: <code>#0593c6</code>, <code>rgb(5, 147, 198)</code>, <code>hsl(196 95% 40%)</code>, <code>oklch(62% 0.13 232)</code>, a CSS name like <code>steelblue</code>, or a Tailwind color like <code>sky-500</code>. You can also use the color picker, or pick any color on your screen in Chrome and Edge.',
+  'The big swatch shows your color. Next to it you see it on a white page and on a black page, with the contrast ratio for each, so you know if it works for text.',
+  'Every other format updates as you type. Click any of them to copy it. Use the sliders to nudge the color in RGB, HSL, HWB, OKLCH or LAB, and the alpha slider to make it see-through.',
+];
+
+const faq = [
+  { q: 'Which color format should I use in my CSS?', a: 'Any of them works in every modern browser. Hex is the most common and easiest to paste around. HSL is easy to tweak by hand. OKLCH is the newest: its lightness matches what your eye sees, so it’s the best for building shades, and it’s what Tailwind v4 uses.' },
+  { q: 'What is OKLCH?', a: 'OKLCH describes a color as Lightness, Chroma (how colorful it is) and Hue (the angle on the color wheel). Unlike HSL, two colors with the same OKLCH lightness really do look equally light. It can also describe very vivid colors that newer screens can show and hex can’t.' },
+  { q: 'Why does my OKLCH or LAB color say it’s outside what most screens show?', a: 'Some OKLCH and LAB values are more vivid than the sRGB colors that hex, RGB and HSL can describe. We keep your exact value in OKLCH and LAB, and show the closest color every screen can show in the other formats.' },
+  { q: 'What do the contrast numbers mean?', a: 'They are WCAG contrast ratios. 4.5:1 or more is good for normal text. 3:1 is enough for big text, icons and buttons. Under 3:1 is too faint. To test your color against any background, open it in our contrast checker.' },
+  { q: 'How do I write a see-through color?', a: 'Move the alpha slider. Hex gets two extra digits (like <code>#0593C680</code> for 50%), RGB and HSL become <code>rgba()</code> and <code>hsla()</code>, and the others get <code>/ 0.5</code> at the end.' },
+  { q: 'Is the Tailwind class exact?', a: 'It’s the nearest Tailwind v4 color, measured by how different the two look to your eye. The label tells you how close it is. To see the 3 closest colors side by side, open it in our Hex to Tailwind tool.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="color-converter"
+  title="Color converter: HEX, RGB, HSL and OKLCH · Darnly"
+  description="Convert any color between HEX, RGB, HSL, HWB, OKLCH, LAB, CSS names and Tailwind. See it big, on white and on black with contrast ratios, and copy any format in one click. Free."
+  h1="Color converter: HEX, RGB, HSL and OKLCH"
+  lede="Type any color and see it big, with every other format right below it. See how it looks on white and on black, and copy any format in one click."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cv">
+    <div class="stage">
+      <div class="big" id="cv-big">
+        <div class="fill" id="cv-fill"></div>
+        <div class="big-text">
+          <span class="rank" id="cv-name">Your color</span>
+          <strong id="cv-hex">#0593C6</strong>
+        </div>
+        <p class="gamut" id="cv-gamut" hidden>More vivid than most screens can show. HEX, RGB and HSL show the closest color they can.</p>
+      </div>
+      <div class="on">
+        <div class="panel light" id="cv-on-w">
+          <span class="where">On white</span>
+          <div class="sample">
+            <span class="chip" id="cv-chip-w"></span>
+            <span class="aa" id="cv-aa-w">Aa Text</span>
+          </div>
+          <div class="ratio"><strong id="cv-r-w">3.50:1</strong><span id="cv-v-w"></span></div>
+        </div>
+        <div class="panel dark" id="cv-on-k">
+          <span class="where">On black</span>
+          <div class="sample">
+            <span class="chip" id="cv-chip-k"></span>
+            <span class="aa" id="cv-aa-k">Aa Text</span>
+          </div>
+          <div class="ratio"><strong id="cv-r-k">6.00:1</strong><span id="cv-v-k"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input">
+      <label for="cv-text">Type or paste any color</label>
+      <div class="field">
+        <input id="cv-picker" type="color" value="#0593c6" aria-label="Pick a color" />
+        <input id="cv-text" type="text" value="#0593C6" spellcheck="false" autocomplete="off" placeholder="#0593c6, rgb(5 147 198), oklch(62% 0.13 232), steelblue…" />
+        <button id="cv-drop" type="button" class="pill" hidden title="Pick a color from your screen">Pick from screen</button>
+        <button id="cv-random" type="button" class="pill" title="Try a random color">Random</button>
+      </div>
+      <p class="bad" id="cv-error" role="alert" hidden>We can’t read that color. Try a hex code like #1a2b3c or rgb(26, 43, 60).</p>
+    </div>
+
+    <div>
+      <p class="sub">Click any format to copy it</p>
+      <ul class="formats" id="cv-formats"></ul>
+    </div>
+
+    <div class="tune">
+      <div class="tabs" role="tablist" aria-label="Adjust with">
+        <span>Adjust with</span>
+        <button type="button" role="tab" data-model="rgb" aria-selected="true">RGB</button>
+        <button type="button" role="tab" data-model="hsl" aria-selected="false">HSL</button>
+        <button type="button" role="tab" data-model="hwb" aria-selected="false">HWB</button>
+        <button type="button" role="tab" data-model="oklch" aria-selected="false">OKLCH</button>
+        <button type="button" role="tab" data-model="lab" aria-selected="false">LAB</button>
+      </div>
+      <div id="cv-sliders" class="sliders"></div>
+      <div class="sliders">
+        <div class="srow">
+          <label for="cv-alpha">Alpha (see-through)</label>
+          <div class="track checker" id="cv-alpha-track"><input id="cv-alpha" type="range" min="0" max="100" step="1" value="100" /></div>
+          <span class="num"><input id="cv-alpha-n" type="number" min="0" max="100" step="any" aria-label="Alpha value" value="100" /><span>%</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="cv-all" type="button" class="ghost">Copy all formats</button>
+      <button id="cv-link" type="button" class="ghost">Copy link</button>
+      <p class="status" id="cv-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="next">
+      <a id="cv-to-contrast" href="/tools/contrast-checker/">Check it against any background <span>Contrast checker</span></a>
+      <a id="cv-to-tailwind" href="/tools/hex-to-tailwind/">See the 3 closest Tailwind colors <span>Hex to Tailwind</span></a>
+      <a id="cv-to-scale" href="/tools/tailwind-color-generator/">Make a full 50–950 scale from it <span>Tailwind color generator</span></a>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/color-converter';
+</script>
+
+<style>
+  .cv { display: grid; gap: 22px; min-width: 0; }
+  .cv [hidden] { display: none !important; }
+  .checker, .big { background-color: #fff; background-image: conic-gradient(#E3E8EC 25%, transparent 0 50%, #E3E8EC 0 75%, transparent 0); background-size: 18px 18px; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: 24px; border: 1px solid var(--line); background: var(--white); }
+  .big { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: 320px; border-radius: 16px; overflow: hidden; color: #fff; }
+  .big.dark-ink { color: #0B2230; }
+  .fill { position: absolute; inset: 0; background: #0593C6; }
+  .big-text { position: relative; display: grid; gap: 8px; padding: 22px; }
+  .rank { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+  .big strong { font: 800 clamp(30px, 5vw, 44px)/1 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  .gamut { position: relative; margin: 0 22px 18px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.9); color: #0B2230; font-size: 14px; }
+
+  .on { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; }
+  .panel { display: grid; gap: 10px; align-content: space-between; padding: 16px; border-radius: 16px; border: 1px solid var(--line); }
+  .panel.light { background: #fff; color: #0B2230; }
+  .panel.dark { background: #000; color: #fff; border-color: #000; }
+  .where { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+  .sample { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .chip { flex: none; width: 44px; height: 44px; border-radius: 12px; }
+  .aa { font: 800 28px/1 var(--display); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ratio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .ratio strong { font: 700 20px/1 var(--mono); }
+  .ratio span { font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+  .panel.good .ratio span { background: #D7F5E3; color: #0B6B3A; }
+  .panel.ok .ratio span { background: #FFF1C9; color: #7A5200; }
+  .panel.bad .ratio span { background: #FBE0E8; color: #9C1C44; }
+
+  .input { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+  .input label { font-weight: 600; }
+  .field { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .field:focus-within { border-color: var(--sky); }
+  .field input[type='color'] { flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+  .field input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .field input[type='color']::-webkit-color-swatch { border: 0; border-radius: 9px; }
+  .field input[type='text'] { flex: 1; min-width: 0; font: 500 18px/1.2 var(--mono); padding: 10px 6px; border: 0; background: none; color: var(--ink); }
+  .field input[type='text']:focus { outline: none; }
+  .pill { flex: none; font: 600 14px/1 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .pill:hover { border-color: var(--sky); }
+  .bad { margin: 0; color: #B4234F; font-size: 14px; }
+
+  .sub { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  .formats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .formats :global(.fmt) { width: 100%; height: 100%; display: grid; gap: 6px; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .formats :global(.fmt:hover) { border-color: var(--sky); }
+  .formats :global(.flabel) { display: flex; justify-content: space-between; font: 700 12px/1 var(--mono); letter-spacing: 0.06em; color: var(--ink-soft); }
+  .formats :global(.hint::after) { content: 'Copy'; font-weight: 600; letter-spacing: 0; color: var(--sky); opacity: 0; transition: opacity 0.15s; }
+  .formats :global(.fmt:hover .hint::after), .formats :global(.fmt:focus-visible .hint::after) { opacity: 1; }
+  .formats :global(.fmt.copied) { border-color: #12A150; background: #F0FBF4; }
+  .formats :global(.fmt.copied .hint::after) { content: 'Copied ✓'; color: #0B6B3A; opacity: 1; }
+  .formats :global(code) { display: flex; align-items: center; gap: 8px; font: 600 16px/1.3 var(--mono); overflow-wrap: anywhere; }
+  .formats :global(code i) { flex: none; width: 16px; height: 16px; border-radius: 5px; border: 1px solid rgba(11, 34, 48, 0.12); }
+  .formats :global(.note) { font-size: 13px; color: var(--ink-soft); }
+
+  .tune { display: grid; gap: 14px; padding: 16px 20px 20px; border-radius: 16px; background: var(--wash); }
+  .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .tabs span { margin-right: 6px; font-weight: 600; }
+  .tabs button { font: 600 14px/1 var(--mono); padding: 9px 12px; border: 0; border-radius: 999px; background: none; color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); color: var(--white); }
+  .sliders { display: grid; gap: 12px; }
+  .sliders :global(.srow) { display: grid; grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 12px; align-items: center; }
+  .sliders :global(label) { font-size: 14px; font-weight: 600; }
+  .sliders :global(.track) { position: relative; height: 22px; border-radius: 999px; }
+  .sliders :global(.track:not(.checker)) { background: var(--grad, #ccc); }
+  .sliders :global(.track.checker) { background-size: 11px 11px; }
+  .sliders :global(.track.checker::before) { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--grad, transparent); }
+  .sliders :global(input[type='range']) { position: relative; -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0; background: none; cursor: pointer; }
+  .sliders :global(input[type='range']::-webkit-slider-thumb) { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid #0B2230; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+  .sliders :global(input[type='range']::-moz-range-thumb) { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid #0B2230; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+  .sliders :global(input[type='range']::-moz-range-track) { background: none; }
+  .sliders :global(.num) { display: flex; align-items: center; gap: 4px; font: 500 14px/1 var(--mono); color: var(--ink-soft); }
+  .sliders :global(.num input) { flex: 1; width: 100%; min-width: 0; font: 500 14px/1 var(--mono); padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .ghost:global(.copied) { border-color: #12A150; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+
+  .next { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .next a { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--wash); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .next a:hover { outline: 1px solid var(--sky); }
+  .next a span { font: 500 13px/1.2 var(--mono); color: var(--sky); }
+
+  @media (max-width: 760px) {
+    .stage { grid-template-columns: minmax(0, 1fr); }
+    .big { min-height: 200px; }
+    .on { grid-template-columns: 1fr 1fr; grid-template-rows: none; }
+    .aa { font-size: 22px; }
+    .chip { width: 32px; height: 32px; }
+    .next { grid-template-columns: minmax(0, 1fr); }
+    .sliders :global(.srow) { grid-template-columns: minmax(0, 1fr) 90px; }
+    .sliders :global(.track) { grid-column: 1 / -1; grid-row: 2; }
+  }
+  @media (max-width: 520px) {
+    .formats { grid-template-columns: minmax(0, 1fr); }
+    .on { grid-template-columns: minmax(0, 1fr); }
+    .field { flex-wrap: wrap; }
+    .field input[type='text'] { flex-basis: calc(100% - 70px); }
+  }
+</style>

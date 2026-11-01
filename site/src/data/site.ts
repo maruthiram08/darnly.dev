@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'color-converter',
+    name: 'Color converter',
+    blurb: 'Any color as HEX, RGB, HSL, OKLCH, LAB, CSS name and Tailwind, with how it looks on white and black.',
+    category: 'Design',
+  },
 ];
 
 // Same for guides.
