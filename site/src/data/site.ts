@@ -108,6 +108,11 @@ export const TOOLS: Item[] = [
     name: 'CSS gradients and shadows',
     blurb: 'Make gradients with draggable colors and soft layered shadows, then copy CSS or Tailwind.',
   },
+  {
+    slug: 'cron-builder',
+    name: 'Cron expression generator',
+    blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
+  },
 ];
 
 // Same for guides.
