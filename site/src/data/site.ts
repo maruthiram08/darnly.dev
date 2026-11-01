@@ -63,6 +63,11 @@ export const TOOLS: Item[] = [
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
+  {
+    slug: 'json-to-typescript',
+    name: 'JSON to TypeScript',
+    blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
+  },
 ];
 
 // Same for guides.
