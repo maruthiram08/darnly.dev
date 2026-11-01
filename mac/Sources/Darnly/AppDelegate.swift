@@ -125,10 +125,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
-        let note: String? = await withCheckedContinuation { cont in
+        let result: NoteResult? = await withCheckedContinuation { cont in
             notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
         }
-        guard let note else { return }
+        guard let result else { return }
+        let note = result.note
         let collected = await logs
         let now = Date()
         let title = Report.title(note: note, element: element)
@@ -136,9 +137,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
             bundleId: collected.bundleId ?? NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
-            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason)
+            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason, hasReference: result.reference != nil)
         do {
-            let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, logs: capture.logs)
+            let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, reference: result.reference, logs: capture.logs)
             notify("Saved to \(Report.inboxFolder)/\(file.lastPathComponent). Tell your agent: fix the bugs in \(Report.inboxFolder)")
         } catch {
             notify("Couldn't save: \(error.localizedDescription)")

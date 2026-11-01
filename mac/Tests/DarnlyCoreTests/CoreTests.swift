@@ -79,7 +79,8 @@ final class ReportTests: XCTestCase {
         let end = md.range(of: Report.pageDataEnd)!
         XCTAssertTrue(start.upperBound < end.lowerBound)
         XCTAssertTrue(md.range(of: "## How to fix")!.lowerBound > end.upperBound)
-        XCTAssertTrue(md.contains("move this file and its PNG to .darnly/done/"))
+        XCTAssertTrue(md.contains("move this file and the other files that start with 2026-11-01-1322-save-plan-cut-off to .darnly/done/"))
+        XCTAssertFalse(md.contains("reference.png"))
     }
 
     func testAppTextCannotFakeTheFenceOrLeakSecrets() {
@@ -97,6 +98,14 @@ final class ReportTests: XCTestCase {
         XCTAssertFalse(md.contains(".png"))
     }
 
+    func testReferencePictureIsNamedBeforeThePageData() {
+        var c = sample()
+        c.hasReference = true
+        let md = Report.markdown(c)
+        let ref = md.range(of: "**What it should look like:** .darnly/inbox/2026-11-01-1322-save-plan-cut-off.reference.png")!
+        XCTAssertTrue(ref.upperBound < md.range(of: Report.pageDataStart)!.lowerBound)
+    }
+
     func testWholeWindowAndTitle() {
         let md = Report.markdown(sample())
         XCTAssertTrue(md.contains("whole window"))
@@ -108,7 +117,8 @@ final class ReportTests: XCTestCase {
     func testInboxWritesFilesAndGitignore() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let md = try Inbox.save(project: dir, id: "x", markdown: "# hi", png: Data([0x89, 0x50]), logs: [LogLine(time: Date(), level: "error", process: "p", message: "m")])
+        let md = try Inbox.save(project: dir, id: "x", markdown: "# hi", png: Data([0x89, 0x50]), reference: Data([0x89, 0x51]), logs: [LogLine(time: Date(), level: "error", process: "p", message: "m")])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.reference.png").path))
         XCTAssertEqual(try String(contentsOf: md, encoding: .utf8), "# hi")
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.png").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(".darnly/inbox/x.logs.json").path))
