@@ -99,6 +99,11 @@ export const TOOLS: Item[] = [
     blurb: 'A sitemap.xml and robots.txt for your site in seconds, plus the broken links we found.',
   },
   {
+    slug: 'px-to-rem',
+    name: 'px to rem converter',
+    blurb: 'px to rem and back, live, with the matching Tailwind class and a ruler at real size.',
+  },
+  {
     slug: 'privacy-policy-generator',
     name: 'Privacy policy generator',
     blurb: 'A plain-English privacy policy and terms for your app, naming the services you use. Not legal advice.',
