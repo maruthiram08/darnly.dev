@@ -41,6 +41,11 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/a11y?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Reads the page's HTML and
+//   runs the automated accessibility checks, for the accessibility checker at
+//   /tools/accessibility-checker/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,6 +54,7 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { checkA11y } from './a11y';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -74,6 +80,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/a11y') return a11yApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -123,6 +130,19 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
       ...(await findLeaks(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'application/javascript,*/*;q=0.1', 2_000_000))),
     }),
     { cache: false, maxBytes: 2_000_000 },
+  );
+}
+
+// /api/a11y: automated accessibility checks on one page's HTML. Not cached, so a re-check after a fix is fresh.
+function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'a11y',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkA11y(p.html, p.finalUrl) }),
+    { cache: false },
   );
 }
 
