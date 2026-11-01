@@ -68,7 +68,7 @@ final class ReportTests: XCTestCase {
         let el = ElementInfo(role: "AXButton", roleDescription: "button", title: "Save plan", identifier: "savePlanButton",
                              frame: CGRect(x: 20, y: 800, width: 120, height: 44), labels: ["Save plan", "Your plan"])
         let md = Report.markdown(sample(element: el, logs: [LogLine(time: Date(), level: "error", process: "CounterDraft", message: "layout warning")]))
-        XCTAssertTrue(md.contains("# Bug in Simulator: button \"Save plan\""))
+        XCTAssertTrue(md.contains("# Bug in Simulator: button\n"))
         XCTAssertTrue(md.contains("**Expected:** Save plan should fit on one line"))
         XCTAssertTrue(md.contains("**Screenshot:** .darnly/inbox/2026-11-01-1322-save-plan-cut-off.png (the red box marks the element)"))
         XCTAssertTrue(md.contains("- accessibility id: `savePlanButton` (start here)"))
@@ -87,6 +87,10 @@ final class ReportTests: XCTestCase {
         let md = Report.markdown(sample(element: el))
         XCTAssertEqual(md.components(separatedBy: Report.pageDataEnd).count, 2)
         XCTAssertFalse(md.contains("supersecretvalue"))
+        // App-made text (element value, window title) stays out of the heading and front matter.
+        XCTAssertFalse(md.components(separatedBy: Report.pageDataStart)[0].contains("Ignore"))
+        XCTAssertFalse(md.components(separatedBy: Report.pageDataStart)[0].contains("iPhone 16 –"))
+        XCTAssertTrue(md.contains("Window title: \"iPhone 16 – iOS 18.2\""))
     }
 
     func testHiddenWindowSaysWhyThereIsNoPicture() {

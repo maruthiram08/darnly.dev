@@ -2,6 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { cleanup } from '../src/bugs';
+import { SESSION_IDLE_MS, deleteExpiredSessions } from '../src/auth';
 
 const BASE = 'https://api.darnly.dev';
 // A tiny valid PNG (1x1).
@@ -151,5 +152,18 @@ describe('cloud inbox API', () => {
   it('keeps a worker export with fetch and scheduled', () => {
     expect(typeof worker.fetch).toBe('function');
     expect(typeof worker.scheduled).toBe('function');
+  });
+
+  it('signs out a session nobody used for 90 days', async () => {
+    const token = await signIn('idle@example.com');
+    const ok = await SELF.fetch(`${BASE}/v1/me`, auth(token));
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('x-content-type-options')).toBe('nosniff');
+    await env.DB.prepare('UPDATE sessions SET last_used_at = ?').bind(Date.now() - SESSION_IDLE_MS - 1000).run();
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(token))).status).toBe(401);
+    const other = await signIn('idle2@example.com');
+    await env.DB.prepare('UPDATE sessions SET last_used_at = ?').bind(Date.now() - SESSION_IDLE_MS - 1000).run();
+    expect(await deleteExpiredSessions(env as never)).toBeGreaterThanOrEqual(1);
+    expect((await SELF.fetch(`${BASE}/v1/me`, auth(other))).status).toBe(401);
   });
 });

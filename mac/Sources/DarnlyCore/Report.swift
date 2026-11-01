@@ -98,7 +98,8 @@ public enum Report {
     }
 
     public static func heading(_ c: NativeCapture) -> String {
-        let what = c.element.map { "\($0.roleDescription ?? $0.role) \"\(oneLine($0.name, max: 40))\"" } ?? "whole window"
+        // Outside the page-data markers, so no free text from the app (element titles, labels, values): only its kind.
+        let what = c.element.map { oneLine($0.roleDescription ?? $0.role, max: 40) } ?? "whole window"
         return oneLine("Bug in \(c.appName): \(what)", max: 120).replacingOccurrences(of: #"[<>`]"#, with: " ", options: .regularExpression)
     }
 
@@ -118,7 +119,6 @@ public enum Report {
         ]
         if let b = c.bundleId { lines.append("bundle_id: \(yaml(b))") }
         if let d = c.device { lines.append("device: \(yaml(d))") }
-        if let w = c.windowTitle, !w.isEmpty { lines.append("window: \(yaml(Redact.text(w)))") }
         lines += [
             "window_size: \(Int(c.windowSize.width))x\(Int(c.windowSize.height))",
             "captured: \(iso.string(from: c.capturedAt))",
@@ -135,6 +135,8 @@ public enum Report {
             "",
         ]
         let from = lines.count
+        // The window title is free text the app chose, so it goes inside the markers.
+        if let w = c.windowTitle, !w.isEmpty { lines += ["Window title: \"\(oneLine(Redact.text(w), max: 200))\"", ""] }
         if let e = c.element {
             lines.append("## Element (the red box)")
             lines.append("- kind: \(e.roleDescription.map { "\($0) (`\(e.role)`)" } ?? "`\(e.role)`")")

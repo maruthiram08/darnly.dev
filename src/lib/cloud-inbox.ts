@@ -1,7 +1,10 @@
 // The cloud inbox: for projects whose code isn't on this computer.
 // Bugs are uploaded to Darnly cloud, and the coding agent reads them through MCP.
 
-/** Can be changed in chrome.storage.local (`cloudUrl`) for local testing. */
+/**
+ * Can be changed in chrome.storage.local (`cloudUrl`) for local testing, but only to a server on this computer:
+ * the session token and Google sign-in go to this address, so it must never point anywhere else.
+ */
 export const CLOUD_URL = 'https://api.darnly.dev';
 export const MCP_PATH = '/mcp';
 
@@ -29,7 +32,7 @@ export class CloudError extends Error {
 
 export async function cloudUrl(): Promise<string> {
   const { cloudUrl } = await chrome.storage.local.get('cloudUrl').catch(() => ({ cloudUrl: undefined }));
-  return typeof cloudUrl === 'string' && /^https?:\/\//.test(cloudUrl) ? cloudUrl.replace(/\/+$/, '') : CLOUD_URL;
+  return typeof cloudUrl === 'string' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/*$/.test(cloudUrl) ? cloudUrl.replace(/\/+$/, '') : CLOUD_URL;
 }
 
 export async function mcpUrl(): Promise<string> {

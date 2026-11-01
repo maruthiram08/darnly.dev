@@ -30,6 +30,7 @@ h1{font-size:22px;margin:0 0 12px}p{margin:0 0 12px;color:var(--quiet)}strong{co
 button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--sky);color:#fff;font:600 16px system-ui;cursor:pointer;margin-top:8px}
 button.secondary{background:transparent;color:var(--quiet);border:1px solid var(--line)}
 input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);margin-top:8px}
+.where{border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink)}
 .brand{font-weight:700;color:var(--pink);letter-spacing:.02em;margin-bottom:16px}
 </style></head><body><main><div class="brand">darnly</div>${body}</main></body></html>`;
   return new Response(html, {
@@ -78,8 +79,9 @@ async function showConsent(req: Request, env: OAuthEnv): Promise<Response> {
   return page(
     'Connect your agent',
     `<h1>Connect ${name} to Darnly?</h1>
-<p><strong>${name}</strong>${host ? ` (${escapeHtml(host)})` : ''} wants to read the bugs in your Darnly inbox and mark them fixed.</p>
-<p>Only continue if you just added Darnly as a connector in your coding agent.</p>
+<p><strong>${name}</strong> wants to read the bugs in your Darnly inbox (screenshots, notes and page details) and mark them fixed.</p>
+${host ? `<p class="where">Access goes to <strong>${escapeHtml(host)}</strong>. The app picks its own name, so check this address: it should belong to your coding agent.</p>` : ''}
+<p>Only continue if you just added Darnly as a connector in your coding agent yourself. If someone sent you this link, cancel.</p>
 <form method="post" action="/authorize">
 <input type="hidden" name="tx" value="${txId}">${dev}
 <button type="submit">Continue with Google</button>

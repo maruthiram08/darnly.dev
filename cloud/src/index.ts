@@ -2,7 +2,7 @@ import { OAuthProvider, type OAuthHelpers } from '@cloudflare/workers-oauth-prov
 import type { Env } from './env';
 import { mcpFetch } from './mcp';
 import { oauthRoute } from './oauth';
-import { requireUser, signIn, signOut } from './auth';
+import { deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
 
@@ -89,6 +89,7 @@ const appHandler = {
       }
     }
     for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
+    res.headers.set('x-content-type-options', 'nosniff');
     return res;
   },
 };
@@ -98,7 +99,9 @@ const mcpHandler = {
   async fetch(req: Request, env: Env, ctx: ExecutionContext & { props?: { userId?: string } }): Promise<Response> {
     const userId = ctx.props?.userId;
     if (!userId) return new Response('signed out', { status: 401 });
-    return mcpFetch(req, env, userId);
+    const res = await mcpFetch(req, env, userId);
+    res.headers.set('x-content-type-options', 'nosniff');
+    return res;
   },
 };
 
@@ -128,5 +131,6 @@ export default {
 
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanup(env).then((n) => console.log(`cleanup: deleted ${n} fixed bugs`)));
+    ctx.waitUntil(deleteExpiredSessions(env).then((n) => console.log(`cleanup: deleted ${n} expired sessions`)));
   },
 } satisfies ExportedHandler<Env>;
