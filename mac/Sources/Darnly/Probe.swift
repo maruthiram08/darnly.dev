@@ -17,18 +17,30 @@ enum Probe {
 
     static func topLeft(_ p: NSPoint) -> CGPoint { CGPoint(x: p.x, y: primaryHeight - p.y) }
 
-    /// The front-most normal window under a point, skipping Darnly's own windows.
+    /// Window server layers we look through: normal windows (0) up to pop-up menus, which covers
+    /// floating panels, menu bar extras and notch apps. Darnly's own overlay sits far above these.
+    static let maxLayer = Int(CGWindowLevelForKey(.popUpMenuWindow))
+    /// System-owned windows that are never what the user means (the menu bar itself, the Dock, wallpaper).
+    static let systemOwners: Set<String> = ["Window Server", "Dock", "Wallpaper", "WindowManager"]
+
+    /// The front-most window under a point, skipping Darnly's own windows. Besides normal windows this
+    /// finds panels that float above them (menu bar and notch apps). A raised window only counts when
+    /// the app reports something at that point, because notch apps often keep a large see-through window up.
     static func window(at point: CGPoint) -> TargetWindow? {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
         let me = ProcessInfo.processInfo.processIdentifier
         for info in list {
-            guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
+            guard let layer = info[kCGWindowLayer as String] as? Int, layer >= 0, layer <= maxLayer,
                   let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != me,
                   let id = info[kCGWindowNumber as String] as? CGWindowID,
                   let b = info[kCGWindowBounds as String] as? [String: CGFloat],
                   let frame = Optional(CGRect(x: b["X"] ?? 0, y: b["Y"] ?? 0, width: b["Width"] ?? 0, height: b["Height"] ?? 0)),
-                  frame.contains(point), frame.width > 40, frame.height > 40 else { continue }
-            return TargetWindow(id: id, pid: pid, ownerName: info[kCGWindowOwnerName as String] as? String ?? "App", title: info[kCGWindowName as String] as? String, frame: frame)
+                  frame.contains(point), frame.width > 20, frame.height > 20 else { continue }
+            let owner = info[kCGWindowOwnerName as String] as? String ?? "App"
+            if systemOwners.contains(owner) { continue }
+            if let alpha = info[kCGWindowAlpha as String] as? Double, alpha < 0.05 { continue }
+            if layer != 0, element(pid: pid, at: point) == nil { continue }
+            return TargetWindow(id: id, pid: pid, ownerName: owner, title: info[kCGWindowName as String] as? String, frame: frame)
         }
         return nil
     }

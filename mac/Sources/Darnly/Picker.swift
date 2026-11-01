@@ -17,12 +17,17 @@ final class Picker: NSObject {
     private var hoverWindow: TargetWindow?
     private var stack: [AXUIElement] = [] // stack.last is the boxed element; Up adds parents
     private var lastPoint = CGPoint.zero
+    private var keyMonitor: Any?
+    private var localKeyMonitor: Any?
 
     func start(completion: @escaping (Pick?) -> Void) {
         self.completion = completion
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main!
-        let panel = KeyPanel(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        // Non-activating and never key: the app under the cursor stays active, so menu bar and notch
+        // panels that hide when they lose focus stay open while you pick.
+        let panel = NSPanel(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.becomesKeyOnlyIfNeeded = true
         panel.level = .screenSaver
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -36,9 +41,10 @@ final class Picker: NSObject {
         view.onClick = { [weak self] in self?.finish(whole: false) }
         view.onKey = { [weak self] key in self?.key(key) }
         panel.contentView = view
-        panel.makeKeyAndOrderFront(nil)
-        panel.makeFirstResponder(view)
-        NSApp.activate(ignoringOtherApps: true)
+        panel.orderFrontRegardless()
+        // Keys arrive while another app is active, so listen globally (needs Accessibility, which Darnly has).
+        keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak view] e in view?.handle(e) }
+        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak view] e in view?.handle(e) == true ? nil : e }
         self.panel = panel
         self.view = view
         hover(Probe.topLeft(mouse))
@@ -77,6 +83,10 @@ final class Picker: NSObject {
     }
 
     private func close(_ pick: Pick?) {
+        if let m = keyMonitor { NSEvent.removeMonitor(m) }
+        if let m = localKeyMonitor { NSEvent.removeMonitor(m) }
+        keyMonitor = nil
+        localKeyMonitor = nil
         panel?.orderOut(nil)
         panel = nil
         view = nil
@@ -84,11 +94,6 @@ final class Picker: NSObject {
         completion = nil
         done?(pick)
     }
-}
-
-/// Borderless panels can't take key presses unless they say so.
-final class KeyPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
 }
 
 final class PickerView: NSView {
@@ -115,15 +120,22 @@ final class PickerView: NSView {
         onClick?()
     }
 
-    override func keyDown(with event: NSEvent) {
+    /// Picker keys. Returns false for keys the picker doesn't use.
+    @discardableResult
+    func handle(_ event: NSEvent) -> Bool {
         switch Int(event.keyCode) {
         case 53: onKey?(.escape)
         case 13: onKey?(.whole) // W
         case 36, 76: onKey?(.enter)
         case 126: onKey?(.bigger)
         case 125: onKey?(.smaller)
-        default: super.keyDown(with: event)
+        default: return false
         }
+        return true
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if !handle(event) { super.keyDown(with: event) }
     }
 
     /// Global top-left rect -> this view's coordinates.
