@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'blur-placeholder-generator',
+    category: 'Images',
+    name: 'Blur placeholder generator',
+    blurb: 'A tiny blurred placeholder for any image: Next.js blurDataURL, CSS, BlurHash or ThumbHash. Watch the fade-in.',
+  },
 ];
 
 // Same for guides.
