@@ -103,6 +103,11 @@ export const TOOLS: Item[] = [
     name: 'px to rem converter',
     blurb: 'px to rem and back, live, with the matching Tailwind class and a ruler at real size.',
   },
+  {
+    slug: 'css-gradient-generator',
+    name: 'CSS gradients and shadows',
+    blurb: 'Make gradients with draggable colors and soft layered shadows, then copy CSS or Tailwind.',
+  },
 ];
 
 // Same for guides.
