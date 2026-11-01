@@ -28,6 +28,11 @@ export const TOOLS: Item[] = [
     name: 'Font finder',
     blurb: 'See what fonts any website uses, whether they’re free, and copy them into your project.',
   },
+  {
+    slug: 'color-palette-from-image',
+    name: 'Color palette from image',
+    blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
+  },
 ];
 
 // Same for guides.
