@@ -6,12 +6,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkey: Hotkey?
     private let picker = Picker()
     private let notePanel = NotePanel()
+    private let welcome = WelcomeWindow()
     private var busy = false
     private var frozen: Screenshot.Frozen?
 
     private var projectURL: URL? {
         get { UserDefaults.standard.string(forKey: "projectPath").map { URL(fileURLWithPath: $0, isDirectory: true) } }
-        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu() }
+        set { UserDefaults.standard.set(newValue?.path, forKey: "projectPath"); rebuildMenu(); welcome.refresh() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -22,9 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
         hotkey = Hotkey { [weak self] in self?.capture() }
-        // Ask for Accessibility once (to name the element under the click). Screen Recording is asked on the first capture.
-        _ = Probe.isTrusted(prompt: true)
-        if projectURL == nil { chooseProject() }
+        // First launch: the welcome screen walks through the folder, the two permissions and the hotkey.
+        if !UserDefaults.standard.bool(forKey: "welcomeShown") { showWelcome() }
+        else if projectURL == nil { chooseProject() }
     }
 
     private func rebuildMenu() {
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Choose project folder…", #selector(chooseProject)))
         menu.addItem(item("Open inbox in Finder", #selector(openInbox)))
         menu.addItem(.separator())
+        menu.addItem(item("How to use Darnly…", #selector(showWelcome)))
         menu.addItem(item("Permissions…", #selector(openPermissions)))
         menu.addItem(item("Quit Darnly", #selector(NSApplication.terminate(_:)), target: NSApp))
         statusItem.menu = menu
@@ -52,6 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureFromMenu() { capture() }
+
+    @objc private func showWelcome() {
+        welcome.show(project: { [weak self] in self?.projectURL }, chooseProject: { [weak self] in self?.chooseProject() })
+    }
 
     @objc private func chooseProject() {
         let panel = NSOpenPanel()
@@ -125,10 +131,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
-        let note: String? = await withCheckedContinuation { cont in
+        let result: NoteResult? = await withCheckedContinuation { cont in
             notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
         }
-        guard let note else { return }
+        guard let result else { return }
+        let note = result.note
         let collected = await logs
         let now = Date()
         let title = Report.title(note: note, element: element)
@@ -136,9 +143,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
             bundleId: collected.bundleId ?? NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
-            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason)
+            element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason, hasReference: result.reference != nil)
         do {
-            let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, logs: capture.logs)
+            let file = try Inbox.save(project: project, id: capture.id, markdown: Report.markdown(capture), png: png, reference: result.reference, logs: capture.logs)
             notify("Saved to \(Report.inboxFolder)/\(file.lastPathComponent). Tell your agent: fix the bugs in \(Report.inboxFolder)")
         } catch {
             notify("Couldn't save: \(error.localizedDescription)")
