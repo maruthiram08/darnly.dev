@@ -1,0 +1,125 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type your page title, and a short line under it if you like. The picture updates as you type.',
+  'Pick a color set, a layout and a font. You can fine-tune every color, and add your logo if you have one.',
+  'Download the PNG, put it in your site’s <code>public/</code> folder as <code>og-image.png</code>, and paste the HTML into your <code>&lt;head&gt;</code>. Swap <code>YOUR-SITE.com</code> for your real address.',
+];
+
+const faq = [
+  { q: 'What is a share image (OG image)?', a: 'It’s the picture that shows up when someone posts your link on X, LinkedIn, Slack, WhatsApp or iMessage. Without one, your link shows as plain text or a random picture from the page, and fewer people click it.' },
+  { q: 'Is anything uploaded?', a: 'No. The picture is drawn in your browser. Your text and logo never leave your computer.' },
+  { q: 'What size is the image?', a: '1200×630 pixels, the size X, LinkedIn, Facebook and Slack all expect for a large link preview.' },
+  { q: 'Where does the file go in a Next.js, Vite or Astro project?', a: 'Put <code>og-image.png</code> in the <code>public/</code> folder so it’s served from the root of your site. Then add the HTML lines to your page’s <code>&lt;head&gt;</code>, or ask your AI coding agent to do it. The image address must be the full link, starting with <code>https://</code>.' },
+  { q: 'I added it but the old preview still shows. Why?', a: 'Sites like X, LinkedIn and Slack remember previews for a while. Wait a bit, or use LinkedIn’s Post Inspector to make it fetch your page again.' },
+];
+---
+<ToolPage
+  slug="og-image-generator"
+  title="Free OG image generator: share images in seconds · Darnly"
+  description="Make a 1200×630 share image for X, LinkedIn and Slack link previews. Type a title, pick colors, download the PNG. Free, and nothing is uploaded."
+  h1="OG image generator: a share image in seconds"
+  lede="Make the picture that shows up when your link is shared on X, LinkedIn or Slack. Type a title, pick colors, and download a 1200×630 PNG. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="og">
+    <div class="preview">
+      <canvas id="og-canvas" width="1200" height="630" role="img" aria-label="Preview of your share image"></canvas>
+    </div>
+
+    <div class="form">
+      <label class="field wide">Title
+        <textarea id="og-title" rows="2" maxlength="120">Ship faster without breaking your flow</textarea>
+      </label>
+      <label class="field wide"><span>Subtitle <span class="opt">optional</span></span>
+        <textarea id="og-subtitle" rows="2" maxlength="160">A short line that tells people why they should click.</textarea>
+      </label>
+      <label class="field"><span>Site name <span class="opt">optional</span></span>
+        <input id="og-site" type="text" maxlength="60" value="yoursite.com" />
+      </label>
+      <div class="field"><span>Logo <span class="opt">optional</span></span>
+        <div class="logo-row">
+          <label class="logo-pick">
+            <input id="og-logo" type="file" accept="image/*" />
+            <span id="og-logo-text">Add a logo (optional)</span>
+          </label>
+          <button id="og-logo-clear" type="button" class="link" hidden>Remove</button>
+        </div>
+      </div>
+      <p class="error wide" id="og-error" role="alert" hidden></p>
+
+      <div class="field wide">Colors
+        <div class="looks" id="og-looks"></div>
+      </div>
+      <div class="field wide">
+        <div class="swatches">
+          <label>Background <input id="og-bg" type="color" value="#0593C6" /></label>
+          <label class="check"><input id="og-gradient" type="checkbox" checked /> Fade to</label>
+          <input id="og-bg2" type="color" value="#D83995" aria-label="Second background color" />
+          <label>Text <input id="og-text" type="color" value="#FCFFFF" /></label>
+          <label>Accent <input id="og-accent" type="color" value="#FCFFFF" /></label>
+        </div>
+      </div>
+      <label class="field">Layout
+        <select id="og-layout">
+          <option value="left">Left aligned</option>
+          <option value="center">Centered</option>
+          <option value="split">Text left, logo right</option>
+        </select>
+      </label>
+      <label class="field">Font
+        <select id="og-font">
+          <option value="bold">Bold</option>
+          <option value="clean">Clean</option>
+          <option value="code">Code</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="og-download" type="button" class="primary">Download PNG (1200×630)</button>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>Paste into your &lt;head&gt;</span><button id="og-copy" type="button">Copy</button></div>
+      <pre id="og-html"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/og-image-generator';
+</script>
+
+<style>
+  .og { display: grid; gap: 24px; min-width: 0; }
+  .preview { border-radius: 16px; overflow: hidden; box-shadow: 0 1px 0 var(--line), 0 12px 32px rgba(11, 34, 48, 0.12); }
+  .preview canvas { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px 24px; }
+  .wide { grid-column: 1 / -1; }
+  .field { display: grid; gap: 6px; font-size: 15px; font-weight: 600; min-width: 0; }
+  .opt { font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+  .field textarea, .field input[type='text'], .field select { font: 400 16px/1.4 var(--body); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); width: 100%; resize: vertical; }
+  .logo-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .logo-pick { position: relative; flex: 1; min-width: 0; padding: 9px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--wash); font-weight: 400; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .logo-pick:hover { border-color: var(--sky); }
+  .logo-pick:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .logo-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .link { font: 600 14px/1 var(--body); border: 0; background: none; color: var(--sky); cursor: pointer; padding: 4px; }
+  .error { margin: 0; color: #B4234F; }
+  .looks { display: flex; flex-wrap: wrap; gap: 10px; }
+  .looks :global(button) { width: 52px; height: 40px; border-radius: 10px; border: 2px solid var(--line); font: 700 15px/1 var(--display); cursor: pointer; }
+  .looks :global(button[aria-pressed='true']) { border-color: var(--ink); box-shadow: 0 0 0 2px var(--white) inset; }
+  .swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; font-weight: 400; }
+  .swatches label { display: flex; align-items: center; gap: 8px; }
+  .swatches input[type='color'] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .swatches input:disabled { opacity: 0.4; }
+  .actions button.primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .actions button.primary:hover { background: #047FAB; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px/1.7 var(--mono); }
+</style>

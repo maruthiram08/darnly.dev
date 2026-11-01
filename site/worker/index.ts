@@ -13,9 +13,14 @@
 // GET /api/colors?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns its color palette, for the
 //   website color finder at /tools/website-color-finder/.
+//
+// GET /api/launch?url=https://example.com
+//   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
+//   and grades each launch basic, for the launch checker at /tools/launch-checker/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
+import { checkLaunch, type Probe } from './launch';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -34,6 +39,7 @@ export default {
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
+    if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -54,6 +60,29 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     finalUrl: p.finalUrl,
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
+// /api/launch: is this site ready to launch? Extra files are read with the same address rules.
+function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const probe = async (raw: string, accept: string): Promise<Probe | null> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
+      return { status: res.status, url: final, type: res.headers.get('content-type') ?? '', text: await readLimited(res, 300_000) };
+    } catch {
+      return null;
+    }
+  };
+  return pageTool('launch', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    // Our own pages are read from the site files, which never see the http→https redirect.
+    ...(await checkLaunch(p.html, p.finalUrl, probe, { probeHttp: !isOwnHost(new URL(p.finalUrl), url) })),
   }));
 }
 
