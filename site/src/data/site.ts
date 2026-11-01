@@ -174,6 +174,12 @@ export const TOOLS: Item[] = [
     name: 'Cron expression generator',
     blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
   },
+  {
+    slug: 'broken-link-checker',
+    name: 'Broken link checker',
+    blurb: 'Find every dead link and missing image on your site, with the page it’s on, and fix them with one prompt.',
+    category: 'Launch & domains',
+  },
 ];
 
 // Same for guides.

@@ -32,6 +32,12 @@
 //   host (up to 100 pages, 4 at a time) and returns the pages for sitemap.xml and robots.txt,
 //   for the sitemap generator at /tools/sitemap-generator/.
 //
+// GET /api/links?url=https://example.com
+//   Same guards, plus its own limit of 1 check a minute per visitor. Crawls the site with the
+//   sitemap crawler (up to 50 pages), then checks every link and image on them (at most 150
+//   extra checks, 4 at a time; HEAD then GET for other sites), for the broken link checker at
+//   /tools/broken-link-checker/.
+//
 // GET /api/secrets?url=https://example.com
 //   Same guards, but never cached. Reads the page and up to 20 of its own JavaScript files and
 //   reports secret API keys anyone can copy, for the API key leak checker at
@@ -49,11 +55,13 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { checkLinks, type ProbeResult } from './links';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: RateLimit;
   CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
+  LINK_LIMIT?: RateLimit; // the broken link checker reads up to 50 pages and checks 150 links
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -72,6 +80,7 @@ export default {
     if (url.pathname === '/api/design') return designApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
+    if (url.pathname === '/api/links') return linksApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
@@ -230,6 +239,50 @@ function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
   }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
 }
 
+// /api/links: crawl one site and check every link and image on it. Every request goes through get().
+function linksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const local = env.ALLOW_LOCAL === '1';
+  const fetchPage = async (raw: string, accept: string): Promise<Fetched | null> => {
+    const t = checkTarget(raw, local);
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, local) === 'string') return null;
+      const type = res.headers.get('content-type') ?? '';
+      const readable = /html|text\/plain/i.test(type) || !type;
+      const text = readable && res.status < 400 ? await readLimited(res, 500_000) : '';
+      if (!text) res.body?.cancel().catch(() => {});
+      return { status: res.status, url: final, type, lastModified: null, robotsHeader: res.headers.get('x-robots-tag'), text };
+    } catch {
+      return null;
+    }
+  };
+  // One link check: only the status and where it ends up; the body is never read.
+  const probe = async (raw: string, method: 'HEAD' | 'GET', accept: string): Promise<ProbeResult> => {
+    const t = checkTarget(raw, local);
+    // Addresses we won't fetch (localhost, private networks) can't work for visitors either.
+    if (typeof t === 'string') return { status: 0, url: raw };
+    try {
+      const res = await get(t, url, env, accept, 6_000, method);
+      res.body?.cancel().catch(() => {});
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, local) === 'string') return { status: 0, url: final };
+      return { status: res.status, url: final };
+    } catch (e) {
+      // Cloudflare caps how many requests one visit can make; that's our limit, not a broken link.
+      if (/subrequest/i.test(String(e))) return { status: 0, url: raw, limited: true };
+      return { status: 0, url: raw };
+    }
+  };
+  return pageTool('links', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await checkLinks(p.html, p.finalUrl, p.headers, p.status, fetchPage, probe)),
+  }), { limit: env.LINK_LIMIT, limitError: 'You can check one site a minute. Wait a moment and try again.', cacheSeconds: 120 });
+}
+
 // /api/design: a page's design system (colors, fonts, type scale, spacing, shape, components).
 function designApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   return pageTool('design', req, url, env, ctx, async (p) => ({
@@ -303,9 +356,9 @@ async function pageTool(
 
 // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
 // so pages on darnly.dev are read straight from the site's own files.
-function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS): Promise<Response> {
+function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, method: 'GET' | 'HEAD' = 'GET'): Promise<Response> {
   if (isOwnHost(target, self)) return ownPage(target, env);
-  return fetch(target.href, { headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
+  return fetch(target.href, { method, headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
