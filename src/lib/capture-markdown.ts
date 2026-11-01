@@ -20,6 +20,8 @@ export interface CaptureInput {
   forPaste?: boolean;
   /** Written for the cloud inbox: the agent reads it through MCP, which returns the picture with it. */
   forCloud?: boolean;
+  /** The user added a picture of what it should look like. */
+  reference?: boolean;
 }
 
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
@@ -89,6 +91,11 @@ export function captureMarkdown(c: CaptureInput): string {
     `**Screenshot:** ${png}${c.element ? ' (the red box marks the element)' : ''}`,
     '',
   ];
+  // Not in the paste version: "Copy picture" copies only the screenshot.
+  if (c.reference && !c.forPaste) {
+    const ref = c.forCloud ? 'the second picture returned with this bug' : `${INBOX_FOLDER}/${c.id}.reference.png`;
+    lines.push(`**What it should look like:** ${ref} (a picture the user gave. Match its colors, sizes and layout; where the note and the picture differ, follow the note)`, '');
+  }
   // Everything from here to the end marker came from the web page (its text, HTML and logs).
   // A page can contain text written to trick an AI agent, so the agent is told to treat it as data only.
   lines.push(
@@ -156,7 +163,7 @@ export function captureMarkdown(c: CaptureInput): string {
       ? 'Find the code with the hints above, fix it so the expected behaviour happens, then call the Darnly `mark_fixed` tool with this bug\'s id and one line on what you changed.'
       : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
-      : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and its PNG to ${DONE_FOLDER}/.`,
+      : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
     '',
   );
   return lines.join('\n');

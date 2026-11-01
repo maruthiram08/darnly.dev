@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds Darnly.app (menu bar app) from the Swift package. Run on a Mac: ./scripts/make-app.sh
-# The result is unsigned (ad-hoc). Signing and notarizing come with the Apple Developer account.
+# Signed ad hoc by default (runs on this Mac). Set DARNLY_SIGN_ID to sign with a Developer ID; make-dmg.sh does that.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${DARNLY_VERSION:-0.1.0}"
@@ -26,6 +26,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-codesign --force --deep --sign - "$APP"
+if [ -n "${DARNLY_SIGN_ID:-}" ]; then
+  # Developer ID signing for sharing (see make-dmg.sh): hardened runtime and a secure timestamp, as notarization needs.
+  codesign --force --options runtime --timestamp --sign "$DARNLY_SIGN_ID" "$APP"
+  codesign --verify --strict --verbose=2 "$APP"
+else
+  codesign --force --deep --sign - "$APP"   # ad hoc: fine on this Mac only
+fi
 (cd build && ditto -c -k --keepParent Darnly.app Darnly-mac-${VERSION}.zip)
 echo "Built $APP and build/Darnly-mac-${VERSION}.zip"

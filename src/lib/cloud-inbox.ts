@@ -147,6 +147,8 @@ export interface Upload {
   pageUrl: string;
   report: string;
   picture?: Blob;
+  /** A picture the user added of what it should look like. */
+  reference?: Blob;
   logs?: string;
   /** Made once per capture, so pressing Save twice doesn't create two bugs. */
   clientId?: string;
@@ -157,6 +159,7 @@ export async function uploadBug(s: CloudSession, u: Upload): Promise<CloudBug> {
   form.set('meta', JSON.stringify({ title: u.title, pageUrl: u.pageUrl, clientId: u.clientId }));
   form.set('report', new File([u.report], 'report.md', { type: 'text/markdown' }));
   if (u.picture) form.set('picture', new File([u.picture], 'picture.png', { type: 'image/png' }));
+  if (u.reference) form.set('reference', new File([u.reference], 'reference.png', { type: 'image/png' }));
   if (u.logs) form.set('logs', u.logs);
   return call<CloudBug>('/v1/bugs', { method: 'POST', body: form, token: s.token });
 }
