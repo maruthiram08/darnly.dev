@@ -26,4 +26,6 @@ footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 footer .lists { display: flex; flex-wrap: wrap; gap: 12px 48px; width: 100%; margin-bottom: 12px; }
 footer .lists h2 { font: 600 14px/1.4 var(--body); letter-spacing: 0; color: var(--ink); margin-bottom: 6px; }
-footer .lists ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+footer .lists > div { flex: 1 1 200px; min-width: 0; }
+footer .lists > div:first-child { flex: 3 1 480px; }
+footer .lists ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 24px; }
