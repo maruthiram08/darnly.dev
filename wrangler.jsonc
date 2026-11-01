@@ -1,6 +1,8 @@
 {
   "name": "darnly-dev",
   "compatibility_date": "2026-10-31",
-  "assets": { "directory": "./site" },
+  // The site is built with Astro in site/; this runs before every deploy.
+  "build": { "command": "npm ci --prefix site && npm run build --prefix site" },
+  "assets": { "directory": "./site/dist" },
   "observability": { "enabled": true }
 }

@@ -1,0 +1,35 @@
+---
+// /tools/ hub. Lists every tool in TOOLS; hidden from search until the first tool ships.
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import { TOOLS } from '../../data/site';
+---
+<Base title="Free tools for vibecoders · Darnly" description="Small free tools for people who build websites with AI coding agents. No sign-in, nothing to install." noindex={TOOLS.length === 0}>
+  <SiteHeader source="tools-hub" />
+  <main class="wrap hub">
+    <span class="eyebrow">Free tools</span>
+    <h1>Free tools for vibecoders</h1>
+    <p class="intro">Quick jobs you do while building a site, done in seconds. No sign-in, nothing to install.</p>
+    {TOOLS.length === 0 ? (
+      <p class="empty">The first tools are on the way.</p>
+    ) : (
+      <ul class="cards">
+        {TOOLS.map((t) => (
+          <li><a href={`/tools/${t.slug}/`}><strong>{t.name}</strong><span>{t.blurb}</span></a></li>
+        ))}
+      </ul>
+    )}
+  </main>
+  <SiteFooter />
+</Base>
+<style>
+  .hub { padding-block: 64px 96px; }
+  h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.05; margin-top: 12px; }
+  .intro { color: var(--ink-soft); max-width: 60ch; margin: 16px 0 0; }
+  .empty { margin-top: 32px; color: var(--ink-soft); }
+  .cards { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .cards a { display: grid; gap: 6px; padding: 22px; border-radius: 16px; background: var(--wash); text-decoration: none; height: 100%; }
+  .cards a:hover { outline: 2px solid var(--sky); }
+  .cards span { color: var(--ink-soft); font-size: 15px; }
+</style>

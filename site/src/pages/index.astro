@@ -1,0 +1,204 @@
+---
+// Home page: sells Darnly's bug capture. Markup and styles are unchanged from the old hand-written page.
+import Base from '../layouts/Base.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { storeUrl } from '../data/site';
+import '../styles/home.css';
+---
+<Base
+  title="Darnly"
+  description="Spot a bug, press a key, click it. Darnly hands your AI coding agent everything it needs to fix it on the first try."
+  ogDescription="Spot a bug, press a key, click it. Your AI coding agent gets everything it needs to fix it."
+>
+
+<header class="hero">
+  <div class="stripes" aria-hidden="true"></div>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top"><img src="icon.png" alt="">Darnly</a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#report">The report</a>
+        <a href="#mac">Mac app</a>
+        <a href="#privacy">Privacy</a>
+      </div>
+    </nav>
+    <div class="hero-grid" id="top">
+      <div>
+        <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
+        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it on the first try.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
+          <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
+        </div>
+        <div class="agents" aria-label="Works with">
+          <span>Works with</span><strong>Claude Code</strong><strong>Codex</strong><strong>Cursor</strong>
+        </div>
+      </div>
+      <div class="scene" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">localhost:3000/plan</span></div>
+          <div class="app">
+            <div class="app-top"><b class="dot"></b><b>Acme Planner</b></div>
+            <div class="app-h">This week</div>
+            <div class="cards">
+              <div class="card"><b>Write launch post</b><span>Content</span></div>
+              <div class="card"><b>Record demo</b><span>Video</span></div>
+              <div class="card"><b>Invite testers</b><span>Community</span></div>
+            </div>
+            <div class="row">
+              <div class="target"><span class="tag">button · 103×39</span><span class="fakebtn">Save plan</span></div>
+              <span class="fakebtn ghost">Share</span>
+              <svg class="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l15 10-7 1.5L8.5 21z" fill="#0B2230" stroke="#FCFFFF" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="hint">Click the broken part · Esc to cancel</div>
+          </div>
+        </div>
+        <div class="note">
+          <span class="note-label">What did you expect?</span>
+          <p>Save plan should be clickable and save my week<span class="caret"></span></p>
+          <span class="enter">Enter ↵</span>
+        </div>
+        <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="band" id="how">
+    <div class="wrap">
+      <span class="eyebrow">How it works</span>
+      <h2>No screenshots to drag. No explaining twice.</h2>
+      <p class="intro">Today a bug costs you a screenshot, an app switch, a hunt for the right file and a paragraph of description. With Darnly it is three moves, and you never leave the page.</p>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Press the key</h3>
+          <p><kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>B</kbd> on any page, on localhost or your live site.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Click the broken part</h3>
+          <p>A red box follows your cursor. Arrow keys make it bigger or smaller. Esc cancels.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>Say what you expected</h3>
+          <p>One sentence, then Enter. Got a picture of how it should look? Paste it in too. Then tell your agent "fix my bugs".</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="report" style="padding-top: 0">
+    <div class="wrap report">
+      <div>
+        <span class="eyebrow">What your agent gets</span>
+        <h2>The context a screenshot can't carry.</h2>
+        <ul>
+          <li><span>A screenshot with the element boxed in red and your note written on it.</span></li>
+          <li><span>The exact file and component that drew it, on your local project.</span></li>
+          <li><span>The element's selector, text, HTML and styles.</span></li>
+          <li><span>Console errors and failed requests from the last 60 seconds.</span></li>
+          <li><span>Clear rules: fix it, say what changed, ask if the note is vague.</span></li>
+        </ul>
+      </div>
+      <div class="file" role="figure" aria-label="Example bug report">
+        <div class="file-head"><span>.darnly/inbox/2026-11-01-0940-save-plan.md</span><span>markdown</span></div>
+<pre><span class="k"># Bug on /plan: PlanBar</span>
+
+<span class="p">**Expected:**</span> Save plan should be clickable
+and save my week
+
+<span class="k">## Element (the red box)</span>
+- selector: `button[data-testid="save-plan"]`
+- code: `src/components/PlanBar.tsx:18` <span class="c">(start here)</span>
+- drawn by: `PlanPage` &gt; `PlanBar`
+- styles: opacity: 0.45; pointer-events: none
+
+<span class="k">## Errors (last 60s)</span>
+- console.error: Save failed: plan is undefined
+
+<span class="k">## Failed requests (last 60s)</span>
+- POST /api/plan?token=[hidden] 500 (41 ms)</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="mac" style="padding-top: 0">
+    <div class="wrap report">
+      <div>
+        <span class="eyebrow">Darnly for Mac</span>
+        <h2>Bugs outside the browser, too.</h2>
+        <p class="intro">A small menu bar app for Mac apps, the iOS Simulator and the Android Emulator. Same three moves, same inbox, so your agent already knows what to do.</p>
+        <ul>
+          <li><span>Press <kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>D</kbd> anywhere, click the broken part, type what you expected.</span></li>
+          <li><span>The element comes from macOS accessibility: its kind, label and accessibility id (<code>testID</code> in React Native), the best clue to the code.</span></li>
+          <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
+          <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
+        </ul>
+        <p class="intro">Early access: write to <span class="mail-inline">hello@darnly.dev</span> for the Mac download.</p>
+      </div>
+      <div class="file" role="figure" aria-label="Example bug report from the Mac app">
+        <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
+<pre><span class="k"># Bug in Maccy: group "Clipboard history"</span>
+
+<span class="p">**Expected:**</span> Popup background should use the
+brand gradient
+
+<span class="p">**What it should look like:**</span> .reference.png
+<span class="c">(a picture you pasted into the note)</span>
+
+<span class="k">## Element (the red box)</span>
+- kind: group (`AXGroup`)
+- accessibility id: `historyList` <span class="c">(start here)</span>
+- size: 450x312 at (0, 52) in the window
+
+<span class="k">## Errors (last 60s)</span>
+No errors in the app's log in the last 60 seconds.</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="privacy" style="padding-top: 0">
+    <div class="wrap">
+      <div class="privacy">
+        <div>
+          <span class="eyebrow">Private by default</span>
+          <h2>Your bugs never leave your computer.</h2>
+        </div>
+        <dl>
+          <div><dt>No account needed</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us unless you switch on the optional cloud inbox for agents that can't see your files.</dd></div>
+          <div><dt>Secrets hidden automatically</dt><dd>Passwords, card numbers, tokens, API keys and cookies become [hidden] before anything is saved.</dd></div>
+          <div><dt>You choose the sites</dt><dd>Errors are recorded on localhost. Live sites only when you switch them on, one at a time.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-label="About the name">
+    <div class="name">
+      <span class="word">darn·ly</span>
+      <p><strong>"Darn it"</strong> is what you say when you spot the bug. <strong>Darning</strong> is how you mend the hole. Darnly sits between the two.</p>
+    </div>
+  </section>
+
+  <section class="final" id="install">
+    <div class="wrap">
+      <div class="box">
+        <span class="eyebrow" style="color: var(--white)">Live on the Chrome Web Store</span>
+        <h2>Try it on your next bug.</h2>
+        <p>Darnly is free and works in Chrome, Edge, Brave and Arc. Questions or feedback? Write to hello@darnly.dev.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
+          <a class="btn btn-ghost" href="https://x.com/darnlyhq">Follow @darnlyhq</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+<SiteFooter />
+</Base>
