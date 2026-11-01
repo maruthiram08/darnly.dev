@@ -73,6 +73,11 @@ export const TOOLS: Item[] = [
     name: 'Color contrast checker',
     blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
   },
+  {
+    slug: 'privacy-policy-generator',
+    name: 'Privacy policy generator',
+    blurb: 'A plain-English privacy policy and terms for your app, naming the services you use. Not legal advice.',
+  },
 ];
 
 // Same for guides.
