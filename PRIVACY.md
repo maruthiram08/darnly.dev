@@ -6,7 +6,9 @@ Darnly is a Chrome extension that turns a bug you see on a web page into a repor
 
 ## The short version
 
-Darnly has no server and no account. Nothing it captures is sent to us or to anyone else. Every report stays on your computer until you choose to paste or share it.
+By default Darnly has no account and sends nothing to us. Every report stays on your computer until you choose to paste or share it.
+
+From version 0.2.0 there is one exception, and only if you turn it on: the **cloud inbox**, for projects whose code isn't on your computer. If you sign in to it, each bug you capture is sent to your private Darnly inbox so your coding agent can read it. The section "The cloud inbox" below explains exactly what that means.
 
 ## What Darnly reads, and only when you capture
 
@@ -29,13 +31,27 @@ Before anything is saved, Darnly removes things that look like secrets: password
 - **Into your project folder**, if you link one. Reports are written to a `.darnly/` folder inside it, which Darnly also adds to `.gitignore` so it isn't committed.
 - **Onto your clipboard**, if you click a copy button. You decide where to paste it.
 
-Darnly keeps the link to your project folder, and your settings, in Chrome's own storage on your computer.
+- **Into your Darnly cloud inbox**, only if you chose "My code is in the cloud" and signed in (version 0.2.0 and later).
+
+Darnly keeps the link to your project folder, your settings and (if you use the cloud inbox) your sign-in, in Chrome's own storage on your computer.
+
+## The cloud inbox (optional, version 0.2.0 and later)
+
+**What is sent:** for each bug you capture while signed in, the report (the same text you would otherwise save or paste), the marked screenshot, and the recent errors, all after the secrets above have been removed on your computer. Also your Google account's email address and Google's account id, to know whose inbox it is.
+
+**Where it lives:** on Cloudflare, which runs Darnly cloud for us (a database for the bug list, file storage for screenshots and reports). Data is encrypted at rest by Cloudflare.
+
+**Who can see it:** only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them and mark them fixed. It can't see anyone else's bugs.
+
+**How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.
+
+**What we don't do with it:** we don't read your bugs, sell them, use them for advertising, or train AI models on them. We look at stored data only if you ask us to help with a problem, or if the law requires it.
 
 ## What Darnly never does
 
-- It never sends data to Darnly or to any third party.
-- It never sells or shares data, and it has no analytics or tracking.
-- It never uses data for anything except making the bug report you asked for.
+- It never sends data anywhere unless you turned on the cloud inbox, and then only to your own inbox.
+- It never sells or shares data with third parties, and it has no analytics or tracking.
+- It never uses data for anything except the bug reports you asked for.
 
 ## Permissions, and why
 
@@ -45,6 +61,7 @@ Darnly keeps the link to your project folder, and your settings, in Chrome's own
 - **offscreen:** keeps folder access alive so Chrome doesn't ask again every time the panel closes.
 - **webRequest:** to notice failed requests (like a missing image) on localhost and sites you switch on.
 - **Optional access to sites:** asked for one site at a time, only when you click "Record errors on this site".
+- **identity** (version 0.2.0 and later): "Sign in with Google" for the cloud inbox. Used only when you click it.
 
 ## Contact
 
