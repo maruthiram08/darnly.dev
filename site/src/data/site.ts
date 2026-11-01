@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'tailwind-class-cleaner',
+    category: 'Code helpers',
+    name: 'Tailwind class cleaner',
+    blurb: 'Sort Tailwind classes the way Prettier does, remove duplicates, and see which classes cancel each other out.',
+  },
 ];
 
 // Same for guides.
