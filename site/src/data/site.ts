@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'markdown-preview',
+    name: 'Markdown preview',
+    blurb: 'Write Markdown and see it like GitHub shows it, with tables, checklists and code colors. Copy into Notion or Docs.',
+    category: 'Code helpers',
+  },
 ];
 
 // Same for guides.
