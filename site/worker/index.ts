@@ -5,6 +5,12 @@
 //   for the Open Graph checker at /tools/open-graph-checker/.
 //   Guarded by: public http(s) addresses only, a per-visitor rate limit, an 8 second timeout,
 //   a 1 MB read limit, and a one hour cache.
+//
+// GET /api/fonts?url=https://example.com
+//   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
+//   they are used, for the font finder at /tools/font-finder/.
+
+import { findFonts } from './fonts';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -15,25 +21,45 @@ interface Env {
 const MAX_BYTES = 1_000_000;
 const TIMEOUT_MS = 8_000;
 const CACHE_SECONDS = 3600;
-const UA = 'Mozilla/5.0 (compatible; DarnlyPreview/1.0; +https://darnly.dev/tools/open-graph-checker/)';
+const UA = 'Mozilla/5.0 (compatible; DarnlyPreview/1.0; +https://darnly.dev/tools/)';
 
 export default {
-  async fetch(req: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
+    if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
-async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+type Ctx = { waitUntil(p: Promise<unknown>): void };
+type Page = { target: URL; finalUrl: string; status: number; html: string };
+
+// /api/og: the share tags of one page.
+function og(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('og', req, url, env, ctx, async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...(await extract(p.html, p.finalUrl)) }));
+}
+
+// /api/fonts: the fonts a page loads and where it uses them.
+function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('fonts', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
+  }));
+}
+
+// Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
+async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>): Promise<Response> {
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
 
   const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
   if (typeof target === 'string') return json({ error: target }, 400);
 
   const cache = (caches as unknown as { default: Cache }).default;
-  const cacheKey = new Request(`https://darnly.dev/api/og?url=${encodeURIComponent(target.href)}`);
+  const cacheKey = new Request(`https://darnly.dev/api/${name}?url=${encodeURIComponent(target.href)}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
@@ -45,15 +71,7 @@ async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<
 
   let res: Response;
   try {
-    // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
-    // so pages on darnly.dev are read straight from the site's own files.
-    res = isOwnHost(target, url)
-      ? await ownPage(target, env)
-      : await fetch(target.href, {
-          headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' },
-          redirect: 'follow',
-          signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
+    res = await get(target, url, env, 'text/html,application/xhtml+xml');
   } catch {
     return json({ error: 'We couldn’t reach that page. Check the address, and that the site is public.' }, 502);
   }
@@ -71,10 +89,29 @@ async function og(req: Request, url: URL, env: Env, ctx: { waitUntil(p: Promise<
   }
 
   const html = await readLimited(res, MAX_BYTES);
-  const tags = await extract(html, finalUrl);
-  const body = json({ url: target.href, finalUrl, status: res.status, ...tags }, 200, CACHE_SECONDS);
+  const body = json(await run({ target, finalUrl, status: res.status, html }), 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+// Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
+// so pages on darnly.dev are read straight from the site's own files.
+function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS): Promise<Response> {
+  if (isOwnHost(target, self)) return ownPage(target, env);
+  return fetch(target.href, { headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
+}
+
+// A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
+async function fetchText(raw: string, self: URL, env: Env, accept: string): Promise<string | null> {
+  const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+  if (typeof t === 'string') return null;
+  try {
+    const res = await get(t, self, env, accept, 5_000);
+    if (!res.ok || typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') === 'string') return null;
+    return await readLimited(res, 500_000);
+  } catch {
+    return null;
+  }
 }
 
 const OWN_HOSTS = ['darnly.dev', 'www.darnly.dev'];
