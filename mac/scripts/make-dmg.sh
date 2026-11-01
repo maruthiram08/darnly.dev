@@ -5,10 +5,10 @@
 #   - a "Developer ID Application" certificate in your keychain
 #   - notarytool credentials saved under the name "darnly":
 #       xcrun notarytool store-credentials darnly --apple-id <you> --team-id <TEAMID> --password <app-specific password>
-# Options: DARNLY_VERSION=0.1.0, DARNLY_SIGN_ID="Developer ID Application: Name (TEAMID)", DARNLY_NOTARY_PROFILE=darnly
+# Options: DARNLY_VERSION=0.2.0, DARNLY_SIGN_ID="Developer ID Application: Name (TEAMID)", DARNLY_NOTARY_PROFILE=darnly
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${DARNLY_VERSION:-0.1.0}"
+VERSION="${DARNLY_VERSION:-0.2.0}"
 PROFILE="${DARNLY_NOTARY_PROFILE:-darnly}"
 
 if [ -z "${DARNLY_SIGN_ID:-}" ]; then
@@ -42,4 +42,9 @@ echo "Sending to Apple for notarization (usually a few minutes)…"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
 xcrun stapler staple "$DMG"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+# The website's "Download for Mac" button serves site/download/Darnly.dmg (darnly.dev/download/Darnly.dmg).
+mkdir -p ../site/download
+cp "$DMG" ../site/download/Darnly.dmg
 echo "Done: $DMG (signed and notarized; share this file)"
+echo "Also copied to site/download/Darnly.dmg. To update the website download, commit and push it:"
+echo "  git add ../site/download/Darnly.dmg && git commit -m \"Mac app ${VERSION}\" && git push"

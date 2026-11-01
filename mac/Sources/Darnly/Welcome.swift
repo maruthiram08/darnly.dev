@@ -7,13 +7,19 @@ final class WelcomeModel: ObservableObject {
     @Published var projectName: String?
     @Published var accessibility = false
     @Published var screenRecording = false
+    @Published var destination = Destination.current
+    @Published var cloudEmail: String?
     let chooseProject: () -> Void
+    let signIn: () -> Void
+    private let changed: () -> Void
     private var timer: Timer?
     private let project: () -> URL?
 
-    init(project: @escaping () -> URL?, chooseProject: @escaping () -> Void) {
+    init(project: @escaping () -> URL?, chooseProject: @escaping () -> Void, signIn: @escaping () -> Void, changed: @escaping () -> Void) {
         self.project = project
         self.chooseProject = chooseProject
+        self.signIn = signIn
+        self.changed = changed
         refresh()
         // Permissions change in System Settings, outside the app: keep the ticks current while the window is open.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.refresh() }
@@ -25,7 +31,22 @@ final class WelcomeModel: ObservableObject {
         projectName = project()?.lastPathComponent
         accessibility = Probe.isTrusted(prompt: false)
         screenRecording = CGPreflightScreenCaptureAccess()
+        cloudEmail = CloudAccount.shared.isSignedIn ? CloudAccount.shared.email : nil
+        if cloudEmail != nil { pendingCloud = false }
+        destination = pendingCloud ? .cloud : Destination.current
     }
+
+    /// "In the cloud" picked, not signed in yet: keep showing the sign-in button.
+    private var pendingCloud = false
+
+    /// The choice in step 1. Cloud only sticks once signed in; until then the sign-in button is shown.
+    func choose(_ d: Destination) {
+        destination = d
+        pendingCloud = d == .cloud && cloudEmail == nil
+        if !pendingCloud { Destination.current = d; changed() }
+    }
+
+    var ready: Bool { destination == .folder ? projectName != nil : cloudEmail != nil }
 
     func allowAccessibility() {
         _ = Probe.isTrusted(prompt: true)
@@ -44,23 +65,42 @@ struct WelcomeView: View {
     @ObservedObject var model: WelcomeModel
     let done: () -> Void
     @State private var copied = false
-    private let agentPrompt = "fix the bugs in \(Report.inboxFolder)"
+    private var agentPrompt: String { model.destination == .cloud ? "fix the bugs in my Darnly inbox" : "fix the bugs in \(Report.inboxFolder)" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Welcome to Darnly").font(.title).bold()
-                Text("Show your coding agent a bug instead of describing it. Darnly saves a marked screenshot, the exact element and recent errors into your project, where Claude Code, Codex or Cursor can read them.")
+                Text("Show your coding agent a bug instead of describing it. Darnly saves a marked screenshot, the exact element and recent errors where Claude Code, Codex or Cursor can read them.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            step(1, "Pick your project folder", done: model.projectName != nil) {
-                HStack {
-                    Text(model.projectName.map { "Saving bugs into \($0)/\(Report.inboxFolder)" } ?? "The folder with your app's code. Bugs go into .darnly/inbox inside it.")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button(model.projectName == nil ? "Choose…" : "Change…") { model.chooseProject() }
+            step(1, "Where does your coding agent run?", done: model.ready) {
+                VStack(alignment: .leading, spacing: 8) {
+                    SwiftUI.Picker("", selection: Binding(get: { model.destination }, set: { model.choose($0) })) {
+                        Text("On this Mac").tag(Destination.folder)
+                        Text("In the cloud").tag(Destination.cloud)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 260)
+                    if model.destination == .folder {
+                        HStack {
+                            Text(model.projectName.map { "Saving bugs into \($0)/\(Report.inboxFolder)" } ?? "Pick the folder with your app's code. Bugs go into .darnly/inbox inside it.")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button(model.projectName == nil ? "Choose…" : "Change…") { model.chooseProject() }
+                        }
+                    } else {
+                        HStack {
+                            Text(model.cloudEmail.map { "Signed in as \($0). Bugs go to your private Darnly inbox." } ?? "Claude, Codex or Cursor online: sign in once, then add the Darnly connector (api.darnly.dev/mcp) in your agent.")
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                            if model.cloudEmail == nil { Button("Sign in with Google…") { model.signIn() } }
+                        }
+                    }
                 }
             }
 
@@ -85,7 +125,7 @@ struct WelcomeView: View {
 
             step(4, "Ask your agent to fix it", done: nil) {
                 HStack {
-                    Text("In your agent, in that project, say:").foregroundStyle(.secondary)
+                    Text(model.destination == .cloud ? "In your agent, say:" : "In your agent, in that project, say:").foregroundStyle(.secondary)
                     Text("\u{201C}\(agentPrompt)\u{201D}").font(.system(.body, design: .monospaced))
                     Spacer()
                     Button(copied ? "Copied" : "Copy") {
@@ -139,14 +179,14 @@ final class WelcomeWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var model: WelcomeModel?
 
-    func show(project: @escaping () -> URL?, chooseProject: @escaping () -> Void) {
+    func show(project: @escaping () -> URL?, chooseProject: @escaping () -> Void, signIn: @escaping () -> Void, changed: @escaping () -> Void) {
         if let window {
             model?.refresh()
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let model = WelcomeModel(project: project, chooseProject: chooseProject)
+        let model = WelcomeModel(project: project, chooseProject: chooseProject, signIn: signIn, changed: changed)
         let view = WelcomeView(model: model) { [weak self] in self?.window?.close() }
         let w = NSWindow(contentViewController: NSHostingController(rootView: view))
         w.title = "Darnly"
