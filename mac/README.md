@@ -4,6 +4,8 @@ A menu bar app for bugs that aren't in a browser: Mac apps, the iOS Simulator an
 
 Press **Option+Shift+D**, click the broken part, type what you expected, press Enter. The report lands in your project's `.darnly/inbox/`, the same folder and format the Chrome extension uses, so your coding agent already knows what to do with it.
 
+Agent in the cloud (Claude, Codex or Cursor online)? Choose **In the cloud** on the welcome screen (or **Cloud inbox** in the menu) and sign in with Google once. Captures then go to your private Darnly cloud inbox, the same one the Chrome extension uses, and the agent reads them through the Darnly connector at `https://api.darnly.dev/mcp`. If an upload fails, the bug is saved to the project folder (or `~/Darnly/.darnly/inbox`) instead. The session token is kept in the macOS Keychain.
+
 Each report has:
 - a screenshot of that window, with a red box around the element and a ring where you clicked;
 - the element from macOS accessibility: its kind, title or label, value and accessibility id (`accessibilityIdentifier` / React Native `testID`), the best clue for finding the code;
@@ -43,7 +45,7 @@ When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or
    xcrun notarytool store-credentials darnly --apple-id you@example.com --team-id ABCDE12345 --password abcd-efgh-ijkl-mnop
    ```
 
-Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.1.1 ./scripts/make-dmg.sh` for a new version). Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
+Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.2.1 ./scripts/make-dmg.sh` for a new version). It also writes `build/Darnly.dmg`: upload that to a new GitHub release (Releases → Draft a new release → tag `mac-v<version>` → attach `Darnly.dmg` → Publish), and darnly.dev's **Download for Mac** button (`/releases/latest/download/Darnly.dmg`) serves it. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
 
 ## Keys while picking
 
@@ -58,4 +60,3 @@ Menu bar and notch apps work too: open the app's panel first, then press Option+
 ## Not yet
 
 - `brew install --cask darnlyhq/tap/darnly` (needs a darnlyhq/homebrew-tap repo pointing at a released DMG).
-- Sending to the cloud inbox (the Chrome extension has it; the Mac app saves to a folder for now).
