@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect your agent · Darnly</title>
+<meta name="description" content="Add the Darnly cloud inbox to Claude, Claude Code, Cursor or another coding agent.">
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600&display=swap">
+<style>
+:root { --sky: #0593C6; --pink: #D83995; --white: #FCFFFF; --ink: #0B2230; --ink-soft: #4A6472; --line: #D7E9F0;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; --body: "Figtree", "Segoe UI", system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 17px/1.65 var(--body); }
+header { background: var(--sky); color: var(--white); }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+header .wrap { padding-block: 20px; display: flex; align-items: center; gap: 10px; }
+header a { color: inherit; text-decoration: none; font: 700 22px/1 var(--display); display: flex; align-items: center; gap: 10px; }
+header img { width: 28px; height: 28px; border-radius: 7px; }
+main .wrap { padding-block: 48px 80px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.02em; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(32px, 6vw, 46px); margin: 0 0 8px; }
+h2 { font-size: 24px; margin: 40px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 19px; margin: 28px 0 6px; }
+p, li { color: var(--ink); }
+ul { padding-left: 22px; }
+li { margin: 4px 0; }
+a { color: var(--sky); }
+strong { font-weight: 600; }
+code { font-size: 0.92em; background: #EEF8FB; padding: 1px 5px; border-radius: 5px; }
+pre { background: #EEF8FB; padding: 12px 14px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+ol { padding-left: 22px; }
+.url { font: 600 18px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: #EEF8FB; padding: 12px 14px; border-radius: 10px; overflow-wrap: anywhere; }
+footer { border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 15px; }
+footer .wrap { padding-block: 24px; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="/"><img src="/icon.png" alt="">darnly</a></div></header>
+<main><div class="wrap">
+<h1>Connect your coding agent</h1>
+<p>For agents that run in the cloud (Claude, Codex or Cursor online), Darnly keeps your bugs in a private cloud inbox. Add it to your agent once, then say <strong>&ldquo;fix the bugs in my Darnly inbox&rdquo;</strong>.</p>
+<p>The address to add:</p>
+<p class="url">https://api.darnly.dev/mcp</p>
+<p>The first time, your agent opens a Darnly page that names the app asking for access. Check it, click <strong>Continue with Google</strong>, and use the same Google account you signed in with in the Chrome extension or the Mac app.</p>
+
+<h2>Before you start</h2>
+<p>Send bugs to the cloud inbox:</p>
+<ul>
+<li><strong>Chrome extension:</strong> in the Darnly panel choose <strong>In the cloud</strong>, then <strong>Sign in with Google</strong>.</li>
+<li><strong>Mac app:</strong> on the welcome screen choose <strong>In the cloud</strong> (or <strong>Cloud inbox</strong> in the menu bar menu) and sign in with Google.</li>
+</ul>
+<p>Agent running on your own computer, in your project folder? You don&#39;t need any of this: Darnly saves bugs into <code>.darnly/inbox</code> in the project, and your agent reads them there.</p>
+
+<h2>Claude (claude.ai and the desktop app)</h2>
+<ol>
+<li>Open <strong>Settings</strong> &rarr; <strong>Connectors</strong> &rarr; <strong>Add custom connector</strong>.</li>
+<li>Name: <code>Darnly</code>. URL: <code>https://api.darnly.dev/mcp</code>. Click <strong>Add</strong>.</li>
+<li>Click <strong>Connect</strong> and approve on the Darnly page.</li>
+</ol>
+
+<h2>Claude Code</h2>
+<pre><code>claude mcp add --transport http darnly https://api.darnly.dev/mcp</code></pre>
+<p>Then run <code>/mcp</code> inside Claude Code, pick <strong>darnly</strong> and sign in.</p>
+
+<h2>Cursor</h2>
+<p>Open <strong>Settings</strong> &rarr; <strong>MCP</strong> &rarr; <strong>Add new MCP server</strong>, or add this to <code>~/.cursor/mcp.json</code>:</p>
+<pre><code>{
+  "mcpServers": {
+    "darnly": { "url": "https://api.darnly.dev/mcp" }
+  }
+}</code></pre>
+<p>Cursor shows a <strong>Login</strong> button next to the server; click it and approve.</p>
+
+<h2>Other agents</h2>
+<p>Any agent that supports remote MCP servers with sign-in (OAuth) works: add <code>https://api.darnly.dev/mcp</code> as a streamable HTTP server.</p>
+
+<h2>What your agent can do</h2>
+<ul>
+<li><strong>list_bugs</strong>: see the bugs waiting in your inbox.</li>
+<li><strong>get_bug</strong>: read one, with its screenshot and the picture of what it should look like, if you added one.</li>
+<li><strong>mark_fixed</strong>: mark it fixed with a line on what changed. Fixed bugs are deleted after 30 days.</li>
+</ul>
+<p>It can&#39;t see anyone else&#39;s bugs. To disconnect an agent, remove the connector in that agent, or use &ldquo;Sign out everywhere&rdquo; in the Darnly panel. More in the <a href="/privacy">privacy policy</a>.</p>
+</div></main>
+<footer><div class="wrap">Questions: hello@darnly.dev · <a href="/">darnly.dev</a></div></footer>
+</body>
+</html>

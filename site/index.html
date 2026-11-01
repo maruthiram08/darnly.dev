@@ -59,6 +59,10 @@ nav { display: flex; align-items: center; justify-content: space-between; gap: 1
 .btn-primary { background: var(--white); color: var(--ink); }
 .btn-primary:hover { background: #fff; box-shadow: 0 6px 24px rgba(11, 34, 48, 0.25); }
 .btn-ghost { color: var(--white); border: 1px solid rgba(252, 255, 255, 0.5); }
+.btn-dark { background: var(--ink); color: var(--white); }
+.btn-dark:hover { box-shadow: 0 6px 24px rgba(11, 34, 48, 0.25); }
+.mac-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 24px; }
+.mac-cta span { font-size: 15px; color: var(--ink-soft); }
 .btn-ghost:hover { background: rgba(252, 255, 255, 0.12); }
 .soon { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(252, 255, 255, 0.8); }
 .shot { border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(11, 34, 48, 0.35); border: 1px solid rgba(252, 255, 255, 0.4); transform: rotate(1.2deg); }
@@ -286,8 +290,12 @@ and save my week
           <li><span>The element comes from macOS accessibility: its kind, label and accessibility id (<code>testID</code> in React Native), the best clue to the code.</span></li>
           <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
           <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
+          <li><span>Agent in the cloud? Sign in once, and Mac bugs go to the same private cloud inbox as the Chrome extension.</span></li>
         </ul>
-        <p class="intro">Early access: write to <span class="mail-inline">hello@darnly.dev</span> for the Mac download.</p>
+        <div class="mac-cta">
+          <a class="btn btn-dark" href="/download/Darnly.dmg">Download for Mac</a>
+          <span>Free · macOS 14 or later · signed and notarized by Apple</span>
+        </div>
       </div>
       <div class="file" role="figure" aria-label="Example bug report from the Mac app">
         <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
@@ -318,7 +326,7 @@ No errors in the app's log in the last 60 seconds.</pre>
           <h2>Your bugs never leave your computer.</h2>
         </div>
         <dl>
-          <div><dt>No account needed</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us unless you switch on the optional cloud inbox for agents that can't see your files.</dd></div>
+          <div><dt>No account needed</dt><dd>Reports are files in your project, or text you choose to paste. Nothing is sent to us unless you switch on the optional cloud inbox for agents that can't see your files (<a href="/connect">how to connect one</a>).</dd></div>
           <div><dt>Secrets hidden automatically</dt><dd>Passwords, card numbers, tokens, API keys and cookies become [hidden] before anything is saved.</dd></div>
           <div><dt>You choose the sites</dt><dd>Errors are recorded on localhost. Live sites only when you switch them on, one at a time.</dd></div>
         </dl>
@@ -351,7 +359,7 @@ No errors in the app's log in the last 60 seconds.</pre>
 <footer>
   <div class="wrap">
     <span>© 2026 Darnly. Made for people who build with AI coding agents.</span>
-    <span><a href="/privacy">Privacy policy</a></span>
+    <span><a href="/connect">Connect your agent</a> · <a href="/privacy">Privacy policy</a></span>
   </div>
 </footer>
 </body>
