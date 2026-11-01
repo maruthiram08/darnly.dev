@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'schema-generator',
+    name: 'Schema markup generator',
+    blurb: 'JSON-LD for your company, app, product, article, FAQ, event or shop, with a Google result preview.',
+    category: 'SEO & sharing',
+  },
 ];
 
 // Same for guides.
