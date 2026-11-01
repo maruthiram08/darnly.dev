@@ -14,6 +14,11 @@ export const TOOLS: Item[] = [
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
   {
+    slug: 'open-graph-checker',
+    name: 'Open Graph checker',
+    blurb: 'See how your link looks on X, LinkedIn, WhatsApp and Slack, and what to fix.',
+  },
+  {
     slug: 'og-image-generator',
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
