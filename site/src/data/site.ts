@@ -58,6 +58,26 @@ export const TOOLS: Item[] = [
     name: 'Asset extractor',
     blurb: 'Every image, SVG and icon on a website, with sizes. Download one or all as a ZIP.',
   },
+  {
+    slug: 'website-color-finder',
+    name: 'Website color finder',
+    blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
+  },
+  {
+    slug: 'tech-stack-finder',
+    name: 'Tech stack finder',
+    blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
+  },
+  {
+    slug: 'app-icon-generator',
+    name: 'App icon generator',
+    blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
+  },
+  {
+    slug: 'contrast-checker',
+    name: 'Color contrast checker',
+    blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
+  },
 ];
 
 // Same for guides.

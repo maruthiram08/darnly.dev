@@ -19,13 +19,23 @@
 //   (browsers can't read other sites' files directly). Images only, 5 MB at most, cached a day,
 //   with its own per-visitor rate limit, and served so it can't run as a page on darnly.dev.
 //
+// GET /api/colors?url=https://example.com
+//   Same guards. Reads the page and its stylesheets and returns its color palette, for the
+//   website color finder at /tools/website-color-finder/.
+//
 // GET /api/launch?url=https://example.com
 //   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
 //   and grades each launch basic, for the launch checker at /tools/launch-checker/.
+//
+// GET /api/stack?url=https://example.com
+//   Same guards. Reads the page, its response headers and a few of its own files and returns
+//   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
 
 import { findFonts } from './fonts';
 import { findAssets } from './assets';
+import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
+import { findStack } from './stack';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -46,14 +56,16 @@ export default {
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/assets') return assetsApi(req, url, env, ctx);
     if (url.pathname === '/api/asset') return assetProxy(req, url, env, ctx);
+    if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
+    if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
 };
 
 type Ctx = { waitUntil(p: Promise<unknown>): void };
-type Page = { target: URL; finalUrl: string; status: number; html: string };
+type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 
 // /api/og: the share tags of one page.
 function og(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
@@ -183,6 +195,16 @@ async function readBytes(res: Response, max: number): Promise<Uint8Array> {
   return out;
 }
 
+// /api/stack: what a page was built with, hosted on and tracked by.
+function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('stack', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
+  }));
+}
+
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
 function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   const probe = async (raw: string, accept: string): Promise<Probe | null> => {
@@ -203,6 +225,16 @@ function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     status: p.status,
     // Our own pages are read from the site files, which never see the http→https redirect.
     ...(await checkLaunch(p.html, p.finalUrl, probe, { probeHttp: !isOwnHost(new URL(p.finalUrl), url) })),
+  }));
+}
+
+// /api/colors: a page's color palette from its CSS.
+function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('colors', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
 }
 
@@ -244,7 +276,7 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
   }
 
   const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html }), 200, CACHE_SECONDS);
+  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }

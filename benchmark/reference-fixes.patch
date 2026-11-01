@@ -1,0 +1,127 @@
+diff --git a/src/components/Modal.tsx b/src/components/Modal.tsx
+index facc3c1..eb5f10b 100644
+--- a/src/components/Modal.tsx
++++ b/src/components/Modal.tsx
+@@ -21,7 +21,7 @@ export function Modal({ title, open, onClose, children }: Props) {
+       <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+         <div className="modal__head">
+           <h2>{title}</h2>
+-          <button className="modal__close" aria-label="Close" onClick={() => onClose}>
++          <button className="modal__close" aria-label="Close" onClick={onClose}>
+             ×
+           </button>
+         </div>
+diff --git a/src/components/NewsletterForm.tsx b/src/components/NewsletterForm.tsx
+index 038b3a4..93149b6 100644
+--- a/src/components/NewsletterForm.tsx
++++ b/src/components/NewsletterForm.tsx
+@@ -19,7 +19,7 @@ export function NewsletterForm() {
+       <label htmlFor="newsletter-email">Get new products first</label>
+       <div className="newsletter__row">
+         <input id="newsletter-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+-        <Button type="submit" variant="secondary">
++        <Button type="submit" variant="primary">
+           Subscribe
+         </Button>
+       </div>
+diff --git a/src/hooks/useOrders.ts b/src/hooks/useOrders.ts
+index 9cb49a1..314eda2 100644
+--- a/src/hooks/useOrders.ts
++++ b/src/hooks/useOrders.ts
+@@ -15,7 +15,7 @@ export function useOrders() {
+ 
+   useEffect(() => {
+     let cancelled = false;
+-    getJson<Order[]>('/api/order')
++    getJson<Order[]>('/api/orders')
+       .then((data) => !cancelled && setOrders(data))
+       .catch(() => !cancelled && setOrders([]))
+       .finally(() => !cancelled && setLoading(false));
+diff --git a/src/hooks/useSearch.ts b/src/hooks/useSearch.ts
+index f5f53d3..273e09a 100644
+--- a/src/hooks/useSearch.ts
++++ b/src/hooks/useSearch.ts
+@@ -7,7 +7,7 @@ export function useSearch(products: Product[], query: string, category: string)
+     return products.filter((p) => {
+       if (category !== 'all' && p.category !== category) return false;
+       if (!q) return true;
+-      return p.name.includes(q) || p.description.includes(q);
++      return p.name.toLowerCase().includes(q.toLowerCase()) || p.description.toLowerCase().includes(q.toLowerCase());
+     });
+   }, [products, query, category]);
+ }
+diff --git a/src/hooks/useTheme.ts b/src/hooks/useTheme.ts
+index 4ba7fd1..a4598a3 100644
+--- a/src/hooks/useTheme.ts
++++ b/src/hooks/useTheme.ts
+@@ -7,7 +7,7 @@ export function useTheme() {
+   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(STORAGE_KEY) as Theme) || 'light');
+ 
+   useEffect(() => {
+-    document.documentElement.dataset.mode = theme;
++    document.documentElement.dataset.theme = theme;
+     localStorage.setItem(STORAGE_KEY, theme);
+   }, [theme]);
+ 
+diff --git a/src/lib/format.ts b/src/lib/format.ts
+index f5d27ae..94fa2e9 100644
+--- a/src/lib/format.ts
++++ b/src/lib/format.ts
+@@ -1,5 +1,5 @@
+ export function imageUrl(productId: string): string {
+-  return `/img/${productId}.svg`;
++  return `/images/${productId}.svg`;
+ }
+ 
+ export function formatDate(iso: string): string {
+diff --git a/src/lib/money.ts b/src/lib/money.ts
+index ae168b3..68e8308 100644
+--- a/src/lib/money.ts
++++ b/src/lib/money.ts
+@@ -12,7 +12,7 @@ export function lineTotal(line: CartLine): number {
+ }
+ 
+ export function cartSubtotal(lines: CartLine[]): number {
+-  return lines.reduce((sum, line) => sum + line.product.price, 0);
++  return lines.reduce((sum, line) => sum + lineTotal(line), 0);
+ }
+ 
+ export function shippingFor(subtotal: number): number {
+diff --git a/src/pages/SettingsPage.tsx b/src/pages/SettingsPage.tsx
+index 4d42df4..c5afaed 100644
+--- a/src/pages/SettingsPage.tsx
++++ b/src/pages/SettingsPage.tsx
+@@ -16,7 +16,7 @@ export function SettingsPage() {
+           onSubmit={async (e) => {
+             e.preventDefault();
+             const data = Object.fromEntries(new FormData(e.currentTarget));
+-            const displayName = (data.display_name as string).trim();
++            const displayName = (data.displayName as string).trim();
+             const email = (data.email as string).trim();
+             await save({ displayName, email });
+             toast('Settings saved');
+diff --git a/src/styles/checkout.css b/src/styles/checkout.css
+index 2321265..053514a 100644
+--- a/src/styles/checkout.css
++++ b/src/styles/checkout.css
+@@ -5,7 +5,6 @@
+ .checkout-form input, .checkout-form select { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font: inherit; background: var(--bg); color: var(--text); }
+ 
+ .checkout-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+-.checkout-actions .btn,
+ .btn.is-busy {
+   opacity: 0.7;
+   pointer-events: none;
+diff --git a/src/styles/products.css b/src/styles/products.css
+index 4f831fc..bfd939a 100644
+--- a/src/styles/products.css
++++ b/src/styles/products.css
+@@ -8,7 +8,7 @@
+ .product-card { width: 240px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+ .product-card__image img { display: block; width: 100%; height: auto; border-radius: var(--radius) var(--radius) 0 0; background: var(--border); }
+ .product-card__body { padding: 12px 14px 14px; display: grid; gap: 8px; }
+-.product-card__title { margin: 0; font-size: 16px; white-space: nowrap; }
++.product-card__title { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+ .product-card__meta { display: flex; justify-content: space-between; align-items: center; }
+ .rating { color: #f59e0b; letter-spacing: 1px; font-size: 14px; }
+ .price { font-weight: 700; }
