@@ -1,0 +1,247 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'For text, type or paste in the box. The Base64 appears next to it as you type. To go the other way, pick <strong>Decode</strong> and paste the Base64; if you paste Base64 while encoding, we offer to switch for you.',
+  'For a picture or any other file, open <strong>Image or file</strong> and drop it in, pick it, or paste a screenshot. You get a data URI with a preview and the size before and after.',
+  'Copy the result the way you need it: the plain data URI, an <code>&lt;img&gt;</code> tag, a CSS <code>url()</code> or JSON. Paste a data URI into the decode box to see the picture again and download it.',
+];
+
+const faq = [
+  { q: 'Is my text or file uploaded?', a: 'No. Everything is encoded and decoded in your browser. Nothing you type or drop here is sent anywhere, not even to us.' },
+  { q: 'What is Base64?', a: 'Base64 turns any data, like text, a picture or a font, into plain letters and numbers so it can travel where only text is allowed: inside JSON, an email, a URL, or straight in your HTML and CSS. It isn’t encryption. Anyone can decode it, so never use it to hide a password or a key.' },
+  { q: 'What is URL-safe Base64?', a: 'Normal Base64 uses <code>+</code>, <code>/</code> and <code>=</code>, which have special meanings in web addresses. URL-safe Base64 (also called base64url) uses <code>-</code> and <code>_</code> instead and drops the <code>=</code> at the end. JWTs and many APIs use it. When you decode, we read both kinds automatically.' },
+  { q: 'Why is the Base64 bigger than my file?', a: 'Base64 stores every 3 bytes as 4 characters, so the result is about a third bigger than the original. That’s why it’s great for tiny icons but a bad idea for big pictures: a 200 KB photo becomes 270 KB of text inside your page that the browser can’t cache separately.' },
+  { q: 'When should I use a data URI, and when a normal file?', a: 'Use a data URI for very small things, like icons, a tiny logo or a loading spinner under about 10 KB, so the page needs one less request. For anything bigger, keep the picture as a file in your project (for example in <code>public/</code>) and link to it. Your page loads faster and the browser can cache it.' },
+  { q: 'It says my Base64 isn’t valid. Why?', a: 'Usually something extra came along when you copied it: quotes, a <code>\\n</code>, or a piece of the text around it. Base64 only uses letters, numbers, <code>+</code> <code>/</code> (or <code>-</code> <code>_</code>) and up to two <code>=</code> at the end. Spaces and line breaks are fine; we skip them. We point out the first character that doesn’t belong.' },
+];
+---
+<ToolPage
+  slug="base64-encoder"
+  title="Base64 encode and decode: text, images and data URIs · Darnly"
+  description="Encode and decode Base64 live, including URL-safe Base64. Turn any image or file into a data URI with a preview, and copy it as an img tag, CSS url() or JSON. Nothing is uploaded."
+  h1="Base64 encoder and decoder"
+  lede="Turn text into Base64 and back as you type, or drop in a picture to get a data URI you can paste into your code. It all runs in your browser, so nothing you paste is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="b64">
+    <div class="tabs" role="tablist" aria-label="What do you want to convert?">
+      <button type="button" role="tab" id="b64-tab-text" aria-controls="b64-panel-text" aria-selected="true" class="tab">Text</button>
+      <button type="button" role="tab" id="b64-tab-file" aria-controls="b64-panel-file" aria-selected="false" class="tab" tabindex="-1">Image or file</button>
+    </div>
+
+    <!-- Text -->
+    <section id="b64-panel-text" role="tabpanel" aria-labelledby="b64-tab-text" class="panel">
+      <div class="bar">
+        <div class="seg" role="radiogroup" aria-label="Direction">
+          <button type="button" role="radio" aria-checked="true" data-mode="encode">Encode</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="decode">Decode</button>
+        </div>
+        <label class="check" id="b64-urlsafe-row"><input type="checkbox" id="b64-urlsafe" /> URL-safe <span class="muted">(for links and JWTs)</span></label>
+      </div>
+
+      <div class="stage" id="b64-stage" data-tone="ok">
+        <div class="side">
+          <div class="head">
+            <label for="b64-in" class="lab" id="b64-in-label">Your text</label>
+            <div class="btns">
+              <button id="b64-paste" type="button" class="ghost sm">Paste</button>
+              <button id="b64-clear" type="button" class="ghost sm">Clear</button>
+            </div>
+          </div>
+          <textarea id="b64-in" rows="7" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+          <div class="suggest" id="b64-suggest" hidden>
+            <span>This looks like Base64.</span>
+            <button type="button" class="link" id="b64-suggest-btn">Decode it instead</button>
+          </div>
+        </div>
+
+        <button type="button" class="swap" id="b64-swap" title="Use the result as the input" aria-label="Swap: use the result as the input">⇄</button>
+
+        <div class="side result" aria-live="polite">
+          <div class="head">
+            <span class="lab" id="b64-out-label">Base64</span>
+            <button id="b64-copy" type="button" class="primary sm">Copy</button>
+          </div>
+          <div class="out" id="b64-out" tabindex="0"></div>
+          <div class="file-out" id="b64-file-out" hidden>
+            <div class="checker"><img id="b64-file-img" alt="Decoded picture" hidden /></div>
+            <div class="file-meta">
+              <span class="file-icon" id="b64-file-icon" aria-hidden="true">📄</span>
+              <div>
+                <strong id="b64-file-name"></strong>
+                <span class="note" id="b64-file-size"></span>
+              </div>
+              <a class="ghost sm" id="b64-download" download>Download</a>
+            </div>
+          </div>
+          <div class="error" id="b64-error" role="alert" hidden></div>
+          <p class="sizes" id="b64-sizes"></p>
+        </div>
+      </div>
+
+      <details class="fold">
+        <summary>Technical details</summary>
+        <div class="fold-body">
+          <div class="table"><table><tbody id="b64-details"></tbody></table></div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Image or file -->
+    <section id="b64-panel-file" role="tabpanel" aria-labelledby="b64-tab-file" class="panel" hidden>
+      <label class="drop" id="b64-drop" for="b64-file">
+        <input type="file" id="b64-file" class="visually-hidden" />
+        <span class="drop-icon" aria-hidden="true">⬆</span>
+        <strong>Drop a picture or any file here</strong>
+        <span class="muted">or click to choose one. You can also paste a screenshot.</span>
+        <span class="examples">
+          Try an example:
+          <button type="button" class="chip" data-sample="icon">Small icon</button>
+          <button type="button" class="chip" data-sample="photo">Big picture</button>
+        </span>
+      </label>
+
+      <div class="stage file-stage" id="b64-fstage" data-tone="ok" hidden aria-live="polite">
+        <div class="preview checker">
+          <img id="b64-fimg" alt="Preview of your file" hidden />
+          <div class="fbig" id="b64-ficon" hidden>📄</div>
+        </div>
+        <div class="finfo">
+          <p class="headline" id="b64-fname"></p>
+          <div class="meter" aria-hidden="true">
+            <div class="m-row"><span>Original</span><div class="m-bar"><i id="b64-m-orig"></i></div><b id="b64-fsize"></b></div>
+            <div class="m-row"><span>Base64</span><div class="m-bar"><i id="b64-m-b64" class="b"></i></div><b id="b64-fsize64"></b></div>
+          </div>
+          <p class="sub" id="b64-fsizes-text"></p>
+          <div class="warn" id="b64-fwarn" hidden></div>
+          <button type="button" class="ghost sm" id="b64-another">Choose another file</button>
+        </div>
+
+        <div class="copy-area">
+          <div class="formats" role="radiogroup" aria-label="Copy as">
+            <button type="button" role="radio" aria-checked="true" data-fmt="uri">Data URI</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="img">&lt;img&gt; tag</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="css">CSS url()</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="json">JSON</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="raw">Base64 only</button>
+          </div>
+          <pre class="code" id="b64-fcode"></pre>
+          <div class="actions">
+            <button type="button" class="primary" id="b64-fcopy">Copy data URI</button>
+            <p class="status" id="b64-fstatus" role="status"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="decode-uri">
+        <label for="b64-uri" class="lab">Have a data URI or Base64 already? Paste it to see the file.</label>
+        <textarea id="b64-uri" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="data:image/png;base64,iVBORw0KGgo…"></textarea>
+        <div class="error" id="b64-uri-error" role="alert" hidden></div>
+      </div>
+    </section>
+    <p class="private">🔒 Nothing you paste or drop here leaves your browser.</p>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/base64-encoder';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .b64 { display: grid; gap: 18px; min-width: 0; }
+  .b64 [hidden] { display: none !important; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); justify-self: start; }
+  .tab { font: 700 16px/1 var(--body); padding: 12px 20px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .tab[aria-selected='true'] { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+  .panel { display: grid; gap: 16px; min-width: 0; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .seg, .formats { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; border: 1px solid var(--line); background: var(--white); }
+  .seg button, .formats button { font: 600 15px/1 var(--body); padding: 10px 16px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .seg button[aria-checked='true'], .formats button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 15px; font-weight: 600; }
+  .check.off { opacity: 0.45; }
+  .muted { color: var(--ink-soft); font-weight: 400; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; padding: 24px; border-radius: 24px; border: 2px solid #9ED9B8; background: #F1FBF5; min-width: 0; }
+  .stage[data-tone='bad'] { border-color: #F0A3B9; background: #FFF2F5; }
+  .stage[data-tone='warn'] { border-color: #F2CF7A; background: #FFF9EA; }
+  .side { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-width: 0; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .lab { font-weight: 700; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  textarea { width: 100%; min-width: 0; box-sizing: border-box; font: 400 15px/1.5 var(--mono); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; word-break: break-all; }
+  textarea:focus { outline: none; border-color: var(--sky); }
+  #b64-in { min-height: 200px; height: 100%; }
+  .out { min-height: 200px; max-height: 420px; overflow: auto; padding: 14px 16px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); font: 600 17px/1.5 var(--mono); color: var(--ink); white-space: pre-wrap; word-break: break-all; }
+  .out:empty::before { content: 'The result shows up here.'; color: var(--ink-soft); font-weight: 400; }
+  .out.text { font: 500 17px/1.5 var(--body); word-break: normal; overflow-wrap: anywhere; }
+  .swap { align-self: center; width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); font: 700 20px/1 var(--body); color: var(--ink); cursor: pointer; }
+  .swap:hover { border-color: var(--sky); }
+  .suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #FFF4D6; font-size: 15px; }
+  .link { padding: 0; border: 0; background: none; color: var(--sky); font: 700 15px/1.3 var(--body); cursor: pointer; text-decoration: underline; }
+  .error { padding: 12px 14px; border-radius: 12px; background: var(--white); border: 1px solid #F0A3B9; color: #9C1C44; font-size: 16px; }
+  .error :global(code) { background: #FFE3EA; padding: 1px 5px; border-radius: 5px; }
+  .sizes { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .sizes:empty { display: none; }
+  .file-out { display: grid; gap: 10px; }
+  .file-out .checker { display: grid; place-items: center; min-height: 0; border-radius: 14px; }
+  .file-out .checker:has(img[hidden]) { display: none; }
+  .file-out img { max-width: 100%; max-height: 300px; display: block; margin: 12px auto; }
+  .file-meta { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); }
+  .file-meta > div { display: grid; flex: 1; min-width: 0; }
+  .file-meta strong { overflow-wrap: anywhere; }
+  .file-icon { font-size: 28px; }
+  .note { font-size: 14px; color: var(--ink-soft); }
+  .checker { background-color: #fff; background-image: linear-gradient(45deg, #EEF0F3 25%, transparent 25%, transparent 75%, #EEF0F3 75%), linear-gradient(45deg, #EEF0F3 25%, transparent 25%, transparent 75%, #EEF0F3 75%); background-size: 20px 20px; background-position: 0 0, 10px 10px; border: 1px solid var(--line); }
+  .drop { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 44px 20px; border: 2px dashed var(--line); border-radius: 24px; background: var(--white); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .drop:hover, .drop.over { border-color: var(--sky); background: var(--wash); }
+  .drop strong { font: 800 22px/1.2 var(--display); }
+  .drop-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 999px; background: var(--ink); color: var(--white); font-size: 26px; }
+  .examples { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin-top: 6px; font-size: 15px; color: var(--ink-soft); }
+  .chip { font: 600 14px/1 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--wash); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .file-stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .preview { display: grid; place-items: center; min-height: 240px; border-radius: 18px; padding: 16px; }
+  .preview img { max-width: 100%; max-height: 360px; display: block; image-rendering: auto; }
+  .fbig { font-size: 80px; }
+  .finfo { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .headline { margin: 0; font: 800 clamp(22px, 3vw, 30px)/1.15 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  .sub { margin: 0; color: var(--ink-soft); font-size: 16px; }
+  .meter { display: grid; gap: 8px; }
+  .m-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; }
+  .m-row b { font: 700 15px/1 var(--mono); }
+  .m-bar { height: 14px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); overflow: hidden; }
+  .m-bar i { display: block; height: 100%; background: #1A9B5A; border-radius: 999px; }
+  .m-bar i.b { background: var(--sky); }
+  .stage[data-tone='warn'] .m-bar i.b { background: #C98A00; }
+  .warn { padding: 12px 14px; border-radius: 12px; background: #C98A00; color: #fff; font-size: 15px; }
+  .warn :global(code) { background: rgba(255, 255, 255, 0.2); padding: 1px 5px; border-radius: 5px; }
+  .finfo .ghost { justify-self: start; }
+  .copy-area { grid-column: 1 / -1; display: grid; gap: 10px; min-width: 0; }
+  .code { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--white); border: 1px solid var(--line); font: 13px/1.5 var(--mono); max-height: 180px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .decode-uri { display: grid; gap: 8px; }
+  .fold { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .fold-body { display: grid; gap: 10px; padding-bottom: 18px; min-width: 0; }
+  .table { overflow-x: auto; background: var(--white); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .table :global(th), .table :global(td) { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .table :global(tr:first-child th), .table :global(tr:first-child td) { border-top: 0; }
+  .table :global(td) { word-break: break-all; font-family: var(--mono); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .sm { padding: 8px 14px; font-size: 14px; }
+  .status { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .private { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .stage, .file-stage { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .swap { justify-self: center; transform: rotate(90deg); }
+    #b64-in, .out { min-height: 140px; }
+    .preview { min-height: 180px; }
+  }
+</style>
