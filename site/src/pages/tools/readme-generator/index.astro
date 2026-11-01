@@ -1,0 +1,192 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type your project’s name and one line about what it does. Add your live link, your GitHub link and a screenshot link if you have them.',
+  'Tick what you built it with, pick npm, pnpm, yarn or bun, and list the names of your environment variables. Never the values: if you paste <code>KEY=value</code>, we drop the value.',
+  'Watch the README build itself at the top. Copy it, download <code>README.md</code>, or copy the prompt for your AI agent, which adds the README to your project and writes the Features section from your code.',
+];
+
+const faq = [
+  { q: 'What is a README?', a: 'The <code>README.md</code> file is the front page of your project on GitHub. It tells people (and AI coding agents) what the project is, what it looks like and how to run it. A clear one makes a repo look finished.' },
+  { q: 'Where do I put the file?', a: 'In the top folder of your project, next to <code>package.json</code>, named exactly <code>README.md</code>. GitHub shows it on your repo’s main page. Or copy the prompt and your AI agent will put it there for you.' },
+  { q: 'Do you ask for my API keys?', a: 'No, and you shouldn’t put them in a README. You list only the names, like <code>STRIPE_SECRET_KEY</code>. If you paste a line with a value, we remove the value straight away. Everything stays in your browser.' },
+  { q: 'How do I add a screenshot?', a: 'Take a screenshot of your app, put it in your project (for example <code>public/screenshot.png</code>) and push it to GitHub. Then paste its link here. A link to any image online works too, as long as it starts with <code>https://</code>.' },
+  { q: 'What are the badges?', a: 'Small labels from shields.io that show your tech stack, license and live link at the top of the README. They’re just pictures, so they cost nothing and need no setup.' },
+  { q: 'How do the deploy buttons work?', a: 'Someone clicks “Deploy with Vercel” or “Deploy to Netlify” and gets their own copy of your project deployed, with your environment variable names already listed. They need your GitHub link, and your repo has to be public.' },
+  { q: 'I don’t know what features to list. What now?', a: 'Leave them empty and click “Copy prompt for your AI agent”. Paste it into Claude Code, Cursor or Codex. It reads your code and writes the Features section from what the app really does.' },
+];
+---
+<ToolPage
+  slug="readme-generator"
+  title="README generator: a clean README.md for your project · Darnly"
+  description="Fill in a few boxes and get a clean README.md with badges, a screenshot, setup steps, an env var table and deploy buttons. Live preview, copy or download. Free and private."
+  h1="README generator: a clean README.md in a minute"
+  lede="Fill in a few boxes and watch your README build itself, with badges, a screenshot, setup steps, an environment variable table and deploy buttons. Copy it, download it, or hand it to your AI agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="rg">
+    <div class="out">
+      <div class="out-bar">
+        <div class="tabs" role="tablist" aria-label="View">
+          <button type="button" role="tab" id="rg-tab-preview" aria-selected="true" aria-controls="rg-preview">Preview</button>
+          <button type="button" role="tab" id="rg-tab-md" aria-selected="false" aria-controls="rg-md-wrap">Markdown</button>
+        </div>
+        <div class="actions">
+          <button type="button" id="rg-copy">Copy</button>
+          <button type="button" id="rg-download">Download</button>
+        </div>
+      </div>
+      <div class="file">
+        <div class="file-head">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>
+          README.md
+        </div>
+        <article class="gh" id="rg-preview" role="tabpanel" aria-labelledby="rg-tab-preview"></article>
+        <div id="rg-md-wrap" role="tabpanel" aria-labelledby="rg-tab-md" hidden><pre id="rg-md"></pre></div>
+      </div>
+      <div class="agent">
+        <p class="status" id="rg-status" role="status" aria-live="polite">Everything stays in your browser.</p>
+        <button type="button" id="rg-prompt" class="primary">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="form" id="rg-form">
+      <div class="form-head">
+        <h2>Your project</h2>
+        <button type="button" id="rg-clear" class="link">Start empty</button>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Project name</span><input id="rg-name" type="text" maxlength="80" autocomplete="off" /></label>
+        <label class="field"><span>One line about it</span><input id="rg-tagline" type="text" maxlength="200" autocomplete="off" /></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Live link <em>optional</em></span><input id="rg-live" type="text" inputmode="url" autocomplete="off" placeholder="https://myapp.com" /></label>
+        <label class="field"><span>GitHub link <em>optional</em></span><input id="rg-repo" type="text" inputmode="url" autocomplete="off" placeholder="https://github.com/you/my-app" /></label>
+      </div>
+      <label class="field"><span>Screenshot link <em>optional</em></span><input id="rg-shot" type="text" inputmode="url" autocomplete="off" placeholder="https://myapp.com/screenshot.png" /></label>
+      <p class="note" id="rg-link-note" hidden></p>
+
+      <fieldset class="field">
+        <legend>Built with</legend>
+        <div class="chips" id="rg-stack"></div>
+      </fieldset>
+
+      <label class="field"><span>Features, one per line <em>optional</em></span><textarea id="rg-features" rows="4" placeholder="Send an invoice in 30 seconds&#10;Get paid by card with Stripe"></textarea></label>
+      <p class="hint">Not sure? Leave it empty. The AI agent prompt writes this from your code.</p>
+
+      <div class="row2">
+        <label class="field"><span>Package manager</span>
+          <select id="rg-pm">
+            <option value="npm">npm</option>
+            <option value="pnpm">pnpm</option>
+            <option value="yarn">yarn</option>
+            <option value="bun">bun</option>
+          </select>
+        </label>
+        <label class="field"><span>License</span>
+          <select id="rg-license">
+            <option value="MIT">MIT</option>
+            <option value="Apache-2.0">Apache 2.0</option>
+            <option value="">No license section</option>
+          </select>
+        </label>
+      </div>
+      <label class="field"><span class="lab-row">Setup commands <button type="button" id="rg-cmd-reset" class="link" hidden>Reset</button></span><textarea id="rg-cmds" rows="5" spellcheck="false" class="mono"></textarea></label>
+
+      <label class="field"><span>Environment variable names, one per line <em>names only</em></span><textarea id="rg-env" rows="4" spellcheck="false" class="mono" placeholder="NEXT_PUBLIC_SUPABASE_URL&#10;STRIPE_SECRET_KEY"></textarea></label>
+      <p class="note" id="rg-env-note" hidden></p>
+
+      <fieldset class="field">
+        <legend>Deploy buttons</legend>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" id="rg-vercel" /> Deploy with Vercel</label>
+          <label class="chip"><input type="checkbox" id="rg-netlify" /> Deploy to Netlify</label>
+        </div>
+      </fieldset>
+      <p class="note" id="rg-deploy-note" hidden>Add your GitHub link above so the deploy buttons know which project to copy.</p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/readme-generator';
+</script>
+
+<style>
+  .rg { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr); gap: 32px; align-items: start; }
+  .rg [hidden] { display: none !important; }
+  .out { grid-column: 2; grid-row: 1; position: sticky; top: 16px; display: grid; gap: 12px; min-width: 0; }
+  .form { grid-column: 1; grid-row: 1; display: grid; gap: 16px; min-width: 0; }
+
+  .out-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); }
+  .tabs button { font: 600 14px/1 var(--body); padding: 9px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--white); color: var(--ink); box-shadow: 0 1px 4px rgba(11, 34, 48, 0.12); }
+  .actions { display: flex; gap: 8px; }
+  .actions button { font: 600 14px/1 var(--body); padding: 10px 16px; border-radius: 999px; border: 2px solid var(--ink); background: var(--white); color: var(--ink); cursor: pointer; }
+  .actions button:hover { background: var(--wash); }
+
+  .file { border: 1px solid #d0d7de; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 10px 30px rgba(11, 34, 48, 0.08); }
+  .file-head { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #d0d7de; background: #f6f8fa; font: 600 14px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1f2328; }
+  .file-head svg { color: #59636e; }
+  #rg-md-wrap pre { margin: 0; padding: 20px; max-height: 70vh; overflow: auto; font: 400 13px/1.65 var(--mono); color: #1f2328; white-space: pre-wrap; overflow-wrap: anywhere; font-variant-ligatures: none; }
+
+  /* GitHub-like README look. Content is built by the script, so styles are global within .gh. */
+  .gh { padding: 24px 28px 28px; max-height: 70vh; overflow: auto; font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; color: #1f2328; overflow-wrap: anywhere; }
+  .gh > :global(*:first-child) { margin-top: 0; }
+  .gh :global(h1) { font-size: 2em; font-weight: 600; line-height: 1.25; margin: 0 0 16px; padding-bottom: 0.3em; border-bottom: 1px solid #d1d9e0b3; }
+  .gh :global(h2) { font-size: 1.5em; font-weight: 600; line-height: 1.25; margin: 24px 0 16px; padding-bottom: 0.3em; border-bottom: 1px solid #d1d9e0b3; }
+  .gh :global(p), .gh :global(ul), .gh :global(table), .gh :global(pre), .gh :global(blockquote) { margin: 0 0 16px; }
+  .gh :global(blockquote) { padding: 0 1em; color: #59636e; border-left: 0.25em solid #d1d9e0; }
+  .gh :global(ul) { padding-left: 2em; }
+  .gh :global(li + li) { margin-top: 0.25em; }
+  .gh :global(a) { color: #0969da; text-decoration: none; }
+  .gh :global(a:hover) { text-decoration: underline; }
+  .gh :global(img) { display: inline-block; max-width: 100%; vertical-align: middle; }
+  .gh :global(td code) { white-space: nowrap; }
+  .gh :global(.badges img) { height: 28px; margin: 0 4px 4px 0; }
+  .gh :global(code) { font: 85% ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.2em 0.4em; border-radius: 6px; background: #818b981f; }
+  .gh :global(pre) { padding: 16px; border-radius: 6px; background: #f6f8fa; overflow: auto; font: 85%/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .gh :global(pre code) { padding: 0; background: none; font-size: 100%; }
+  .gh :global(table) { border-collapse: collapse; display: block; width: max-content; max-width: 100%; overflow: auto; }
+  .gh :global(th), .gh :global(td) { padding: 6px 13px; border: 1px solid #d1d9e0; text-align: left; }
+  .gh :global(tr:nth-child(2n)) { background: #f6f8fa; }
+  .gh :global(.shot-empty) { display: grid; place-items: center; aspect-ratio: 2.4 / 1; background: linear-gradient(135deg, #f6f8fa, #eef8fb); margin: 0 0 16px; border: 2px dashed #d1d9e0; border-radius: 8px; color: #59636e; font-size: 14px; text-align: center; padding: 16px; }
+  .gh :global(.todo) { color: #9a6700; }
+  .gh :global(.deploy img) { height: 32px; margin-right: 8px; }
+
+  .agent { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+  .status { margin: 0; min-height: 1.5em; font-size: 15px; color: var(--ink-soft); }
+  .primary { font: 600 15px/1 var(--body); padding: 13px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .form-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .form-head h2 { font-size: 22px; margin: 0; }
+  .link { font: 600 14px/1 var(--body); padding: 0; border: 0; background: none; color: var(--sky); cursor: pointer; text-decoration: underline; }
+  .row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .field { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .field legend { padding: 0; margin-bottom: 6px; }
+  .field em { font-style: normal; font-weight: 400; color: var(--ink-soft); }
+  .lab-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .field input[type='text'], .field textarea, .field select { width: 100%; box-sizing: border-box; font: 400 16px/1.4 var(--body); color: var(--ink); padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); resize: vertical; }
+  .field select { height: 46px; }
+  .field .mono { font: 400 14px/1.6 var(--mono); font-variant-ligatures: none; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips :global(.chip) { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); font: 500 14px/1 var(--body); color: var(--ink); cursor: pointer; user-select: none; }
+  .chips :global(.chip:has(input:checked)) { border-color: var(--ink); background: var(--wash); }
+  .chips :global(.chip input) { margin: 0; accent-color: var(--ink); }
+  .hint { margin: -8px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .note { margin: -8px 0 0; font-size: 14px; color: #9A6A00; }
+
+  @media (max-width: 860px) {
+    .rg { grid-template-columns: minmax(0, 1fr); }
+    .out { grid-column: 1; grid-row: 1; position: static; }
+    .form { grid-column: 1; grid-row: 2; }
+    .gh { max-height: 60vh; padding: 18px; }
+  }
+  @media (max-width: 520px) {
+    .row2 { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

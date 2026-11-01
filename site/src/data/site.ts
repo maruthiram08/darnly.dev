@@ -93,6 +93,11 @@ export const TOOLS: Item[] = [
     name: 'API key leak checker',
     blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
   },
+  {
+    slug: 'readme-generator',
+    name: 'README generator',
+    blurb: 'A clean README.md with badges, screenshot, setup steps and an env var table, in a minute.',
+  },
 ];
 
 // Same for guides.
