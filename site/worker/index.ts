@@ -41,6 +41,11 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/pwa?url=https://example.com
+//   Same guards. Reads the page, its web app manifest, its icons and up to 20 of its own
+//   JavaScript files (to find a service worker being registered) and grades each install
+//   requirement, for the PWA checker at /tools/pwa-checker/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,6 +54,7 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { checkPwa } from './pwa';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -74,6 +80,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/pwa') return pwaApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -192,6 +199,28 @@ function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     // Our own pages are read from the site files, which never see the http→https redirect.
     ...(await checkLaunch(p.html, p.finalUrl, probe, { probeHttp: !isOwnHost(new URL(p.finalUrl), url) })),
   }));
+}
+
+// /api/pwa: can this site be installed to a phone's home screen? Cached for 10 minutes, so a
+// re-check after a fix is fresh soon.
+function pwaApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const loadsImage = async (raw: string): Promise<boolean> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return false;
+    try {
+      const res = await get(t, url, env, 'image/*,*/*;q=0.1', 5_000);
+      res.body?.cancel().catch(() => {});
+      return res.ok && !/html/i.test(res.headers.get('content-type') ?? '') && typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') !== 'string';
+    } catch {
+      return false;
+    }
+  };
+  return pageTool('pwa', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await checkPwa(p.html, p.finalUrl, (u, accept, max) => fetchText(u, url, env, accept, max), loadsImage)),
+  }), { cacheSeconds: 600 });
 }
 
 // /api/colors: a page's color palette from its CSS.

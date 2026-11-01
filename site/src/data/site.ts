@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'pwa-checker',
+    category: 'Launch & domains',
+    name: 'PWA checker',
+    blurb: 'See the “Install app” sheet and home-screen icon your site would get, what’s missing, and a ready manifest to fix it.',
+  },
 ];
 
 // Same for guides.
