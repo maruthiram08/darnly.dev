@@ -123,6 +123,11 @@ export const TOOLS: Item[] = [
     name: 'Fake data generator',
     blurb: 'Realistic users, products, orders or posts as JSON, CSV, SQL or a TypeScript seed file.',
   },
+  {
+    slug: 'logo-maker',
+    name: 'Logo maker',
+    blurb: 'A simple logo from your project’s name, an icon, a font and colors. SVG, PNG, app icon and favicons.',
+  },
 ];
 
 // Same for guides.

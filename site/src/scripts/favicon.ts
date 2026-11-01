@@ -220,6 +220,27 @@ download.addEventListener('click', async () => {
   }
 });
 
+// The logo maker hands its icon over through sessionStorage (?from=logo-maker).
+function takeHandoff() {
+  if (new URLSearchParams(location.search).get('from') !== 'logo-maker') return;
+  try {
+    const raw = sessionStorage.getItem('darnly:handoff-image');
+    if (!raw) return;
+    sessionStorage.removeItem('darnly:handoff-image');
+    const h = JSON.parse(raw) as { name?: string; file?: string; url?: string };
+    const m = /^data:(image\/png);base64,(.+)$/.exec(h.url || '');
+    if (!m) return;
+    const bin = atob(m[2]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (h.name) siteName.value = h.name.slice(0, 40);
+    load(new File([bytes], h.file || 'logo-icon.png', { type: m[1] }));
+  } catch {
+    // A broken hand-off just leaves the normal drop box.
+  }
+}
+takeHandoff();
+
 html.textContent = snippet();
 copy.addEventListener('click', async () => {
   await navigator.clipboard.writeText(snippet());
