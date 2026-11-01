@@ -169,6 +169,12 @@ export const TOOLS: Item[] = [
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
   },
+  {
+    slug: 'font-pairing',
+    category: 'Design',
+    name: 'Font pairing ideas',
+    blurb: 'Hand-picked Google Fonts pairs shown on a real-looking landing page. Copy the link tag, CSS, Tailwind or a prompt.',
+  },
 ];
 
 // Same for guides.
