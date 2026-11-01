@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'social-post-previewer',
+    name: 'X and LinkedIn post preview',
+    blurb: 'See where LinkedIn cuts your post with “…see more”, how X splits it into a thread, and how pictures crop.',
+    category: 'SEO & sharing',
+  },
 ];
 
 // Same for guides.
