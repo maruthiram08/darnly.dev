@@ -44,6 +44,11 @@ export const TOOLS: Item[] = [
     blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
   },
   {
+    slug: 'social-image-resizer',
+    name: 'Social image resizer',
+    blurb: 'One picture, every size: X header, LinkedIn banner, Instagram, YouTube thumbnail. Drag to crop.',
+  },
+  {
     slug: 'og-image-generator',
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
