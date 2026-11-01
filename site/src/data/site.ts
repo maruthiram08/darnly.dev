@@ -108,6 +108,11 @@ export const TOOLS: Item[] = [
     name: 'CSS gradients and shadows',
     blurb: 'Make gradients with draggable colors and soft layered shadows, then copy CSS or Tailwind.',
   },
+  {
+    slug: 'privacy-policy-generator',
+    name: 'Privacy policy generator',
+    blurb: 'A plain-English privacy policy and terms for your app, naming the services you use. Not legal advice.',
+  },
 ];
 
 // Same for guides.
