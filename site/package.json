@@ -3,13 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node scripts/copy-ocr.mjs && astro dev",
+    "build": "node scripts/copy-ocr.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
+    "@tesseract.js-data/eng": "1.0.0",
     "astro": "7.4.4",
-    "qrcode-generator": "1.4.4"
+    "qrcode-generator": "1.4.4",
+    "tesseract.js": "7.0.0"
   }
 }

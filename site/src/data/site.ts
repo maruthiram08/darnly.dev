@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'image-to-text',
+    category: 'Images',
+    name: 'Image to text',
+    blurb: 'Copy the text out of a screenshot, with every line boxed on the picture. Or copy an error as a prompt for your AI agent.',
+  },
 ];
 
 // Same for guides.
