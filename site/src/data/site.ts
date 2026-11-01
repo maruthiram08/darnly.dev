@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'text-case-converter',
+    category: 'Code helpers',
+    name: 'Case converter',
+    blurb: 'See any name in camelCase, snake_case, kebab-case and eight more cases at once. Rename JSON keys and .env names too.',
+  },
 ];
 
 // Same for guides.
