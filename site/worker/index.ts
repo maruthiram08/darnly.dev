@@ -21,11 +21,18 @@
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/domain?domain=example.com
+//   Reads the domain's DNS records over DNS-over-HTTPS, then opens https and http for the bare
+//   domain and www, following each redirect by hand and checking every hop's address. Same rate
+//   limit; a one minute cache, since people check again right after changing DNS. For the domain
+//   checker at /tools/domain-checker/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
+import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -46,6 +53,7 @@ export default {
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/domain') return domainApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -112,6 +120,67 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
   }));
 }
 
+// /api/domain: DNS, host, https and redirects for one domain. It doesn't read a page, so it has its
+// own front door, but every request still goes through checkTarget() and get().
+async function domainApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const local = env.ALLOW_LOCAL === '1';
+  const raw = (url.searchParams.get('domain') ?? '').trim();
+  if (!raw) return json({ error: 'Paste a domain, like yoursite.com.' }, 400);
+  const target = checkTarget(raw, local);
+  if (typeof target === 'string') return json({ error: target }, 400);
+  const host = target.hostname.toLowerCase().replace(/\.$/, '');
+  if (!local && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) return json({ error: 'That doesn’t look like a domain. Paste something like yoursite.com.' }, 400);
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return json({ error: 'Paste a domain name rather than an IP address.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/domain?domain=${encodeURIComponent(host)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await env.FETCH_LIMIT.limit({ key: who });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  // DNS-over-HTTPS from Cloudflare's public resolver (a public https address, so it goes through get()).
+  const dns = async (name: string, type: string): Promise<DnsResult> => {
+    const t = checkTarget(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`);
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, 'application/dns-json', 5_000);
+      if (!res.ok) return null;
+      const d = JSON.parse(await readLimited(res, 100_000)) as { Status: number; Answer?: { name: string; type: number; data: string }[] };
+      return { status: d.Status, answers: (d.Answer ?? []).map((a) => ({ name: a.name, type: a.type, data: String(a.data) })) };
+    } catch {
+      return null;
+    }
+  };
+
+  // One hop of a redirect chain. Redirects aren't followed here, so each next address is checked again.
+  const hop = async (raw: string): Promise<HopResult> => {
+    const t = checkTarget(raw, local);
+    if (typeof t === 'string') return { error: 'blocked' };
+    try {
+      const res = await get(t, url, env, 'text/html,*/*;q=0.1', 6_000, 'manual');
+      res.body?.cancel().catch(() => {});
+      const headers: Record<string, string> = {};
+      for (const k of HOST_HEADERS) {
+        const v = res.headers.get(k);
+        if (v) headers[k] = v.slice(0, 200);
+      }
+      return { status: res.status, location: res.headers.get('location'), headers };
+    } catch (e) {
+      return { error: String((e as Error)?.message ?? e) };
+    }
+  };
+
+  const body = json(await checkDomain(host, dns, hop), 200, 60);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
+}
+
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
 async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>): Promise<Response> {
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
@@ -157,9 +226,9 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
 
 // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
 // so pages on darnly.dev are read straight from the site's own files.
-function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS): Promise<Response> {
+function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, redirect: 'follow' | 'manual' = 'follow'): Promise<Response> {
   if (isOwnHost(target, self)) return ownPage(target, env);
-  return fetch(target.href, { headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
+  return fetch(target.href, { headers: { 'user-agent': UA, accept }, redirect, signal: AbortSignal.timeout(timeout) });
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.

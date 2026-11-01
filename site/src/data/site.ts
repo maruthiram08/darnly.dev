@@ -68,6 +68,11 @@ export const TOOLS: Item[] = [
     name: 'App icon generator',
     blurb: 'Every iOS, Android and Expo app icon from one image, in one ZIP.',
   },
+  {
+    slug: 'domain-checker',
+    name: 'Domain checker',
+    blurb: 'Why isn’t my domain working? DNS records, host, https and redirects, with a plain fix for each.',
+  },
 ];
 
 // Same for guides.
