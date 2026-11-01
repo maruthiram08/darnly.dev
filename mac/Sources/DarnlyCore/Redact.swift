@@ -32,19 +32,25 @@ public enum Redact {
         for p in patterns {
             out = p.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: hidden)
         }
-        // name=value or "name": "value" pairs with secret-looking names
+        // name=value or "name": "value" pairs with secret-looking names.
+        // When the name isn't secret, look again right after it, so "plan: token=abc" still hides the token.
         let ns = out as NSString
         var result = ""
         var last = 0
-        for m in pair.matches(in: out, range: NSRange(location: 0, length: ns.length)) {
+        var from = 0
+        while from < ns.length, let m = pair.firstMatch(in: out, range: NSRange(location: from, length: ns.length - from)) {
             let name = ns.substring(with: m.range(at: 2))
-            guard isSecretName(name) else { continue }
-            result += ns.substring(with: NSRange(location: last, length: m.range.location - last))
             let q = ns.substring(with: m.range(at: 1))
+            guard isSecretName(name) else {
+                from = m.range.location + (q as NSString).length + (name as NSString).length
+                continue
+            }
+            result += ns.substring(with: NSRange(location: last, length: m.range.location - last))
             let sep = ns.substring(with: m.range(at: 3))
             let vq = ns.substring(with: m.range(at: 4))
             result += "\(q)\(name)\(q)\(sep)\(vq)\(hidden)\(vq)"
             last = m.range.location + m.range.length
+            from = last
         }
         result += ns.substring(from: last)
         return result

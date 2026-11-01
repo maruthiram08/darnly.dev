@@ -23,6 +23,11 @@ describe('redactText', () => {
     }
   });
 
+  it('hides a secret pair that follows a plain "name: value"', () => {
+    expect(redactText('Failed to save plan: token=abcd1234efgh')).toBe('Failed to save plan: token=[hidden]');
+    expect(redactText('step: 2 apiKey=zzzz9999 done')).toContain('apiKey=[hidden]');
+  });
+
   it('hides values of secret-named fields', () => {
     const out = redactText('{"password": "hunter2-password-value", "user": "maruthi"} token=abc12345 page=2');
     expect(out).not.toContain('hunter2');

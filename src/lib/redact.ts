@@ -23,11 +23,20 @@ export function redactText(text: string): string {
   let out = text;
   for (const p of SECRET_PATTERNS) out = out.replace(p, HIDDEN);
   // name=value or "name": "value" pairs with secret-looking names
-  out = out.replace(
-    /(["']?)([A-Za-z_][\w-]*)\1(\s*[:=]\s*)(["']?)([^"'\s&,;}]{4,})\4/g,
-    (m, q, name, sep, vq) => (SECRET_NAME.test(name) ? `${q}${name}${q}${sep}${vq}${HIDDEN}${vq}` : m),
-  );
-  return out;
+  // When the name isn't secret, look again right after it, so "plan: token=abc" still hides the token.
+  const pair = /(["']?)([A-Za-z_][\w-]*)\1(\s*[:=]\s*)(["']?)([^"'\s&,;}]{4,})\4/g;
+  let result = '';
+  let last = 0;
+  for (let m = pair.exec(out); m; m = pair.exec(out)) {
+    const [whole, q = '', name = '', sep = '', vq = ''] = m;
+    if (!SECRET_NAME.test(name)) {
+      pair.lastIndex = m.index + q.length + name.length;
+      continue;
+    }
+    result += out.slice(last, m.index) + `${q}${name}${q}${sep}${vq}${HIDDEN}${vq}`;
+    last = m.index + whole.length;
+  }
+  return result + out.slice(last);
 }
 
 /** Hides query values with secret-looking names, and token-like path parts. */
