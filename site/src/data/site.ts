@@ -152,6 +152,12 @@ export const TOOLS: Item[] = [
     name: 'Privacy policy generator',
     blurb: 'A plain-English privacy policy and terms for your app, naming the services you use. Not legal advice.',
   },
+  {
+    slug: 'screenshot-beautifier',
+    category: 'Images',
+    name: 'Screenshot beautifier',
+    blurb: 'Frame a screenshot in a browser or phone on a nice background, sized for X, LinkedIn or a story.',
+  },
 ];
 
 // Same for guides.
