@@ -63,6 +63,11 @@ export const TOOLS: Item[] = [
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
+  {
+    slug: 'contrast-checker',
+    name: 'Color contrast checker',
+    blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
+  },
 ];
 
 // Same for guides.
