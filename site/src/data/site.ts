@@ -73,6 +73,11 @@ export const TOOLS: Item[] = [
     name: 'Color contrast checker',
     blurb: 'Is your text readable? WCAG AA and AAA pass or fail, plus the nearest color that passes.',
   },
+  {
+    slug: 'qr-code-generator',
+    name: 'QR code generator',
+    blurb: 'A QR code for any link, with your colors and logo. PNG or SVG, and a warning if it won’t scan.',
+  },
 ];
 
 // Same for guides.
