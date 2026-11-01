@@ -24,6 +24,16 @@ export const TOOLS: Item[] = [
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
   {
+    slug: 'font-finder',
+    name: 'Font finder',
+    blurb: 'See what fonts any website uses, whether they’re free, and copy them into your project.',
+  },
+  {
+    slug: 'color-palette-from-image',
+    name: 'Color palette from image',
+    blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
+  },
+  {
     slug: 'responsive-checker',
     name: 'Responsive checker',
     blurb: 'See any page at phone, tablet and desktop widths side by side.',
