@@ -1,0 +1,194 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick a glass style and a background. Drag the card around to test it over the busiest part of the picture, or try it on your own screenshot.',
+  'Move the sliders. The badge on the card tells you whether the text is still easy to read. If it isn’t, press “Make it readable”.',
+  'Copy the CSS, the Tailwind classes, or a prompt that tells your AI coding agent where to use it.',
+];
+
+const faq = [
+  { q: 'What is glassmorphism?', a: 'A frosted-glass look: a see-through panel that blurs whatever is behind it, with a faint light border. It is made with the CSS <code>backdrop-filter</code> property, which every current browser supports.' },
+  { q: 'Why does my glass look flat?', a: 'Glass only shows when there is something colorful behind it. On a plain white page it just looks grey. Put it over a photo, a gradient or colorful shapes.' },
+  { q: 'How do I keep the text readable?', a: 'Blur and opacity do most of the work. More blur smooths out busy details, and a stronger tint makes the background behind the text more even. The badge on the card measures the contrast between your text and the glass under it, the same way accessibility checks do: 4.5 to 1 or more is good for normal text.' },
+  { q: 'Why is the contrast a guess?', a: 'The real background depends on where the panel ends up on your page and on what scrolls behind it. We measure the worst spots under the card in this preview. Drag the card over the busiest area to check the hardest case.' },
+  { q: 'What happens in old browsers?', a: 'The CSS includes a fallback: browsers without <code>backdrop-filter</code> get a more solid background, so the text stays readable even without the blur.' },
+  { q: 'Why does the CSS have a -webkit- line?', a: 'Older Safari versions only understand <code>-webkit-backdrop-filter</code>. Keeping both lines makes the blur work everywhere.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything, including your own background picture, stays in your browser.' },
+];
+---
+<ToolPage
+  slug="glass-effect-generator"
+  title="Glassmorphism CSS generator with Tailwind classes · Darnly"
+  description="Make a frosted glass effect with backdrop-filter blur. Live preview on colorful backgrounds or your own screenshot, with a text contrast check. Copy as CSS, Tailwind classes or a prompt for your AI agent. Free."
+  h1="Glassmorphism generator, with a readability check"
+  lede="Make a frosted glass card and see it over colorful backgrounds as you go. The card tells you when the text gets hard to read. Copy it as CSS, as Tailwind classes, or as a prompt for your AI coding agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="gl">
+    <div class="stage" id="gl-stage" aria-label="Live preview of your glass card. Drag the card to move it.">
+      <div class="card" id="gl-card">
+        <span class="badge" id="gl-badge" role="status" aria-live="polite"></span>
+        <strong>Your next launch</strong>
+        <p>This text sits on your glass. Drag the card over the busiest part of the background.</p>
+        <span class="btn" id="gl-btn">Get started</span>
+      </div>
+      <span class="drag-hint" id="gl-drag-hint" aria-hidden="true">Drag the card</span>
+    </div>
+
+    <div class="row">
+      <div class="group">
+        <span class="label">Glass style</span>
+        <div class="presets" id="gl-presets" aria-label="Glass styles"></div>
+      </div>
+      <div class="group">
+        <span class="label">Background</span>
+        <div class="presets" id="gl-bgs" aria-label="Backgrounds">
+          <label class="upload" title="Use your own picture or screenshot">
+            <span class="chip up">+</span>
+            <span>Your image</span>
+            <input id="gl-file" type="file" accept="image/*" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <p class="status" id="gl-status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" class="ghost" id="gl-fix" hidden>Make it readable</button>
+        <button type="button" class="primary" id="gl-prompt">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="sliders">
+      <label class="field">
+        <span>Blur <output id="gl-blur-out"></output></span>
+        <input id="gl-blur" type="range" min="0" max="40" value="16" />
+      </label>
+      <label class="field">
+        <span>Opacity <output id="gl-alpha-out"></output></span>
+        <input id="gl-alpha" type="range" min="0" max="100" step="5" value="20" />
+      </label>
+      <label class="field">
+        <span>Color boost <output id="gl-sat-out"></output></span>
+        <input id="gl-sat" type="range" min="100" max="200" step="10" value="180" />
+      </label>
+      <label class="field">
+        <span>Border <output id="gl-border-out"></output></span>
+        <input id="gl-border" type="range" min="0" max="100" step="5" value="30" />
+      </label>
+      <label class="field">
+        <span>Shadow <output id="gl-shadow-out"></output></span>
+        <input id="gl-shadow" type="range" min="0" max="100" step="5" value="30" />
+      </label>
+      <label class="field">
+        <span>Corners <output id="gl-radius-out"></output></span>
+        <input id="gl-radius" type="range" min="0" max="40" value="20" />
+      </label>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <span>Glass color</span>
+        <span class="pair">
+          <span class="seg" role="radiogroup" aria-label="Glass color" id="gl-tint">
+            <button type="button" role="radio" data-v="#ffffff" aria-checked="true">White</button>
+            <button type="button" role="radio" data-v="#000000" aria-checked="false">Black</button>
+          </span>
+          <input id="gl-tint-picker" type="color" value="#ffffff" aria-label="Pick any glass color" />
+        </span>
+      </div>
+      <div class="field">
+        <span>Text</span>
+        <div class="seg" role="radiogroup" aria-label="Text color" id="gl-text">
+          <button type="button" role="radio" data-v="auto" aria-checked="true">Best</button>
+          <button type="button" role="radio" data-v="light" aria-checked="false">Light</button>
+          <button type="button" role="radio" data-v="dark" aria-checked="false">Dark</button>
+        </div>
+      </div>
+      <label class="check">
+        <input id="gl-shine" type="checkbox" checked />
+        <span>Edge shine <small>(light top edge)</small></span>
+      </label>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>CSS</span><button type="button" data-copy="gl-css">Copy</button></div>
+      <pre id="gl-css"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>Tailwind classes · v3 and v4</span><button type="button" data-copy="gl-tw">Copy</button></div>
+      <pre id="gl-tw"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/glass-effect-generator';
+</script>
+
+<style>
+  .gl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .gl [hidden] { display: none !important; }
+
+  .stage { position: relative; height: 440px; border-radius: 24px; overflow: hidden; border: 1px solid rgba(11, 34, 48, 0.08); background-size: cover; background-position: center; touch-action: none; user-select: none; }
+  .card { position: absolute; left: 50%; top: 50%; width: min(340px, calc(100% - 32px)); box-sizing: border-box; padding: 24px 24px 26px; display: grid; gap: 10px; justify-items: start; cursor: grab; border: 1px solid transparent; }
+  .card.dragging { cursor: grabbing; }
+  .card strong { font: 700 24px/1.15 var(--display); letter-spacing: -0.02em; }
+  .card p { margin: 0; font-size: 15px; line-height: 1.5; }
+  .btn { margin-top: 6px; font: 600 15px/1 var(--body); padding: 12px 20px; border-radius: 999px; }
+  .badge { font: 600 12px/1 var(--body); padding: 7px 10px; border-radius: 999px; background: #FFFFFF; color: var(--ink); box-shadow: 0 1px 3px rgba(11, 34, 48, 0.25); white-space: nowrap; }
+  .badge.good { background: #E3F7EA; color: #0E5A2B; }
+  .badge.mid { background: #FFF2D6; color: #7A4A00; }
+  .badge.bad { background: #FFE1E6; color: #8C1430; }
+  .drag-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font: 600 12px/1 var(--body); color: #FFFFFF; background: rgba(11, 34, 48, 0.55); padding: 7px 12px; border-radius: 999px; pointer-events: none; transition: opacity 0.3s; }
+  .drag-hint.gone { opacity: 0; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 16px 40px; }
+  .group { display: grid; gap: 10px; min-width: 0; }
+  .label { font-size: 14px; color: var(--ink-soft); }
+  .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+  .presets :global(button), .upload { display: grid; gap: 6px; justify-items: center; padding: 0; border: 0; background: none; cursor: pointer; font: 500 12px/1.2 var(--body); color: var(--ink-soft); }
+  .presets :global(.chip) { position: relative; width: 64px; height: 44px; border-radius: 12px; border: 1px solid rgba(11, 34, 48, 0.1); box-sizing: border-box; background-size: cover; background-position: center; overflow: hidden; display: grid; place-items: center; }
+  .presets :global(.chip i) { width: 34px; height: 22px; border-radius: 6px; display: block; }
+  .presets :global(button[aria-pressed='true'] .chip), .upload.on .chip { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .presets :global(button:hover .chip), .upload:hover .chip { transform: translateY(-1px); }
+  .upload { order: 99; }
+  .upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .upload:focus-within .chip { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .chip.up { font: 400 24px/1 var(--body); color: var(--ink-soft); background: var(--wash); border-style: dashed; }
+
+  .sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; }
+  .controls > .field { flex: 1 1 220px; }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field output { font-family: var(--mono); color: var(--ink); margin-left: 4px; }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .pair { display: flex; gap: 8px; min-width: 0; }
+  .pair .seg { flex: 1; }
+  .pair input[type='color'] { flex: none; width: 56px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .seg { display: flex; gap: 4px; padding: 4px; height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 0 10px; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .check { display: flex; gap: 8px; align-items: center; height: 48px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+  .check small { color: var(--ink-soft); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 14px/1 var(--body); padding: 0 16px; min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 760px) {
+    .sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stage { height: 380px; }
+  }
+</style>

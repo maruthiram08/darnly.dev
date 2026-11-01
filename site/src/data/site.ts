@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'glass-effect-generator',
+    category: 'Design',
+    name: 'Glassmorphism generator',
+    blurb: 'Make a frosted glass card over colorful backgrounds or your own screenshot, check the text stays readable, copy CSS or Tailwind.',
+  },
 ];
 
 // Same for guides.
