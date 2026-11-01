@@ -1,4 +1,5 @@
 {
   "extends": "./.wxt/tsconfig.json",
-  "compilerOptions": { "jsx": "react-jsx", "strict": true }
+  "compilerOptions": { "jsx": "react-jsx", "strict": true },
+  "exclude": ["cloud", "mac", "**/node_modules", ".output", ".output-e2e"]
 }
