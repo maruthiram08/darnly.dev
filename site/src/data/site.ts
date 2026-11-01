@@ -53,6 +53,11 @@ export const TOOLS: Item[] = [
     name: 'Launch checker',
     blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
   },
+  {
+    slug: 'website-color-finder',
+    name: 'Website color finder',
+    blurb: 'Get any website’s color palette and CSS color variables, ready for CSS, Tailwind or your AI agent.',
+  },
 ];
 
 // Same for guides.
