@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'secret-generator',
+    category: 'Security',
+    name: 'Secret generator',
+    blurb: 'One click for an AUTH_SECRET, JWT secret, webhook secret, API key, UUID or strong password, ready for your .env.',
+  },
 ];
 
 // Same for guides.
