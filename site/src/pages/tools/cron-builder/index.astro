@@ -1,0 +1,270 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick how often the job should run in plain words, like “every week on Monday at 9:00”. Or paste a cron expression you found in your code, and read what it means in plain English.',
+  'Check the next 10 run times. Each one shows your own time and UTC, because Vercel, GitHub Actions and Cloudflare run cron in UTC. If you picked the time in your own time zone, the tool turns it into UTC for you.',
+  'Copy the ready code for <code>vercel.json</code>, a GitHub Actions workflow, Supabase <code>pg_cron</code> or Cloudflare Cron Triggers. Or copy a prompt that asks your AI coding agent to set the job up.',
+];
+
+const faq = [
+  { q: 'What is a cron expression?', a: 'Five parts with spaces between them: <strong>minute, hour, day of the month, month, day of the week</strong>. A star means “every”. So <code>0 9 * * 1-5</code> means minute 0, hour 9, any day of the month, any month, Monday to Friday: 9:00 every weekday.' },
+  { q: 'Why does my cron job run at the wrong time?', a: 'Almost always time zones. Vercel Cron, GitHub Actions and Cloudflare Cron Triggers read the schedule in <strong>UTC</strong>, not your local time. Supabase <code>pg_cron</code> uses UTC too unless you changed <code>cron.timezone</code>. Pick “my time zone” above and the tool converts it for you.' },
+  { q: 'How often can a cron job run?', a: 'Cron can go down to every minute. GitHub Actions allows at most every 5 minutes and can start late when busy. On Vercel’s free Hobby plan a cron job runs at most once a day; more often needs the Pro plan.' },
+  { q: 'What do */5, 1-5 and 1,15 mean?', a: '<code>*/5</code> is “every 5th”, so <code>*/5</code> in the minute spot runs every 5 minutes. <code>1-5</code> is a range (Monday to Friday in the day-of-week spot). <code>1,15</code> is a list (the 1st and the 15th).' },
+  { q: 'What if I set both a day of the month and a day of the week?', a: 'Cron then runs on days that match <strong>either</strong> one. <code>0 0 1 * 1</code> runs on the 1st of each month and also every Monday, not only on Mondays that fall on the 1st. The tool warns you when this happens.' },
+  { q: 'Does it work with 6-part expressions with seconds?', a: 'Those come from Spring and Quartz. Vercel, GitHub, Supabase and Cloudflare use 5 parts, so the tool tells you to drop the seconds. Shortcuts like <code>@daily</code> and <code>@hourly</code> are understood.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="cron-builder"
+  title="Cron expression generator, in plain English · Darnly"
+  description="Build a cron schedule in plain words or paste one to have it explained. See the next 10 runs in your time and UTC, and copy code for Vercel, GitHub Actions, Supabase pg_cron and Cloudflare. Free."
+  h1="Cron expression generator, in plain English"
+  lede="Say how often a job should run and get the cron expression, or paste one and read what it means. See exactly when it will run next, in your time and in UTC."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cb">
+    <div class="stage" aria-label="Live preview of your schedule">
+      <p class="say" id="cb-say" aria-live="polite">At 9:00 AM, on weekdays (Monday to Friday)</p>
+      <p class="sub" id="cb-sub"></p>
+      <div class="exprline">
+        <button type="button" class="expr" id="cb-expr-big" title="Copy">0 9 * * 1-5</button>
+        <button type="button" class="primary" id="cb-copy">Copy</button>
+      </div>
+      <p class="bad" id="cb-error" role="alert" hidden></p>
+
+      <div class="runs-head">
+        <h2 class="mini">Next 10 runs</h2>
+        <span class="zones"><span class="dot local"></span><span>Your time (<span id="cb-zone">your zone</span>)</span> · <span class="dot utc"></span>UTC</span>
+      </div>
+      <ol class="runs" id="cb-runs"></ol>
+
+      <div class="week-wrap">
+        <h2 class="mini">The next 7 days, in your time</h2>
+        <div class="week" id="cb-week" role="img" aria-label="When it runs in the next 7 days"></div>
+        <div class="hours" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>noon</span><span>6 PM</span><span>12 AM</span></div>
+      </div>
+
+      <ul class="warn" id="cb-warn"></ul>
+    </div>
+
+    <div class="inputs">
+      <section class="card" aria-labelledby="cb-build-h">
+        <h2 id="cb-build-h" class="card-h">Pick it in plain words</h2>
+        <div class="presets" id="cb-presets">
+          <button type="button" class="chip" data-preset="5min">Every 5 minutes</button>
+          <button type="button" class="chip" data-preset="hour">Every hour</button>
+          <button type="button" class="chip" data-preset="midnight">Every day at midnight</button>
+          <button type="button" class="chip" data-preset="weekday9">Weekdays at 9 AM</button>
+          <button type="button" class="chip" data-preset="monday9">Mondays at 9 AM</button>
+          <button type="button" class="chip" data-preset="first">1st of the month</button>
+        </div>
+
+        <div class="seg" role="radiogroup" aria-label="How often" id="cb-freq">
+          <button type="button" role="radio" data-freq="minutes">Minutes</button>
+          <button type="button" role="radio" data-freq="hours">Hours</button>
+          <button type="button" role="radio" data-freq="daily">Day</button>
+          <button type="button" role="radio" data-freq="weekly">Week</button>
+          <button type="button" role="radio" data-freq="monthly">Month</button>
+          <button type="button" role="radio" data-freq="yearly">Year</button>
+        </div>
+
+        <div class="sentence" data-show="minutes">
+          Every
+          <select id="cb-every-min" aria-label="Minutes between runs">
+            <option>1</option><option>2</option><option>5</option><option>10</option><option>15</option><option>20</option><option>30</option>
+          </select>
+          minutes
+        </div>
+        <div class="sentence" data-show="hours">
+          Every
+          <select id="cb-every-hour" aria-label="Hours between runs">
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>12</option>
+          </select>
+          hours, at minute
+          <input id="cb-at-min" type="number" min="0" max="59" value="0" aria-label="Minute past the hour" />
+        </div>
+        <div class="sentence" data-show="daily">
+          <select id="cb-days" aria-label="Which days">
+            <option value="every">Every day</option>
+            <option value="weekdays">Every weekday (Mon to Fri)</option>
+            <option value="weekends">Every weekend day</option>
+          </select>
+        </div>
+        <div class="sentence" data-show="weekly">
+          <div class="dows" id="cb-dows" role="group" aria-label="Days of the week">
+            <button type="button" data-dow="1" aria-pressed="true">Mon</button>
+            <button type="button" data-dow="2" aria-pressed="false">Tue</button>
+            <button type="button" data-dow="3" aria-pressed="false">Wed</button>
+            <button type="button" data-dow="4" aria-pressed="false">Thu</button>
+            <button type="button" data-dow="5" aria-pressed="false">Fri</button>
+            <button type="button" data-dow="6" aria-pressed="false">Sat</button>
+            <button type="button" data-dow="0" aria-pressed="false">Sun</button>
+          </div>
+        </div>
+        <div class="sentence" data-show="monthly yearly">
+          On
+          <select id="cb-month" aria-label="Month" data-show="yearly"></select>
+          <span data-show="monthly">day</span>
+          <select id="cb-dom" aria-label="Day of the month"></select>
+        </div>
+        <div class="sentence" data-show="daily weekly monthly yearly">
+          At <input id="cb-time" type="time" value="09:00" aria-label="Time of day" />
+        </div>
+
+        <div class="tz" data-show="hours daily weekly monthly yearly">
+          <span>That time is in</span>
+          <div class="seg small" role="radiogroup" aria-label="Time zone of the time you picked" id="cb-tz">
+            <button type="button" role="radio" data-tz="local">My time (<span id="cb-tz-name">local</span>)</button>
+            <button type="button" role="radio" data-tz="utc">UTC</button>
+          </div>
+        </div>
+        <p class="note" id="cb-shift" hidden></p>
+      </section>
+
+      <section class="card" aria-labelledby="cb-paste-h">
+        <h2 id="cb-paste-h" class="card-h">Or paste a cron expression</h2>
+        <label class="sr" for="cb-expr">Cron expression</label>
+        <input id="cb-expr" class="exprin" type="text" value="0 9 * * 1-5" autocomplete="off" spellcheck="false" autocapitalize="off" />
+        <p class="hint">Five parts: minute, hour, day of the month, month, day of the week. Try:</p>
+        <div class="presets">
+          <button type="button" class="chip mono" data-expr="*/15 9-17 * * 1-5">*/15 9-17 * * 1-5</button>
+          <button type="button" class="chip mono" data-expr="0 0 * * 0">0 0 * * 0</button>
+          <button type="button" class="chip mono" data-expr="30 2 1 * *">30 2 1 * *</button>
+          <button type="button" class="chip mono" data-expr="@daily">@daily</button>
+        </div>
+        <div class="parts" id="cb-parts" aria-label="What each part means"></div>
+      </section>
+    </div>
+
+    <details class="fold" open>
+      <summary>Copy the code for your platform</summary>
+      <div class="tabs" role="tablist" id="cb-tabs">
+        <button type="button" role="tab" data-tab="vercel" aria-selected="true">Vercel</button>
+        <button type="button" role="tab" data-tab="github" aria-selected="false">GitHub Actions</button>
+        <button type="button" role="tab" data-tab="supabase" aria-selected="false">Supabase pg_cron</button>
+        <button type="button" role="tab" data-tab="cloudflare" aria-selected="false">Cloudflare</button>
+      </div>
+      <p class="hint" id="cb-tab-hint"></p>
+      <pre id="cb-snippet" tabindex="0" aria-label="Code to copy"></pre>
+      <div class="actions">
+        <button id="cb-copy-snippet" type="button" class="primary">Copy code</button>
+        <button id="cb-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="cb-link" type="button" class="ghost">Copy link</button>
+      <p class="status" id="cb-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/cron-builder';
+</script>
+
+<style>
+  .cb { display: grid; gap: 24px; min-width: 0; }
+  .cb [hidden] { display: none !important; }
+  .stage { display: grid; gap: 16px; padding: 32px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; overflow: hidden; }
+  .say { margin: 0; font: 800 40px/1.12 var(--display); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .say :global(.utc-tag) { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 4px 10px; border-radius: 999px; font: 700 13px/1 var(--mono); letter-spacing: 0.04em; background: var(--ink); color: var(--white); }
+  .sub { margin: -4px 0 0; font-size: 17px; color: var(--ink-soft); }
+  .sub :global(strong) { color: var(--ink); }
+  .exprline { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .expr { font: 700 28px/1.2 var(--mono); padding: 10px 18px; border-radius: 14px; border: 1px dashed var(--sky); background: var(--white); color: var(--ink); cursor: copy; overflow-wrap: anywhere; text-align: left; max-width: 100%; }
+  .expr:hover { border-color: var(--pink); }
+  .bad { margin: 0; padding: 12px 16px; border-radius: 12px; background: #FDE8EE; color: #B4234F; font-size: 15px; }
+  .mini { margin: 0; font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .runs-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+  .zones { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .dot.local { background: var(--sky); }
+  .dot.utc { background: var(--ink-soft); }
+  .runs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .runs :global(li) { scroll-snap-align: start; display: grid; gap: 4px; padding: 14px; border-radius: 16px; background: var(--white); border: 1px solid var(--line); min-width: 0; }
+  .runs :global(li:first-child) { border: 2px solid var(--sky); }
+  .runs :global(.day) { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sky); }
+  .runs :global(.date) { font-size: 14px; color: var(--ink-soft); }
+  .runs :global(.time) { font: 800 24px/1.1 var(--display); color: var(--ink); }
+  .runs :global(.u) { font: 500 12px/1.3 var(--mono); color: var(--ink-soft); }
+  .runs :global(.in) { font-size: 12px; color: var(--ink-soft); }
+  .runs :global(.none) { grid-column: 1 / -1; color: var(--ink-soft); }
+  .week-wrap { display: grid; gap: 8px; margin-top: 8px; min-width: 0; }
+  .week { display: grid; grid-template-columns: 44px repeat(24, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+  .week :global(.wd) { font: 600 12px/18px var(--mono); color: var(--ink-soft); }
+  .week :global(.c) { height: 18px; border-radius: 4px; background: var(--white); border: 1px solid var(--line); }
+  .week :global(.c.on1) { background: #A8DDF0; border-color: #A8DDF0; }
+  .week :global(.c.on2) { background: #5BBDE2; border-color: #5BBDE2; }
+  .week :global(.c.on3) { background: var(--sky); border-color: var(--sky); }
+  .hours { display: flex; justify-content: space-between; padding-left: 47px; font: 500 11px/1 var(--mono); color: var(--ink-soft); }
+  .warn { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .warn :global(li) { padding: 10px 14px; border-radius: 12px; background: #FFF5D6; color: #6B4E00; font-size: 15px; }
+  .warn :global(li.info) { background: var(--white); color: var(--ink); border: 1px solid var(--line); }
+  .warn :global(strong) { margin-right: 4px; }
+
+  .inputs { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .card { display: grid; gap: 14px; padding: 20px; border-radius: 20px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .card [data-show] { display: none; }
+  .card [data-show].on { display: flex; }
+  .card-h { margin: 0; font: 700 18px/1.2 var(--body); }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: 600 14px/1 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--wash); color: var(--ink); cursor: pointer; }
+  .chip.mono { font-family: var(--mono); font-size: 13px; }
+  .chip:hover { border-color: var(--sky); }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; background: var(--wash); border: 1px solid var(--line); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); padding: 10px 8px; border: 0; border-radius: 10px; background: none; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .seg button[aria-checked='true'] { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+  .seg.small button { padding: 8px 10px; font-size: 13px; }
+  .sentence { align-items: center; flex-wrap: wrap; gap: 8px; font-size: 18px; font-weight: 600; }
+  .sentence select, .sentence input { font: 600 16px/1.2 var(--body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); }
+  .sentence input[type='number'] { width: 72px; }
+  .sentence select[data-show].on, .sentence span[data-show].on { display: inline-block; }
+  .dows { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dows button { font: 600 14px/1 var(--body); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .dows button[aria-pressed='true'] { background: var(--sky); border-color: var(--sky); color: var(--white); }
+  .tz { align-items: center; flex-wrap: wrap; gap: 10px; font-size: 15px; color: var(--ink-soft); }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .exprin { box-sizing: border-box; width: 100%; font: 700 22px/1.2 var(--mono); padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  .exprin:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .exprin.err { border-color: #B4234F; }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .parts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .parts :global(div) { display: grid; gap: 4px; padding: 8px; border-radius: 10px; background: var(--wash); text-align: center; min-width: 0; }
+  .parts :global(code) { font: 700 15px/1.2 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+  .parts :global(span) { font-size: 11px; line-height: 1.3; color: var(--ink-soft); }
+
+  .fold { padding: 4px 20px 18px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .tabs button { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .fold .hint { margin-bottom: 10px; }
+  pre { margin: 0 0 12px; padding: 16px; border-radius: 14px; overflow: auto; background: var(--ink); color: #E6F6FB; font: 400 14px/1.6 var(--mono); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 820px) {
+    .inputs { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 820px) {
+    .runs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 140px; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 6px; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 20px; }
+    .say { font-size: 28px; }
+    .expr { font-size: 22px; }
+    .week { grid-template-columns: 36px repeat(24, minmax(0, 1fr)); gap: 2px; }
+    .week :global(.c) { height: 14px; border-radius: 3px; }
+    .hours { padding-left: 38px; }
+    .parts { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+    .parts :global(code) { font-size: 13px; }
+  }
+</style>

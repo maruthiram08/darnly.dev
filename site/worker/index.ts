@@ -36,6 +36,11 @@
 //   Same guards, but never cached. Reads the page and up to 20 of its own JavaScript files and
 //   reports secret API keys anyone can copy, for the API key leak checker at
 //   /tools/api-key-leak-checker/. Only masked previews (sk-ab…9f2) are ever sent back.
+//
+// GET /api/jwks?url=https://example.com/.well-known/jwks.json
+//   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
+//   points to one) and returns only its public keys, for signature checks in the JWT decoder at
+//   /tools/jwt-decoder/. The token itself never comes here.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -68,6 +73,7 @@ export default {
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
+    if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -118,6 +124,51 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     }),
     { cache: false, maxBytes: 2_000_000 },
   );
+}
+
+// /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
+async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/jwks?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const { success } = await env.FETCH_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const read = async (raw: string): Promise<Record<string, unknown> | null> => {
+    const text = await fetchText(raw, url, env, 'application/json,*/*;q=0.1', 200_000);
+    if (!text) return null;
+    try {
+      const data = JSON.parse(text);
+      return data && typeof data === 'object' ? data : null;
+    } catch {
+      return null;
+    }
+  };
+
+  let data = await read(target.href);
+  // An OpenID configuration names its key set in jwks_uri.
+  if (data && !Array.isArray(data.keys) && typeof data.jwks_uri === 'string') data = await read(data.jwks_uri);
+  if (!data) return json({ error: 'We couldn’t read a key set at that address. Check it opens in your browser and shows JSON with "keys".' }, 422);
+
+  const list = Array.isArray(data.keys) ? data.keys : typeof data.kty === 'string' ? [data] : [];
+  const PUBLIC = ['kty', 'kid', 'alg', 'use', 'crv', 'n', 'e', 'x', 'y'];
+  const keys = list
+    .filter((k): k is Record<string, unknown> => !!k && typeof k === 'object')
+    .slice(0, 50)
+    .map((k) => Object.fromEntries(PUBLIC.filter((f) => typeof k[f] === 'string').map((f) => [f, k[f]])));
+  if (!keys.length) return json({ error: 'That address answered, but it has no public keys in it.' }, 422);
+
+  const body = json({ keys }, 200, CACHE_SECONDS);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.

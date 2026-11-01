@@ -69,6 +69,12 @@ export const TOOLS: Item[] = [
     blurb: 'WebP, AVIF, SVG, PNG or JPG to PNG, JPG or WebP, with resize. Nothing is uploaded.',
   },
   {
+    slug: 'social-image-resizer',
+    category: 'Images',
+    name: 'Social image resizer',
+    blurb: 'One picture, every size: X header, LinkedIn banner, Instagram, YouTube thumbnail. Drag to crop.',
+  },
+  {
     slug: 'og-image-generator',
     category: 'SEO & sharing',
     name: 'OG image generator',
@@ -157,6 +163,66 @@ export const TOOLS: Item[] = [
     category: 'Images',
     name: 'Screenshot beautifier',
     blurb: 'Frame a screenshot in a browser or phone on a nice background, sized for X, LinkedIn or a story.',
+  },
+  {
+    slug: 'fake-data-generator',
+    category: 'Code helpers',
+    name: 'Fake data generator',
+    blurb: 'Realistic users, products, orders or posts as JSON, CSV, SQL or a TypeScript seed file.',
+  },
+  {
+    slug: 'logo-maker',
+    category: 'Design',
+    name: 'Logo maker',
+    blurb: 'A simple logo from your project’s name, an icon, a font and colors. SVG, PNG, app icon and favicons.',
+  },
+  {
+    slug: 'cookie-banner-generator',
+    category: 'Launch & domains',
+    name: 'Cookie banner generator',
+    blurb: 'Design a cookie consent banner live and copy a tiny snippet that holds back analytics until people agree.',
+  },
+  {
+    slug: 'hex-to-tailwind',
+    category: 'Design',
+    name: 'Hex to Tailwind',
+    blurb: 'Paste any color and see the nearest Tailwind colors side by side, then copy the class.',
+  },
+  {
+    slug: 'jwt-decoder',
+    category: 'Security',
+    name: 'JWT decoder',
+    blurb: 'Paste a token and see when it expires, who it’s for and its role, in plain words. Nothing is uploaded.',
+  },
+  {
+    slug: 'timestamp-converter',
+    category: 'Code helpers',
+    name: 'Unix timestamp converter',
+    blurb: 'Timestamp to date and back, in your time zone, UTC and four cities, with JS, Postgres and Python code.',
+  },
+  {
+    slug: 'app-store-screenshots',
+    category: 'Images',
+    name: 'App Store screenshot maker',
+    blurb: 'Your app screenshots in a device frame with a headline, at every App Store and Google Play size.',
+  },
+  {
+    slug: 'regex-tester',
+    category: 'Code helpers',
+    name: 'Regex tester',
+    blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
+  },
+  {
+    slug: 'color-blindness-simulator',
+    category: 'Design',
+    name: 'Color blindness simulator',
+    blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
+  },
+  {
+    slug: 'cron-builder',
+    category: 'Code helpers',
+    name: 'Cron expression generator',
+    blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
   },
 ];
 
