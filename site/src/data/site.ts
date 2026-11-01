@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'npm-package-checker',
+    category: 'Code helpers',
+    name: 'npm package checker',
+    blurb: 'Is this npm package safe to use? Downloads, last release, license, size and types, with a verdict. Compare up to 3.',
+  },
 ];
 
 // Same for guides.
