@@ -1,0 +1,119 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in one image or a whole batch (up to 50). PNG, JPG, WebP, GIF and SVG all work.',
+  'Pick a format, a quality and, if you like, a max width. Every image shows its size before and after, and updates as you change the settings.',
+  'Download each image on its own, or all of them in one ZIP. Put them in your site’s <code>public/</code> folder (or wherever your images live).',
+];
+
+const faq = [
+  { q: 'Are my images uploaded anywhere?', a: 'No. Everything happens in your browser. Your images never leave your computer.' },
+  { q: 'Which format should I pick?', a: '<strong>WebP</strong> for almost everything on a website: it’s usually much smaller than JPG or PNG at the same look, and every modern browser shows it. Pick <strong>JPG</strong> if a tool or service you use doesn’t take WebP. Pick <strong>PNG</strong> only for small graphics with sharp edges, like icons or screenshots of text.' },
+  { q: 'What quality should I use?', a: 'Start at 80. Most people can’t see a difference from the original, and the file is often a fraction of the size. Go down to 60 or 70 for big background photos. Quality doesn’t apply to PNG.' },
+  { q: 'What max width should I set?', a: 'Use the widest the image will ever be shown on your site, times two for sharp screens. A full-width hero photo: 2000 to 2400. An image in a blog post: about 1600. A thumbnail or card: 600 to 800. Leave it empty to keep the original size. Images are never made bigger.' },
+  { q: 'Why did one of my images get bigger?', a: 'It was already well compressed, or you turned a small PNG into a high-quality JPG. Keep the original for that one, or try WebP or a lower quality.' },
+  { q: 'What happens to see-through parts?', a: 'WebP and PNG keep them. JPG can’t, so see-through parts turn white.' },
+];
+---
+<ToolPage
+  slug="image-compressor"
+  title="Free image compressor: smaller images, faster site · Darnly"
+  description="Compress and resize images to WebP, JPG or PNG. See the size before and after, then download one by one or as a ZIP. Free, and nothing is uploaded."
+  h1="Image compressor: smaller images, faster site"
+  lede="Drop in your images, pick WebP, JPG or PNG, and download smaller files. You see the size before and after for every image. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ic">
+    <label class="drop" id="ic-drop">
+      <input id="ic-file" type="file" accept="image/*" multiple />
+      <strong>Drop your images here</strong>
+      <span>or click to choose. You can pick many at once, or paste an image.</span>
+    </label>
+    <p class="error" id="ic-error" role="alert" hidden></p>
+
+    <div class="result" id="ic-result" hidden>
+      <div class="controls">
+        <label>Format
+          <select id="ic-format">
+            <option value="webp">WebP (smallest)</option>
+            <option value="jpeg">JPG</option>
+            <option value="png">PNG</option>
+          </select>
+        </label>
+        <label id="ic-quality-wrap">Quality
+          <input id="ic-quality" type="range" min="10" max="100" step="5" value="80" />
+          <output id="ic-quality-out" for="ic-quality">80</output>
+        </label>
+        <label>Max width
+          <input id="ic-width" type="number" min="1" max="10000" step="1" placeholder="Keep" inputmode="numeric" />
+          <span class="unit">px</span>
+        </label>
+      </div>
+
+      <p class="note" id="ic-note" role="status" hidden></p>
+
+      <ul class="list" id="ic-list" aria-live="polite"></ul>
+
+      <div class="actions">
+        <p class="total" id="ic-total"></p>
+        <div class="buttons">
+          <button id="ic-clear" type="button" class="ghost">Start over</button>
+          <button id="ic-zip" type="button" class="primary" disabled>Download all (ZIP)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/image-compressor';
+</script>
+
+<style>
+  .ic { display: grid; gap: 20px; }
+  .drop { position: relative; display: grid; place-items: center; gap: 6px; text-align: center; padding: 48px 24px; border: 2px dashed var(--line); border-radius: 20px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 22px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .error { margin: 0; color: #B4234F; }
+  .note { margin: 0; padding: 12px 16px; border-radius: 12px; background: #FFF4D6; color: #6B4E00; font-size: 15px; }
+  .result { display: grid; gap: 20px; }
+  .result[hidden], .note[hidden] { display: none; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+  .controls label { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .controls select, .controls input[type='number'] { font: inherit; font-size: 15px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+  .controls input[type='number'] { width: 96px; }
+  .controls input[type='range'] { width: 140px; }
+  .controls output { font: 500 14px/1 var(--mono); min-width: 2.5em; }
+  .controls :global(.off) { opacity: 0.5; }
+  .unit { color: var(--ink-soft); }
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .list :global(li) { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 14px 10px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .list :global(.thumb) { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: repeating-conic-gradient(#e6eef2 0 25%, #fff 0 50%) 0 0 / 12px 12px; }
+  .list :global(.info) { display: grid; gap: 2px; min-width: 0; }
+  .list :global(.name) { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list :global(.sizes) { font-size: 15px; color: var(--ink-soft); }
+  .list :global(.after) { color: var(--ink); font-weight: 600; }
+  .list :global(.saved) { font: 600 13px/1 var(--mono); color: #11795A; }
+  .list :global(.saved.worse) { color: #B4234F; }
+  .list :global(.dims) { font: 400 12px/1.4 var(--mono); color: var(--ink-soft); }
+  .list :global(.dl) { font: 600 14px/1 var(--body); padding: 10px 14px; border-radius: 999px; background: var(--wash); color: var(--ink); text-decoration: none; white-space: nowrap; }
+  .list :global(.dl:hover) { background: var(--line); }
+  .actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; }
+  .total { margin: 0; font-weight: 600; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+  .actions button { font: 600 16px/1 var(--body); padding: 15px 22px; border-radius: 999px; cursor: pointer; }
+  .actions button.primary { border: 0; background: var(--sky); color: var(--white); }
+  .actions button.primary:hover { background: #047FAB; }
+  .actions button.ghost { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+  .actions button:disabled { opacity: 0.6; cursor: wait; }
+  @media (max-width: 480px) {
+    .list :global(li) { grid-template-columns: 48px minmax(0, 1fr); }
+    .list :global(.thumb) { width: 48px; height: 48px; }
+    .list :global(.dl) { grid-column: 1 / -1; text-align: center; }
+  }
+</style>

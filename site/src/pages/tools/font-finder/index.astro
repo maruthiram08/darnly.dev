@@ -1,0 +1,80 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of a site whose fonts you like.',
+  'We read the page and its stylesheets, then list each font, where it’s used (body text, headings, code) and which weights the site loads.',
+  'See whether each font is free, open it on Google Fonts, or copy a ready-made prompt that tells your AI coding agent to use the same fonts in your project.',
+];
+
+const faq = [
+  { q: 'How do I find out what font a website uses?', a: 'Paste the site’s address above. We read its stylesheets, the same files your browser downloads, and list every font it asks for, with where it’s used and which weights it loads.' },
+  { q: 'Are these fonts free to use?', a: 'Fonts marked Google Fonts or “free on Google Fonts” are free for any project. Adobe Fonts need an Adobe plan. A font the site hosts itself and that isn’t on Google Fonts may be a paid font, so check its license before you copy it.' },
+  { q: 'What does “System font” mean?', a: 'The site uses whatever font comes with the visitor’s computer, like San Francisco on a Mac or Segoe UI on Windows. Nothing is downloaded, and you can use the same setting for free.' },
+  { q: 'Why is a font missing?', a: 'Some sites add their styles with JavaScript after the page loads, and some block automated visits. We also read up to 12 stylesheets per page. If something is missing, try a different page on the same site.' },
+  { q: 'How do I use the same font in my project?', a: 'Click “Copy prompt for your AI agent” and paste it into Claude Code, Cursor or Codex. It names each font, where it goes and which weights to load, so your agent can set it up the way your project already loads fonts.' },
+];
+---
+<ToolPage
+  slug="font-finder"
+  title="Font finder: what font is this website using? · Darnly"
+  description="Paste any website to see which fonts it uses for headings, body text and code, which weights it loads, and whether they’re free. Copy them into your project in one step."
+  h1="Font finder: see what fonts a website uses"
+  lede="Paste a site to see its fonts for headings, body text and code, which weights it loads, and whether they’re free. Then copy a prompt that tells your AI agent to use them."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ff">
+    <form id="ff-form" class="ask">
+      <label class="sr" for="ff-url">Website address</label>
+      <input id="ff-url" type="text" inputmode="url" autocomplete="url" placeholder="stripe.com" required />
+      <button id="ff-go" type="submit">Find fonts</button>
+    </form>
+    <p class="error" id="ff-error" role="alert" hidden></p>
+
+    <div id="ff-out" hidden>
+      <div class="summary">
+        <p id="ff-summary"></p>
+        <button id="ff-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+      </div>
+      <div class="list" id="ff-list"></div>
+      <p class="note" id="ff-note" hidden></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/fonts';
+</script>
+
+<style>
+  .ff { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .summary p { margin: 0; font-size: 18px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .list { display: grid; gap: 16px; }
+  .list :global(.font) { border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; background: var(--white); display: grid; gap: 12px; min-width: 0; }
+  .list :global(.head) { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+  .list :global(.name) { font-size: 30px; line-height: 1.15; overflow-wrap: anywhere; }
+  .list :global(.roles) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .list :global(.role) { font: 600 12px/1 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--wash); color: var(--ink); }
+  .list :global(.sample) { font-size: 22px; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+  .list :global(.meta) { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--ink-soft); }
+  .list :global(.meta b) { color: var(--ink); font-weight: 600; }
+  .list :global(.free) { color: #1F7A45; }
+  .list :global(.paid) { color: #A35F00; }
+  .list :global(.actions) { display: flex; flex-wrap: wrap; gap: 10px; }
+  .list :global(.actions a), .list :global(.actions button) { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .list :global(.actions a:hover), .list :global(.actions button:hover) { border-color: var(--sky); }
+  .list :global(.preview-note) { font-size: 13px; color: var(--ink-soft); margin: -6px 0 0; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+</style>
