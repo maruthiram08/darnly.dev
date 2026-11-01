@@ -94,6 +94,12 @@ export const TOOLS: Item[] = [
     blurb: 'Paste JSON and get TypeScript types and a Zod schema, with optional fields found for you.',
   },
   {
+    slug: 'diff-checker',
+    category: 'Code helpers',
+    name: 'Diff checker',
+    blurb: 'Compare two texts side by side and see every added, removed and changed word. Nothing is uploaded.',
+  },
+  {
     slug: 'api-key-leak-checker',
     name: 'API key leak checker',
     blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
