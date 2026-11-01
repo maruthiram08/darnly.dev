@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'aspect-ratio-calculator',
+    category: 'Images',
+    name: 'Aspect ratio calculator',
+    blurb: 'Get the missing side for 16:9, 4:3 or 9:16, see it in a YouTube player, phone or Instagram post, and copy the CSS.',
+  },
 ];
 
 // Same for guides.

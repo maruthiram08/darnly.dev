@@ -1,0 +1,312 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { COMMON } from '../../../scripts/aspect-ratio-calculator-core';
+
+const resizer = TOOLS.find((t) => t.slug === 'social-image-resizer');
+
+const presets = COMMON.slice(0, 8);
+
+const slots = [
+  { id: 'box', name: 'Just the shape' },
+  { id: 'youtube', name: 'YouTube player' },
+  { id: 'phone', name: 'Phone screen' },
+  { id: 'og', name: 'Link preview' },
+  { id: 'insta', name: 'Instagram post' },
+  { id: 'story', name: 'Story / Reel' },
+];
+
+const steps = [
+  'Type a width and a height, or tap a common ratio like 16:9. With the lock on, changing one side works out the other for you.',
+  'Pick a place, like a YouTube player or an Instagram post, to see how your shape sits there: whether it fits, gets black bars, or gets cut off.',
+  'Copy the CSS <code>aspect-ratio</code>, the Tailwind class, or the old padding-top trick, and paste it into your code or give it to your AI coding agent.',
+];
+
+const faq = [
+  { q: 'How do I work out an aspect ratio?', a: 'Divide the width and the height by the biggest number that goes into both. 1920 × 1080 → both divide by 120 → <strong>16:9</strong>. This page does it as you type, and also shows the decimal form, like 1.778:1.' },
+  { q: 'How do I find the height for a width at 16:9?', a: 'Height = width × 9 ÷ 16. So 1280px wide is 720px tall. Turn the lock on, type the width, and the height fills in.' },
+  { q: 'What is the CSS for a fixed aspect ratio?', a: 'Use <code>aspect-ratio: 16 / 9;</code> on the element and give it a width. Every current browser supports it. In Tailwind, it is <code>aspect-video</code> for 16:9, <code>aspect-square</code> for 1:1, and <code>aspect-[4/3]</code> for anything else.' },
+  { q: 'What is the padding-top hack?', a: 'Before <code>aspect-ratio</code> existed, people set <code>padding-top</code> to height ÷ width as a percentage (56.25% for 16:9) on a wrapper and placed the content inside it. You only need it today for HTML emails or very old browsers.' },
+  { q: 'What size should a link preview image be?', a: '1200 × 630 px, which is about 1.91:1. Facebook, LinkedIn, Slack and X all crop to roughly that shape, so keep text away from the edges.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="aspect-ratio-calculator"
+  title="Aspect ratio calculator, with live preview and CSS · Darnly"
+  description="Work out an aspect ratio from a width and height, or the missing side for 16:9, 4:3, 1:1, 9:16 and more. See how it fits a YouTube player, a phone, a link preview or an Instagram post, and copy the CSS or Tailwind class. Free."
+  h1="Aspect ratio calculator"
+  lede="Type a width and height, or pick a ratio and get the missing side. See the shape live in a YouTube player, a phone, a link preview or an Instagram post, then copy the CSS."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ar">
+    <div class="stage" id="ar-stage" data-slot="youtube" data-mode="fit">
+      <div class="head">
+        <div class="answer">
+          <button type="button" class="big" id="ar-big" title="Copy">16:9</button>
+          <span class="dims" id="ar-dims">1920 × 1080 px</span>
+        </div>
+        <p class="verdict" id="ar-verdict" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Where to preview your shape">
+        {slots.map((s) => (
+          <button type="button" role="tab" class="tab" data-slot={s.id} aria-selected={s.id === 'youtube' ? 'true' : 'false'}>{s.name}</button>
+        ))}
+      </div>
+
+      <div class="view" aria-hidden="true">
+        <div class="frame f-box"><div class="slot" data-for="box"></div></div>
+
+        <div class="frame f-youtube">
+          <div class="slot" data-for="youtube"></div>
+          <div class="yt-bar"><span></span></div>
+          <div class="lines"><i style="width:70%"></i><i style="width:40%"></i></div>
+        </div>
+
+        <div class="frame f-phone">
+          <div class="notch"></div>
+          <div class="slot" data-for="phone"></div>
+        </div>
+
+        <div class="frame f-og">
+          <div class="slot" data-for="og"></div>
+          <div class="og-text"><small>yourapp.com</small><b>Your page title shows here</b><i style="width:80%"></i></div>
+        </div>
+
+        <div class="frame f-insta">
+          <div class="ig-head"><span class="dot"></span><i style="width:90px"></i></div>
+          <div class="slot" data-for="insta"></div>
+          <div class="ig-icons"><span>♡</span><span>◯</span><span>➤</span></div>
+        </div>
+
+        <div class="frame f-story">
+          <div class="slot" data-for="story"></div>
+          <div class="st-bars"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+
+      <div class="mode" id="ar-mode-row">
+        <span>When the shape doesn't match:</span>
+        <div class="seg" role="radiogroup" aria-label="How the picture fills the slot">
+          <button type="button" class="seg-b" data-mode="fit" aria-pressed="true">Show it all (bars)</button>
+          <button type="button" class="seg-b" data-mode="fill" aria-pressed="false">Fill it (crop)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputs">
+      <div class="field">
+        <label for="ar-w">Width</label>
+        <div class="box-in"><input id="ar-w" type="text" inputmode="decimal" value="1920" autocomplete="off" spellcheck="false" /><span>px</span></div>
+      </div>
+      <button type="button" class="lock" id="ar-lock" aria-pressed="true" title="Keep the ratio when you change a side">
+        <span class="lock-i" aria-hidden="true">🔒</span><span class="lock-t">Ratio locked</span>
+      </button>
+      <div class="field">
+        <label for="ar-h">Height</label>
+        <div class="box-in"><input id="ar-h" type="text" inputmode="decimal" value="1080" autocomplete="off" spellcheck="false" /><span>px</span></div>
+      </div>
+      <div class="field ratio">
+        <label for="ar-r">Ratio</label>
+        <div class="box-in"><input id="ar-r" type="text" value="16:9" autocomplete="off" spellcheck="false" /></div>
+      </div>
+    </div>
+    <p class="note" id="ar-note" hidden></p>
+    <p class="bad" id="ar-error" role="alert" hidden></p>
+
+    <div class="presets" aria-label="Common ratios">
+      {presets.map((p) => (
+        <button type="button" class="preset" data-w={p.w} data-h={p.h} title={p.use}>
+          <span class="mini" style={`aspect-ratio:${p.w}/${p.h}`}></span>
+          <b>{p.label}</b><small>{p.use.split(',')[0]}</small>
+        </button>
+      ))}
+    </div>
+
+    <div class="codes">
+      <div class="code">
+        <div class="code-h"><span>CSS</span><button type="button" class="copy" data-copy="css">Copy</button></div>
+        <pre id="ar-css" tabindex="0">aspect-ratio: 16 / 9;</pre>
+      </div>
+      <div class="code">
+        <div class="code-h"><span>Tailwind</span><button type="button" class="copy" data-copy="tw">Copy</button></div>
+        <pre id="ar-tw" tabindex="0">aspect-video</pre>
+      </div>
+      <div class="code wide">
+        <div class="code-h"><span>Padding-top hack <small>for HTML emails and old browsers</small></span><button type="button" class="copy" data-copy="pad">Copy</button></div>
+        <pre id="ar-pad" tabindex="0"></pre>
+      </div>
+    </div>
+
+    <details class="fold">
+      <summary>Common sizes at this ratio</summary>
+      <p class="hint">Click a row to use it. Sizes that aren't whole pixels are rounded.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Width</th><th>Height</th><th></th></tr></thead>
+          <tbody id="ar-table"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="ar-link" type="button" class="ghost">Copy link</button>
+      {resizer && <a class="ghost" href={`/tools/${resizer.slug}/`}>Resize an image to these sizes</a>}
+      <p class="status" id="ar-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/aspect-ratio-calculator';
+</script>
+
+<style>
+  .ar { display: grid; gap: 22px; min-width: 0; }
+  .ar [hidden] { display: none !important; }
+
+  .stage { display: grid; gap: 18px; padding: 28px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; overflow: hidden; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+  .answer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; min-width: 0; }
+  .big { padding: 0; border: 0; background: none; cursor: copy; font: 800 64px/1 var(--display); letter-spacing: -0.03em; color: var(--ink); }
+  .big:hover { color: var(--sky); }
+  .dims { font: 600 18px/1.2 var(--mono); color: var(--ink-soft); }
+  .verdict { margin: 0; padding: 9px 14px; border-radius: 999px; font-weight: 700; font-size: 15px; background: var(--white); border: 1px solid var(--line); color: var(--ink); }
+  .verdict:global(.ok) { background: #DFF5E8; border-color: #7CCB9B; color: #145C33; }
+  .verdict:global(.warn) { background: #FFF1DA; border-color: #EDBB6A; color: #6B4300; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font: 600 14px/1 var(--body); cursor: pointer; }
+  .tab:hover { border-color: var(--sky); }
+  .tab[aria-selected='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+
+  .view { position: relative; display: grid; place-items: center; height: 400px; min-width: 0; }
+  .frame { display: none; position: relative; flex-direction: column; }
+  .stage[data-slot='box'] .view { height: auto; min-height: 200px; }
+  /* The page chrome sits above the cut-off part of the picture. */
+  .yt-bar, .lines, .og-text, .ig-head, .ig-icons { position: relative; z-index: 4; }
+  .lines { background: #0F0F0F; border-radius: 0 0 12px 12px; }
+  .og-text { background: var(--white); border-radius: 0 0 14px 14px; }
+  .ig-head { background: var(--white); border-radius: 10px 10px 0 0; }
+  .ig-icons { background: var(--white); border-radius: 0 0 10px 10px; }
+  .stage[data-slot='box'] .f-box,
+  .stage[data-slot='youtube'] .f-youtube,
+  .stage[data-slot='phone'] .f-phone,
+  .stage[data-slot='og'] .f-og,
+  .stage[data-slot='insta'] .f-insta,
+  .stage[data-slot='story'] .f-story { display: flex; }
+
+  .slot { position: relative; background: #111; }
+  .slot :global(.ghost-pic) { position: absolute; z-index: 3; opacity: 0.28; pointer-events: none; outline: 2px dashed var(--pink); outline-offset: -2px; }
+  .slot :global(.clip) { position: absolute; inset: 0; overflow: hidden; z-index: 2; }
+  .slot :global(.pic) { position: absolute; display: grid; place-items: center; transition: all 0.2s; background:
+      linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px) 0 0 / 10% 10%,
+      linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px) 0 0 / 10% 10%,
+      linear-gradient(135deg, var(--sky), var(--pink)); }
+  .slot :global(.pic span) { padding: 4px 8px; border-radius: 6px; background: rgba(11,34,48,0.55); color: #fff; font: 700 13px/1.2 var(--mono); white-space: nowrap; }
+  .slot :global(.pic .sun) { position: absolute; width: 18%; aspect-ratio: 1; border-radius: 50%; background: #FFE27A; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 6px rgba(255,226,122,0.35); }
+  .slot :global(.pic span) { position: relative; z-index: 1; margin-top: 30%; }
+
+  /* Just the shape: the slot is the picture itself. */
+  .f-box .slot { background: transparent; width: min(100%, calc(380px * var(--pr, 1.7778))); aspect-ratio: var(--pr, 1.7778); max-height: 380px; }
+  .f-box { width: 100%; align-items: center; }
+
+  .f-youtube { width: min(100%, 600px); background: #0F0F0F; border-radius: 12px; padding: 0 0 12px; overflow: visible; }
+  .f-youtube .slot { aspect-ratio: 16 / 9; border-radius: 12px 12px 0 0; }
+  .yt-bar { height: 4px; background: #555; } .yt-bar span { display: block; width: 35%; height: 100%; background: #FF0033; }
+  .lines { display: grid; gap: 6px; padding: 10px 12px 0; }
+  .lines i, .og-text i, .ig-head i { display: block; height: 9px; border-radius: 5px; background: #3a3a3a; }
+
+  .f-phone { width: 180px; padding: 10px; border-radius: 32px; background: #1b1b1f; box-shadow: 0 0 0 2px #444 inset; }
+  .f-phone .slot { aspect-ratio: 390 / 844; border-radius: 22px; overflow: visible; }
+  .f-phone .slot :global(.clip) { border-radius: 22px; }
+  .notch { position: absolute; z-index: 5; left: 50%; top: 18px; transform: translateX(-50%); width: 56px; height: 14px; border-radius: 10px; background: #000; }
+
+  .f-og { width: min(100%, 480px); border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .f-og .slot { aspect-ratio: 1200 / 630; border-radius: 13px 13px 0 0; }
+  .f-og .slot :global(.clip) { border-radius: 13px 13px 0 0; }
+  .og-text { display: grid; gap: 5px; padding: 10px 14px 14px; color: var(--ink); }
+  .og-text small { color: var(--ink-soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .og-text b { font-size: 15px; }
+  .og-text i { background: var(--line); }
+
+  .f-insta { width: min(100%, 270px); border: 1px solid var(--line); border-radius: 10px; background: var(--white); }
+  .ig-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+  .ig-head .dot { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(45deg, #F9C846, #E1306C, #833AB4); }
+  .ig-head i { background: var(--line); }
+  .f-insta .slot { aspect-ratio: 4 / 5; }
+  .ig-icons { display: flex; gap: 12px; padding: 8px 10px; font-size: 18px; color: var(--ink); }
+
+  .f-story { width: 200px; border-radius: 18px; }
+  .f-story .slot { aspect-ratio: 9 / 16; border-radius: 18px; }
+  .f-story .slot :global(.clip) { border-radius: 18px; }
+  .st-bars { position: absolute; z-index: 5; top: 8px; left: 10px; right: 10px; display: flex; gap: 4px; }
+  .st-bars i { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.6); }
+  .st-bars i:first-child { background: #fff; }
+
+  .mode { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); }
+  .stage[data-slot='box'] .mode { visibility: hidden; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--white); padding: 3px; }
+  .seg-b { border: 0; background: none; padding: 7px 12px; border-radius: 999px; font: 600 13px/1 var(--body); color: var(--ink); cursor: pointer; }
+  .seg-b[aria-pressed='true'] { background: var(--sky); color: #fff; }
+
+  .inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 0.8fr); gap: 14px; align-items: end; }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .box-in { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--white); padding: 0 12px; min-width: 0; }
+  .box-in:focus-within { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(5,147,198,0.15); }
+  .box-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 12px 0; font: 600 20px/1 var(--mono); color: var(--ink); }
+  .box-in span { color: var(--ink-soft); font: 500 14px/1 var(--mono); }
+  .lock { display: inline-flex; align-items: center; gap: 6px; padding: 12px 12px; border-radius: 12px; border: 1px dashed var(--ink-soft); background: var(--white); color: var(--ink); font: 600 13px/1 var(--body); cursor: pointer; white-space: nowrap; }
+  .lock[aria-pressed='true'] { border-style: solid; border-color: var(--sky); background: #DDF2FA; }
+  .note { margin: -8px 0 0; font-size: 13px; color: var(--ink-soft); }
+  .bad { margin: -8px 0 0; color: #B3261E; font-weight: 600; font-size: 14px; }
+
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .preset { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--white); cursor: pointer; color: var(--ink); }
+  .preset:hover { border-color: var(--sky); }
+  .preset:global(.on) { border-color: var(--sky); box-shadow: 0 0 0 2px var(--sky) inset; }
+  .mini { grid-row: span 2; justify-self: center; max-width: 30px; max-height: 30px; width: 30px; border-radius: 3px; background: linear-gradient(135deg, var(--sky), var(--pink)); }
+  .preset b { font: 700 15px/1.1 var(--mono); }
+  .preset small { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .codes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .code { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--white); overflow: hidden; }
+  .code.wide { grid-column: 1 / -1; }
+  .code-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14px; }
+  .code-h small { font-weight: 500; color: var(--ink-soft); }
+  .copy { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--sky); background: var(--sky); color: #fff; font: 700 13px/1 var(--body); cursor: pointer; }
+  .code pre { margin: 0; padding: 12px 14px; font: 500 14px/1.5 var(--mono); color: var(--ink); overflow-x: auto; white-space: pre; }
+
+  .fold { border: 1px solid var(--line); border-radius: 14px; background: var(--white); padding: 0 16px; }
+  .fold summary { cursor: pointer; padding: 14px 0; font-weight: 700; }
+  .hint { margin: 0 0 10px; font-size: 13px; color: var(--ink-soft); }
+  .table-wrap { overflow-x: auto; padding-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font: 500 14px/1.4 var(--mono); }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--wash); }
+  td small { color: var(--ink-soft); font-family: var(--body); }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .ghost { padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font: 600 14px/1 var(--body); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 720px) {
+    .stage { padding: 18px; }
+    .big { font-size: 48px; }
+    .view { height: 340px; }
+    .f-box .slot { width: min(100%, calc(320px * var(--pr, 1.7778))); max-height: 320px; }
+    .f-phone { width: 150px; }
+    .f-story { width: 170px; }
+    .f-insta { width: min(100%, 230px); }
+    .inputs { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+    .field.ratio { grid-column: 1 / -1; }
+    .lock-t { display: none; }
+    .codes { grid-template-columns: 1fr; }
+  }
+</style>
