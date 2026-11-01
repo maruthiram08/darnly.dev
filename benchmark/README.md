@@ -128,7 +128,7 @@ Avoid: "Darnly cuts your token bill by X%." We measured one app, not your bill.
 
 ## First pilot (2026-11-01, Sonnet, 1 run each, 3 bugs: not a result)
 
-Seven paired runs to check the harness. Every run fixed its bug. On this small app, Darnly runs cost
+Eleven runs (five plain vs Darnly pairs, plus one "report only") to check the harness. Every run fixed its bug. On this small app, Darnly runs cost
 more, not less: about $0.06 to $0.08 plain vs $0.12 with Darnly for the checkout and settings bugs
 (one orders run went the other way, $0.18 vs $0.09, partly because the cache was cold; the
 warm-up session now prevents that).
