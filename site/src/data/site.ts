@@ -53,6 +53,11 @@ export const TOOLS: Item[] = [
     name: 'Launch checker',
     blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
   },
+  {
+    slug: 'asset-extractor',
+    name: 'Asset extractor',
+    blurb: 'Every image, SVG and icon on a website, with sizes. Download one or all as a ZIP.',
+  },
 ];
 
 // Same for guides.

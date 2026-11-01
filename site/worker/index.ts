@@ -155,7 +155,9 @@ function imageType(header: string, b: Uint8Array): string | null {
   if (h.startsWith('image/')) {
     // An SVG claimed as an image must actually look like one, and a raster must not hide HTML.
     if (h === 'image/svg+xml') return sniffed === 'image/svg+xml' ? h : null;
-    return sniffed && sniffed !== 'image/svg+xml' ? sniffed : /^image\/(png|jpeg|gif|webp|avif|x-icon|vnd\.microsoft\.icon|bmp|tiff|apng)$/.test(h) ? h : null;
+    if (sniffed) return sniffed === 'image/svg+xml' ? null : sniffed;
+    const looksLikeText = /^\s*</.test(new TextDecoder().decode(b.subarray(0, 64)));
+    return !looksLikeText && /^image\/(png|jpeg|gif|webp|avif|x-icon|vnd\.microsoft\.icon|bmp|tiff|apng)$/.test(h) ? h : null;
   }
   return sniffed;
 }

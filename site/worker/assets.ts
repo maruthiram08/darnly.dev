@@ -42,7 +42,7 @@ export async function findAssets(html: string, base: string, fetchText: Fetch): 
       if (rank(kind) > rank(prev.kind)) prev.kind = kind;
       prev.width ??= extra.width;
       prev.height ??= extra.height;
-      prev.alt ||= extra.alt;
+      if (extra.alt) prev.alt ||= extra.alt;
       return;
     }
     if (found.size >= MAX_ASSETS) {
@@ -81,20 +81,22 @@ export async function findAssets(html: string, base: string, fetchText: Fetch): 
   }
 
   for (const tag of page.match(/<img\b[^>]*>/gi) ?? []) {
-    const extra = { width: num(attr(tag, 'width')), height: num(attr(tag, 'height')), alt: attr(tag, 'alt') };
+    // Read size and alt from the tag without any embedded data: picture, which can hold "width=…" itself.
+    const bare = tag.replace(/"data:[^"]*"|'data:[^']*'/g, '""');
+    const extra = { width: num(attr(bare, 'width')), height: num(attr(bare, 'height')), alt: attr(bare, 'alt') };
     // Lazy-loading scripts keep the real picture in data-src while src holds a tiny placeholder.
     const lazy = attr(tag, 'data-src') || attr(tag, 'data-lazy-src') || attr(tag, 'data-original');
     const src = attr(tag, 'src');
-    if (lazy) add(lazy, 'image', '<img>', extra);
-    if (src && !(lazy && src.startsWith('data:'))) add(src, 'image', '<img>', extra);
+    if (lazy) add(lazy, 'image', 'Image on the page', extra);
+    if (src && !(lazy && src.startsWith('data:'))) add(src, 'image', 'Image on the page', extra);
     const set = attr(tag, 'srcset') || attr(tag, 'data-srcset');
-    if (set) add(largest(set), 'image', 'srcset', { alt: extra.alt });
+    if (set) add(largest(set), 'image', 'Largest size (srcset)', { alt: extra.alt });
   }
 
   for (const tag of page.match(/<source\b[^>]*>/gi) ?? []) {
     const set = attr(tag, 'srcset') || attr(tag, 'data-srcset');
     // <source> inside <video>/<audio> uses src, not srcset; only take image types.
-    if (set) add(largest(set), 'image', '<picture>');
+    if (set) add(largest(set), 'image', 'Picture source');
   }
 
   for (const tag of page.match(/<(?:video|input)\b[^>]*>/gi) ?? []) {
@@ -103,10 +105,10 @@ export async function findAssets(html: string, base: string, fetchText: Fetch): 
   }
 
   // <image href> and <use href> inside SVGs that point at files.
-  for (const tag of page.match(/<image\b[^>]*>/gi) ?? []) add(attr(tag, 'href') || attr(tag, 'xlink:href'), 'image', 'SVG <image>');
+  for (const tag of page.match(/<image\b[^>]*>/gi) ?? []) add(attr(tag, 'href') || attr(tag, 'xlink:href'), 'image', 'Inside an SVG');
   for (const tag of page.match(/<(?:object|embed)\b[^>]*>/gi) ?? []) {
     const src = attr(tag, 'data') || attr(tag, 'src');
-    if (src && typeOf(src) === 'svg') add(src, 'svg', '<object>');
+    if (src && typeOf(src) === 'svg') add(src, 'svg', 'Embedded SVG');
   }
 
   // Backgrounds: style="…" on elements, <style> blocks, and the first few stylesheets.
