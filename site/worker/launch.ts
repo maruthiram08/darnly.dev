@@ -35,6 +35,7 @@ const TOOLS = {
   og: { href: '/tools/open-graph-checker/', name: 'Open Graph checker' },
   meta: { href: '/tools/meta-tag-generator/', name: 'Meta tag generator' },
   favicon: { href: '/tools/favicon-generator/', name: 'Favicon generator' },
+  sitemap: { href: '/tools/sitemap-generator/', name: 'Sitemap generator' },
 };
 
 export async function checkLaunch(html: string, pageUrl: string, probe: Prober, opts: { probeHttp: boolean }) {
@@ -200,7 +201,7 @@ function indexCheck(h: Head): Check {
 }
 
 function robotsCheck(res: Probe | null, txt: string | null): Check {
-  const base = { id: 'robots', label: 'robots.txt' };
+  const base = { id: 'robots', label: 'robots.txt', tool: TOOLS.sitemap };
   const prompt = 'Add a robots.txt at the root of my site that allows all crawlers and points to my sitemap:\n\nUser-agent: *\nAllow: /\n\nSitemap: https://<my domain>/sitemap.xml';
   if (txt === null) {
     const html = res && res.status === 200 && !isTextFile(res);
@@ -211,7 +212,7 @@ function robotsCheck(res: Probe | null, txt: string | null): Check {
 }
 
 function sitemapCheck(s: { url: string; count: number } | null): Check {
-  const base = { id: 'sitemap', label: 'Sitemap' };
+  const base = { id: 'sitemap', label: 'Sitemap', tool: TOOLS.sitemap };
   if (!s) return { ...base, level: 'warn', detail: 'We couldn’t find a sitemap at /sitemap.xml or in robots.txt, so Google has to find your pages on its own.', fix: 'Generate a sitemap.xml and link it from robots.txt.', prompt: 'Generate a sitemap.xml for my site that lists every public page and updates on each build (use the usual sitemap plugin for this framework if there is one), and add a "Sitemap:" line for it to robots.txt.' };
   return { ...base, level: 'pass', detail: `Found ${s.url}${s.count ? ` with ${s.count} link${s.count === 1 ? '' : 's'}` : ''}.` };
 }

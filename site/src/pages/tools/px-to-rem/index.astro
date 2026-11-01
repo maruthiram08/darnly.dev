@@ -1,0 +1,196 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Point at sibling tools once they ship.
+const tailwind = TOOLS.find((t) => t.slug === 'tailwind-color-generator');
+
+const steps = [
+  'Type a size in px, or in rem. The other box updates as you type, and the preview shows the size at real scale on your screen.',
+  'Under the numbers you get the matching Tailwind classes, like <code>p-4</code> for spacing and <code>text-base</code> for text. Click any of them to copy it.',
+  'Have a whole stylesheet? Paste it under “Convert a block of CSS” and copy it back with every px turned into rem. Or copy a prompt that asks your AI coding agent to do it across your project.',
+];
+
+const sampleCss = `.card {
+  padding: 24px 32px;
+  margin-bottom: 16px;
+  border: 1px solid #d7e9f0;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .card { padding: 40px; }
+}`;
+
+const faq = [
+  { q: 'How do I convert px to rem?', a: 'Divide the px value by the root font size, which is <strong>16px</strong> in every browser unless you change it. So 24px ÷ 16 = <strong>1.5rem</strong>, and 14px ÷ 16 = 0.875rem. To go back, multiply: 2rem × 16 = 32px.' },
+  { q: 'Why use rem instead of px?', a: 'rem follows the font size people set in their browser. Someone who needs bigger text gets a bigger page, not just bigger words in a cramped layout. It is also what Tailwind uses for its spacing and text sizes.' },
+  { q: 'What if my site uses a different base size?', a: 'Change “Base font size” to match your <code>html { font-size }</code>. Some sites use 62.5% (10px) so that 1rem = 10px. Everything on the page, including the table and the CSS converter, follows the new base.' },
+  { q: 'How do Tailwind classes map to px?', a: 'Each spacing step is 0.25rem, which is 4px at the default base. So <code>p-1</code> = 4px, <code>p-4</code> = 16px and <code>p-6</code> = 24px. Tailwind v4 accepts any multiple of 0.25rem, like <code>p-3.25</code>; in v3, use an exact value like <code>p-[13px]</code>.' },
+  { q: 'Should borders be rem too?', a: 'Usually not. A 1px border should stay 1px so it stays crisp, which is why “Keep 1px as px” is on by default in the CSS converter.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="px-to-rem"
+  title="px to rem converter, with Tailwind classes · Darnly"
+  description="Convert px to rem and rem to px, live, with the matching Tailwind spacing and text classes. Set your own base size, see the size on screen, or convert a whole block of CSS. Free."
+  h1="px to rem converter, with Tailwind classes"
+  lede="Type a size in px and get the rem value, the matching Tailwind class and a ruler at real size. Works both ways, with any base font size."
+  steps={steps}
+  faq={faq}
+>
+  <div class="pr">
+    <div class="stage" id="pr-stage" aria-label="Live preview of your size">
+      <div class="answer">
+        <span class="big" id="pr-big-px">24px</span>
+        <span class="eq" aria-hidden="true">=</span>
+        <button type="button" class="big rem" id="pr-big-rem" title="Copy">1.5rem</button>
+      </div>
+      <div class="tw">
+        <span class="tw-label">Tailwind</span>
+        <button type="button" class="chip" id="pr-tw-space" title="Copy spacing class">p-6</button>
+        <button type="button" class="chip" id="pr-tw-text" title="Copy text class">text-2xl</button>
+        <span class="tw-note" id="pr-tw-note"></span>
+      </div>
+
+      <div class="ruler-wrap">
+        <div class="bar" id="pr-bar"><span id="pr-bar-label">24px</span></div>
+      </div>
+      <div class="shapes">
+        <div class="box" id="pr-box" aria-hidden="true"></div>
+        <span class="sample" id="pr-sample">Aa</span>
+      </div>
+      <p class="scale" id="pr-scale" hidden>Very large sizes are shrunk to fit.</p>
+      <p class="real">Shown at real size · base <span class="pr-base-note">16px</span></p>
+    </div>
+
+    <div class="inputs">
+      <div class="field">
+        <label for="pr-px">Pixels</label>
+        <div class="box-in"><input id="pr-px" type="text" inputmode="decimal" value="24" autocomplete="off" spellcheck="false" /><span>px</span></div>
+      </div>
+      <span class="swap" aria-hidden="true">⇄</span>
+      <div class="field">
+        <label for="pr-rem">rem</label>
+        <div class="box-in"><input id="pr-rem" type="text" inputmode="decimal" value="1.5" autocomplete="off" spellcheck="false" /><span>rem</span></div>
+      </div>
+      <div class="field base">
+        <label for="pr-base">Base font size</label>
+        <div class="box-in"><input id="pr-base" type="text" inputmode="decimal" value="16" autocomplete="off" spellcheck="false" /><span>px</span></div>
+      </div>
+    </div>
+    <p class="bad" id="pr-error" role="alert" hidden>Type a number, like 24 or 1.5.</p>
+
+    <details class="fold">
+      <summary>Common sizes: px, rem and Tailwind</summary>
+      <p class="hint">At a base of <span class="pr-base-note">16px</span>. Click a row to see it above.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>px</th><th>rem</th><th>Spacing</th><th>Text</th></tr></thead>
+          <tbody id="pr-table"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="fold" open>
+      <summary>Convert a block of CSS</summary>
+      <div class="css">
+        <label class="sr" for="pr-css-in">Your CSS</label>
+        <textarea id="pr-css-in" spellcheck="false" autocomplete="off" autocapitalize="off">{sampleCss}</textarea>
+        <div class="out">
+          <pre id="pr-css-out" tabindex="0" aria-label="Your CSS in rem"></pre>
+        </div>
+      </div>
+      <div class="opts">
+        <label><input type="checkbox" id="pr-keep1" checked /> Keep 1px as px (borders)</label>
+        <label><input type="checkbox" id="pr-media" checked /> Leave @media sizes alone</label>
+        <span class="count" id="pr-css-count"></span>
+      </div>
+      <div class="actions">
+        <button id="pr-copy-css" type="button" class="primary">Copy CSS</button>
+        <button id="pr-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="pr-link" type="button" class="ghost">Copy link</button>
+      {tailwind && <a class="ghost" href={`/tools/${tailwind.slug}/`}>Make a Tailwind color scale</a>}
+      <p class="status" id="pr-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/px-to-rem';
+</script>
+
+<style>
+  .pr { display: grid; gap: 24px; min-width: 0; }
+  .pr [hidden] { display: none !important; }
+  .stage { display: grid; gap: 18px; padding: 32px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; overflow: hidden; }
+  .answer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+  .big { font: 800 64px/1 var(--display); letter-spacing: -0.03em; color: var(--ink); }
+  .rem { padding: 0; border: 0; background: none; color: var(--sky); cursor: copy; }
+  .eq { font: 400 44px/1 var(--display); color: var(--ink-soft); }
+  .tw { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .tw-label { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .chip { font: 600 16px/1 var(--mono); padding: 9px 14px; border-radius: 999px; border: 1px dashed var(--ink-soft); background: var(--white); color: var(--ink); cursor: copy; }
+  .chip:global(.exact) { border-style: solid; border-color: var(--sky); background: #DDF2FA; }
+  .chip:hover { border-color: var(--pink); }
+  .tw-note { font-size: 14px; color: var(--ink-soft); }
+  .ruler-wrap { min-width: 0; padding: 22px 0 0; background: repeating-linear-gradient(90deg, var(--ink-soft) 0 1px, transparent 1px 8px) left bottom / 100% 6px no-repeat, repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 16px) left bottom / 100% 12px no-repeat; padding-bottom: 14px; }
+  .bar { position: relative; height: 20px; min-width: 1px; max-width: 100%; border-radius: 4px; background: var(--pink); transition: width 0.15s; }
+  .bar span { position: absolute; left: 0; bottom: 100%; margin-bottom: 4px; white-space: nowrap; font: 600 12px/1 var(--mono); color: var(--ink); }
+  .shapes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px; min-height: 40px; min-width: 0; }
+  .box { flex: none; min-width: 1px; min-height: 1px; border-radius: 4px; background: var(--sky); transition: width 0.15s, height 0.15s; }
+  .sample { font-family: var(--display); font-weight: 700; line-height: 1; color: var(--ink); transition: font-size 0.15s; }
+  .scale, .real { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 0.8fr); gap: 16px; align-items: end; }
+  .field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+  .field label { font-weight: 600; }
+  .box-in { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .box-in:focus-within { border-color: var(--sky); }
+  .box-in input { flex: 1; width: 0; min-width: 0; font: 600 22px/1.2 var(--mono); padding: 8px 0; border: 0; background: none; color: var(--ink); }
+  .box-in input:focus { outline: none; }
+  .box-in span { font: 500 15px/1 var(--mono); color: var(--ink-soft); }
+  .swap { font-size: 22px; color: var(--ink-soft); padding-bottom: 16px; }
+  .bad { margin: -12px 0 0; color: #B4234F; font-size: 14px; }
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .hint { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font: 500 14px/1.4 var(--mono); }
+  th { text-align: left; font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); padding: 8px; border-bottom: 1px solid var(--line); }
+  table :global(td) { padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table :global(tr[tabindex]) { cursor: pointer; }
+  table :global(tr[tabindex]:hover), table :global(tr[tabindex]:focus) { background: var(--wash); outline: none; }
+  .css { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; min-width: 0; }
+  textarea, .out pre { box-sizing: border-box; width: 100%; height: 280px; margin: 0; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; padding: 14px; border: 1px solid var(--line); border-radius: 14px; tab-size: 2; }
+  textarea { background: var(--white); color: var(--ink); resize: vertical; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .out { min-width: 0; }
+  .out pre { overflow: auto; background: var(--ink); color: #E6F6FB; white-space: pre; }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 12px 0; font-size: 15px; }
+  .opts label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .count { font-size: 14px; color: var(--ink-soft); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 720px) {
+    .inputs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .swap { display: none; }
+    .base { grid-column: 1 / -1; }
+    .css { grid-template-columns: minmax(0, 1fr); }
+    textarea, .out pre { height: 220px; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 20px; }
+    .big { font-size: 44px; }
+    .eq { font-size: 32px; }
+  }
+</style>

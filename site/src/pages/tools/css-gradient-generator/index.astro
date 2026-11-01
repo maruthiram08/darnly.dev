@@ -1,0 +1,293 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick a preset, or build your own: drag the color stops on the bar, click the bar to add a stop, and choose linear, radial or conic.',
+  'Switch to “Box shadow” for soft, layered shadows. Move the sliders and watch the card and button change.',
+  'Copy the CSS, the Tailwind class, or a prompt that tells your AI coding agent where to use it.',
+];
+
+const faq = [
+  { q: 'What’s the difference between linear, radial and conic?', a: 'Linear blends along a straight line, like a sky. Radial spreads out from a point, like a spotlight. Conic sweeps around a point, like the hands of a clock, which is handy for pie charts and color wheels.' },
+  { q: 'Why is there no purple-to-blue default?', a: 'Purple-to-blue gradients are so common in AI-built sites that people now read them as “made by AI without a designer”. Our presets lean warmer and calmer so your site looks like yours.' },
+  { q: 'What does “Smooth blend” do?', a: 'Some color pairs, like orange to blue, turn grey in the middle. Smooth blend mixes the colors in OKLCH, a color space built around how people see color, so the middle stays bright. It works in every current browser.' },
+  { q: 'Why do layered shadows look better?', a: 'Real shadows are dark and sharp close to an object and soft and faint further away. One CSS shadow can’t do both, so we stack a few, each one bigger and fainter than the last.' },
+  { q: 'Which Tailwind class should I use?', a: 'The arbitrary class, like <code>bg-[linear-gradient(...)]</code>, works in Tailwind v3 and v4 and matches the CSS exactly. The v4 utilities, like <code>bg-linear-135 from-… to-…</code>, are easier to read but only exist in Tailwind v4 and allow at most three colors.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="css-gradient-generator"
+  title="CSS gradient and box shadow generator with Tailwind classes · Darnly"
+  description="Make linear, radial and conic CSS gradients with draggable color stops, plus soft layered box shadows. Live preview on a card and button. Copy as CSS, a Tailwind class or a prompt for your AI agent. Free."
+  h1="CSS gradients and shadows, with a live preview"
+  lede="Build a gradient or a soft, realistic box shadow and see it on a real card and button as you go. Copy it as CSS, as a Tailwind class, or as a prompt for your AI coding agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="cg">
+    <div class="tabs" role="tablist" aria-label="What to make">
+      <button type="button" role="tab" id="cg-tab-gradient" aria-controls="cg-gradient" aria-selected="true">Gradient</button>
+      <button type="button" role="tab" id="cg-tab-shadow" aria-controls="cg-shadow" aria-selected="false" tabindex="-1">Box shadow</button>
+    </div>
+
+    <!-- Gradient -->
+    <section class="panel" id="cg-gradient" role="tabpanel" aria-labelledby="cg-tab-gradient">
+      <div class="stage g-stage" id="cg-g-stage" aria-label="Live preview of your gradient">
+        <div class="sample">
+          <div class="sample-art" id="cg-g-art"></div>
+          <div class="sample-body">
+            <strong>Your next launch</strong>
+            <p>This card shows the gradient as a header picture and on a button.</p>
+            <span class="sample-btn" id="cg-g-btn">Get started</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="presets" id="cg-g-presets" aria-label="Gradient presets"></div>
+
+      <div class="stops-wrap">
+        <div class="stopbar" id="cg-bar" title="Click to add a color stop">
+          <div class="stopbar-fill" id="cg-bar-fill"></div>
+          <div class="handles" id="cg-handles"></div>
+        </div>
+        <p class="hint">Drag the circles to move colors. Click the bar to add one.</p>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <span>Selected color</span>
+          <span class="pair">
+            <input id="cg-stop-picker" type="color" value="#f6d365" aria-label="Pick the selected stop’s color" />
+            <input id="cg-stop-hex" type="text" value="#F6D365" spellcheck="false" autocomplete="off" aria-label="Hex code of the selected stop" maxlength="9" />
+            <button type="button" class="ghost" id="cg-stop-remove" aria-label="Remove the selected color">Remove</button>
+          </span>
+        </div>
+        <label class="field">
+          <span>Position <output id="cg-stop-pos-out">0%</output></span>
+          <input id="cg-stop-pos" type="range" min="0" max="100" value="0" />
+        </label>
+        <label class="field">
+          <span>Opacity <output id="cg-stop-alpha-out">100%</output></span>
+          <input id="cg-stop-alpha" type="range" min="0" max="100" value="100" />
+        </label>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <span>Type</span>
+          <div class="seg" role="radiogroup" aria-label="Gradient type" id="cg-type">
+            <button type="button" role="radio" data-v="linear" aria-checked="true">Linear</button>
+            <button type="button" role="radio" data-v="radial" aria-checked="false">Radial</button>
+            <button type="button" role="radio" data-v="conic" aria-checked="false">Conic</button>
+          </div>
+        </div>
+        <label class="field" id="cg-angle-field">
+          <span>Angle <output id="cg-angle-out">135°</output></span>
+          <input id="cg-angle" type="range" min="0" max="360" value="135" />
+        </label>
+        <label class="field" id="cg-shape-field" hidden>
+          <span>Shape</span>
+          <select id="cg-shape">
+            <option value="ellipse">Ellipse</option>
+            <option value="circle">Circle</option>
+          </select>
+        </label>
+        <label class="field" id="cg-pos-field" hidden>
+          <span>Center</span>
+          <select id="cg-pos">
+            <option value="center">Middle</option>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="top left">Top left</option>
+            <option value="top right">Top right</option>
+            <option value="bottom left">Bottom left</option>
+            <option value="bottom right">Bottom right</option>
+          </select>
+        </label>
+        <label class="check">
+          <input id="cg-smooth" type="checkbox" />
+          <span>Smooth blend <small>(no grey middle)</small></span>
+        </label>
+      </div>
+
+      <div class="summary">
+        <p class="status" id="cg-g-status" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="ghost" id="cg-random">Surprise me</button>
+          <button type="button" class="primary" id="cg-g-prompt">Copy prompt for your AI agent</button>
+        </div>
+      </div>
+
+      <div class="code">
+        <div class="code-head"><span>CSS</span><button type="button" data-copy="cg-g-css">Copy</button></div>
+        <pre id="cg-g-css"></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span>Tailwind class · v3 and v4</span><button type="button" data-copy="cg-g-tw">Copy</button></div>
+        <pre id="cg-g-tw"></pre>
+      </div>
+      <div class="code" id="cg-g-tw4-box">
+        <div class="code-head"><span>Tailwind v4 utilities</span><button type="button" data-copy="cg-g-tw4">Copy</button></div>
+        <pre id="cg-g-tw4"></pre>
+      </div>
+      <p class="note" id="cg-g-tw4-note" hidden>Tailwind v4 utilities allow up to three colors in the middle of the page. Use the class above for this one.</p>
+    </section>
+
+    <!-- Box shadow -->
+    <section class="panel" id="cg-shadow" role="tabpanel" aria-labelledby="cg-tab-shadow" hidden>
+      <div class="stage s-stage" id="cg-s-stage" aria-label="Live preview of your shadow">
+        <div class="sample" id="cg-s-card">
+          <div class="sample-art plain"></div>
+          <div class="sample-body">
+            <strong>Your next launch</strong>
+            <p>This card and the button below use your shadow.</p>
+          </div>
+        </div>
+        <span class="sample-btn solo" id="cg-s-btn">Get started</span>
+      </div>
+
+      <div class="presets" id="cg-s-presets" aria-label="Shadow presets"></div>
+
+      <div class="controls sliders">
+        <label class="field">
+          <span>Distance <output id="cg-dist-out"></output></span>
+          <input id="cg-dist" type="range" min="0" max="100" value="16" />
+        </label>
+        <label class="field">
+          <span>Softness <output id="cg-blur-out"></output></span>
+          <input id="cg-blur" type="range" min="0" max="160" value="32" />
+        </label>
+        <label class="field">
+          <span>Darkness <output id="cg-op-out"></output></span>
+          <input id="cg-op" type="range" min="0" max="100" value="16" />
+        </label>
+        <label class="field">
+          <span>Spread <output id="cg-spread-out"></output></span>
+          <input id="cg-spread" type="range" min="-30" max="30" value="0" />
+        </label>
+        <label class="field">
+          <span>Layers <output id="cg-layers-out"></output></span>
+          <input id="cg-layers" type="range" min="1" max="6" value="5" />
+        </label>
+        <label class="field">
+          <span>Direction <output id="cg-dir-out"></output></span>
+          <input id="cg-dir" type="range" min="0" max="359" value="90" />
+        </label>
+      </div>
+      <div class="controls">
+        <label class="field">
+          <span>Shadow color</span>
+          <span class="pair">
+            <input id="cg-s-color" type="color" value="#0b2230" aria-label="Shadow color" />
+          </span>
+        </label>
+        <label class="field">
+          <span>Background</span>
+          <span class="pair">
+            <input id="cg-s-bg" type="color" value="#eef3f5" aria-label="Preview background color" />
+          </span>
+        </label>
+      </div>
+
+      <div class="summary">
+        <p class="status" id="cg-s-status" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="primary" id="cg-s-prompt">Copy prompt for your AI agent</button>
+        </div>
+      </div>
+
+      <div class="code">
+        <div class="code-head"><span>CSS</span><button type="button" data-copy="cg-s-css">Copy</button></div>
+        <pre id="cg-s-css"></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span>Tailwind class · v3 and v4</span><button type="button" data-copy="cg-s-tw">Copy</button></div>
+        <pre id="cg-s-tw"></pre>
+      </div>
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/css-gradient-generator';
+</script>
+
+<style>
+  .cg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .cg [hidden] { display: none !important; }
+  .panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+
+  .tabs { display: inline-flex; justify-self: start; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); }
+  .tabs button { font: 600 15px/1 var(--body); padding: 11px 20px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); color: var(--white); }
+
+  .stage { position: relative; min-height: 360px; border-radius: 24px; display: grid; place-items: center; padding: 32px 20px; box-sizing: border-box; border: 1px solid rgba(11, 34, 48, 0.08); overflow: hidden; }
+  .s-stage { gap: 28px; align-content: center; transition: background 0.15s; }
+  .sample { width: min(340px, 100%); border-radius: 20px; background: #FFFFFF; overflow: hidden; color: var(--ink); box-shadow: 0 1px 2px rgba(11, 34, 48, 0.08), 0 12px 32px rgba(11, 34, 48, 0.16); }
+  .s-stage .sample { box-shadow: none; }
+  .sample-art { height: 120px; }
+  .sample-art.plain { height: 96px; background: repeating-linear-gradient(135deg, #E6EEF2 0 12px, #F1F6F8 12px 24px); }
+  .sample-body { display: grid; gap: 8px; padding: 18px 20px 22px; justify-items: start; }
+  .sample-body strong { font: 700 20px/1.2 var(--display); }
+  .sample-body p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .sample-btn { display: inline-block; margin-top: 6px; font: 600 15px/1 var(--body); padding: 12px 20px; border-radius: 999px; color: #FFFFFF; background: var(--ink); }
+  .sample-btn.solo { background: #FFFFFF; color: var(--ink); margin: 0; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+  .presets :global(button) { display: grid; gap: 6px; justify-items: center; padding: 0; border: 0; background: none; cursor: pointer; font: 500 12px/1.2 var(--body); color: var(--ink-soft); }
+  .presets :global(.chip) { width: 64px; height: 44px; border-radius: 12px; border: 1px solid rgba(11, 34, 48, 0.1); box-sizing: border-box; }
+  .presets :global(.chip.shadow) { background: #FFFFFF; margin: 6px 0 4px; }
+  .presets :global(button[aria-pressed='true'] .chip) { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .presets :global(button:hover .chip) { transform: translateY(-1px); }
+
+  .stops-wrap { display: grid; gap: 8px; }
+  .stopbar { position: relative; height: 44px; border-radius: 12px; cursor: copy; touch-action: none; background-color: #FFFFFF; background-image: linear-gradient(45deg, #E3EAEE 25%, transparent 25%, transparent 75%, #E3EAEE 75%), linear-gradient(45deg, #E3EAEE 25%, transparent 25%, transparent 75%, #E3EAEE 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; margin: 0 14px; }
+  .stopbar-fill { position: absolute; inset: 0; border-radius: 12px; border: 1px solid rgba(11, 34, 48, 0.12); }
+  .handles { position: absolute; inset: 0; }
+  .handles :global(.handle) { position: absolute; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid #FFFFFF; box-shadow: 0 0 0 1px rgba(11, 34, 48, 0.35), 0 2px 6px rgba(11, 34, 48, 0.3); cursor: grab; padding: 0; touch-action: none; }
+  .handles :global(.handle.on) { box-shadow: 0 0 0 3px var(--ink), 0 2px 8px rgba(11, 34, 48, 0.4); z-index: 1; }
+  .handles :global(.handle:focus-visible) { outline: 3px solid var(--sky); outline-offset: 3px; }
+  .hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; }
+  .controls > .field { flex: 1 1 200px; }
+  .sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field output { font-family: var(--mono); color: var(--ink); margin-left: 4px; }
+  .field input[type='text'], .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; height: 48px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='text']:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .field input[aria-invalid='true'] { border-color: #B4234F; }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .pair { display: flex; gap: 8px; min-width: 0; }
+  .pair input[type='text'] { flex: 1; min-width: 0; font-family: var(--mono); text-transform: uppercase; }
+  .pair input[type='color'] { flex: none; width: 56px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .check { display: flex; gap: 8px; align-items: center; height: 48px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+  .check small { color: var(--ink-soft); }
+
+  .seg { display: flex; gap: 4px; padding: 4px; height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 0 10px; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 14px/1 var(--body); padding: 0 14px; min-height: 44px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .pair .ghost { border-radius: 12px; height: 48px; }
+  .ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+  .note { margin: -8px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-all; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 760px) {
+    .sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stage { min-height: 300px; }
+  }
+</style>

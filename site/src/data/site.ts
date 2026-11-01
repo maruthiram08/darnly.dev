@@ -93,6 +93,21 @@ export const TOOLS: Item[] = [
     name: 'API key leak checker',
     blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
   },
+  {
+    slug: 'sitemap-generator',
+    name: 'Sitemap generator',
+    blurb: 'A sitemap.xml and robots.txt for your site in seconds, plus the broken links we found.',
+  },
+  {
+    slug: 'px-to-rem',
+    name: 'px to rem converter',
+    blurb: 'px to rem and back, live, with the matching Tailwind class and a ruler at real size.',
+  },
+  {
+    slug: 'css-gradient-generator',
+    name: 'CSS gradients and shadows',
+    blurb: 'Make gradients with draggable colors and soft layered shadows, then copy CSS or Tailwind.',
+  },
 ];
 
 // Same for guides.
