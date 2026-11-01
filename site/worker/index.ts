@@ -41,6 +41,12 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/ssl?domain=example.com
+//   Same rate limit. Reads the domain's certificates from the public Certificate Transparency logs
+//   (crt.sh, with Cert Spotter as a fallback, cached for an hour), looks up its DNS through
+//   Cloudflare's DNS-over-HTTPS, and opens https://, http:// and the www (or bare) name to confirm
+//   what visitors get, for the SSL checker at /tools/ssl-checker/. Results are cached 10 minutes.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,6 +55,7 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { analyze, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -74,6 +81,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/ssl') return sslApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -169,6 +177,121 @@ async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Resp
   const body = json({ keys }, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+// /api/ssl: a domain's certificate, from the public logs plus a live https request.
+async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const raw = (url.searchParams.get('domain') ?? url.searchParams.get('url') ?? '').trim();
+  if (!raw) return json({ error: 'Type a domain, like yoursite.com.' }, 400);
+  const target = checkTarget(raw, env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+  const host = target.hostname.toLowerCase().replace(/\.$/, '');
+  if (/^[\d.]+$/.test(host) || host.startsWith('[')) return json({ error: 'Paste a domain name rather than an IP address.' }, 400);
+  if (host.length > 253 || !/^[a-z0-9.-]+$/.test(host)) return json({ error: 'That doesn’t look like a domain name.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/ssl?domain=${encodeURIComponent(host)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const { success } = await env.FETCH_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const www = otherName(host);
+  const labels = host.split('.');
+  // A subdomain like app.example.com is often covered by a *.example.com certificate.
+  const wildcard = !host.startsWith('www.') && labels.length > 2 ? `*.${labels.slice(1).join('.')}` : null;
+  const ownHost = isOwnHost(new URL(`https://${host}/`), url);
+
+  const [ct, https, http, wwwProbe, dns, wwwDns] = await Promise.all([
+    certsFor([host, www, ...(wildcard ? [wildcard] : [])], url, env, ctx),
+    sslProbe(`https://${host}/`, url, env),
+    ownHost ? Promise.resolve(null) : sslProbe(`http://${host}/`, url, env),
+    sslProbe(`https://${www}/`, url, env),
+    ownHost ? Promise.resolve({ a: ['own'], cname: [] }) : lookup(host, url, env),
+    isOwnHost(new URL(`https://${www}/`), url) ? Promise.resolve({ a: ['own'], cname: [] }) : lookup(www, url, env),
+  ]);
+
+  const data = analyze({ host, now: new Date(), certs: ct.certs, source: ct.source, https, http, www: wwwProbe, dns, wwwDns });
+  const body = json(data, 200, 600);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
+}
+
+// Certificates for these names from crt.sh, falling back to Cert Spotter. Each answer is cached an hour.
+async function certsFor(names: string[], self: URL, env: Env, ctx: Ctx): Promise<{ certs: CtCert[]; source: 'crt.sh' | 'certspotter' | null }> {
+  const cache = (caches as unknown as { default: Cache }).default;
+  const read = async (api: string, accept: string, timeout: number, max: number): Promise<string | null> => {
+    const key = new Request(api);
+    const hit = await cache.match(key);
+    if (hit) return hit.text();
+    try {
+      const res = await get(new URL(api), self, env, accept, timeout);
+      if (!res.ok) {
+        res.body?.cancel().catch(() => {});
+        return null;
+      }
+      const text = await readLimited(res, max);
+      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${CACHE_SECONDS}` } })));
+      return text;
+    } catch {
+      return null;
+    }
+  };
+
+  const crt = await Promise.all(
+    names.map((n) => read(`https://crt.sh/?q=${encodeURIComponent(n)}&output=json&deduplicate=Y`, 'application/json', 15_000, 3_000_000)),
+  );
+  if (crt.some((t) => t !== null)) return { certs: crt.flatMap((t) => (t ? parseCrtSh(t) : [])), source: 'crt.sh' };
+
+  const spot = await Promise.all(
+    names
+      .filter((n) => !n.startsWith('*.'))
+      .map((n) => read(`https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(n)}&expand=dns_names&expand=issuer`, 'application/json', 10_000, 1_000_000)),
+  );
+  if (spot.some((t) => t !== null)) return { certs: spot.flatMap((t) => (t ? parseCertSpotter(t) : [])), source: 'certspotter' };
+  return { certs: [], source: null };
+}
+
+// Opens one address and reports whether a secure connection worked. Only the status is read.
+async function sslProbe(raw: string, self: URL, env: Env): Promise<SslProbe | null> {
+  const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+  if (typeof t === 'string') return null;
+  try {
+    const res = await get(t, self, env, 'text/html,*/*;q=0.5', 7_000);
+    res.body?.cancel().catch(() => {});
+    const finalUrl = res.url || t.href;
+    // 525 and 526 are Cloudflare's "the site's own certificate is broken" answers.
+    const tlsFail = res.status === 525 || res.status === 526;
+    return { ok: !tlsFail, status: res.status, finalUrl, ...(tlsFail ? { error: 'tls' as const } : {}) };
+  } catch (err) {
+    const e = err as Error;
+    const error = e?.name === 'TimeoutError' ? 'timeout' : /ssl|tls|certificate|handshake|x509/i.test(e?.message ?? '') ? 'tls' : 'connect';
+    return { ok: false, status: 0, finalUrl: t.href, error };
+  }
+}
+
+// A and AAAA answers (and the CNAME chain) through Cloudflare's DNS-over-HTTPS. null if the lookup failed.
+async function lookup(name: string, self: URL, env: Env): Promise<Dns | null> {
+  const ask = async (type: string) => {
+    const text = await fetchText(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, self, env, 'application/dns-json', 50_000);
+    if (!text) return null;
+    try {
+      return (JSON.parse(text).Answer ?? []) as { type: number; data: string }[];
+    } catch {
+      return null;
+    }
+  };
+  const [a, aaaa] = await Promise.all([ask('A'), ask('AAAA')]);
+  if (!a && !aaaa) return null;
+  const all = [...(a ?? []), ...(aaaa ?? [])];
+  return {
+    a: [...new Set(all.filter((r) => r.type === 1 || r.type === 28).map((r) => r.data))],
+    cname: [...new Set(all.filter((r) => r.type === 5).map((r) => r.data.replace(/\.$/, '')))],
+  };
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
