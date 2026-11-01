@@ -169,6 +169,12 @@ export const TOOLS: Item[] = [
     name: 'Color blindness simulator',
     blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
   },
+  {
+    slug: 'security-headers-checker',
+    name: 'Security headers checker',
+    blurb: 'Is my site’s security set up right? Grade your headers A to F and get a ready file for your host.',
+    category: 'Security',
+  },
 ];
 
 // Same for guides.

@@ -41,6 +41,12 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/headers?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Grades the page's
+//   security headers (HSTS, CSP, framing, nosniff, referrer, permissions, cookie flags, server
+//   version) from A to F, for the security headers checker at /tools/security-headers-checker/.
+//   Cookie values are never sent back, only their names and flags.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,6 +55,7 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { checkHeaders } from './headers';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -74,6 +81,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/headers') return headersApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -169,6 +177,19 @@ async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Resp
   const body = json({ keys }, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+// /api/headers: a page's security headers, graded. Not cached, so a re-check after a fix is fresh.
+function headersApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'headers',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkHeaders(p.headers, p.finalUrl, p.html) }),
+    { cache: false },
+  );
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.

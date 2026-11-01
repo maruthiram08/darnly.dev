@@ -1,0 +1,159 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your site’s address. Below is an example of a typical new app, so you can see what you’ll get.',
+  'We load the page from the internet and read the security headers your host sends back with it, plus the flags on any cookies it sets.',
+  'You get a grade from A to F and a card for each header. Pick your host to get a ready file to paste, or copy one prompt for Claude Code, Cursor or Codex.',
+];
+
+const faq = [
+  { q: 'What are security headers?', a: 'Short instructions your server sends with every page, telling the browser how careful to be: only use https, don’t run scripts from unknown places, don’t let other sites frame this page, and so on. They cost nothing, and most new apps ship without them.' },
+  { q: 'What does the grade mean?', a: 'Each header is worth points: the Content Security Policy and https (HSTS) count most, then framing, file-type guessing, referrer, cookies, permissions and the server version. A good header earns all its points, a weak one half, a missing one none. 90 or more is an A, 75 a B, 60 a C, 40 a D, and below that an F.' },
+  { q: 'Will adding a Content Security Policy break my site?', a: 'It can, because it blocks any script, font or API it doesn’t list. That’s why the starter policy is built from what your page actually loads. Add it on a preview deploy first, click around, and look for “Content Security Policy” errors in the browser console. Your AI agent can add any services it missed.' },
+  { q: 'Where do the snippets go?', a: 'Vercel reads a vercel.json file at the root of your project. Netlify and Cloudflare Pages read a file called _headers in the folder that gets deployed (often public/). Next.js can set them in next.config.js. If you’re not sure, copy the prompt and let your agent put them in the right place.' },
+  { q: 'Why does my site score lower than on another checker?', a: 'Checkers weigh things a little differently. We focus on what matters for a typical vibe-coded app: https, scripts, framing and cookies first.' },
+  { q: 'Can I check a site on localhost?', a: 'No. We check from the internet, so the site needs a public address. Deploy a preview and paste that.' },
+];
+---
+<ToolPage
+  slug="security-headers-checker"
+  title="Security headers checker: is my site’s security set up right? · Darnly"
+  description="Paste your site to grade its security headers from A to F: HSTS, Content Security Policy, clickjacking, nosniff, referrer, permissions and cookie flags. Get a ready vercel.json, _headers or next.config.js and one prompt for your AI agent."
+  h1="Security headers checker: is my site’s security set up right?"
+  lede="Paste your site and get a grade from A to F for the security headers it sends, with a ready file for your host and one prompt for your AI agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sh">
+    <form id="sh-form" class="ask">
+      <label class="sr" for="sh-url">Website address</label>
+      <input id="sh-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="sh-go" type="submit">Check my site</button>
+    </form>
+    <p class="error" id="sh-error" role="alert" hidden></p>
+
+    <div id="sh-out" class="out">
+      <p class="tag" id="sh-tag">Example result for a typical new app. Paste your site above to check yours.</p>
+
+      <div class="hero" id="sh-hero">
+        <div class="badge" id="sh-badge"><span id="sh-grade">D</span><small id="sh-score"></small></div>
+        <div class="said">
+          <p class="site" id="sh-site"></p>
+          <p class="verdict" id="sh-verdict"></p>
+          <ul class="chips" id="sh-chips"></ul>
+        </div>
+      </div>
+
+      <section class="fixbox" id="sh-fixbox" aria-labelledby="sh-fix-h">
+        <div class="fixhead">
+          <h2 id="sh-fix-h">Fix it on</h2>
+          <div class="hosts" role="radiogroup" aria-label="Where your site is hosted" id="sh-hosts">
+            <button type="button" role="radio" data-host="vercel">Vercel</button>
+            <button type="button" role="radio" data-host="netlify">Netlify</button>
+            <button type="button" role="radio" data-host="cloudflare">Cloudflare</button>
+            <button type="button" role="radio" data-host="next">Next.js</button>
+            <button type="button" role="radio" data-host="other">Other</button>
+          </div>
+        </div>
+        <p class="where" id="sh-where"></p>
+        <div class="code">
+          <pre id="sh-snippet"></pre>
+          <button type="button" class="copy" id="sh-copy">Copy</button>
+        </div>
+        <p class="hint" id="sh-hint"></p>
+        <button id="sh-prompt" type="button" class="primary">Copy one prompt for your AI agent</button>
+      </section>
+
+      <ul class="list" id="sh-list"></ul>
+      <p class="note" id="sh-note" hidden></p>
+
+      <details class="rawbox" id="sh-rawbox">
+        <summary>All response headers</summary>
+        <table><tbody id="sh-raw"></tbody></table>
+      </details>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/security-headers-checker';
+</script>
+
+<style>
+  .sh [hidden] { display: none !important; }
+  .sh { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  .out { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .tag { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .tag.example { display: inline-block; justify-self: start; padding: 6px 12px; border-radius: 999px; background: #FFF4D6; color: #6B4E00; }
+
+  .hero { --g: #D2344F; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; padding: 28px; border-radius: 24px; background: var(--wash); border: 1px solid var(--line); }
+  .hero.gA { --g: #1F9D55; } .hero.gB { --g: #5AA02C; } .hero.gC { --g: #E0A100; } .hero.gD { --g: #E2711D; } .hero.gF { --g: #D2344F; }
+  .badge { width: 168px; height: 168px; border-radius: 36px; background: var(--g); color: var(--white); display: grid; place-items: center; align-content: center; box-shadow: 0 12px 30px -12px var(--g); }
+  .badge span { font: 800 112px/0.9 var(--display); }
+  .badge small { font: 600 15px/1 var(--body); opacity: 0.9; margin-top: 6px; }
+  .said { min-width: 0; }
+  .site { margin: 0; font: 600 15px/1.3 var(--body); color: var(--ink-soft); overflow-wrap: anywhere; }
+  .verdict { margin: 6px 0 14px; font: 700 26px/1.2 var(--display); }
+  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips :global(li) { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px 7px 8px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); font: 600 14px/1 var(--body); }
+  .chips :global(li i) { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--white); }
+  .chips :global(.pass i) { background: #1F9D55; } .chips :global(.warn i) { background: #E0A100; } .chips :global(.fail i) { background: #D2344F; }
+
+  .fixbox { border: 1px solid var(--line); border-radius: 20px; padding: 20px; background: var(--white); display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .fixhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .fixhead h2 { margin: 0; font: 700 20px/1.2 var(--display); }
+  .hosts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hosts button { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .hosts button[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .where { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .where :global(code), .hint :global(code) { font-family: var(--mono); font-size: 13px; background: var(--wash); padding: 2px 6px; border-radius: 6px; color: var(--ink); }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .code { position: relative; min-width: 0; }
+  .code pre, .list :global(pre) { margin: 0; padding: 16px 18px; border-radius: 14px; background: var(--ink); color: #E6F4FA; font: 13px/1.55 var(--mono); overflow-x: auto; white-space: pre; max-height: 360px; }
+  .copy, .list :global(.copy) { position: absolute; top: 10px; right: 10px; font: 600 13px/1 var(--body); padding: 8px 12px; border: 0; border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .primary { justify-self: start; font: 600 15px/1 var(--body); padding: 13px 20px; border: 0; border-radius: 999px; background: var(--pink); color: var(--white); cursor: pointer; }
+
+  .list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+  .list :global(.item) { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-content: start; gap: 4px 12px; border: 1px solid var(--line); border-top-width: 5px; border-radius: 16px; padding: 16px 18px; background: var(--white); }
+  .list :global(.item.pass) { border-top-color: #1F9D55; }
+  .list :global(.item.warn) { border-top-color: #E0A100; }
+  .list :global(.item.fail) { border-top-color: #D2344F; }
+  .list :global(.dot) { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--body); color: var(--white); }
+  .list :global(.pass .dot) { background: #1F9D55; }
+  .list :global(.warn .dot) { background: #E0A100; }
+  .list :global(.fail .dot) { background: #D2344F; }
+  .list :global(.label) { margin: 2px 0 0; font: 600 17px/1.3 var(--body); }
+  .list :global(.body) { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+  .list :global(.detail) { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .list :global(.now) { margin: 0; font: 12px/1.5 var(--mono); color: var(--ink-soft); overflow-wrap: anywhere; }
+  .list :global(.fix) { margin: 0; font-size: 15px; }
+  .list :global(.fix b) { font-weight: 600; }
+  .list :global(.snip) { position: relative; min-width: 0; }
+  .list :global(.snip pre) { max-height: 200px; padding-top: 44px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .list :global(.snip small) { position: absolute; top: 14px; left: 18px; font: 12px/1 var(--mono); color: #8FB3C4; }
+
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .rawbox { border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; background: var(--white); }
+  .rawbox summary { cursor: pointer; font-weight: 600; }
+  .rawbox table { width: 100%; border-collapse: collapse; margin-top: 10px; font: 12px/1.5 var(--mono); }
+  .rawbox :global(td) { padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+  .rawbox :global(td:first-child) { white-space: nowrap; font-weight: 600; width: 1%; }
+
+  @media (max-width: 640px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px 26px; }
+    .hero { grid-template-columns: minmax(0, 1fr); justify-items: start; padding: 22px; gap: 18px; }
+    .badge { width: 128px; height: 128px; border-radius: 28px; }
+    .badge span { font-size: 84px; }
+    .verdict { font-size: 22px; }
+  }
+</style>
