@@ -78,7 +78,7 @@ struct WelcomeView: View {
 
             step(1, "Where does your coding agent run?", done: model.ready) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Picker("", selection: Binding(get: { model.destination }, set: { model.choose($0) })) {
+                    SwiftUI.Picker("", selection: Binding(get: { model.destination }, set: { model.choose($0) })) {
                         Text("On this Mac").tag(Destination.folder)
                         Text("In the cloud").tag(Destination.cloud)
                     }
