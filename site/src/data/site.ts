@@ -138,6 +138,11 @@ export const TOOLS: Item[] = [
     name: 'Hex to Tailwind',
     blurb: 'Paste any color and see the nearest Tailwind colors side by side, then copy the class.',
   },
+  {
+    slug: 'jwt-decoder',
+    name: 'JWT decoder',
+    blurb: 'Paste a token and see when it expires, who it’s for and its role, in plain words. Nothing is uploaded.',
+  },
 ];
 
 // Same for guides.
