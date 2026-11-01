@@ -41,6 +41,11 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/csp?url=https://example.com
+//   Same guards. Reads the page, up to 6 stylesheets and up to 12 of its own JavaScript files, and
+//   returns every place it loads things from, grouped by CSP directive, plus its inline scripts
+//   (with hashes), for the CSP generator at /tools/csp-generator/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -49,6 +54,7 @@ import { findDesign } from './design';
 import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { findLeaks } from './secrets';
+import { buildCsp } from './csp';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -74,6 +80,7 @@ export default {
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/csp') return cspApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -124,6 +131,16 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     }),
     { cache: false, maxBytes: 2_000_000 },
   );
+}
+
+// /api/csp: everything a page loads, grouped by Content-Security-Policy directive.
+function cspApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('csp', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await buildCsp(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, 'text/css,application/javascript,*/*;q=0.1', 1_500_000))),
+  }));
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
