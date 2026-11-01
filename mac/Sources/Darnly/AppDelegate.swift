@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let picker = Picker()
     private let notePanel = NotePanel()
     private var busy = false
+    private var frozen: Screenshot.Frozen?
 
     private var projectURL: URL? {
         get { UserDefaults.standard.string(forKey: "projectPath").map { URL(fileURLWithPath: $0, isDirectory: true) } }
@@ -90,10 +91,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !busy else { return }
         guard let project = projectURL else { return chooseProject() }
         busy = true
-        picker.start { [weak self] pick in
-            guard let self else { return }
-            guard let pick else { self.busy = false; return }
-            Task { @MainActor in await self.finish(pick, project: project) }
+        let mouse = NSEvent.mouseLocation
+        Task { @MainActor in
+            // Take the picture first: whatever is on screen right now, before the picker covers it.
+            self.frozen = await Screenshot.freezeScreen(at: mouse)
+            self.picker.start { [weak self] pick in
+                guard let self else { return }
+                guard let pick else { self.busy = false; self.frozen = nil; return }
+                Task { @MainActor in await self.finish(pick, project: project) }
+            }
         }
     }
 
@@ -105,8 +111,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         async let logs = LogCollector.collect(for: window)
         var png: Data?
         var preview: NSImage?
+        defer { frozen = nil }
         do {
-            let image = try await Screenshot.capture(window)
+            // Prefer the picture taken when the hotkey was pressed; it still shows panels that hid since.
+            let image: CGImage
+            if let f = frozen, let cut = Screenshot.crop(f, to: window.frame) { image = cut } else { image = try await Screenshot.capture(window) }
             png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
             if let png { preview = NSImage(data: png) }
         } catch {
