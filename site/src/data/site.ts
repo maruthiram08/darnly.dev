@@ -63,6 +63,11 @@ export const TOOLS: Item[] = [
     name: 'Tech stack finder',
     blurb: 'See what any website is built with, where it’s hosted and which analytics it uses.',
   },
+  {
+    slug: 'api-key-leak-checker',
+    name: 'API key leak checker',
+    blurb: 'Did I leak an API key? Check your site’s JavaScript for OpenAI, Stripe, Supabase and other secret keys.',
+  },
 ];
 
 // Same for guides.

@@ -21,11 +21,17 @@
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/secrets?url=https://example.com
+//   Same guards, but never cached. Reads the page and up to 20 of its own JavaScript files and
+//   reports secret API keys anyone can copy, for the API key leak checker at
+//   /tools/api-key-leak-checker/. Only masked previews (sk-ab…9f2) are ever sent back.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
+import { findLeaks } from './secrets';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -46,6 +52,7 @@ export default {
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -77,6 +84,24 @@ function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
   }));
+}
+
+// /api/secrets: secret keys in a page's own JavaScript. Not cached, so a re-check after a fix is fresh.
+function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'secrets',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({
+      url: p.target.href,
+      finalUrl: p.finalUrl,
+      status: p.status,
+      ...(await findLeaks(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'application/javascript,*/*;q=0.1', 2_000_000))),
+    }),
+    { cache: false, maxBytes: 2_000_000 },
+  );
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
@@ -113,7 +138,16 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
-async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx, run: (p: Page) => Promise<unknown>): Promise<Response> {
+async function pageTool(
+  name: string,
+  req: Request,
+  url: URL,
+  env: Env,
+  ctx: Ctx,
+  run: (p: Page) => Promise<unknown>,
+  opts: { cache?: boolean; maxBytes?: number } = {},
+): Promise<Response> {
+  const useCache = opts.cache !== false;
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
 
   const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
@@ -121,7 +155,7 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
 
   const cache = (caches as unknown as { default: Cache }).default;
   const cacheKey = new Request(`https://darnly.dev/api/${name}?url=${encodeURIComponent(target.href)}`);
-  const hit = await cache.match(cacheKey);
+  const hit = useCache ? await cache.match(cacheKey) : undefined;
   if (hit) return hit;
 
   if (env.FETCH_LIMIT) {
@@ -149,8 +183,10 @@ async function pageTool(name: string, req: Request, url: URL, env: Env, ctx: Ctx
     return json({ error: `That address returns ${type.split(';')[0] || 'something'} rather than a web page.` }, 422);
   }
 
-  const html = await readLimited(res, MAX_BYTES);
-  const body = json(await run({ target, finalUrl, status: res.status, html, headers: res.headers }), 200, CACHE_SECONDS);
+  const html = await readLimited(res, opts.maxBytes ?? MAX_BYTES);
+  const data = await run({ target, finalUrl, status: res.status, html, headers: res.headers });
+  if (!useCache) return json(data);
+  const body = json(data, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
@@ -163,13 +199,13 @@ function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
-async function fetchText(raw: string, self: URL, env: Env, accept: string): Promise<string | null> {
+async function fetchText(raw: string, self: URL, env: Env, accept: string, max = 500_000): Promise<string | null> {
   const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
   if (typeof t === 'string') return null;
   try {
     const res = await get(t, self, env, accept, 5_000);
     if (!res.ok || typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') === 'string') return null;
-    return await readLimited(res, 500_000);
+    return await readLimited(res, max);
   } catch {
     return null;
   }
