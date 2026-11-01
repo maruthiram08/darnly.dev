@@ -102,9 +102,10 @@ export function App() {
       chooseCloud(true);
     } catch (e) {
       const why = (e as Error).message;
+      // Keep Google's own reason visible: "bad client id" and friends are how setup mistakes show up.
       setMessage(
-        /oauth2|client/i.test(why)
-          ? "Cloud sign-in isn't switched on in this build yet. Copy each bug into your agent for now."
+        /oauth2 not granted|client id|wrong_google_client|invalid_client/i.test(why)
+          ? `Google sign-in isn't set up for this copy of Darnly yet (${why}). Copy each bug into your agent for now.`
           : `Couldn't sign in: ${why}`,
       );
     }
