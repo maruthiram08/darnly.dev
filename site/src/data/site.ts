@@ -78,6 +78,11 @@ export const TOOLS: Item[] = [
     name: 'Tailwind color shades',
     blurb: 'Turn one brand color into an even 50–950 Tailwind scale, ready for v4, v3 or CSS.',
   },
+  {
+    slug: 'page-speed-checker',
+    name: 'Page speed checker',
+    blurb: 'Why is my site slow? Phone and laptop scores, a load filmstrip and the top 3 fixes as prompts.',
+  },
 ];
 
 // Same for guides.

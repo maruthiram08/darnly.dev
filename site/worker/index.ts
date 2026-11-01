@@ -21,15 +21,25 @@
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/speed?url=https://example.com
+//   Same address rules. Asks Google PageSpeed Insights to test the page on a phone and a laptop
+//   and returns the scores, the loading filmstrip, Core Web Vitals and the top fixes, for the
+//   page speed checker at /tools/page-speed-checker/. PSI takes 10 to 40 seconds, so this has
+//   its own rate limit (PSI_LIMIT), a 60 second timeout and a one hour cache. PSI_KEY is an
+//   optional Google API key secret; without it Google's shared free quota is used.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
+import { summarize, field, psiError, type Psi } from './speed';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  PSI_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  PSI_KEY?: string; // optional Google API key for PageSpeed Insights (a Worker secret)
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -46,6 +56,7 @@ export default {
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/speed') return speedApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -110,6 +121,65 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     status: p.status,
     ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/speed: Google PageSpeed Insights on a phone and a laptop, boiled down for the page.
+// It doesn't read the page itself, so it skips pageTool() but keeps its address check,
+// cache and rate limit, and calls Google through get().
+const PSI = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+async function speedApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/speed?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const limiter = env.PSI_LIMIT ?? env.FETCH_LIMIT;
+  if (limiter) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await limiter.limit({ key: who });
+    if (!success) return json({ error: 'Speed tests are slow for Google to run, so there’s a limit of 2 a minute. Wait a minute and try again.' }, 429);
+  }
+
+  const run = async (strategy: 'mobile' | 'desktop') => {
+    const q = new URL(PSI);
+    q.searchParams.set('url', target.href);
+    q.searchParams.set('strategy', strategy);
+    q.searchParams.set('category', 'performance');
+    q.searchParams.set('locale', 'en');
+    if (env.PSI_KEY) q.searchParams.set('key', env.PSI_KEY);
+    try {
+      const res = await get(q, url, env, 'application/json', 60_000);
+      const text = await readLimited(res, 8_000_000);
+      if (!res.ok) return { error: psiError(res.status, text) };
+      const psi = JSON.parse(text) as Psi;
+      const report = summarize(psi);
+      if (!report) return { error: psiError(500, text) };
+      return { report, field: field(psi), finalUrl: psi.lighthouseResult?.finalDisplayedUrl ?? psi.lighthouseResult?.finalUrl ?? target.href };
+    } catch (e) {
+      return { error: (e as Error)?.name === 'TimeoutError' ? 'That page took too long to load for Google to test it.' : psiError(0, '') };
+    }
+  };
+  const [mobile, desktop] = await Promise.all([run('mobile'), run('desktop')]);
+  if ('error' in mobile && 'error' in desktop) return json({ error: mobile.error }, 502);
+
+  const body = json(
+    {
+      url: target.href,
+      finalUrl: ('finalUrl' in mobile ? mobile.finalUrl : 'finalUrl' in desktop ? desktop.finalUrl : target.href),
+      mobile: 'report' in mobile ? mobile.report : { error: mobile.error },
+      desktop: 'report' in desktop ? desktop.report : { error: desktop.error },
+      field: 'field' in mobile ? mobile.field : null,
+      testedAt: new Date().toISOString(),
+    },
+    200,
+    'error' in mobile || 'error' in desktop ? 0 : CACHE_SECONDS,
+  );
+  if (!('error' in mobile) && !('error' in desktop)) ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
