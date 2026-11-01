@@ -1,0 +1,209 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick what happened, in plain words, or search for it: “wrong branch”, “.env”, “conflict”, “reset”.',
+  'See it on a picture: your commits and branches before, and what they look like after the fix. The badge says how risky it is: safe, be careful, or destroys work.',
+  'Copy the commands one by one, or copy a prompt that asks Claude Code, Cursor or Codex to do it for you, safely, with a backup first.',
+];
+
+const faq = [
+  { q: 'Where do I type these commands?', a: 'In a terminal opened in your project folder. In Cursor or VS Code: Terminal, then New Terminal. On a Mac you can also use the Terminal app and <code>cd</code> into the folder first. Or skip the terminal: click “Copy prompt for your AI agent” and paste it into Claude Code, Cursor or Codex.' },
+  { q: 'What do the badges mean?', a: '<b>Safe</b>: nothing can be lost. <b>Be careful</b>: it rewrites history or moves a branch, so read the note, and don’t do it on commits you’ve already pushed unless it says so. <b>Destroys work</b>: uncommitted changes are deleted for good, and git can’t bring them back.' },
+  { q: 'What is a commit id and where do I find it?', a: 'Every commit has an id like <code>1a2b3c4</code>. Run <code>git log --oneline</code> and it’s the short code at the start of each line. Replace <code>&lt;commit-id&gt;</code> in a command with it.' },
+  { q: 'What does HEAD~1 mean?', a: 'HEAD is where you are now. HEAD~1 is one commit before that, HEAD~2 is two before, and so on.' },
+  { q: 'I already pushed. Does that change anything?', a: 'Yes. Commits on GitHub may already be on other people’s computers or deployed. Don’t rewrite them with reset or amend: use “Undo a commit I already pushed” (git revert), which adds a new commit that cancels the old one. Never fix a rejected push with <code>git push --force</code>.' },
+  { q: 'Can I really get back “lost” commits?', a: 'Usually, yes. Git keeps commits that are no longer on any branch for a few weeks, and <code>git reflog</code> lists everywhere you’ve been. Uncommitted changes are different: if they were never committed or stashed, git never saved them.' },
+  { q: 'Does this tool see my code?', a: 'No. It’s a guide, not a connection to your repo. Everything runs in your browser and nothing is uploaded.' },
+];
+---
+<ToolPage
+  slug="git-undo-helper"
+  title="How do I undo this in git? Undo commits, resets, merges, .env · Darnly"
+  description="Free git undo helper. Pick what happened, like “I committed to the wrong branch” or “I pushed my .env”, see a before and after picture of your commits, and copy the exact commands or a prompt for your AI agent."
+  h1="How do I undo this in git?"
+  lede="Pick what happened. See a picture of your commits before and after the fix, how risky it is, and the exact commands to copy. Or hand it to your AI agent with one prompt."
+  steps={steps}
+  faq={faq}
+>
+  <div class="gu">
+    <div class="pick">
+      <label class="search">
+        <span class="sr">Search situations</span>
+        <span class="mag" aria-hidden="true">⌕</span>
+        <input id="gu-search" type="search" placeholder="What happened? Try “wrong branch”, “.env” or “conflict”" autocomplete="off" />
+      </label>
+      <div id="gu-picker" class="picker"></div>
+      <p id="gu-empty" class="empty" hidden>Nothing matches that. Try other words, or copy the prompt below and describe it to your AI agent.</p>
+      <button type="button" class="link" id="gu-more">Show all situations</button>
+    </div>
+
+    <article class="card" id="gu-card" aria-live="polite">
+      <header class="head">
+        <h2 id="gu-title"></h2>
+        <span id="gu-badge" class="badge"></span>
+      </header>
+      <p class="why" id="gu-why"></p>
+
+      <div class="graphs">
+        <figure class="g before">
+          <figcaption><b>Before</b> <span id="gu-before-cap"></span></figcaption>
+          <div id="gu-before" class="svgbox"></div>
+        </figure>
+        <span class="arrow" aria-hidden="true">→</span>
+        <figure class="g after">
+          <figcaption><b>After</b> <span id="gu-after-cap"></span></figcaption>
+          <div id="gu-after" class="svgbox"></div>
+        </figure>
+      </div>
+      <ul class="legend" id="gu-legend"></ul>
+
+      <p class="summary" id="gu-summary"></p>
+      <ol class="steps" id="gu-steps"></ol>
+
+      <div class="actions">
+        <button type="button" class="primary" id="gu-prompt">Copy prompt for your AI agent</button>
+        <button type="button" class="ghost" id="gu-copy">Copy all commands</button>
+      </div>
+
+      <ul class="notes" id="gu-notes"></ul>
+      <p class="links" id="gu-links"></p>
+    </article>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/git-undo-helper';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .gu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  .pick { display: grid; gap: 12px; }
+  .search { position: relative; display: block; }
+  .mag { position: absolute; left: 16px; top: 50%; transform: translateY(-52%); font-size: 22px; color: var(--ink-soft); pointer-events: none; }
+  .search input { width: 100%; font: 500 17px/1.2 var(--body); padding: 15px 16px 15px 46px; border: 2px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
+  .search input:focus { outline: none; border-color: var(--sky); }
+  .picker { display: grid; gap: 10px; }
+  .picker :global(.grp) { display: grid; gap: 6px; }
+  .picker :global(.glabel) { font: 600 13px/1 var(--body); color: var(--ink-soft); }
+  .picker :global(.chips) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker :global(.chip) { position: relative; font: 500 15px/1.25 var(--body); padding: 9px 14px 9px 26px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer; text-align: left; min-height: 40px; }
+  .picker :global(.chip::before) { content: ''; position: absolute; left: 11px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #1F9D55; }
+  .picker :global(.chip.careful::before) { background: #E0A100; }
+  .picker :global(.chip.destroys::before) { background: #D2344F; }
+  .picker :global(.chip:hover) { border-color: var(--sky); }
+  .picker :global(.chip[aria-pressed='true']) { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .empty { margin: 0; color: var(--ink-soft); }
+  .link { justify-self: start; font: 600 15px/1.2 var(--body); background: none; border: 0; padding: 4px 0; color: var(--sky); cursor: pointer; text-decoration: underline; }
+
+  .card { display: grid; gap: 16px; border: 1px solid var(--line); border-top: 8px solid #1F9D55; border-radius: 18px; padding: 22px 24px 24px; background: #fff; scroll-margin-top: 16px; box-shadow: 0 18px 40px -30px rgba(11, 34, 48, 0.45); min-width: 0; }
+  .card.careful { border-top-color: #E0A100; }
+  .card.destroys { border-top-color: #D2344F; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .head h2 { font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; }
+  .badge { font: 700 14px/1 var(--body); letter-spacing: 0.02em; padding: 8px 12px; border-radius: 999px; color: #fff; background: #1F9D55; white-space: nowrap; }
+  .badge.careful { background: #B98300; }
+  .badge.destroys { background: #D2344F; }
+  .why { margin: -6px 0 0; color: var(--ink-soft); }
+
+  .graphs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 10px; }
+  .g { margin: 0; display: grid; grid-template-rows: auto 1fr; gap: 8px; background: var(--wash); border-radius: 14px; padding: 12px 12px 8px; min-width: 0; }
+  .g.after { background: #F0FAF4; }
+  figcaption { font-size: 15px; line-height: 1.3; color: var(--ink-soft); }
+  figcaption b { display: inline-block; font: 700 12px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); background: #fff; border: 1px solid var(--line); padding: 4px 7px; border-radius: 6px; margin-right: 6px; }
+  .g.after figcaption b { background: #1F9D55; color: #fff; border-color: #1F9D55; }
+  .arrow { align-self: center; font: 700 28px/1 var(--body); color: var(--ink-soft); }
+  .svgbox { display: flex; align-items: center; justify-content: center; }
+  .svgbox :global(svg) { max-width: 100%; height: auto; overflow: visible; }
+  .graphs.stacked { grid-template-columns: minmax(0, 1fr); }
+  .graphs.stacked .arrow { justify-self: center; transform: rotate(90deg); }
+
+  .svgbox :global(.edge) { stroke: #7FA6B8; stroke-width: 3; fill: none; }
+  .svgbox :global(.edge.faint) { stroke: #B9CBD4; }
+  .svgbox :global(.edge.dashed) { stroke-dasharray: 5 5; }
+  .svgbox :global(.dot) { stroke-width: 3; }
+  .svgbox :global(.dot.plain) { fill: #fff; stroke: var(--sky); }
+  .svgbox :global(.dot.focus) { fill: var(--pink); stroke: #A3216C; }
+  .svgbox :global(.dot.agent) { fill: #F5B82E; stroke: #B98300; }
+  .svgbox :global(.dot.bad) { fill: #D2344F; stroke: #A3122F; }
+  .svgbox :global(.dot.new) { fill: #1F9D55; stroke: #15703C; }
+  .svgbox :global(.dot.gone) { fill: #fff; stroke: #9AAFBA; stroke-dasharray: 4 4; }
+  .svgbox :global(.dot.kept) { fill: #E3ECF0; stroke: #9AAFBA; }
+  .svgbox :global(.dotmark) { font: 800 14px var(--body); fill: #fff; }
+  .svgbox :global(.msg) { font: 500 14px var(--body); fill: var(--ink); }
+  .svgbox :global(.msg.focus) { font-weight: 700; fill: #A3216C; }
+  .svgbox :global(.msg.bad) { font-weight: 700; fill: #A3122F; }
+  .svgbox :global(.msg.new) { font-weight: 700; fill: #15703C; }
+  .svgbox :global(.msg.gone) { fill: #8DA0AA; text-decoration: line-through; }
+  .svgbox :global(.msg.kept) { fill: #6E8591; }
+  .svgbox :global(.ref rect) { fill: #fff; stroke: var(--ink); stroke-width: 1.5; }
+  .svgbox :global(.ref text) { font: 600 13px var(--mono); fill: var(--ink); }
+  .svgbox :global(.ref.here rect) { fill: var(--ink); }
+  .svgbox :global(.ref.here text) { fill: #fff; }
+  .svgbox :global(.ref.remote rect) { stroke: var(--sky); stroke-dasharray: 4 3; }
+  .svgbox :global(.ref.remote text) { fill: #04739B; }
+  .svgbox :global(.refstem) { stroke: var(--ink); stroke-width: 1.5; }
+  .svgbox :global(.work) { stroke-width: 2; stroke-dasharray: 6 4; }
+  .svgbox :global(.work.changes) { fill: #FFF4D6; stroke: #E0A100; }
+  .svgbox :global(.work.staged) { fill: #E3F6EA; stroke: #1F9D55; }
+  .svgbox :global(.work.conflict) { fill: #FDE8EC; stroke: #D2344F; stroke-dasharray: none; }
+  .svgbox :global(.work.gone) { fill: #FDE8EC; stroke: #D2344F; }
+  .svgbox :global(.work.stash) { fill: #E2F3FA; stroke: var(--sky); }
+  .svgbox :global(.work.ok) { fill: #E3F6EA; stroke: #1F9D55; stroke-dasharray: none; }
+  .svgbox :global(.wtext) { font: 600 13.5px var(--body); fill: var(--ink); }
+  .svgbox :global(.wtext.conflict), .svgbox :global(.wtext.gone) { fill: #A3122F; }
+  .svgbox :global(.wtext.ok) { fill: #15703C; }
+
+  .legend { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-soft); }
+  .legend :global(li) { display: inline-flex; align-items: center; gap: 6px; }
+  .legend :global(.sw) { width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid; box-sizing: border-box; }
+  .legend :global(.sw.focus) { background: var(--pink); border-color: #A3216C; }
+  .legend :global(.sw.agent) { background: #F5B82E; border-color: #B98300; }
+  .legend :global(.sw.bad) { background: #D2344F; border-color: #A3122F; }
+  .legend :global(.sw.new) { background: #1F9D55; border-color: #15703C; }
+  .legend :global(.sw.gone) { background: #fff; border: 2px dashed #9AAFBA; }
+  .legend :global(.sw.kept) { background: #E3ECF0; border-color: #9AAFBA; }
+  .legend :global(.sw.herepill) { width: 22px; height: 12px; border-radius: 6px; background: var(--ink); border-color: var(--ink); }
+
+  .summary { margin: 4px 0 0; font: 600 19px/1.4 var(--body); }
+  .steps { list-style: none; counter-reset: st; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .steps :global(.step) { counter-increment: st; position: relative; padding-left: 40px; display: grid; gap: 6px; min-width: 0; }
+  .steps :global(.step)::before { content: counter(st); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--wash); border: 1px solid var(--line); font: 700 14px/26px var(--body); text-align: center; color: var(--ink); }
+  .steps :global(.note) { margin: 2px 0 0; color: var(--ink); }
+  .steps :global(.manual .note) { font-weight: 600; }
+  .steps :global(.cmd) { display: flex; align-items: stretch; background: #0E1B24; border-radius: 10px; overflow: hidden; min-width: 0; }
+  .steps :global(.cmd code) { flex: 1; min-width: 0; padding: 11px 14px; font: 15px/1.5 var(--mono); color: #DCE7EE; overflow-x: auto; white-space: pre; }
+  .steps :global(.cmd code::before) { content: '$ '; color: #5F7887; user-select: none; }
+  .steps :global(.hole) { color: #FF9CCF; background: rgba(216, 57, 149, 0.22); border-radius: 4px; padding: 0 2px; }
+  .steps :global(.copy1) { flex: 0 0 auto; font: 600 14px/1 var(--body); padding: 0 16px; min-height: 44px; border: 0; border-left: 1px solid #22343F; background: #15262F; color: #DCE7EE; cursor: pointer; }
+  .steps :global(.copy1:hover) { background: #1E3440; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .primary { font: 600 16px/1 var(--body); padding: 14px 20px; min-height: 44px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 16px/1 var(--body); padding: 13px 18px; min-height: 44px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+
+  .notes { margin: 0; padding: 14px 16px 14px 34px; background: var(--wash); border-radius: 12px; display: grid; gap: 6px; font-size: 15px; color: var(--ink); }
+  .links { margin: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .links :global(a) { color: var(--sky); font-weight: 600; }
+
+  @media (max-width: 760px) {
+    .graphs { grid-template-columns: minmax(0, 1fr); }
+    .arrow { justify-self: center; transform: rotate(90deg); }
+    .card { padding: 18px 16px 20px; }
+  }
+  @media (max-width: 480px) {
+    .search input { font-size: 16px; }
+    .picker :global(.chip) { font-size: 14px; }
+    .steps :global(.step) { padding-left: 36px; }
+    .steps :global(.cmd code) { font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .steps :global(.copy1) { padding: 0 12px; }
+    /* Graphs shrink to fit a phone, so draw their text a little larger. */
+    .svgbox :global(.msg) { font-size: 16px; }
+    .svgbox :global(.wtext) { font-size: 15px; }
+    .g { padding: 10px 10px 6px; }
+  }
+</style>
