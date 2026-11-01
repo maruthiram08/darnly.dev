@@ -31,6 +31,20 @@ On first use macOS asks for two permissions (System Settings → Privacy & Secur
 
 When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or Xcode. Use `Darnly.app` to see it as Darnly.
 
+## Share it (signed DMG)
+
+`./scripts/make-dmg.sh` builds `build/Darnly-<version>.dmg`, signed with your Developer ID and notarized by Apple, so it opens on any Mac without a warning. One-time setup on your Mac:
+
+1. **Developer ID certificate.** Xcode → Settings → Accounts → select your team → Manage Certificates → **+** → **Developer ID Application**. Only the team's Account Holder can create it. Check with `security find-identity -v -p codesigning`.
+2. **App-specific password.** At [account.apple.com](https://account.apple.com) → Sign-In and Security → App-Specific Passwords → create one named "notarytool".
+3. **Team ID.** On [developer.apple.com/account](https://developer.apple.com/account) → Membership details (10 characters).
+4. **Save the notary login** in your keychain once:
+   ```sh
+   xcrun notarytool store-credentials darnly --apple-id you@example.com --team-id ABCDE12345 --password abcd-efgh-ijkl-mnop
+   ```
+
+Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.1.1 ./scripts/make-dmg.sh` for a new version). Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
+
 ## Keys while picking
 
 Click to capture · ↑ / ↓ make the box bigger or smaller · W captures the whole window · Esc cancels.
@@ -43,5 +57,5 @@ Menu bar and notch apps work too: open the app's panel first, then press Option+
 
 ## Not yet
 
-- Signing and notarizing (needs the Apple Developer account), then `brew install --cask darnlyhq/tap/darnly`.
+- `brew install --cask darnlyhq/tap/darnly` (needs a darnlyhq/homebrew-tap repo pointing at a released DMG).
 - Sending to the cloud inbox (the Chrome extension has it; the Mac app saves to a folder for now).
