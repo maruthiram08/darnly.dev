@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'yaml-json-converter',
+    category: 'Code helpers',
+    name: 'YAML to JSON converter',
+    blurb: 'Convert YAML to JSON and back as you type. Errors point at the line and say how many spaces it needs.',
+  },
 ];
 
 // Same for guides.
