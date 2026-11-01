@@ -1,0 +1,201 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { SIZES } from '../../../scripts/background-generator';
+
+const hasSlop = TOOLS.some((t) => t.slug === 'ai-slop-checker');
+
+const steps = [
+  'Pick a style: waves, blobs, mesh gradient, pattern or peaks. The big preview shows it behind a sample headline.',
+  'Choose a color set or your own colors, move the Complexity slider, and press Shuffle until you like it.',
+  'Download it as SVG or PNG, or copy the CSS, the Tailwind classes, or a prompt for your AI coding agent.',
+];
+
+const faq = [
+  { q: 'Can I use these backgrounds for free?', a: 'Yes. You make them, so they’re yours to use anywhere, including in paid products. No credit needed.' },
+  { q: 'SVG or PNG, which should I use?', a: 'SVG for websites: it stays sharp on every screen and is usually only a few KB. PNG when a tool only takes pictures, like a slide deck or a social post.' },
+  { q: 'Why does the CSS look different for different styles?', a: 'Mesh gradients and patterns can be made with plain CSS gradients, so you get short CSS that scales to any size. Waves, blobs and peaks are shapes, so the CSS holds the SVG inside it.' },
+  { q: 'Which Tailwind classes do I get?', a: 'Arbitrary classes like <code>bg-[radial-gradient(...)]</code> that work in Tailwind v3 and v4 and match the CSS exactly.' },
+  { q: 'How do I keep my headline readable?', a: 'Turn on the sample headline to check. If it’s hard to read, pick a lighter or darker background color, lower the complexity, or flip the waves so they sit away from the text.' },
+  { q: 'Is anything uploaded?', a: 'No. The picture is drawn in your browser and never leaves it.' },
+];
+---
+<ToolPage
+  slug="background-generator"
+  title="Background generator: waves, blobs and mesh gradients as SVG, PNG or CSS · Darnly"
+  description="Make wave, blob, mesh gradient, dot and grid pattern and layered peak backgrounds with a live preview behind a hero headline. Shuffle, pick colors, then download SVG or PNG or copy CSS and Tailwind. Free, in your browser."
+  h1="Background generator: waves, blobs and mesh gradients"
+  lede="Make a hero background that doesn’t look like every other AI-built site. Pick a style and colors, press Shuffle, and see it live behind a headline. Download SVG or PNG, or copy CSS and Tailwind."
+  steps={steps}
+  faq={faq}
+>
+  <div class="bg">
+    <div class="stage" id="bg-stage" aria-label="Live preview of your background">
+      <div class="art" id="bg-art"></div>
+      <div class="hero" id="bg-hero">
+        <strong>Ship your idea this weekend</strong>
+        <p>This sample headline shows how text reads on your background.</p>
+        <span class="hero-btn">Get started</span>
+      </div>
+    </div>
+
+    <div class="topbar">
+      <div class="seg kinds" role="radiogroup" aria-label="Style" id="bg-kind">
+        <button type="button" role="radio" data-v="waves" aria-checked="true">Waves</button>
+        <button type="button" role="radio" data-v="blobs" aria-checked="false">Blobs</button>
+        <button type="button" role="radio" data-v="mesh" aria-checked="false">Mesh</button>
+        <button type="button" role="radio" data-v="pattern" aria-checked="false">Pattern</button>
+        <button type="button" role="radio" data-v="peaks" aria-checked="false">Peaks</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="big" id="bg-shuffle">Shuffle</button>
+        <button type="button" class="ghost" id="bg-colors">Random colors</button>
+      </div>
+    </div>
+
+    <div class="presets" id="bg-presets" aria-label="Color sets"></div>
+
+    <div class="controls">
+      <label class="field color">
+        <span>Background</span>
+        <input id="bg-bg" type="color" value="#fff4e8" />
+      </label>
+      <label class="field color">
+        <span id="bg-c0-label">Color 1</span>
+        <input id="bg-c0" type="color" value="#ffb38a" />
+      </label>
+      <label class="field color">
+        <span>Color 2</span>
+        <input id="bg-c1" type="color" value="#ff7a59" />
+      </label>
+      <label class="field color">
+        <span>Color 3</span>
+        <input id="bg-c2" type="color" value="#c2410c" />
+      </label>
+    </div>
+
+    <div class="controls">
+      <label class="field grow">
+        <span id="bg-complexity-label">Complexity</span>
+        <input id="bg-complexity" type="range" min="1" max="10" value="5" />
+      </label>
+      <label class="field grow" id="bg-layers-field">
+        <span id="bg-layers-label">Layers</span>
+        <input id="bg-layers" type="range" min="1" max="6" value="3" />
+      </label>
+      <div class="field" id="bg-pattern-field" hidden>
+        <span>Pattern</span>
+        <div class="seg" role="radiogroup" aria-label="Pattern" id="bg-pattern">
+          <button type="button" role="radio" data-v="dots" aria-checked="true">Dots</button>
+          <button type="button" role="radio" data-v="grid" aria-checked="false">Grid</button>
+          <button type="button" role="radio" data-v="lines" aria-checked="false">Lines</button>
+        </div>
+      </div>
+      <label class="field grow">
+        <span>Size</span>
+        <select id="bg-size">
+          {SIZES.map((s) => <option value={s.key}>{s.label}</option>)}
+        </select>
+      </label>
+    </div>
+
+    <div class="checks">
+      <label class="check" id="bg-flip-field"><input id="bg-flip" type="checkbox" /> <span>Flip to the top</span></label>
+      <label class="check" id="bg-soft-field" hidden><input id="bg-soft" type="checkbox" checked /> <span>Soft, blurry edges</span></label>
+      <label class="check"><input id="bg-text" type="checkbox" checked /> <span>Show sample headline</span></label>
+    </div>
+
+    <div class="summary">
+      <div class="status-wrap"><p class="dims" id="bg-size-out"></p><p class="status" id="bg-status" role="status" aria-live="polite"></p></div>
+      <div class="actions">
+        <button type="button" class="primary" id="bg-dl-png">Download PNG</button>
+        <button type="button" class="primary" id="bg-dl-svg">Download SVG</button>
+        <button type="button" class="ghost" id="bg-prompt">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span>CSS</span><button type="button" data-copy="bg-css-out">Copy</button></div>
+      <pre id="bg-css-out"></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>Tailwind classes · v3 and v4</span><button type="button" data-copy="bg-tw-out">Copy</button></div>
+      <pre id="bg-tw-out"></pre>
+    </div>
+    <details class="code more-code">
+      <summary class="code-head"><span>SVG code</span><button type="button" data-copy="bg-svg-out">Copy</button></summary>
+      <pre id="bg-svg-out"></pre>
+    </details>
+
+    {hasSlop && (
+      <p class="note">Want to check the rest of your site? Try the <a href="/tools/ai-slop-checker/">AI look checker</a> to find what makes it look AI-made.</p>
+    )}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/background-generator';
+</script>
+
+<style>
+  .bg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .bg [hidden] { display: none !important; }
+
+  .stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 640px; border-radius: 24px; overflow: hidden; border: 1px solid rgba(11, 34, 48, 0.1); box-sizing: border-box; display: grid; place-items: center; margin: 0 auto; }
+  .stage.tall { width: auto; height: min(640px, 80vh); max-width: 100%; }
+  .art { position: absolute; inset: 0; }
+  .art :global(svg) { width: 100%; height: 100%; display: block; }
+  .hero { position: relative; display: grid; gap: 10px; justify-items: center; text-align: center; padding: 24px; max-width: 560px; color: #0B2230; }
+  .hero strong { font: 700 clamp(24px, 4.4vw, 48px)/1.1 var(--display); letter-spacing: -0.02em; }
+  .hero p { margin: 0; font-size: clamp(14px, 1.6vw, 18px); opacity: 0.8; }
+  .hero-btn { margin-top: 6px; font: 600 15px/1 var(--body); padding: 13px 22px; border-radius: 999px; background: #0B2230; color: #FFFFFF; }
+  .hero.on-dark { color: #FFFFFF; }
+  .hero.on-dark .hero-btn { background: #FFFFFF; color: #0B2230; }
+
+  .topbar { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; }
+  .seg { display: flex; gap: 4px; padding: 4px; min-height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 0 12px; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .kinds { flex: 1 1 420px; max-width: 560px; }
+  .kinds button { font-size: 15px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+  .presets :global(button) { display: grid; gap: 6px; justify-items: center; padding: 0; border: 0; background: none; cursor: pointer; font: 500 12px/1.2 var(--body); color: var(--ink-soft); }
+  .presets :global(.chip) { width: 56px; height: 40px; border-radius: 12px; border: 1px solid rgba(11, 34, 48, 0.12); box-sizing: border-box; }
+  .presets :global(button[aria-pressed='true'] .chip) { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field.grow { flex: 1 1 200px; }
+  .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; height: 48px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .field.color input { width: 72px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .checks { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+  .check { display: flex; gap: 8px; align-items: center; min-height: 44px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .dims { margin: 0; font: 500 14px/1.4 var(--mono); color: var(--ink); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .primary, .big { font: 600 15px/1 var(--body); padding: 13px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .big { font-size: 16px; padding: 14px 26px; }
+  .ghost { font: 600 14px/1 var(--body); padding: 0 16px; min-height: 46px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .note { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .more-code summary { cursor: pointer; list-style: none; }
+  .more-code summary::-webkit-details-marker { display: none; }
+  .more-code summary span::before { content: '▸ '; }
+  .more-code[open] summary span::before { content: '▾ '; }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-all; font: 400 13px/1.7 var(--mono); max-height: 260px; overflow: auto; }
+
+  @media (max-width: 760px) {
+    .kinds button { padding: 0 6px; font-size: 14px; }
+    .hero-btn { display: none; }
+    .field.color input { width: 60px; }
+    .controls { gap: 14px 12px; }
+  }
+</style>
