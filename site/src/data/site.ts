@@ -13,6 +13,11 @@ export const TOOLS: Item[] = [
     name: 'Favicon generator',
     blurb: 'Every favicon size from one image, plus the HTML to paste.',
   },
+  {
+    slug: 'open-graph-checker',
+    name: 'Open Graph checker',
+    blurb: 'See how your link looks on X, LinkedIn, WhatsApp and Slack, and what to fix.',
+  },
 ];
 
 // Same for guides.
