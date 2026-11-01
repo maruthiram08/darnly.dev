@@ -23,6 +23,11 @@ export const TOOLS: Item[] = [
     name: 'Meta tag generator',
     blurb: 'SEO, Open Graph and X tags with a Google preview and length checks.',
   },
+  {
+    slug: 'color-palette-from-image',
+    name: 'Color palette from image',
+    blurb: 'The main colors of any screenshot or logo, as hex, CSS and Tailwind.',
+  },
 ];
 
 // Same for guides.
