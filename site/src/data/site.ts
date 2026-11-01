@@ -48,6 +48,11 @@ export const TOOLS: Item[] = [
     name: 'OG image generator',
     blurb: 'A 1200×630 share image for link previews, plus the tags to paste.',
   },
+  {
+    slug: 'svg-optimizer',
+    name: 'SVG optimizer and SVG to JSX',
+    blurb: 'Shrink an SVG and copy it as SVG, a React component, a data URI or CSS.',
+  },
 ];
 
 // Same for guides.
