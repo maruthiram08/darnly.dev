@@ -1,0 +1,422 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Link the AI slop checker only once that tool is live, so the page never points at a missing page.
+const hasSlop = TOOLS.some((t) => t.slug === 'ai-slop-checker');
+const slopLink = hasSlop ? ' The <a href="/tools/ai-slop-checker/">AI slop checker</a> shows what else gives it away.' : '';
+
+const steps = [
+  'Pick your brand color, or paste its hex code. Then choose a gray (neutral, zinc, slate, stone, gray, or one tinted with your color) and how round the corners should be.',
+  'The preview is a real-looking app made of shadcn components: buttons, cards, inputs, tabs, badges, a dialog and a chart. It changes the moment you change anything. Switch it to dark mode to see the other half of the theme.',
+  'Copy the <code>globals.css</code> for Tailwind v4 (OKLCH), the older v3 HSL version, or a prompt that tells your AI coding agent to apply the theme for you.',
+];
+
+const faq = [
+  { q: 'Where does this go in my project?', a: 'Into the CSS file that <code>npx shadcn init</code> made, usually <code>app/globals.css</code> or <code>src/index.css</code>. Replace the <code>:root</code> and <code>.dark</code> blocks with the ones you copy here. If you’d rather not touch the file yourself, copy the prompt and paste it into Claude Code, Codex or Cursor.' },
+  { q: 'Tailwind v4 or v3: which do I have?', a: 'If your CSS file starts with <code>@import "tailwindcss";</code> and colors look like <code>oklch(0.97 0 0)</code>, you’re on v4. If you have a <code>tailwind.config</code> file and colors look like <code>0 0% 100%</code>, you’re on v3. Projects made with shadcn since early 2025 are on v4.' },
+  { q: 'Why does my button text turn dark sometimes?', a: 'We pick white or near-black text, whichever is easier to read on your color. Bright colors like yellow, lime or light blue read better with dark text. The check under the preview shows the contrast for the button text and the gray text.' },
+  { q: 'Why is my color different in dark mode?', a: 'A deep color that looks great on white can disappear on a near-black background. In dark mode we raise its lightness just enough to stand out, and keep the same hue. Very dark brand colors flip to near-white, which is what shadcn’s own default theme does.' },
+  { q: 'What does “Randomize (tasteful)” do?', a: 'It picks a calm, usable brand color, a gray that suits it (warm colors get warm grays), a corner size and chart colors. It mostly avoids the indigo-to-purple that so many AI-made apps share.' },
+  { q: 'How do I make my app look less AI-made?', a: 'The stock shadcn look, black buttons on zinc grays with the default corners, is the first thing people notice. A real brand color, a gray tinted to match it and a deliberate corner size already go a long way.' + slopLink },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="shadcn-theme-generator"
+  title="shadcn/ui theme generator: colors, radius and dark mode, live · Darnly"
+  description="Make a shadcn/ui theme from your brand color with a live preview of real components in light and dark. Copy globals.css for Tailwind v4 (OKLCH), the v3 HSL version, or a prompt for your AI agent. Free."
+  h1="shadcn/ui theme generator"
+  lede="Pick a brand color, a gray and a corner size, and watch a real shadcn app change as you go, in light and dark. Then copy the globals.css, or hand the whole theme to your AI coding agent."
+  steps={steps}
+  faq={faq}
+>
+  <div class="st">
+    <div class="controls">
+      <div class="ctl ctl-color">
+        <span class="ctl-label">Brand color</span>
+        <span class="pair">
+          <input id="st-picker" type="color" value="#0593c6" aria-label="Pick a color" />
+          <input id="st-hex" type="text" value="#0593C6" spellcheck="false" autocomplete="off" aria-label="Hex code" maxlength="9" />
+        </span>
+        <span class="presets" id="st-presets" role="group" aria-label="Example colors">
+          <button type="button" data-hex="#171717" style="background:#171717" aria-label="Ink, #171717"></button>
+          <button type="button" data-hex="#0593c6" style="background:#0593c6" aria-label="Sky, #0593C6"></button>
+          <button type="button" data-hex="#0f766e" style="background:#0f766e" aria-label="Teal, #0F766E"></button>
+          <button type="button" data-hex="#3f7d3a" style="background:#3f7d3a" aria-label="Moss, #3F7D3A"></button>
+          <button type="button" data-hex="#f2b632" style="background:#f2b632" aria-label="Sun, #F2B632"></button>
+          <button type="button" data-hex="#e5602f" style="background:#e5602f" aria-label="Tangerine, #E5602F"></button>
+          <button type="button" data-hex="#d83995" style="background:#d83995" aria-label="Pink, #D83995"></button>
+          <button type="button" data-hex="#6d4aff" style="background:#6d4aff" aria-label="Violet, #6D4AFF"></button>
+        </span>
+      </div>
+
+      <div class="ctl">
+        <span class="ctl-label">Gray</span>
+        <span class="chips" id="st-base" role="radiogroup" aria-label="Gray">
+          <button type="button" role="radio" data-v="neutral"><i style="background:#737373"></i>Neutral</button>
+          <button type="button" role="radio" data-v="zinc"><i style="background:#71717b"></i>Zinc</button>
+          <button type="button" role="radio" data-v="slate"><i style="background:#62748e"></i>Slate</button>
+          <button type="button" role="radio" data-v="stone"><i style="background:#79716b"></i>Stone</button>
+          <button type="button" role="radio" data-v="gray"><i style="background:#6a7282"></i>Gray</button>
+          <button type="button" role="radio" data-v="tinted"><i id="st-tint-dot"></i>Tinted</button>
+        </span>
+      </div>
+
+      <div class="ctl">
+        <span class="ctl-label">Corners</span>
+        <span class="chips" id="st-radius" role="radiogroup" aria-label="Corner radius">
+          <button type="button" role="radio" data-v="0"><b style="border-radius:0"></b>0</button>
+          <button type="button" role="radio" data-v="0.3"><b style="border-radius:3px"></b>0.3</button>
+          <button type="button" role="radio" data-v="0.5"><b style="border-radius:6px"></b>0.5</button>
+          <button type="button" role="radio" data-v="0.625"><b style="border-radius:8px"></b>0.625</button>
+          <button type="button" role="radio" data-v="0.75"><b style="border-radius:10px"></b>0.75</button>
+          <button type="button" role="radio" data-v="1"><b style="border-radius:13px"></b>1</button>
+        </span>
+      </div>
+
+      <div class="ctl ctl-row">
+        <label class="mini">
+          <span class="ctl-label">Hover color</span>
+          <select id="st-accent">
+            <option value="gray">Gray (shadcn default)</option>
+            <option value="tint">Light tint of my color</option>
+          </select>
+        </label>
+        <label class="mini">
+          <span class="ctl-label">Chart colors</span>
+          <select id="st-chart">
+            <option value="shades">Shades of my color</option>
+            <option value="mix">Matching mix</option>
+          </select>
+        </label>
+        <button id="st-random" type="button" class="ghost-btn">🎲 Randomize (tasteful)</button>
+      </div>
+    </div>
+    <p class="error" id="st-error" role="alert" hidden></p>
+
+    <div class="stage">
+      <div class="stage-bar">
+        <span class="seg" role="radiogroup" aria-label="Preview mode" id="st-mode">
+          <button type="button" role="radio" data-v="light">☀ Light</button>
+          <button type="button" role="radio" data-v="dark">☾ Dark</button>
+        </span>
+        <span class="checks" id="st-checks" aria-live="polite"></span>
+      </div>
+
+      <!-- The preview: plain HTML styled with the same variable names shadcn uses. -->
+      <div class="sp" id="st-preview">
+        <aside class="sp-side">
+          <div class="sp-brand"><span class="sp-logo"></span>Acme</div>
+          <nav class="sp-nav">
+            <a class="on">▦ Dashboard</a>
+            <a>◫ Projects</a>
+            <a>◎ Team</a>
+            <a>⚙ Settings</a>
+          </nav>
+          <div class="sp-side-card">
+            <strong>Upgrade to Pro</strong>
+            <p>Unlimited projects and team seats.</p>
+            <span class="sp-btn sp-primary sp-sm sp-full">Upgrade</span>
+          </div>
+        </aside>
+
+        <div class="sp-main">
+          <div class="sp-top">
+            <h3>Dashboard</h3>
+            <span class="sp-input sp-search">⌕ Search…</span>
+            <span class="sp-btn sp-outline">Export</span>
+            <span class="sp-btn sp-primary">+ New project</span>
+          </div>
+
+          <div class="sp-tabs" role="tablist" aria-label="Preview tabs">
+            <button type="button" role="tab" class="on">Overview</button>
+            <button type="button" role="tab">Analytics</button>
+            <button type="button" role="tab">Reports</button>
+          </div>
+
+          <div class="sp-grid">
+            <div class="sp-card sp-stat">
+              <span class="sp-muted">Revenue</span>
+              <strong>$45,231</strong>
+              <span class="sp-badge">+20.1%</span>
+            </div>
+            <div class="sp-card sp-stat">
+              <span class="sp-muted">Subscribers</span>
+              <strong>2,350</strong>
+              <span class="sp-badge sp-secondary">+180</span>
+            </div>
+            <div class="sp-card sp-stat">
+              <span class="sp-muted">Churn</span>
+              <strong>1.8%</strong>
+              <span class="sp-badge sp-destructive">+0.4%</span>
+            </div>
+
+            <div class="sp-card sp-chart">
+              <div class="sp-card-head"><strong>Visitors</strong><span class="sp-muted">Last 6 months</span></div>
+              <div class="sp-bars" aria-hidden="true">
+                <div><i style="height:62%;background:var(--chart-1)"></i><i style="height:40%;background:var(--chart-2)"></i><i style="height:28%;background:var(--chart-3)"></i></div>
+                <div><i style="height:78%;background:var(--chart-1)"></i><i style="height:52%;background:var(--chart-2)"></i><i style="height:35%;background:var(--chart-3)"></i></div>
+                <div><i style="height:55%;background:var(--chart-1)"></i><i style="height:66%;background:var(--chart-2)"></i><i style="height:30%;background:var(--chart-3)"></i></div>
+                <div><i style="height:90%;background:var(--chart-1)"></i><i style="height:58%;background:var(--chart-2)"></i><i style="height:44%;background:var(--chart-3)"></i></div>
+                <div><i style="height:70%;background:var(--chart-1)"></i><i style="height:80%;background:var(--chart-2)"></i><i style="height:50%;background:var(--chart-3)"></i></div>
+                <div><i style="height:96%;background:var(--chart-1)"></i><i style="height:72%;background:var(--chart-2)"></i><i style="height:60%;background:var(--chart-3)"></i></div>
+              </div>
+              <div class="sp-donut-row">
+                <span class="sp-donut" aria-hidden="true"></span>
+                <ul class="sp-legend">
+                  <li><i style="background:var(--chart-1)"></i>Chrome</li>
+                  <li><i style="background:var(--chart-2)"></i>Safari</li>
+                  <li><i style="background:var(--chart-3)"></i>Firefox</li>
+                  <li><i style="background:var(--chart-4)"></i>Edge</li>
+                  <li><i style="background:var(--chart-5)"></i>Other</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="sp-card sp-form">
+              <div class="sp-card-head"><strong>Create project</strong><span class="sp-muted">Deploy in one click.</span></div>
+              <span class="sp-label">Name</span>
+              <span class="sp-input">my-new-app</span>
+              <span class="sp-label">Framework</span>
+              <span class="sp-input sp-focus">Next.js <em>⌄</em></span>
+              <span class="sp-check"><i class="sp-box on">✓</i>Send me updates</span>
+              <span class="sp-check"><i class="sp-switch on"><b></b></i>Public project</span>
+              <div class="sp-actions">
+                <span class="sp-btn sp-outline">Cancel</span>
+                <span class="sp-btn sp-primary">Deploy</span>
+              </div>
+            </div>
+
+            <div class="sp-card sp-list">
+              <div class="sp-card-head"><strong>Team</strong><span class="sp-muted">3 people</span></div>
+              <div class="sp-person"><i class="sp-av">SD</i><span><b>Sofia Davis</b><small>sofia@example.com</small></span><span class="sp-badge">Owner</span></div>
+              <div class="sp-person sp-hover"><i class="sp-av">JL</i><span><b>Jackson Lee</b><small>jackson@example.com</small></span><span class="sp-badge sp-secondary">Admin</span></div>
+              <div class="sp-person"><i class="sp-av">IN</i><span><b>Isabella Nguyen</b><small>isa@example.com</small></span><span class="sp-badge sp-outline-b">Viewer</span></div>
+              <div class="sp-btns">
+                <span class="sp-btn sp-primary sp-sm">Primary</span>
+                <span class="sp-btn sp-secondary-btn sp-sm">Secondary</span>
+                <span class="sp-btn sp-outline sp-sm">Outline</span>
+                <span class="sp-btn sp-ghost sp-sm">Ghost</span>
+                <span class="sp-btn sp-link sp-sm">Link</span>
+              </div>
+            </div>
+
+            <div class="sp-card sp-dialog-wrap">
+              <div class="sp-overlay">
+                <div class="sp-dialog" role="presentation">
+                  <strong>Delete this project?</strong>
+                  <p class="sp-muted">This can’t be undone. All deployments and logs will be removed.</p>
+                  <div class="sp-actions">
+                    <span class="sp-btn sp-outline sp-sm">Cancel</span>
+                    <span class="sp-btn sp-destructive-btn sp-sm">Delete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="tokens" id="st-tokens" aria-label="Theme colors"></ul>
+    </div>
+
+    <div class="summary">
+      <p class="status" id="st-status" role="status" aria-live="polite">Change anything above. The preview updates as you go.</p>
+      <div class="summary-btns">
+        <button id="st-copy-main" type="button" class="primary">Copy globals.css</button>
+        <button id="st-prompt" type="button" class="primary alt">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="code">
+      <div class="code-head">
+        <span class="code-tabs" role="tablist" aria-label="Output format" id="st-tabs">
+          <button type="button" role="tab" data-v="v4" aria-selected="true">Tailwind v4 · OKLCH</button>
+          <button type="button" role="tab" data-v="v3" aria-selected="false">Tailwind v3 · HSL</button>
+          <button type="button" role="tab" data-v="prompt" aria-selected="false">Agent prompt</button>
+        </span>
+        <button type="button" id="st-copy-code">Copy</button>
+      </div>
+      <pre id="st-code" tabindex="0"></pre>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/shadcn-theme-generator';
+</script>
+
+<style>
+  .st { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
+  .st [hidden] { display: none !important; }
+
+  .controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; }
+  .ctl { display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .ctl-label { font-size: 14px; color: var(--ink-soft); }
+  .ctl-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .mini { display: grid; gap: 6px; flex: 1 1 150px; min-width: 0; }
+  .mini select { width: 100%; height: 44px; font: inherit; font-size: 15px; color: var(--ink); padding: 0 10px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .pair { display: flex; gap: 8px; min-width: 0; }
+  .pair input[type='text'] { flex: 1; min-width: 0; height: 48px; box-sizing: border-box; font: 400 16px var(--mono); text-transform: uppercase; color: var(--ink); padding: 0 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .pair input[type='text']:focus, .mini select:focus { outline: none; border-color: var(--sky); }
+  .pair input[aria-invalid='true'] { border-color: #B4234F; }
+  .pair input[type='color'] { flex: none; width: 50px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button { width: 30px; height: 30px; min-height: 30px; border-radius: 50%; border: 2px solid var(--white); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+  .presets button:hover { transform: scale(1.1); }
+  .presets button[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--ink); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { display: inline-flex; align-items: center; gap: 7px; font: 500 14px/1 var(--body); color: var(--ink); padding: 9px 12px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); cursor: pointer; }
+  .chips button[aria-checked='true'] { border-color: var(--ink); background: var(--wash); }
+  .chips i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .chips b { width: 16px; height: 16px; border: 2px solid var(--ink); border-right: 0; border-bottom: 0; display: inline-block; }
+  .ghost-btn { font: 600 14px/1 var(--body); height: 44px; padding: 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .ghost-btn:hover { background: var(--wash); }
+  .error { margin: 0; color: #B4234F; }
+
+  .stage { display: grid; gap: 12px; padding: 14px; border-radius: 20px; background: var(--wash); border: 1px solid var(--line); min-width: 0; }
+  .stage-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); }
+  .seg button { font: 600 14px/1 var(--body); padding: 9px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .checks :global(.chk) { display: inline-flex; align-items: center; gap: 6px; font: 500 13px/1.2 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); color: var(--ink); }
+  .checks :global(.chk b) { font: 600 12px var(--mono); }
+  .checks :global(.chk.ok) { border-color: #9BD3B0; }
+  .checks :global(.chk.warn) { border-color: #F0C46B; background: #FFF8E6; }
+  .checks :global(.chk.bad) { border-color: #E59AAE; background: #FDEEF2; }
+
+  /* ---------- The preview app ---------- */
+  .sp {
+    --r: var(--radius, 0.625rem);
+    display: grid; grid-template-columns: 190px minmax(0, 1fr); min-width: 0; overflow: hidden;
+    font-family: "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.4;
+    background: var(--background); color: var(--foreground);
+    border: 1px solid var(--border); border-radius: calc(var(--r) + 4px);
+    box-shadow: 0 18px 50px rgba(11, 34, 48, 0.14);
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .sp * { box-sizing: border-box; }
+  .sp-side { display: flex; flex-direction: column; gap: 14px; padding: 16px 12px; background: var(--sidebar); color: var(--sidebar-foreground); border-right: 1px solid var(--sidebar-border); }
+  .sp-brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; padding: 0 6px; }
+  .sp-logo { width: 24px; height: 24px; border-radius: calc(var(--r) - 2px); background: var(--sidebar-primary); box-shadow: inset 0 0 0 6px var(--sidebar-primary), inset 0 0 0 9px var(--sidebar-primary-foreground); }
+  .sp-nav { display: grid; gap: 2px; }
+  .sp-nav a { padding: 8px 10px; border-radius: calc(var(--r) - 2px); color: inherit; text-decoration: none; cursor: default; }
+  .sp-nav a:hover { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); }
+  .sp-nav a.on { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 600; }
+  .sp-side-card { margin-top: auto; display: grid; gap: 6px; padding: 12px; border-radius: var(--r); background: var(--card); color: var(--card-foreground); border: 1px solid var(--sidebar-border); font-size: 13px; }
+  .sp-side-card p { margin: 0; color: var(--muted-foreground); }
+
+  .sp-main { display: grid; gap: 14px; align-content: start; padding: 16px; min-width: 0; }
+  .sp-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sp-top h3 { margin: 0 auto 0 0; font-weight: 700; font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; }
+  .sp-search { width: 180px; color: var(--muted-foreground); }
+
+  .sp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: calc(var(--r) - 2px); font-weight: 600; font-size: 14px; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: background-color 0.15s, color 0.15s; user-select: none; }
+  .sp-sm { height: 32px; padding: 0 11px; font-size: 13px; }
+  .sp-full { width: 100%; }
+  .sp-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .sp-primary:hover { background: color-mix(in oklab, var(--primary) 90%, transparent); }
+  .sp-side .sp-primary { background: var(--sidebar-primary); color: var(--sidebar-primary-foreground); }
+  .sp-outline { background: var(--background); color: var(--foreground); border-color: var(--input); }
+  .sp-outline:hover, .sp-ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+  .sp-secondary-btn { background: var(--secondary); color: var(--secondary-foreground); }
+  .sp-secondary-btn:hover { background: color-mix(in oklab, var(--secondary) 80%, transparent); }
+  .sp-ghost { background: transparent; color: var(--foreground); }
+  .sp-link { background: transparent; color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
+  .sp-destructive-btn { background: var(--destructive); color: #fff; }
+  .sp-destructive-btn:hover { background: color-mix(in oklab, var(--destructive) 90%, transparent); }
+  .sp-btn:active { transform: translateY(1px); }
+
+  .sp-input { display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 12px; border-radius: calc(var(--r) - 2px); border: 1px solid var(--input); background: transparent; color: var(--foreground); }
+  .sp-input em { font-style: normal; color: var(--muted-foreground); }
+  .sp-focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+
+  .sp-tabs { display: inline-flex; justify-self: start; gap: 2px; padding: 3px; border-radius: var(--r); background: var(--muted); }
+  .sp-tabs button { font: inherit; font-weight: 600; font-size: 13px; padding: 6px 12px; border: 0; border-radius: calc(var(--r) - 4px); background: transparent; color: var(--muted-foreground); cursor: pointer; }
+  .sp-tabs button.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  .sp-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .sp-card { grid-column: span 2; display: grid; gap: 8px; align-content: start; padding: 14px; border-radius: calc(var(--r) + 4px); background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.04); min-width: 0; }
+  .sp-card-head { display: grid; gap: 2px; margin-bottom: 2px; }
+  .sp-card-head strong { font-size: 15px; }
+  .sp-muted { color: var(--muted-foreground); font-size: 13px; margin: 0; }
+  .sp-stat strong { font-size: 24px; letter-spacing: -0.02em; }
+  .sp-stat .sp-badge { justify-self: start; }
+
+  .sp-badge { display: inline-flex; align-items: center; justify-self: start; padding: 2px 8px; border-radius: calc(var(--r) - 2px); font-size: 12px; font-weight: 600; background: var(--primary); color: var(--primary-foreground); border: 1px solid transparent; white-space: nowrap; }
+  .sp-badge.sp-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+  .sp-badge.sp-destructive { background: var(--destructive); color: #fff; }
+  .sp-badge.sp-outline-b { background: transparent; color: var(--foreground); border-color: var(--border); }
+
+  .sp-chart { grid-column: span 3; }
+  .sp-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; height: 120px; align-items: end; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .sp-bars div { display: flex; gap: 3px; align-items: end; height: 100%; }
+  .sp-bars i { flex: 1; border-radius: calc(var(--r) * 0.4) calc(var(--r) * 0.4) 0 0; min-height: 4px; }
+  .sp-donut-row { display: flex; align-items: center; gap: 16px; padding-top: 4px; }
+  .sp-donut { flex: none; width: 64px; height: 64px; border-radius: 50%; background: conic-gradient(var(--chart-1) 0 38%, var(--chart-2) 0 62%, var(--chart-3) 0 78%, var(--chart-4) 0 90%, var(--chart-5) 0); -webkit-mask: radial-gradient(circle, transparent 46%, #000 47%); mask: radial-gradient(circle, transparent 46%, #000 47%); }
+  .sp-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted-foreground); }
+  .sp-legend li { display: inline-flex; align-items: center; gap: 5px; }
+  .sp-legend i { width: 9px; height: 9px; border-radius: 2px; }
+
+  .sp-form { grid-column: span 3; }
+  .sp-label { font-size: 13px; font-weight: 600; margin-bottom: -4px; }
+  .sp-check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .sp-box { width: 16px; height: 16px; display: inline-grid; place-items: center; border-radius: 4px; border: 1px solid var(--input); font: 700 11px/1 sans-serif; font-style: normal; color: transparent; }
+  .sp-box.on { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+  .sp-switch { width: 32px; height: 18px; display: inline-flex; align-items: center; padding: 2px; border-radius: 999px; background: var(--input); }
+  .sp-switch.on { background: var(--primary); justify-content: flex-end; }
+  .sp-switch b { width: 14px; height: 14px; border-radius: 50%; background: var(--background); }
+  .sp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+  .sp-list { grid-column: span 3; }
+  .sp-person { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px; margin: 0 -6px; border-radius: calc(var(--r) - 2px); }
+  .sp-person.sp-hover, .sp-person:hover { background: var(--accent); color: var(--accent-foreground); }
+  .sp-person span:not(.sp-badge) { display: grid; min-width: 0; }
+  .sp-person b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sp-person small { font-size: 12px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sp-av { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); font-weight: 700; font-size: 11px; line-height: 1; font-style: normal; }
+  .sp-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  .sp-dialog-wrap { grid-column: span 3; padding: 0; overflow: hidden; align-content: stretch; }
+  .sp-overlay { height: 100%; min-height: 200px; display: grid; place-items: center; padding: 18px; background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--muted) 70%, transparent) 0 10px, transparent 10px 20px), rgba(0, 0, 0, 0.35); }
+  .sp-dialog { display: grid; gap: 8px; width: 100%; max-width: 300px; padding: 16px; border-radius: calc(var(--r) + 2px); background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+  .sp-dialog strong { font-size: 15px; }
+
+  .tokens { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+  .tokens :global(li) { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px; border-radius: 10px; background: var(--white); border: 1px solid var(--line); font: 400 11px/1.2 var(--mono); color: var(--ink-soft); cursor: pointer; }
+  .tokens :global(li:hover) { border-color: var(--ink); }
+  .tokens :global(li i) { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 1px solid rgba(11, 34, 48, 0.12); }
+  .tokens :global(li span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .summary-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); flex: 1 1 260px; }
+  .primary { font: 600 15px/1 var(--body); padding: 13px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .primary.alt { background: var(--sky); }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .code-tabs button { font: 500 13px/1.2 var(--mono); padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: #8FB4C4; cursor: pointer; }
+  .code-tabs button[aria-selected='true'] { background: rgba(252, 255, 255, 0.14); color: var(--white); }
+  #st-copy-code { font: 600 13px/1 var(--body); padding: 8px 14px; border-radius: 8px; border: 0; background: var(--sky); color: var(--white); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; max-height: 420px; overflow: auto; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 900px) {
+    .controls { grid-template-columns: minmax(0, 1fr); }
+    .sp { grid-template-columns: minmax(0, 1fr); }
+    .sp-side { display: none; }
+    .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sp-card, .sp-chart, .sp-form, .sp-list, .sp-dialog-wrap { grid-column: span 2; }
+    .sp-stat { grid-column: span 1; }
+    .sp-stat:nth-of-type(3) { grid-column: span 2; }
+  }
+  @media (max-width: 560px) {
+    .sp-main { padding: 12px; }
+    .sp-search { display: none; }
+    .sp-top h3 { flex-basis: 100%; }
+  }
+</style>

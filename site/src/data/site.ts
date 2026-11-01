@@ -191,6 +191,12 @@ export const TOOLS: Item[] = [
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
   },
+  {
+    slug: 'shadcn-theme-generator',
+    category: 'Design',
+    name: 'shadcn/ui theme generator',
+    blurb: 'Pick a brand color, gray and corners, see real shadcn components change live in light and dark, copy globals.css.',
+  },
 ];
 
 // Same for guides.
