@@ -1,0 +1,50 @@
+{
+  "app": "excalidraw",
+  "commit": "8bcdca4526867433f99fdfcb55a063668db0c9dc",
+  "reps": 2,
+  "bugIds": [
+    "x01-primary-colour",
+    "x02-dialog-title",
+    "x03-zoom-label-faint",
+    "x04-reset-canvas",
+    "x05-zoom-in",
+    "x06-square-corners",
+    "x07-menu-hover",
+    "x08-hint-size"
+  ],
+  "conditions": [
+    "screenshot",
+    "darnly"
+  ],
+  "model": "sonnet",
+  "userModel": "haiku",
+  "maxMessages": 4,
+  "allowed": [
+    "Read",
+    "Edit",
+    "MultiEdit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Skill",
+    "TodoWrite",
+    "Bash(ls:*)",
+    "Bash(cat:*)",
+    "Bash(head:*)",
+    "Bash(tail:*)",
+    "Bash(grep:*)",
+    "Bash(rg:*)",
+    "Bash(find:*)",
+    "Bash(wc:*)",
+    "Bash(mv:*)",
+    "Bash(mkdir:*)",
+    "Bash(sed:*)",
+    "Bash(git status:*)",
+    "Bash(git diff:*)",
+    "Bash(git log:*)",
+    "Bash(git grep:*)",
+    "Bash(npx tsc:*)",
+    "Bash(yarn tsc:*)"
+  ],
+  "started": "2026-11-01T07:08:53.710Z"
+}

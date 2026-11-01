@@ -10,11 +10,21 @@
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
 //
+// GET /api/colors?url=https://example.com
+//   Same guards. Reads the page and its stylesheets and returns its color palette, for the
+//   website color finder at /tools/website-color-finder/.
+//
+// GET /api/launch?url=https://example.com
+//   Same guards. Reads the page plus robots.txt, the sitemap, the favicon and a made-up address,
+//   and grades each launch basic, for the launch checker at /tools/launch-checker/.
+//
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
 
 import { findFonts } from './fonts';
+import { findColors } from './colors';
+import { checkLaunch, type Probe } from './launch';
 import { findStack } from './stack';
 
 interface Env {
@@ -33,6 +43,8 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
+    if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
@@ -64,6 +76,39 @@ function stackApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     finalUrl: p.finalUrl,
     status: p.status,
     ...(await findStack(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, '*/*'))),
+  }));
+}
+
+// /api/launch: is this site ready to launch? Extra files are read with the same address rules.
+function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const probe = async (raw: string, accept: string): Promise<Probe | null> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, accept, 5_000);
+      const final = res.url || t.href;
+      if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
+      return { status: res.status, url: final, type: res.headers.get('content-type') ?? '', text: await readLimited(res, 300_000) };
+    } catch {
+      return null;
+    }
+  };
+  return pageTool('launch', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    // Our own pages are read from the site files, which never see the http→https redirect.
+    ...(await checkLaunch(p.html, p.finalUrl, probe, { probeHttp: !isOwnHost(new URL(p.finalUrl), url) })),
+  }));
+}
+
+// /api/colors: a page's color palette from its CSS.
+function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('colors', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findColors(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
 }
 
