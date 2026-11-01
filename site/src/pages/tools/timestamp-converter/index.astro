@@ -1,0 +1,188 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste a Unix timestamp, like <code>1700000000</code>. Seconds, milliseconds, microseconds and nanoseconds are told apart by how many digits they have. You can also paste a date like <code>2024-01-01T10:00:00Z</code>, or type words like <code>tomorrow 9am</code> or <code>3 hours ago</code>.',
+  'The big card shows that moment as a date in your time zone, in UTC, and how far it is from now. Click the Unix seconds, milliseconds or ISO value to copy it.',
+  'Below it, see the same moment in four cities. Pick any city from its menu. Open “Code” for ready-to-paste JavaScript, Postgres and Python.',
+];
+
+const faq = [
+  { q: 'What is a Unix timestamp?', a: 'The number of seconds since 1 January 1970 at midnight UTC, the “Unix epoch”. It is the same everywhere in the world at the same moment, which is why databases and APIs use it. <code>1700000000</code> is 14 November 2023, 22:13:20 UTC.' },
+  { q: 'Is my timestamp in seconds or milliseconds?', a: 'Count the digits. Today in seconds is <strong>10 digits</strong> (like <code>1793560000</code>); in milliseconds it is <strong>13</strong>. JavaScript’s <code>Date.now()</code> gives milliseconds; Postgres, Python and most APIs use seconds. This tool works it out for you and says which one it read.' },
+  { q: 'Why is my date off by a few hours?', a: 'Almost always a time zone mix-up. A timestamp has no time zone, but the moment you show it as a date, your code picks one: the browser’s, the server’s (often UTC), or the database’s. Compare the “your time zone” and “UTC” lines here to see which one you are getting.' },
+  { q: 'Why does my date say 1970?', a: 'You passed seconds where milliseconds were expected. <code>new Date(1700000000)</code> in JavaScript is 20 January 1970, because it reads the number as milliseconds. Multiply by 1000: <code>new Date(1700000000 * 1000)</code>.' },
+  { q: 'What does “Z” at the end of a date mean?', a: 'It means UTC (“Zulu time”). <code>2024-01-01T10:00:00Z</code> is 10am in London in winter, and 3:30pm in India. A date written with <code>+05:30</code> instead carries its own offset.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser, using your browser’s own time zone data.' },
+];
+---
+<ToolPage
+  slug="timestamp-converter"
+  title="Unix timestamp converter, with time zones · Darnly"
+  description="Convert a Unix timestamp to a date, or a date to a timestamp. Seconds or milliseconds detected automatically, shown in your time zone, UTC and four cities, with JavaScript, Postgres and Python code. Free."
+  h1="Unix timestamp converter"
+  lede="Paste a timestamp, a date or plain words like “tomorrow 9am”. See it as a readable date in your time zone, in UTC, and in four cities, with a live clock of the current Unix time."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ts">
+    <div class="stage" aria-label="Your time, live">
+      <div class="entry">
+        <label class="sr" for="ts-in">Timestamp, date or words</label>
+        <input id="ts-in" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="1700000000, 2024-01-01 or tomorrow 9am" />
+        <button id="ts-now-btn" type="button" class="primary">Now</button>
+      </div>
+      <div class="tries">
+        <span>Try:</span>
+        <button type="button" data-ts-try="1700000000">1700000000</button>
+        <button type="button" data-ts-try="1700000000000">1700000000000</button>
+        <button type="button" data-ts-try="2024-01-01T10:00:00Z">2024-01-01T10:00:00Z</button>
+        <button type="button" data-ts-try="tomorrow 9am">tomorrow 9am</button>
+        <button type="button" data-ts-try="3 hours ago">3 hours ago</button>
+      </div>
+      <p class="bad" id="ts-error" role="alert" hidden>We couldn’t read that. Try a number like 1700000000, a date like 2024-01-01 10:00, or words like “next friday 5pm”.</p>
+
+      <div class="answer" aria-live="polite">
+        <span class="read" id="ts-read" hidden></span>
+        <span class="date" id="ts-date"></span>
+        <span class="time" id="ts-time"></span>
+        <span class="zone" id="ts-zone"></span>
+        <div class="sub">
+          <span class="rel" id="ts-rel"></span>
+          <span class="utc" id="ts-utc"></span>
+        </div>
+      </div>
+
+      <div class="chips">
+        <div class="chip-box"><span>Unix seconds</span><button type="button" class="chip" id="ts-sec" title="Copy"></button></div>
+        <div class="chip-box"><span>Milliseconds</span><button type="button" class="chip" id="ts-ms" title="Copy"></button></div>
+        <div class="chip-box wide"><span>ISO 8601 (UTC)</span><button type="button" class="chip" id="ts-iso" title="Copy"></button></div>
+      </div>
+    </div>
+
+    <div class="ticker">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="tick-label">Unix time right now</span>
+      <button type="button" class="tick" id="ts-tick" title="Copy">0</button>
+      <span class="tick-ms"><span id="ts-tick-ms">0</span> ms</span>
+      <label class="pick">
+        <span>Or pick a date</span>
+        <input id="ts-pick" type="datetime-local" step="60" />
+      </label>
+    </div>
+
+    <section class="cities-wrap" aria-labelledby="ts-cities-h">
+      <h2 id="ts-cities-h">The same moment around the world</h2>
+      <div class="cities" id="ts-cities"></div>
+    </section>
+
+    <details class="fold">
+      <summary>Every format</summary>
+      <p class="hint">Click a value to copy it.</p>
+      <div class="table-wrap">
+        <table><tbody id="ts-formats"></tbody></table>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>Code: JavaScript, Postgres and Python</summary>
+      <div class="tabs" role="tablist" aria-label="Language">
+        <button type="button" role="tab" data-ts-lang="js" aria-selected="true">JavaScript</button>
+        <button type="button" role="tab" data-ts-lang="postgres" aria-selected="false">Postgres / Supabase</button>
+        <button type="button" role="tab" data-ts-lang="python" aria-selected="false">Python</button>
+      </div>
+      <pre id="ts-code" tabindex="0" aria-label="Code for this time"></pre>
+      <div class="actions"><button id="ts-copy-code" type="button" class="primary">Copy code</button></div>
+    </details>
+
+    <div class="actions">
+      <button id="ts-link" type="button" class="ghost">Copy link to this time</button>
+      <p class="status" id="ts-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/timestamp-converter';
+</script>
+
+<style>
+  .ts { display: grid; gap: 24px; min-width: 0; }
+  .ts [hidden] { display: none !important; }
+  .stage { display: grid; gap: 18px; padding: 32px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; overflow: hidden; }
+  .entry { display: flex; gap: 10px; min-width: 0; }
+  .entry input { flex: 1; min-width: 0; font: 600 22px/1.2 var(--mono); padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  .entry input:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .entry input[aria-invalid="true"] { border-color: #B4234F; }
+  .tries { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; color: var(--ink-soft); }
+  .tries button { font: 500 13px/1 var(--mono); padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .tries button:hover { border-color: var(--sky); }
+  .bad { margin: 0; color: #B4234F; font-size: 15px; }
+  .answer { display: grid; gap: 6px; min-width: 0; padding: 8px 0; }
+  .read { justify-self: start; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sky); padding: 6px 10px; border-radius: 999px; background: #DDF2FA; }
+  .date { font: 800 44px/1.05 var(--display); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .time { font: 800 72px/1 var(--display); letter-spacing: -0.03em; color: var(--sky); font-variant-numeric: tabular-nums; }
+  .zone { font-size: 15px; color: var(--ink-soft); }
+  .sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 6px; }
+  .rel { font: 700 16px/1 var(--body); padding: 8px 14px; border-radius: 999px; background: var(--pink); color: var(--white); }
+  .utc { font: 500 15px/1.4 var(--mono); color: var(--ink); }
+  .chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); gap: 12px; }
+  .chip-box { display: grid; gap: 6px; min-width: 0; }
+  .chip-box span { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .chip { font: 600 16px/1.2 var(--mono); padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--ink-soft); background: var(--white); color: var(--ink); cursor: copy; text-align: left; overflow-wrap: anywhere; }
+  .chip:hover { border-color: var(--pink); }
+  .ticker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 14px 20px; border-radius: 16px; background: var(--ink); color: #E6F6FB; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #3DDC97; animation: pulse 1s infinite alternate; }
+  @keyframes pulse { to { opacity: 0.3; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  .tick-label { font-size: 14px; color: #A9C7D3; }
+  .tick { font: 700 24px/1 var(--mono); padding: 0; border: 0; background: none; color: var(--white); cursor: copy; font-variant-numeric: tabular-nums; }
+  .tick-ms { font: 500 13px/1 var(--mono); color: #A9C7D3; font-variant-numeric: tabular-nums; }
+  .pick { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px; color: #A9C7D3; }
+  .pick input { font: 500 14px/1 var(--body); padding: 8px 10px; border: 1px solid #2B4A5A; border-radius: 10px; background: #132F40; color: var(--white); color-scheme: dark; }
+  .cities-wrap h2 { margin: 0 0 12px; font: 700 20px/1.2 var(--display); }
+  .cities { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .cities :global(.city) { display: grid; gap: 6px; padding: 16px; border-radius: 16px; border: 1px solid var(--line); min-width: 0; transition: background 0.3s; }
+  .cities :global(.city[data-sky="day"]) { background: linear-gradient(160deg, #FFF6D9, #DDF2FA); color: var(--ink); }
+  .cities :global(.city[data-sky="dusk"]) { background: linear-gradient(160deg, #FBD9C9, #E3D6F5); color: var(--ink); }
+  .cities :global(.city[data-sky="night"]) { background: linear-gradient(160deg, #0B2230, #23395B); color: #E6F6FB; border-color: #23395B; }
+  .cities :global(select) { justify-self: start; max-width: 100%; font: 600 15px/1.2 var(--body); padding: 4px 6px; margin-left: -6px; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+  .cities :global(select option) { color: var(--ink); background: var(--white); }
+  .cities :global(.city-time) { font: 800 30px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .cities :global(.city-day) { font-size: 14px; font-weight: 600; }
+  .cities :global(.city-off) { font: 500 12px/1 var(--mono); opacity: 0.75; }
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .hint { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  table :global(th) { text-align: left; font: 600 14px/1.3 var(--body); color: var(--ink-soft); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table :global(td) { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  table :global(.val) { font: 500 14px/1.4 var(--mono); padding: 6px 8px; margin-left: -8px; border: 0; border-radius: 8px; background: none; color: var(--ink); cursor: copy; text-align: left; }
+  table :global(.val:hover) { background: var(--wash); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+  .tabs button { font: 600 14px/1 var(--body); padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  pre { box-sizing: border-box; margin: 0 0 12px; padding: 16px; border-radius: 14px; overflow: auto; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; white-space: pre; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .entry .primary { border-radius: 14px; padding: 0 22px; font-size: 16px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 860px) {
+    .cities { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chips { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .chip-box.wide { grid-column: 1 / -1; }
+    .pick { margin-left: 0; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 20px; }
+    .entry input { font-size: 17px; padding: 12px 14px; }
+    .date { font-size: 28px; }
+    .time { font-size: 48px; }
+    .cities :global(.city-time) { font-size: 24px; }
+    .chip { font-size: 14px; padding: 10px; }
+  }
+</style>
