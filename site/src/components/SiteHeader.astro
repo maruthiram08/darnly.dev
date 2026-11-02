@@ -1,6 +1,6 @@
 ---
 // Top bar for inner pages (tools, guides). The home page keeps its own hero header.
-import { storeUrl } from '../data/site';
+import { GUIDES, storeUrl } from '../data/site';
 interface Props { source: string }
 const { source } = Astro.props;
 ---
@@ -9,7 +9,7 @@ const { source } = Astro.props;
     <a class="brand" href="/"><img src="/icon.png" alt="" width="30" height="30">Darnly</a>
     <nav aria-label="Main">
       <a href="/tools/">Free tools</a>
-      <a href="/guides/">Guides</a>
+      {GUIDES.length > 0 && <a href="/guides/">Guides</a>}
       <a href="/#mac">Mac app</a>
       <a class="add" href={storeUrl(source)}>Add to Chrome</a>
     </nav>

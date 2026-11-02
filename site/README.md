@@ -27,3 +27,9 @@ npm run dev
 ## Deploy
 
 Pushing to `main` deploys through the Cloudflare Worker `darnly-dev`. `wrangler.jsonc` at the repo root runs `npm ci` and `npm run build` in `site/` first, then uploads `site/dist`. The Node version comes from `.node-version` at the repo root.
+
+After a deploy that adds or changes pages, run `npm run indexnow` in `site/` to tell Bing and other IndexNow search engines (add `-- --dry-run` to only list the URLs).
+It sends every URL in the sitemap (from `dist/` if built, otherwise the live one) with the key in `public/81482878266902640d1cb34de558b363.txt`.
+It is never part of the build or deploy, so a failure there can't break the site.
+
+`/llms.txt` and `/llms-full.txt` are built from `src/data/site.ts` by `src/data/llms.ts`. Cloudflare Web Analytics turns on when a token is pasted into `src/data/analytics.ts`.
