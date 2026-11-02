@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { PRODUCT, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
@@ -524,28 +524,43 @@ export function App() {
   // The bug list: the linked folder's bugs, or the cloud inbox's.
   const shown = folder ? captures : session ? cloudBugs : [];
 
+  const waiting = shown.filter((c) => c.status === 'waiting').length;
+  const fixedCount = shown.filter((c) => c.status === 'fixed').length;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
   return (
-    <main className="space-y-4 p-4 text-sm text-gray-900">
-      <header>
-        <h1 className="text-base font-semibold">{PRODUCT.NAME}</h1>
+    <main className="space-y-3 p-3.5 text-sm text-ink">
+      <header className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <img src="/icon/32.png" alt="" className="h-7 w-7 rounded-lg" />
+          <h1 className="text-[15px] font-bold tracking-tight">{PRODUCT.NAME}</h1>
+          {waiting > 0 && <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">{waiting} to fix</span>}
+        </div>
         {askRecent && (
           <ProjectChooser site={site.origin} recent={askRecent} onPick={pickProject} onLink={linkFolder} onCloud={useCloud} />
         )}
         {!askRecent && !folder && cloud === false && <Welcome onLink={linkFolder} onCloud={useCloud} />}
         {!askRecent && !folder && cloud && session && (
-          <p className="mt-1 text-xs text-gray-500">
-            Sending bugs to your Darnly inbox ({session.email}) ·{' '}
-            <button className="underline" onClick={linkFolder}>link a folder instead</button>
-          </p>
+          <div className="flex items-center gap-2.5 rounded-xl border border-line bg-white px-3 py-2">
+            <Icon name="cloud" className="h-4 w-4 shrink-0 text-sky" />
+            <p className="min-w-0 flex-1 text-xs text-ink-soft">
+              <span className="block font-medium text-ink">Sending bugs to your Darnly inbox</span>
+              <span className="block truncate">{session.email}</span>
+            </p>
+            <button className={linkCls + ' text-xs'} onClick={linkFolder}>link a folder instead</button>
+          </div>
         )}
         {!askRecent && !folder && cloud && !session && (
-          <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
-            <p className="font-medium">Send bugs straight to your agent</p>
-            <p className="text-xs text-gray-500">Sign in once, and each bug goes to your private Darnly inbox. Your agent picks it up there, with nothing to paste.</p>
-            <button className="w-full rounded-lg bg-gray-900 py-2 text-white" onClick={cloudSignIn}>Sign in with Google</button>
-            <p className="text-xs text-gray-500">
+          <div className={cardCls + ' space-y-2.5'}>
+            <div className="flex items-center gap-2">
+              <Icon name="cloud" className="h-4 w-4 text-sky" />
+              <p className="font-semibold">Send bugs straight to your agent</p>
+            </div>
+            <p className="text-xs text-ink-soft">Sign in once, and each bug goes to your private Darnly inbox. Your agent picks it up there, with nothing to paste.</p>
+            <button className={primaryCls} onClick={cloudSignIn}>Sign in with Google</button>
+            <p className="text-xs text-ink-soft">
               Or copy each bug into your agent by hand ·{' '}
-              <button className="underline" onClick={linkFolder}>link a folder instead</button>
+              <button className={linkCls} onClick={linkFolder}>link a folder instead</button>
             </p>
           </div>
         )}
@@ -553,156 +568,202 @@ export function App() {
       </header>
 
       {site.recordable && !site.builtIn && !site.on && (
-        <div className="rounded-lg border border-gray-200 p-3">
-          <p className="text-gray-600">Errors and failed requests aren't recorded on <strong>{site.origin?.replace(/^https?:\/\//, '')}</strong>.</p>
-          <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={recordThisSite}>Record errors on this site</button>
+        <div className="flex items-start gap-2.5 rounded-xl border border-line bg-white p-3">
+          <Icon name="pulse" className="mt-0.5 h-4 w-4 shrink-0 text-ink-soft" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink-soft">Errors and failed requests aren't recorded on <strong className="text-ink">{site.origin?.replace(/^https?:\/\//, '')}</strong>.</p>
+            <button className={secondaryCls + ' mt-2 w-full py-1.5 text-xs'} onClick={recordThisSite}>Record errors on this site</button>
+          </div>
         </div>
       )}
 
       {stage === 'idle' && (
-        <section className="space-y-2">
+        <section className={cardCls + ' space-y-3'}>
           {shortcut ? (
-            <p className="text-gray-600">Press <Kbd>{shortcut}</Kbd> on any page, then click the broken part.</p>
+            <div className="space-y-2 text-center">
+              <div className="flex justify-center gap-1.5">
+                {keysOf(shortcut).map((k, i) => <Kbd key={i} big>{k}</Kbd>)}
+              </div>
+              <p className="text-ink-soft">Press this on any page, then click the broken part.</p>
+            </div>
           ) : (
-            <div className="rounded-lg bg-amber-50 p-3 text-amber-900">
+            <div className="rounded-xl bg-amber-50 p-3 text-amber-900">
               <p>The keyboard shortcut isn't set, usually because another extension uses the same keys.</p>
-              <button className="mt-2 w-full rounded-lg border border-amber-300 bg-white py-1.5" onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}>
+              <button className="mt-2 w-full rounded-xl border border-amber-300 bg-white py-1.5 font-medium" onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}>
                 Set a shortcut
               </button>
             </div>
           )}
-          <button className="w-full rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture a bug</button>
+          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+            <Icon name="target" className="h-4 w-4" />
+            Capture a bug
+          </button>
+          {shown.length === 0 && (
+            <ol className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
+              {['Click the broken part and say what you expected.', 'Darnly hands your agent the picture, the element and the errors.', 'You see here when your agent has fixed it.'].map((t, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-wash text-[10px] font-bold text-sky">{i + 1}</span>
+                  {t}
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
       )}
 
       {stage === 'picking' && (
-        <section className="space-y-2 rounded-lg bg-rose-50 p-3 text-rose-800">
-          <p>Click the broken part of the page. Press W for the whole page, Esc to cancel.</p>
+        <section className="space-y-3 rounded-2xl border border-pink/30 bg-pink/5 p-3.5">
+          <div className="flex items-start gap-2.5">
+            <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
+            </span>
+            <div>
+              <p className="font-semibold text-ink">Click the broken part of the page.</p>
+              <p className="text-xs text-ink-soft">Press W for the whole page, Esc to cancel.</p>
+            </div>
+          </div>
           <div className="flex gap-2">
-            <button className="flex-1 rounded-lg border border-rose-200 bg-white py-1.5" onClick={() => pickerCommand('whole')}>Whole page</button>
-            <button className="flex-1 rounded-lg border border-rose-200 bg-white py-1.5" onClick={() => pickerCommand('cancel')}>Cancel</button>
+            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('whole')}>Whole page</button>
+            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('cancel')}>Cancel</button>
           </div>
         </section>
       )}
 
       {stage === 'note' && capture && (
-        <section className="space-y-3">
+        <section className={cardCls + ' space-y-3'}>
           {capture.screenshot && <MarkedPreview capture={capture} />}
-          {capture.screenshotError && <p className="text-amber-700">No screenshot: {capture.screenshotError}</p>}
-          {capture.element && (
-            <p className="truncate text-xs text-gray-500" title={capture.element.selector}>
-              {capture.element.tag}{capture.element.text ? ` "${capture.element.text.slice(0, 50)}"` : ''}
-            </p>
-          )}
-          <p className="text-xs text-gray-500">
-            {capture.recorder
-              ? `${capture.logs.filter((l) => l.kind !== 'request').length} errors · ${capture.logs.filter((l) => l.kind === 'request').length} failed requests (last 60s), secrets hidden`
-              : 'Errors not recorded on this site'}
-          </p>
-          <label className="block font-medium" htmlFor="note">What did you expect?</label>
-          <textarea
-            id="note"
-            ref={noteRef}
-            className="w-full rounded-lg border border-gray-300 p-2"
-            rows={3}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            onPaste={(e) => {
-              // A picture on the clipboard (and no text) is a picture of what it should look like.
-              const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
-              if (file && !e.clipboardData.getData('text/plain')) {
-                e.preventDefault();
-                addReference(file);
-              }
-            }}
-            onDragOver={(e) => {
-              if ([...e.dataTransfer.items].some((i) => i.kind === 'file' && i.type.startsWith('image/'))) e.preventDefault();
-            }}
-            onDrop={(e) => {
-              const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
-              if (file) {
-                e.preventDefault();
-                addReference(file);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                save();
-              }
-            }}
-            placeholder="What should it do or look like? e.g. Should look flat, like the Beliefs pills"
-          />
-          {reference ? (
-            <div className="flex items-center gap-2 text-xs text-gray-600">
-              <img src={reference.url} alt="What it should look like" className="h-10 max-w-[5rem] rounded border border-gray-200 object-cover" />
-              <span className="flex-1">Picture of what you want added</span>
-              <button className="underline" onClick={clearReference}>Remove</button>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500">Optional: paste or drop a picture of what it should look like.</p>
-          )}
-          <div className="flex gap-2">
-            <button className="flex-1 rounded-lg bg-gray-900 py-2 text-white disabled:opacity-60" onClick={save} disabled={saving}>
-              {saving ? (!folder && session ? 'Sending…' : 'Saving…') : 'Save (Enter)'}
-            </button>
-            <button className="rounded-lg border border-gray-300 px-3" onClick={() => copyPrompt(build(capture).paste)}>Copy as prompt</button>
-            <button className="rounded-lg px-3 text-gray-500" onClick={() => { setStage('idle'); setCapture(null); }}>Cancel</button>
+          {capture.screenshotError && <p className="text-xs text-amber-700">No screenshot: {capture.screenshotError}</p>}
+          <div className="flex flex-wrap gap-1.5">
+            {capture.element && (
+              <Chip title={capture.element.selector}>
+                <span className="font-mono">{capture.element.tag}</span>
+                {capture.element.text ? ` "${capture.element.text.slice(0, 30)}"` : ''}
+              </Chip>
+            )}
+            {capture.recorder ? (
+              <>
+                <Chip tone={capture.logs.some((l) => l.kind !== 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind !== 'request').length, 'error', 'errors')}</Chip>
+                <Chip tone={capture.logs.some((l) => l.kind === 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind === 'request').length, 'failed request', 'failed requests')}</Chip>
+                <Chip>secrets hidden</Chip>
+              </>
+            ) : (
+              <Chip>Errors not recorded on this site</Chip>
+            )}
           </div>
-          <p className="text-xs text-gray-500">Shift+Enter for a new line.</p>
+          <div className="space-y-1.5">
+            <label className="block font-semibold" htmlFor="note">What did you expect?</label>
+            <textarea
+              id="note"
+              ref={noteRef}
+              className="w-full rounded-xl border border-line bg-white p-2.5 outline-none placeholder:text-ink-soft/60 focus:border-sky focus:ring-2 focus:ring-sky/20"
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onPaste={(e) => {
+                // A picture on the clipboard (and no text) is a picture of what it should look like.
+                const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
+                if (file && !e.clipboardData.getData('text/plain')) {
+                  e.preventDefault();
+                  addReference(file);
+                }
+              }}
+              onDragOver={(e) => {
+                if ([...e.dataTransfer.items].some((i) => i.kind === 'file' && i.type.startsWith('image/'))) e.preventDefault();
+              }}
+              onDrop={(e) => {
+                const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
+                if (file) {
+                  e.preventDefault();
+                  addReference(file);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  save();
+                }
+              }}
+              placeholder="What should it do or look like? e.g. Should look flat, like the Beliefs pills"
+            />
+            {reference ? (
+              <div className="flex items-center gap-2 text-xs text-ink-soft">
+                <img src={reference.url} alt="What it should look like" className="h-10 max-w-[5rem] rounded-lg border border-line object-cover" />
+                <span className="flex-1">Picture of what you want added</span>
+                <button className={linkCls} onClick={clearReference}>Remove</button>
+              </div>
+            ) : (
+              <p className="text-xs text-ink-soft">Optional: paste or drop a picture of what it should look like. Shift+Enter for a new line.</p>
+            )}
+          </div>
+          <button className={primaryCls} onClick={save} disabled={saving}>
+            {saving ? (!folder && session ? 'Sending…' : 'Saving…') : 'Save (Enter)'}
+          </button>
+          <div className="flex gap-2">
+            <button className={secondaryCls + ' flex-1'} onClick={() => copyPrompt(build(capture).paste)}>Copy as prompt</button>
+            <button className="rounded-xl px-3 text-ink-soft hover:text-ink" onClick={() => { setStage('idle'); setCapture(null); }}>Cancel</button>
+          </div>
         </section>
       )}
 
       {stage === 'saved' && (
-        <section className="space-y-2">
+        <section className={cardCls + ' space-y-3'}>
           {sentToCloud ? (
             <>
-              <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Sent to your Darnly inbox</p>
-              <p className="text-gray-600">Tell your agent: <em>"fix my Darnly bugs"</em></p>
+              <Done title="Sent to your Darnly inbox" />
+              <NextStep>Tell your agent: <em>"fix my Darnly bugs"</em></NextStep>
             </>
           ) : lastFile ? (
             <>
-              <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
+              <Done title={<>Saved to <span className="font-mono text-[12px]">{INBOX_FOLDER}</span></>} detail={lastFile.split('/').pop()} />
               {hooksOn ? (
-                <p className="text-gray-600">Claude Code will offer to fix it on your next message. In other agents, type <em>/darnly</em>.</p>
+                <NextStep>Claude Code will offer to fix it on your next message. In other agents, type <em>/darnly</em>.</NextStep>
               ) : (
-                <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+                <NextStep>Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></NextStep>
               )}
             </>
           ) : (
-            <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
+            <NextStep>Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</NextStep>
           )}
           <DragCard files={lastFiles} title={lastTitle} linked={!!lastFile || sentToCloud} />
-          {sentToCloud && <p className="text-xs text-gray-500">Agent not connected yet? Copy it by hand:</p>}
+          {sentToCloud && <p className="text-xs text-ink-soft">Agent not connected yet? Copy it by hand:</p>}
           <div className="flex gap-2">
             {lastFiles.some((f) => f.type === 'image/png') && (
-              <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyPicture(lastFiles)}>1. Copy picture{copied.picture ? ' ✓' : ''}</button>
+              <button className={secondaryCls + ' flex-1'} onClick={() => copyPicture(lastFiles)}>1. Copy picture{copied.picture ? ' ✓' : ''}</button>
             )}
-            <button className="flex-1 rounded-lg border border-gray-300 py-2" onClick={() => copyDetails(lastPaste)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
+            <button className={secondaryCls + ' flex-1'} onClick={() => copyDetails(lastPaste)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
           </div>
-          <button className="w-full rounded-lg border border-gray-300 py-2" onClick={startFromPanel}>Capture another</button>
+          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+            <Icon name="target" className="h-4 w-4" />
+            Capture another
+          </button>
         </section>
       )}
 
-      {message && <p className="text-amber-700">{message}</p>}
+      {message && (
+        <p className={`rounded-xl px-3 py-2 text-xs ${/^(couldn't|darnly needs|google sign-in|press )/i.test(message) ? 'bg-amber-50 text-amber-900' : 'bg-wash text-ink'}`} role="status">{message}</p>
+      )}
 
       {folder && access === 'granted' && setupNeeded && plan && (
-        <section className="rounded-lg border border-gray-200 p-3">
-          <p className="font-medium">Set up this project</p>
-          <p className="mt-1 text-gray-600">Adds a short note so Claude Code, Codex and Cursor know where your bug reports are, and tells Claude Code when new bugs come in.</p>
+        <section className="rounded-2xl border border-sky/30 bg-wash p-3.5">
+          <div className="flex items-center gap-2">
+            <Icon name="spark" className="h-4 w-4 text-sky" />
+            <p className="font-semibold">Set up this project</p>
+          </div>
+          <p className="mt-1 text-xs text-ink-soft">Adds a short note so Claude Code, Codex and Cursor know where your bug reports are, and tells Claude Code when new bugs come in.</p>
           {!showPlan ? (
-            <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={() => setShowPlan(true)}>See what it adds</button>
+            <button className={secondaryCls + ' mt-2.5 w-full py-1.5'} onClick={() => setShowPlan(true)}>See what it adds</button>
           ) : (
-            <div className="mt-2 space-y-2">
+            <div className="mt-2.5 space-y-2">
               {plan.map((c) => (
-                <details key={c.path} className="rounded border border-gray-200 p-2">
+                <details key={c.path} className="rounded-lg border border-line bg-white p-2">
                   <summary className="cursor-pointer text-xs"><strong>{c.action === 'create' ? 'Create' : 'Update'}</strong> <code>{c.path}</code></summary>
-                  <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-gray-700">{c.content}</pre>
+                  <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-ink-soft">{c.content}</pre>
                 </details>
               ))}
               <div className="flex gap-2">
-                <button className="flex-1 rounded-lg bg-gray-900 py-1.5 text-white" onClick={applySetup}>Add these</button>
-                <button className="rounded-lg px-3 text-gray-500" onClick={() => setShowPlan(false)}>Not now</button>
+                <button className={primaryCls + ' flex-1 py-1.5'} onClick={applySetup}>Add these</button>
+                <button className="rounded-xl px-3 text-ink-soft" onClick={() => setShowPlan(false)}>Not now</button>
               </div>
             </div>
           )}
@@ -710,9 +771,12 @@ export function App() {
       )}
 
       {shown.some((c) => c.question) && (
-        <section className="rounded-lg bg-amber-50 p-3 text-amber-900" role="status">
-          <p className="font-medium">Your agent is waiting for your input. Return to your agent.</p>
-          <ul className="mt-1 space-y-1">
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-amber-950" role="status">
+          <div className="flex items-start gap-2">
+            <Icon name="chat" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p className="font-semibold">Your agent is waiting for your input. Return to your agent.</p>
+          </div>
+          <ul className="mt-2 space-y-1.5 pl-6">
             {shown.filter((c) => c.question).slice(0, 3).map((c) => (
               <li key={c.id} className="text-xs">
                 <span className="font-medium">{c.title}</span>
@@ -724,9 +788,12 @@ export function App() {
       )}
 
       {justFixed.length > 0 && (
-        <section className="rounded-lg bg-emerald-50 p-3 text-emerald-900">
-          <p className="font-medium">{justFixed.length === 1 ? '1 bug fixed' : `${justFixed.length} bugs fixed`}. Take a look.</p>
-          <ul className="mt-1 space-y-1">
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-emerald-950">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><Icon name="check" className="h-3 w-3" /></span>
+            <p className="font-semibold">{justFixed.length === 1 ? '1 bug fixed' : `${justFixed.length} bugs fixed`}. Take a look.</p>
+          </div>
+          <ul className="mt-2 space-y-1.5 pl-7">
             {justFixed.slice(0, 5).map((c) => (
               <li key={c.id} className="text-xs">
                 <span className="font-medium">{c.title}</span>
@@ -736,114 +803,150 @@ export function App() {
           </ul>
           {/* Reloading only shows the fix on a dev server; a live site changes once the user deploys. */}
           {justFixed.some((c) => !isLocalPage(c.pageUrl)) && (
-            <p className="mt-2 text-xs text-emerald-800">
+            <p className="mt-2 pl-7 text-xs text-emerald-800">
               {justFixed.every((c) => !isLocalPage(c.pageUrl)) ? 'The fix is in your code. Deploy it to see it on your live site, or check it on your local copy.' : 'Fixes for live sites show there after you deploy.'}
             </p>
           )}
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2.5 flex gap-2">
             {justFixed.some((c) => isLocalPage(c.pageUrl)) ? (
-              <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
+              <button className="flex-1 rounded-xl bg-emerald-600 py-1.5 font-medium text-white hover:bg-emerald-700" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
             ) : (
               <span className="flex-1" />
             )}
-            <button className="rounded-lg px-3 text-emerald-800" onClick={() => setJustFixed(() => [])}>Done</button>
+            <button className="rounded-xl px-3 font-medium text-emerald-800" onClick={() => setJustFixed(() => [])}>Done</button>
           </div>
         </section>
       )}
 
       {shown.length > 0 && (
-        <section>
-          <p className="font-medium">
-            Captured bugs <span className="font-normal text-gray-500">· {shown.filter((c) => c.status === 'waiting').length} waiting, {shown.filter((c) => c.status === 'fixed').length} fixed</span>
-          </p>
-          <ul className="mt-2 divide-y divide-gray-100">
+        <section className={cardCls + ' !p-0'}>
+          <div className="flex items-baseline justify-between px-3.5 pb-1 pt-3">
+            <p className="font-semibold">Captured bugs</p>
+            <p className="text-xs text-ink-soft">{waiting} waiting, {fixedCount} fixed</p>
+          </div>
+          <ul className="divide-y divide-line/70 px-1.5 pb-1.5">
             {shown.slice(0, 20).map((c) => (
-              <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : c.question ? 'bg-rose-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed' : c.question ? 'Your agent is waiting for your input' : 'Waiting for your agent'} />
-                <span className={`min-w-0 flex-1 truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
+              <li key={c.status + c.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-2">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : c.question ? 'bg-pink' : 'bg-amber-400'}`} />
+                <span className={`min-w-0 flex-1 truncate ${c.status === 'fixed' ? 'text-ink-soft line-through decoration-ink-soft/40' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
                 {confirmBug === c.status + c.id ? (
-                  <span className="shrink-0 text-xs">
-                    Delete? <button className="font-medium text-rose-700 underline" onClick={() => deleteOne(c)}>Yes</button>{' '}
+                  <span className="shrink-0 text-xs text-ink-soft">
+                    Delete? <button className="font-semibold text-rose-700 underline" onClick={() => deleteOne(c)}>Yes</button>{' '}
                     <button className="underline" onClick={() => setConfirmBug(null)}>No</button>
                   </span>
                 ) : (
-                  <button className="shrink-0 rounded px-1 text-gray-400 hover:text-rose-700" aria-label={`Delete ${c.title}`} title="Delete this bug" onClick={() => setConfirmBug(c.status + c.id)}>×</button>
+                  <>
+                    <StatusTag status={c.status === 'fixed' ? 'fixed' : c.question ? 'question' : 'waiting'} />
+                    <button className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-ink-soft/50 hover:bg-rose-50 hover:text-rose-700 group-hover:text-ink-soft" aria-label={`Delete ${c.title}`} title="Delete this bug" onClick={() => setConfirmBug(c.status + c.id)}>×</button>
+                  </>
                 )}
               </li>
             ))}
           </ul>
-          {shown.some((c) => c.status === 'waiting') && (
-            <p className="mt-2 text-xs text-gray-500">{folder && hooksOn ? <>Claude Code will offer to fix these on your next message. In other agents, type <em>/darnly</em>.</> : <>Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></>}</p>
+          {waiting > 0 && (
+            <p className="border-t border-line px-3.5 py-2.5 text-xs text-ink-soft">{folder && hooksOn ? <>Claude Code will offer to fix these on your next message. In other agents, type <em>/darnly</em>.</> : <>Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></>}</p>
           )}
         </section>
       )}
-      {stats.length >= 3 && (
-        <p className="text-xs text-gray-500">
-          Average capture: {Math.round(stats.reduce((a, b) => a + b.ms, 0) / stats.length / 1000)}s over {stats.length} bugs
-          {shown.length ? ` · ${shown.filter((c) => c.status === 'fixed').length} of ${shown.length} fixed` : ''}
-        </p>
-      )}
       {!folder && session && (
-        <section className="space-y-2 border-t border-gray-100 pt-3">
-          <details className="rounded-lg border border-gray-200 p-3" open={cloudBugs.length === 0}>
-            <summary className="cursor-pointer font-medium">Connect your agent (once)</summary>
-            <p className="mt-2 text-gray-600">Add this address as a connector (MCP server) in your agent, then sign in with the same Google account:</p>
-            <div className="mt-2 flex gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-gray-100 px-2 py-1.5 text-xs" title={mcp}>{mcp}</code>
-              <button className="rounded-lg border border-gray-300 px-3" onClick={() => navigator.clipboard.writeText(mcp).then(() => setMessage('Connector address copied.'))}>Copy</button>
-            </div>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-gray-500">
-              <li>Claude: Settings, Connectors, Add custom connector</li>
-              <li>Claude Code: <code>claude mcp add --transport http darnly {mcp}</code></li>
-              <li>Cursor: Settings, MCP, Add new MCP server</li>
-            </ul>
-          </details>
-          <p className="text-xs text-gray-500">
-            {session.email} · <button className="underline" onClick={cloudSignOut}>Sign out</button> ·{' '}
-            <button className="underline" onClick={cloudSignOutEverywhere} title="Signs out every computer and disconnects every coding agent">Sign out everywhere</button> ·{' '}
-            {confirmDelete ? (
-              <>
-                Delete every bug in your inbox? <button className="font-medium text-rose-700 underline" onClick={cloudDeleteAll}>Yes, delete</button>{' '}
-                <button className="underline" onClick={() => setConfirmDelete(false)}>Keep</button>
-              </>
-            ) : (
-              <button className="underline" onClick={() => setConfirmDelete(true)}>Delete all my cloud bugs</button>
-            )}
-          </p>
-        </section>
+        <details className={cardCls} open={cloudBugs.length === 0}>
+          <summary className="cursor-pointer font-semibold">Connect your agent (once)</summary>
+          <p className="mt-2 text-xs text-ink-soft">Add this address as a connector (MCP server) in your agent, then sign in with the same Google account:</p>
+          <div className="mt-2 flex gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-wash px-2 py-1.5 text-xs" title={mcp}>{mcp}</code>
+            <button className={secondaryCls + ' px-3 py-1'} onClick={() => navigator.clipboard.writeText(mcp).then(() => setMessage('Connector address copied.'))}>Copy</button>
+          </div>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-ink-soft">
+            <li>Claude: Settings, Connectors, Add custom connector</li>
+            <li>Claude Code: <code>claude mcp add --transport http darnly {mcp}</code></li>
+            <li>Cursor: Settings, MCP, Add new MCP server</li>
+          </ul>
+        </details>
+      )}
+      {(stats.length >= 3 || (!folder && session)) && (
+        <footer className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
+          {stats.length >= 3 && (
+            <p>
+              Average capture: {Math.round(stats.reduce((a, b) => a + b.ms, 0) / stats.length / 1000)}s over {stats.length} bugs
+              {shown.length ? ` · ${fixedCount} of ${shown.length} fixed` : ''}
+            </p>
+          )}
+          {!folder && session && (
+            <p>
+              {session.email} · <button className="underline" onClick={cloudSignOut}>Sign out</button> ·{' '}
+              <button className="underline" onClick={cloudSignOutEverywhere} title="Signs out every computer and disconnects every coding agent">Sign out everywhere</button> ·{' '}
+              {confirmDelete ? (
+                <>
+                  Delete every bug in your inbox? <button className="font-medium text-rose-700 underline" onClick={cloudDeleteAll}>Yes, delete</button>{' '}
+                  <button className="underline" onClick={() => setConfirmDelete(false)}>Keep</button>
+                </>
+              ) : (
+                <button className="underline" onClick={() => setConfirmDelete(true)}>Delete all my cloud bugs</button>
+              )}
+            </p>
+          )}
+        </footer>
       )}
     </main>
   );
 }
 
+const cardCls = 'rounded-2xl border border-line bg-white p-3.5 shadow-[0_1px_2px_rgba(11,34,48,0.05)]';
+const primaryCls = 'w-full rounded-xl bg-sky py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-sky-deep disabled:opacity-60';
+const secondaryCls = 'rounded-xl border border-line bg-white py-2 font-medium text-ink transition-colors hover:border-sky/40 hover:bg-wash';
+const linkCls = 'font-medium text-sky underline-offset-2 hover:underline';
+
 function toSummary(b: CloudBug): CaptureSummary {
   return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined, pageUrl: b.pageUrl || undefined };
 }
 
+/** "⌥⇧B" or "Alt+Shift+B" as separate keys. */
+function keysOf(shortcut: string): string[] {
+  return shortcut.includes('+') ? shortcut.split('+') : [...shortcut];
+}
+
 function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void }) {
+  const option = (icon: IconName, title: string, text: string, onClick: () => void, main: boolean) => (
+    <button
+      className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${main ? 'border-sky bg-wash hover:bg-sky/10' : 'border-line bg-white hover:bg-wash'}`}
+      onClick={onClick}
+    >
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${main ? 'bg-sky text-white' : 'bg-wash text-sky'}`}><Icon name={icon} className="h-4 w-4" /></span>
+      <span>
+        <span className="block font-semibold">{title}</span>
+        <span className="block text-xs text-ink-soft">{text}</span>
+      </span>
+    </button>
+  );
   return (
-    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
-      <p className="font-medium">Where does your project's code live?</p>
-      <button className="w-full rounded-lg bg-gray-900 py-2 text-white" onClick={onLink}>On this computer: link the folder</button>
-      <p className="text-xs text-gray-500">Bugs are saved into the project, and your agent finds them there.</p>
-      <button className="w-full rounded-lg border border-gray-300 py-2" onClick={onCloud}>In the cloud (Claude, Codex or Cursor online)</button>
-      <p className="text-xs text-gray-500">Each bug stays here, and you copy it into your agent's chat.</p>
+    <div className={cardCls + ' space-y-2.5'}>
+      <p className="font-semibold">Where does your project's code live?</p>
+      {option('folder', 'On this computer: link the folder', 'Bugs are saved into the project, and your agent finds them there.', onLink, true)}
+      {option('cloud', 'In the cloud (Claude, Codex or Cursor online)', 'Each bug goes to your Darnly inbox, or you copy it into your agent\'s chat.', onCloud, false)}
     </div>
   );
 }
 
 function ProjectChooser({ site, recent, onPick, onLink, onCloud }: { site?: string; recent: FileSystemDirectoryHandle[]; onPick: (h: FileSystemDirectoryHandle) => void; onLink: () => void; onCloud: () => void }) {
   return (
-    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
-      <p className="font-medium">Which project is {site ? site.replace(/^https?:\/\//, '') : 'this site'}?</p>
-      <p className="text-xs text-gray-500">Darnly remembers it for this site.</p>
-      <div className="flex flex-wrap gap-2">
-        {recent.map((r, i) => (
-          <button key={i} className="rounded-lg border border-gray-300 px-3 py-1.5" onClick={() => onPick(r)}>{r.name}</button>
-        ))}
-        <button className="rounded-lg border border-gray-300 px-3 py-1.5" onClick={onCloud}>In the cloud</button>
+    <div className={cardCls + ' space-y-2.5'}>
+      <div>
+        <p className="font-semibold">Which project is {site ? site.replace(/^https?:\/\//, '') : 'this site'}?</p>
+        <p className="text-xs text-ink-soft">Darnly remembers it for this site.</p>
       </div>
-      <button className="text-xs underline" onClick={onLink}>Another folder…</button>
+      <div className="space-y-1.5">
+        {recent.map((r, i) => (
+          <button key={i} className={secondaryCls + ' flex w-full items-center gap-2 px-3 text-left'} onClick={() => onPick(r)}>
+            <Icon name="folder" className="h-4 w-4 text-sky" />
+            {r.name}
+          </button>
+        ))}
+        <button className={secondaryCls + ' flex w-full items-center gap-2 px-3 text-left'} onClick={onCloud}>
+          <Icon name="cloud" className="h-4 w-4 text-sky" />
+          In the cloud
+        </button>
+      </div>
+      <button className={linkCls + ' text-xs'} onClick={onLink}>Another folder…</button>
     </div>
   );
 }
@@ -853,40 +956,102 @@ function FolderLine({ folder, access, recent = [], onPick, onLink, onCloud }: { 
   if (!folder) {
     return (
       <>
-        <button className="mt-2 w-full rounded-lg bg-gray-900 py-2 text-white" onClick={onLink}>
+        <button className={primaryCls} onClick={onLink}>
           Link your project folder
         </button>
-        <p className="mt-1 text-xs text-gray-500">Project lives in the cloud? Skip this. Each bug stays here for you to drag into your agent.</p>
+        <p className="mt-1 text-xs text-ink-soft">Project lives in the cloud? Skip this. Each bug stays here for you to drag into your agent.</p>
       </>
     );
   }
+  const others = onPick ? recent.filter((r) => r.name !== folder.name).slice(0, 4) : [];
+  const item = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-wash';
   return (
-    <p className="mt-1 text-xs text-gray-500">
-      Saving to <strong>{folder.name}</strong>
-      {access !== 'granted' && ' (Chrome will ask to allow on your next save)'} ·{' '}
-      {choosing ? (
-        <>
-          {onPick &&
-            recent
-              .filter((r) => r.name !== folder.name)
-              .slice(0, 4)
-              .map((r, i) => (
-                <span key={i}>
-                  <button className="underline" onClick={() => { setChoosing(false); onPick(r); }}>{r.name}</button> ·{' '}
-                </span>
-              ))}
-          <button className="underline" onClick={() => { setChoosing(false); onLink(); }}>another folder</button> ·{' '}
+    <div className="rounded-xl border border-line bg-white">
+      <div className="flex items-center gap-2.5 px-3 py-2">
+        <Icon name="folder" className="h-4 w-4 shrink-0 text-sky" />
+        <p className="min-w-0 flex-1 truncate text-xs text-ink-soft">
+          Saving to <strong className="text-ink">{folder.name}</strong>
+          {access !== 'granted' && ' (Chrome will ask to allow on your next save)'}
+        </p>
+        {!choosing && <button className={linkCls + ' text-xs'} onClick={() => (onCloud ? setChoosing(true) : onLink())}>change</button>}
+      </div>
+      {choosing && (
+        <div className="border-t border-line p-1.5 text-xs">
+          {others.map((r, i) => (
+            <button key={i} className={item} onClick={() => { setChoosing(false); onPick!(r); }}>
+              <Icon name="folder" className="h-3.5 w-3.5 text-ink-soft" />{r.name}
+            </button>
+          ))}
+          <button className={item} onClick={() => { setChoosing(false); onLink(); }}>
+            <Icon name="plus" className="h-3.5 w-3.5 text-ink-soft" />another folder
+          </button>
           {onCloud && (
-            <>
-              <button className="underline" onClick={() => { setChoosing(false); onCloud(); }}>use the cloud instead</button> ·{' '}
-            </>
+            <button className={item} onClick={() => { setChoosing(false); onCloud(); }}>
+              <Icon name="cloud" className="h-3.5 w-3.5 text-ink-soft" />use the cloud instead
+            </button>
           )}
-          <button className="underline" onClick={() => setChoosing(false)}>cancel</button>
-        </>
-      ) : (
-        <button className="underline" onClick={() => (onCloud ? setChoosing(true) : onLink())}>change</button>
+          <button className={item + ' text-ink-soft'} onClick={() => setChoosing(false)}>cancel</button>
+        </div>
       )}
+    </div>
+  );
+}
+
+function Done({ title, detail }: { title: ReactNode; detail?: string }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl bg-emerald-50 p-3 text-emerald-950">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"><Icon name="check" className="h-3 w-3" /></span>
+      <div className="min-w-0">
+        <p className="font-semibold">{title}</p>
+        {detail && <p className="truncate font-mono text-[11px] text-emerald-800" title={detail}>{detail}</p>}
+      </div>
+    </div>
+  );
+}
+
+function NextStep({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex gap-2 text-ink-soft">
+      <Icon name="arrow" className="mt-0.5 h-4 w-4 shrink-0 text-sky" />
+      <span>{children}</span>
     </p>
+  );
+}
+
+function Chip({ children, tone = 'plain', title }: { children: ReactNode; tone?: 'plain' | 'bad'; title?: string }) {
+  return (
+    <span title={title} className={`max-w-full truncate rounded-full px-2 py-0.5 text-[11px] ${tone === 'bad' ? 'bg-rose-50 text-rose-700' : 'bg-wash text-ink-soft'}`}>
+      {children}
+    </span>
+  );
+}
+
+function StatusTag({ status }: { status: 'fixed' | 'question' | 'waiting' }) {
+  const look = {
+    fixed: ['Fixed', 'bg-emerald-50 text-emerald-700'],
+    question: ['Needs you', 'bg-pink/10 text-pink'],
+    waiting: ['Waiting', 'bg-amber-50 text-amber-700'],
+  }[status];
+  return <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${look[1]}`}>{look[0]}</span>;
+}
+
+type IconName = 'folder' | 'cloud' | 'check' | 'target' | 'chat' | 'spark' | 'arrow' | 'plus' | 'pulse';
+function Icon({ name, className }: { name: IconName; className?: string }) {
+  const d: Record<IconName, string> = {
+    folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+    cloud: 'M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z',
+    check: 'M5 12.5l4.5 4.5L19 7.5',
+    target: 'M12 3v4M12 17v4M3 12h4M17 12h4M12 12h.01M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z',
+    chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
+    spark: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z',
+    arrow: 'M5 12h14M13 6l6 6-6 6',
+    plus: 'M12 5v14M5 12h14',
+    pulse: 'M3 12h4l2-6 4 12 2-6h6',
+  };
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={name === 'check' ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d={d[name]} />
+    </svg>
   );
 }
 
@@ -900,7 +1065,7 @@ function MarkedPreview({ capture }: { capture: PendingCapture }) {
     });
     return () => URL.revokeObjectURL(revoked);
   }, [capture]);
-  return url ? <img src={url} alt="Screenshot with the picked element outlined" className="w-full rounded-lg border border-gray-200" /> : null;
+  return url ? <img src={url} alt="Screenshot with the picked element outlined" className="max-h-52 w-full rounded-xl border border-line bg-wash object-contain" /> : null;
 }
 
 /** The saved bug as a card you drag into an agent's chat; the drop carries the markdown and the screenshot as files. */
@@ -925,14 +1090,14 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
         const md = files.find((f) => f.name.endsWith('.md'));
         if (md) e.dataTransfer.setData('DownloadURL', `text/markdown:${md.name}:${URL.createObjectURL(md)}`);
       }}
-      className="flex cursor-grab items-center gap-3 rounded-lg border border-dashed border-gray-400 bg-gray-50 p-2 active:cursor-grabbing"
+      className="flex cursor-grab items-center gap-3 rounded-xl border border-dashed border-sky/40 bg-wash p-2 active:cursor-grabbing"
       title="Drag into your agent's chat"
     >
       {thumb && (
         <img
           src={thumb}
           alt=""
-          className="h-14 w-20 cursor-grab rounded border border-gray-300 object-cover"
+          className="h-14 w-20 cursor-grab rounded-lg border border-line object-cover"
           title="Drag this picture into your agent (works with desktop apps)"
           onDragStart={(e) => {
             // Let Chrome's own image drag run: it gives desktop apps a real PNG file.
@@ -943,12 +1108,16 @@ function DragCard({ files, title, linked }: { files: File[]; title: string; link
       )}
       <div className="min-w-0">
         <p className="truncate font-medium">{title || 'Bug report'}</p>
-        <p className="text-xs text-gray-500">Your note is written on the picture.</p>
+        <p className="text-xs text-ink-soft">Drag into your agent&apos;s chat. Your note is on the picture.</p>
       </div>
     </div>
   );
 }
 
-function Kbd({ children }: { children: string }) {
-  return <kbd className="rounded border border-gray-300 bg-gray-50 px-1 text-xs">{children}</kbd>;
+function Kbd({ children, big }: { children: string; big?: boolean }) {
+  return big ? (
+    <kbd className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-line border-b-[3px] bg-white px-2.5 font-sans text-lg font-semibold text-ink shadow-sm">{children}</kbd>
+  ) : (
+    <kbd className="rounded border border-line bg-wash px-1 text-xs">{children}</kbd>
+  );
 }
