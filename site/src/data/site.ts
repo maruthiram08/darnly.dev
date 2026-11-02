@@ -252,6 +252,12 @@ export const TOOLS: Item[] = [
     blurb: 'Write Markdown and see it like GitHub shows it, with tables, checklists and code colors. Copy into Notion or Docs.',
     category: 'Code helpers',
   },
+  {
+    slug: 'aspect-ratio-calculator',
+    category: 'Images',
+    name: 'Aspect ratio calculator',
+    blurb: 'Get the missing side for 16:9, 4:3 or 9:16, see it in a YouTube player, phone or Instagram post, and copy the CSS.',
+  },
 ];
 
 // Same for guides.
