@@ -1,0 +1,315 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const linked = ['social-image-resizer', 'open-graph-checker', 'utm-builder']
+  .map((slug) => TOOLS.find((t) => t.slug === slug))
+  .filter((t): t is (typeof TOOLS)[number] => Boolean(t));
+
+const steps = [
+  'Write or paste your post. The previews of X and LinkedIn update as you type, and the top box shows your first line: the hook most people read before they decide to scroll on.',
+  'Drop in up to 4 pictures to see how each app crops them. Switch between phone and desktop, and light and dark, to see the post the way your readers do.',
+  'Copy it for LinkedIn (with bold if you want it) or for X. If it’s longer than 280 characters, X gets it as a thread: each click of “Copy for X” copies the next post.',
+];
+
+const faq = [
+  { q: 'Where does LinkedIn cut a post with “…see more”?', a: 'After about 3 lines, which is around 210 characters on a computer and around 140 on a phone. Empty lines count as lines too, so a post that starts with short lines and gaps shows less. The preview measures this for you at each app’s real width.' },
+  { q: 'How does X count characters?', a: 'Most letters, numbers and punctuation count as 1. Every link counts as 23, however long it is. Emoji and Chinese, Japanese or Korean characters count as 2. A normal post can have 280. This tool counts the same way X does.' },
+  { q: 'How does it split a thread?', a: 'It fills each post up to 280 and then backs up to the nicest break it can find: a new paragraph first, then the end of a sentence, then a comma, then a space. To choose the split yourself, put a line with just <code>---</code> where you want it.' },
+  { q: 'What does “One long post” mean?', a: 'With X Premium you can post up to 25,000 characters in one post. In the feed, X shows the first 280 and then a “Show more” link, so the first 280 still have to do the work.' },
+  { q: 'How does the bold text work on LinkedIn?', a: 'LinkedIn has no bold button, so the tool swaps letters for look-alike bold letters from Unicode. Wrap words in <code>**two stars**</code> or tick “Bold my first line”. Use it sparingly: screen readers may read these letters out one by one, and LinkedIn search doesn’t match them.' },
+  { q: 'Are the previews exact?', a: 'They use each app’s widths, text size and picture crops, so line breaks and cut-offs land very close to the real thing. Fonts differ a little between phones and computers, so a word or two can move.' },
+  { q: 'Is my post uploaded?', a: 'No. Everything happens in your browser. Your text is kept only in this browser so it’s still here when you come back, and your pictures are never saved or sent anywhere.' },
+];
+---
+<ToolPage
+  slug="social-post-previewer"
+  title="X and LinkedIn post preview: see more cut-off, thread splitter · Darnly"
+  description="Write a post once and see exactly how it looks on X and LinkedIn: where “…see more” cuts it, the 280-character count, thread splits and picture crops. Copy with LinkedIn bold. Free."
+  h1="Preview your X and LinkedIn post"
+  lede="Write once and see your post the way people will: where LinkedIn cuts it with “…see more”, how X splits it into a thread, and how your pictures get cropped."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sp" id="sp">
+    <section class="stage" aria-label="Your hook and how the post fits">
+      <p class="label">Your hook: the first line</p>
+      <p class="hook" id="sp-hook" aria-live="polite"></p>
+      <p class="hook-note">This is all most people see before they decide to keep reading.</p>
+      <ul class="verdicts" id="sp-verdicts" aria-live="polite"></ul>
+    </section>
+
+    <div class="work">
+      <div class="editor" id="sp-editor">
+        <label class="ed-label" for="sp-text">Your post</label>
+        <textarea id="sp-text" rows="12" spellcheck="true" placeholder="Write your post here…"></textarea>
+        <p class="counts" id="sp-counts" aria-live="polite"></p>
+
+        <div class="pics">
+          <div class="thumbs" id="sp-thumbs"></div>
+          <label class="add" id="sp-add">
+            <input id="sp-file" type="file" accept="image/*" multiple />
+            <span>+ Add pictures</span>
+          </label>
+          <span class="hint">or drop or paste them. Up to 4.</span>
+        </div>
+      </div>
+
+      <div class="controls">
+
+        <div class="opts">
+          <div class="opt-group">
+            <p class="opt-title">On X</p>
+            <div class="seg" role="radiogroup" aria-label="Long posts on X">
+              <button type="button" role="radio" data-xmode="thread" aria-checked="true">Split into a thread</button>
+              <button type="button" role="radio" data-xmode="long" aria-checked="false">One long post</button>
+            </div>
+            <label class="check" id="sp-numbers-wrap"><input type="checkbox" id="sp-numbers" checked /> Number the posts (1/3)</label>
+          </div>
+          <div class="opt-group">
+            <p class="opt-title">On LinkedIn</p>
+            <label class="check"><input type="checkbox" id="sp-stars" checked /> Make <code>**words**</code> bold</label>
+            <label class="check"><input type="checkbox" id="sp-boldhook" /> Bold my first line</label>
+          </div>
+        </div>
+
+        <div class="copy">
+          <button type="button" class="primary" id="sp-copy-li">Copy for LinkedIn</button>
+          <button type="button" class="primary alt" id="sp-copy-x">Copy for X</button>
+          <span class="status" id="sp-status" role="status" aria-live="polite"></span>
+        </div>
+        <button type="button" class="link-btn" id="sp-example">Start over with the example</button>
+      </div>
+
+      <div class="previews">
+        <div class="bar">
+          <div class="tabs" role="tablist" aria-label="Which app">
+            <button type="button" role="tab" id="sp-tab-li" data-net="li" aria-selected="true" aria-controls="sp-li-pane">LinkedIn</button>
+            <button type="button" role="tab" id="sp-tab-x" data-net="x" aria-selected="false" aria-controls="sp-x-pane">X</button>
+          </div>
+          <div class="seg small" role="radiogroup" aria-label="Screen">
+            <button type="button" role="radio" data-device="phone" aria-checked="true">Phone</button>
+            <button type="button" role="radio" data-device="desktop" aria-checked="false">Desktop</button>
+          </div>
+          <div class="seg small" role="radiogroup" aria-label="Theme">
+            <button type="button" role="radio" data-theme-pick="light" aria-checked="true">Light</button>
+            <button type="button" role="radio" data-theme-pick="dark" aria-checked="false">Dark</button>
+          </div>
+        </div>
+        <div class="pane" id="sp-li-pane" role="tabpanel" aria-labelledby="sp-tab-li">
+          <div class="fit"><div class="mock li-mock" id="sp-li"></div></div>
+          <ul class="crops" id="sp-li-crops"></ul>
+        </div>
+        <div class="pane" id="sp-x-pane" role="tabpanel" aria-labelledby="sp-tab-x" hidden>
+          <div class="fit"><div class="mock x-mock" id="sp-x"></div></div>
+          <ul class="crops" id="sp-x-crops"></ul>
+        </div>
+        <p class="tip">Click “…see more” or “Show more” in the preview to open the post, like in the app.</p>
+      </div>
+    </div>
+
+    <details class="fold" id="sp-thread-fold">
+      <summary>X thread, post by post <span class="count" id="sp-thread-count"></span></summary>
+      <p class="hint">Post them in this order: post the first, then reply to it with the second, and so on.</p>
+      <ol class="thread-list" id="sp-thread"></ol>
+    </details>
+
+    <details class="fold">
+      <summary>Your name and photo on the preview</summary>
+      <div class="who">
+        <label class="photo">
+          <input id="sp-avatar" type="file" accept="image/*" />
+          <span class="av-pick" id="sp-avatar-preview" aria-hidden="true"></span>
+          <span>Photo</span>
+        </label>
+        <div class="field">
+          <label for="sp-name">Name</label>
+          <input id="sp-name" type="text" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="sp-handle">X handle</label>
+          <input id="sp-handle" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field wide">
+          <label for="sp-headline">LinkedIn headline</label>
+          <input id="sp-headline" type="text" autocomplete="off" />
+        </div>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>How the counts work</summary>
+      <dl class="rules">
+        <dt>X limit</dt><dd>280 per post. With Premium, 25,000 in one post, with “Show more” after the first 280.</dd>
+        <dt>X counting</dt><dd>Links count as 23 whatever their length. Emoji and Chinese, Japanese or Korean characters count as 2. Everything else counts as 1.</dd>
+        <dt>LinkedIn limit</dt><dd>3,000 characters per post.</dd>
+        <dt>LinkedIn “…see more”</dt><dd>After 3 lines of text: about 210 characters on a computer, about 140 on a phone. Empty lines use up lines.</dd>
+        <dt>X pictures</dt><dd>One picture shows between 3:4 and 2:1; anything taller or wider is cropped. Two to four pictures share a 16:9 grid.</dd>
+        <dt>LinkedIn pictures</dt><dd>One picture shows between 3:4 and 1.91:1. Two sit side by side as squares. Three or four put one big picture on top and the rest below.</dd>
+      </dl>
+    </details>
+
+    {linked.length > 0 && (
+      <p class="more-link">
+        Pictures the wrong size? {linked.map((t, i) => (
+          <>{i > 0 && (i === linked.length - 1 ? ' or ' : ', ')}<a href={`/tools/${t.slug}/`}>{t.name.toLowerCase()}</a></>
+        ))}.
+      </p>
+    )}
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/social-post-previewer';
+</script>
+
+<style>
+  .sp { display: grid; gap: 24px; min-width: 0; }
+  .sp [hidden] { display: none !important; }
+
+  .stage { display: grid; gap: 10px; padding: 28px 32px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .label { margin: 0; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .hook { margin: 0; font: 700 clamp(22px, 3.4vw, 32px)/1.25 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+  .hook:global(.none) { color: var(--ink-soft); font-weight: 600; }
+  .hook-note { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .verdicts { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  .verdicts :global(li) { display: flex; gap: 8px; align-items: center; padding: 9px 14px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); font-size: 15px; line-height: 1.3; }
+  .verdicts :global(.dot) { width: 10px; height: 10px; border-radius: 50%; flex: none; background: #1E8A5A; }
+  .verdicts :global(li.warn .dot) { background: #C27A00; }
+  .verdicts :global(li.bad .dot) { background: #B4234F; }
+  .verdicts :global(b) { font-weight: 700; }
+
+  .work { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'edit prev' 'ctrl prev'; gap: 20px 24px; align-items: start; }
+  .editor { grid-area: edit; display: grid; gap: 12px; min-width: 0; }
+  .controls { grid-area: ctrl; display: grid; gap: 12px; min-width: 0; }
+  .previews { grid-area: prev; }
+  .ed-label { font-weight: 600; }
+  textarea { box-sizing: border-box; width: 100%; min-height: 280px; resize: vertical; font: 400 16px/1.5 var(--body); padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); color: var(--ink); }
+  textarea:focus, input[type='text']:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .counts { margin: -4px 0 0; font: 500 13px/1.4 var(--mono); color: var(--ink-soft); }
+  .counts :global(.over) { color: #B4234F; font-weight: 700; }
+
+  .pics { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .pics.over { outline: 3px dashed var(--sky); outline-offset: 4px; border-radius: 12px; }
+  .thumbs { display: contents; }
+  .thumbs :global(.th) { position: relative; width: 52px; height: 52px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .thumbs :global(.th .tag) { position: absolute; left: 0; right: 0; bottom: 0; font: 700 9px/14px var(--body); text-align: center; color: #fff; background: rgba(11, 34, 48, 0.7); }
+  .thumbs :global(.th img) { width: 100%; height: 100%; object-fit: cover; }
+  .thumbs :global(.th button) { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(11, 34, 48, 0.8); color: #fff; font: 700 13px/20px var(--body); cursor: pointer; }
+  .add { position: relative; display: inline-flex; align-items: center; padding: 9px 14px; border-radius: 999px; border: 1px dashed var(--sky); background: var(--white); font: 600 14px/1 var(--body); cursor: pointer; }
+  .add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .add:focus-within { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .opts { display: grid; gap: 14px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); }
+  .opt-group { display: grid; gap: 8px; }
+  .opt-title { margin: 0; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .check { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 15px; }
+  .check code { font-size: 13px; }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); justify-self: start; }
+  .seg button { font: 600 14px/1 var(--body); padding: 9px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .seg.small button { font-size: 13px; padding: 7px 11px; }
+
+  .copy { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .primary { font: 600 15px/1 var(--body); padding: 13px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .primary.alt { background: var(--white); color: var(--ink); border: 1px solid var(--ink); }
+  .status { flex-basis: 100%; font-size: 14px; color: var(--ink-soft); min-height: 1.3em; }
+  .link-btn { justify-self: start; padding: 0; border: 0; background: none; color: var(--ink-soft); font: 500 14px/1.4 var(--body); text-decoration: underline; cursor: pointer; }
+
+  .previews { display: grid; gap: 14px; min-width: 0; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .tabs { display: inline-flex; gap: 4px; margin-right: auto; }
+  .tabs button { font: 700 15px/1 var(--body); padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--sky); border-color: var(--sky); color: #fff; }
+  .pane { display: grid; gap: 10px; min-width: 0; padding: 20px; border-radius: 20px; background: var(--wash); border: 1px solid var(--line); }
+  .fit { min-width: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; }
+  .crops { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+  .crops :global(b) { color: var(--ink); }
+  .tip { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .count { font-weight: 400; color: var(--ink-soft); }
+  .thread-list { margin: 0; padding: 0 0 0 22px; display: grid; gap: 10px; }
+  .thread-list :global(li) { padding: 10px 12px; border-radius: 12px; background: var(--wash); }
+  .thread-list :global(p) { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.45; }
+  .thread-list :global(.row) { display: flex; gap: 10px; align-items: center; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+  .thread-list :global(button) { font: 600 13px/1 var(--body); padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .who { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 14px 16px; align-items: end; }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label { font-weight: 600; font-size: 15px; }
+  .wide { grid-column: 2 / -1; }
+  input[type='text'] { box-sizing: border-box; width: 100%; font: 500 16px/1.3 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); }
+  .photo { position: relative; grid-row: span 2; display: grid; justify-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .photo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .av-pick { width: 64px; height: 64px; border-radius: 50%; background-size: cover; background-position: center; display: grid; place-items: center; font: 700 22px/1 var(--body); color: #fff; }
+  .rules { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 15px; }
+  .rules dt { font-weight: 700; }
+  .rules dd { margin: 0; color: var(--ink-soft); }
+  .more-link { margin: 0; color: var(--ink-soft); }
+
+  /* ---------- The app previews ---------- */
+  .mock { --bg: #fff; --fg: #0f1419; --soft: #536471; --line: #eff3f4; --link: #1d9bf0; flex: none; box-sizing: border-box; background: var(--bg); color: var(--fg); transform-origin: top left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+  .mock:global(.dark) { --bg: #000; --fg: #e7e9ea; --soft: #71767b; --line: #2f3336; }
+  .li-mock { --link: #0a66c2; --soft: rgba(0, 0, 0, 0.6); --line: #e8e8e8; }
+  .li-mock:global(.dark) { --bg: #1b1f23; --fg: rgba(255, 255, 255, 0.9); --soft: rgba(255, 255, 255, 0.6); --line: #38434f; --link: #71b7fb; }
+  .mock :global(.mention), .mock :global(.tag), .mock :global(.link) { color: var(--link); }
+  .li-mock :global(.mention), .li-mock :global(.tag), .li-mock :global(.link) { font-weight: 600; }
+  .mock :global(.av) { border-radius: 50%; background-size: cover; background-position: center; display: grid; place-items: center; color: #fff; font-weight: 700; flex: none; }
+  .mock :global(.media) { position: relative; overflow: hidden; }
+  .mock :global(.cell) { position: absolute; overflow: hidden; background: var(--line); }
+  .mock :global(.cell img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mock :global(.more) { color: var(--soft); cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+  .mock :global(svg) { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .mock :global(.text) { white-space: pre-wrap; overflow-wrap: break-word; }
+
+  /* X */
+  .x-mock :global(.xp) { display: flex; gap: 8px; padding: 12px 16px 4px; }
+  .x-mock :global(.xp-side) { display: flex; flex-direction: column; align-items: center; }
+  .x-mock :global(.xp-side .av) { width: 40px; height: 40px; font-size: 17px; }
+  .x-mock :global(.xp-line) { width: 2px; flex: 1; margin-top: 4px; background: var(--line); }
+  .x-mock :global(.xp-main) { flex: 1; min-width: 0; }
+  .x-mock :global(.xp-head) { display: flex; gap: 4px; font-size: 15px; line-height: 20px; white-space: nowrap; overflow: hidden; }
+  .x-mock :global(.xp-head b) { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+  .x-mock :global(.xp-head span) { color: var(--soft); overflow: hidden; text-overflow: ellipsis; }
+  .x-mock :global(.text) { font-size: 15px; line-height: 20px; margin-top: 2px; }
+  .x-mock :global(.more) { color: var(--link); }
+  .x-mock :global(.media) { margin-top: 12px; border-radius: 16px; border: 1px solid var(--line); }
+  .x-mock :global(.acts) { display: flex; justify-content: space-between; margin: 8px 0 4px; color: var(--soft); font-size: 13px; }
+  .x-mock :global(.acts span) { display: inline-flex; gap: 4px; align-items: center; }
+  .x-mock :global(.xp + .xp) { border-top: 0; }
+  .x-mock :global(.x-foot) { height: 8px; border-top: 1px solid var(--line); }
+
+  /* LinkedIn */
+  .li-mock :global(.li-head) { display: flex; gap: 8px; padding: 12px 16px 0; }
+  .li-mock :global(.li-head .av) { width: 48px; height: 48px; font-size: 19px; }
+  .li-mock :global(.li-who) { min-width: 0; display: grid; font-size: 12px; line-height: 16px; color: var(--soft); }
+  .li-mock :global(.li-who b) { font-size: 14px; line-height: 20px; color: var(--fg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .li-mock :global(.li-who .hl) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .li-mock :global(.li-who .when) { display: inline-flex; gap: 4px; align-items: center; }
+  .li-mock :global(.li-who .when svg) { width: 14px; height: 14px; stroke-width: 1.6; }
+  .li-mock :global(.text) { padding: 8px 16px 0; font-size: 14px; line-height: 20px; margin-bottom: 8px; }
+  .li-mock :global(.media) { margin-top: 0; }
+  .li-mock :global(.li-social) { display: flex; justify-content: space-between; padding: 8px 16px; font-size: 12px; color: var(--soft); border-bottom: 1px solid var(--line); margin: 0 0 0; }
+  .li-mock :global(.li-social .rx) { display: inline-flex; align-items: center; gap: 4px; }
+  .li-mock :global(.li-social i) { font-style: normal; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 9px; color: #fff; }
+  .li-mock :global(.acts) { display: flex; justify-content: space-around; padding: 4px 8px; color: var(--soft); font-size: 14px; font-weight: 600; }
+  .li-mock :global(.acts span) { display: inline-flex; gap: 6px; align-items: center; padding: 10px 8px; }
+  .li-mock :global(.acts svg) { width: 20px; height: 20px; }
+
+  .measure { position: absolute; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
+
+  @media (max-width: 860px) {
+    .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: 'edit' 'prev' 'ctrl'; }
+    textarea { min-height: 220px; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 20px; }
+    .pane { padding: 12px; }
+    .who { grid-template-columns: auto minmax(0, 1fr); }
+    .wide { grid-column: 1 / -1; }
+    .rules { grid-template-columns: minmax(0, 1fr); }
+    .rules dd { margin-bottom: 6px; }
+  }
+</style>
