@@ -1,0 +1,154 @@
+---
+import GuidePage from '../../layouts/GuidePage.astro';
+import { storeUrl } from '../../data/site';
+import { MCP_URL as MCP } from '../../data/setup';
+import SetupPrompt from '../../components/SetupPrompt.astro';
+
+const slug = 'setup';
+const faq = [
+  { q: 'Do I need MCP to use Darnly?', a: 'No. If your code is on your computer, Darnly saves each bug as a file in your project and your agent reads it with no setup. If your code is in the cloud, you can copy each bug into the chat. MCP is only for the optional cloud inbox, where your agent fetches bugs by itself.' },
+  { q: 'What is the Darnly MCP address?', a: `${MCP}. It's a remote MCP server (Streamable HTTP) with Google sign-in, so there's nothing to install and no API key to copy.` },
+  { q: 'Which tools does the Darnly MCP server give my agent?', a: 'Three: list_bugs (your waiting bugs), get_bug (one report with its screenshot) and mark_fixed (marks it fixed with one line on what changed, which the extension then shows you).' },
+  { q: 'Can Claude Code, Cursor and Codex share one inbox on the same project?', a: 'Yes. In folder mode they all read the same <code>.darnly/inbox/</code> (Codex and Cursor through AGENTS.md, Claude Code through CLAUDE.md and its skill). In cloud mode, connect each agent with the same Google account and they all see the same list. Darnly doesn\'t lock a bug while an agent works on it, so give the "fix my bugs" job to one agent at a time, or else two agents may fix the same bug.' },
+  { q: 'Can my agent see bugs from my other projects?', a: 'The cloud inbox holds bugs from all your projects in one private list. Darnly tells the agent to only fix the bugs whose page belongs to the code it\'s working on.' },
+  { q: 'Can I use it in the Claude app or claude.ai?', a: `Yes, where your plan lets you add custom connectors: add a custom connector with the address ${MCP}, then sign in with Google when asked.` },
+  { q: 'How do I disconnect an agent?', a: 'In the Darnly panel, choose to sign out on every computer. That disconnects every coding agent too. Add the connector again to reconnect one.' },
+];
+const sources = [
+  { name: 'Claude Code docs: connect to MCP servers', url: 'https://docs.claude.com/en/docs/claude-code/mcp' },
+  { name: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/mcp' },
+  { name: 'OpenAI Codex docs: MCP', url: 'https://developers.openai.com/codex/mcp' },
+];
+---
+<GuidePage
+  slug={slug}
+  path="/setup/"
+  crumb={null}
+  title="Set up Darnly with Claude Code, Cursor or Codex (with or without MCP)"
+  description="Connect Darnly to Claude Code, Cursor or Codex. Without MCP, bugs land in your project folder or you paste them. With MCP, your agent reads the Darnly cloud inbox at api.darnly.dev/mcp."
+  h1="Set up Darnly with Claude Code, Cursor or Codex"
+  lede="There are two ways to get bugs from Darnly to your coding agent: without MCP, Darnly saves each bug as a file in your project (or you paste it into the chat), and with MCP, your agent reads your private Darnly cloud inbox at api.darnly.dev/mcp by itself."
+  faq={faq}
+  sources={sources}
+  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Add it, press Option+Shift+B (Alt+Shift+B on Windows) on any page, click the broken part, and say what you expected.' }}
+>
+  <p class="jump">Jump to: <a href="#prompt">Setup prompt</a> · <a href="#pick">Which way?</a> · <a href="#without-mcp">Without MCP</a> · <a href="#with-mcp">With MCP</a> · <a href="#claude-code">Claude Code</a> · <a href="#cursor">Cursor</a> · <a href="#codex">Codex</a></p>
+
+  <h2 id="prompt">Fastest: let your agent set it up</h2>
+  <p>Copy this prompt and paste it into Claude Code, Cursor or Codex, in the project you're building. Your agent adds the Darnly MCP server, writes the note that tells it where your bugs are, and keeps screenshots out of git. Then it tells you the one thing left to click: signing in with Google.</p>
+  <SetupPrompt />
+  <p>Before or after that, <a href={storeUrl('setup')}>add Darnly to Chrome</a>, open its panel and pick where your code lives. Want to do it by hand, or skip MCP? Read on.</p>
+
+  <h2 id="pick">Which way is right for you?</h2>
+  <p>It depends on one thing: where your project's code lives. The Darnly panel asks you this the first time you open it.</p>
+  <div class="table">
+    <table>
+      <thead><tr><th></th><th>Project folder</th><th>Copy and paste</th><th>Cloud inbox + MCP</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Uses MCP?</strong></td><td>No</td><td>No</td><td>Yes</td></tr>
+        <tr><td><strong>Best when</strong></td><td>The code is on your computer and you run Claude Code, Cursor or Codex there</td><td>The code is in the cloud and you only report a bug now and then</td><td>The code is in the cloud, or on several computers, and you want the agent to fetch bugs itself</td></tr>
+        <tr><td><strong>Setup</strong></td><td>Link the folder once, click <strong>Set up this project</strong></td><td>None</td><td>Sign in with Google in Darnly, add the connector to your agent once</td></tr>
+        <tr><td><strong>You tell the agent</strong></td><td>"fix the bugs in .darnly/inbox"</td><td>Paste the picture, then the details</td><td>"fix my Darnly bugs"</td></tr>
+        <tr><td><strong>Account</strong></td><td>None</td><td>None</td><td>Google sign-in</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>First, <a href={storeUrl('setup')}>add Darnly to Chrome</a>, then click the Darnly icon in the toolbar to open its panel. (Pin it from the puzzle-piece menu so it's always one click away.)</p>
+
+  <h2 id="without-mcp">Without MCP</h2>
+
+  <h3>If your code is on your computer: the project folder</h3>
+  <p>This works the same in Claude Code, Cursor and Codex, because all three read files in your project.</p>
+  <ol>
+    <li>In the Darnly panel, click <strong>On this computer: link the folder</strong> and pick your project's top folder (the one with <code>package.json</code> in it). Chrome asks to let Darnly edit files there. Click <strong>Allow</strong>.</li>
+    <li>Click <strong>Set up this project</strong>. Darnly adds a short note to <code>AGENTS.md</code> (and points <code>CLAUDE.md</code> at it, if you have one), a skill for Claude Code and Codex, and <code>.darnly/</code> to <code>.gitignore</code>, so screenshots never get committed.</li>
+    <li>Capture a bug: press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected, press <kbd>Enter</kbd>.</li>
+    <li>In your agent, in the same project, type: <code>fix the bugs in .darnly/inbox</code></li>
+  </ol>
+  <p><strong>It worked if</strong> you see a new <code>.md</code> file and <code>.png</code> in <code>.darnly/inbox/</code> after you capture, and the agent moves each one to <code>.darnly/done/</code> with a <strong>Fixed:</strong> line once it's done. The Darnly panel then shows "1 bug fixed. Take a look."</p>
+
+  <h3>If your code is in the cloud: copy and paste</h3>
+  <ol>
+    <li>In the Darnly panel, click <strong>In the cloud (Claude, Codex or Cursor online)</strong>.</li>
+    <li>Capture the bug the same way.</li>
+    <li>Click <strong>1. Copy picture</strong> and paste it into your agent's chat. Then click <strong>2. Copy details</strong> and paste that too, and send.</li>
+  </ol>
+  <p>No setup, no account. The catch is you do the pasting each time. If you report bugs often, the cloud inbox below saves that step.</p>
+
+  <h2 id="with-mcp">With MCP: the Darnly cloud inbox</h2>
+  <p>The cloud inbox is a private list of your bugs on Darnly's server. Your agent connects to it through Darnly's MCP server, so you capture a bug and say "fix my Darnly bugs", with nothing to paste. It's optional and free.</p>
+  <div class="tip"><p><strong>The address for every agent:</strong> <code>{MCP}</code><br>It's a remote server, so there's nothing to install and no API key. You sign in with Google the first time your agent connects.</p></div>
+
+  <h3>Step 1: turn on the cloud inbox in Darnly</h3>
+  <ol>
+    <li>In the Darnly panel, click <strong>In the cloud (Claude, Codex or Cursor online)</strong>.</li>
+    <li>Click <strong>Sign in with Google</strong> and pick your Google account.</li>
+  </ol>
+  <p><strong>It worked if</strong> the panel says <em>Sending bugs to your Darnly inbox</em> with your email. From now on, each bug you capture goes there.</p>
+
+  <h3>Step 2: connect your agent</h3>
+  <p>Pick your agent below. You do this once per computer. When your agent opens a browser page that asks <em>Connect &lt;app&gt; to Darnly?</em>, click continue and use the <strong>same Google account</strong> as in step 1.</p>
+
+  <h2 id="claude-code">Claude Code</h2>
+  <p><strong>Without MCP:</strong> use the <a href="#without-mcp">project folder</a>. Darnly writes a <code>CLAUDE.md</code> note and a Claude Code skill, so "fix my bugs" works.</p>
+  <p><strong>With MCP:</strong></p>
+  <ol>
+    <li>Open your terminal (any folder is fine) and run:
+      <pre><code>claude mcp add --transport http --scope user darnly {MCP}</code></pre>
+      <code>--scope user</code> makes Darnly available in all your projects, not just this one.</li>
+    <li>Start Claude Code with <code>claude</code>, type <code>/mcp</code> and press <kbd>Enter</kbd>.</li>
+    <li>Pick <strong>darnly</strong>, then <strong>Authenticate</strong>. Your browser opens. Continue with Google.</li>
+    <li>Back in Claude Code, type: <code>fix my Darnly bugs</code></li>
+  </ol>
+  <p><strong>It worked if</strong> <code>/mcp</code> shows darnly as connected and Claude Code calls <code>list_bugs</code>. <strong>If it says "Needs authentication"</strong>, run step 3 again, or run <code>claude mcp login darnly</code> in your terminal.</p>
+
+  <h2 id="cursor">Cursor</h2>
+  <p><strong>Without MCP:</strong> use the <a href="#without-mcp">project folder</a>. Cursor reads the <code>AGENTS.md</code> note Darnly adds. See also <a href="/guides/report-a-bug-to-cursor/">how to report a bug to Cursor</a>.</p>
+  <p><strong>With MCP:</strong></p>
+  <ol>
+    <li>Open the file <code>~/.cursor/mcp.json</code> in your home folder (create it if it isn't there). To use Darnly in one project only, use <code>.cursor/mcp.json</code> in that project instead.</li>
+    <li>Paste this, or add the <code>darnly</code> part next to your other servers, and save:
+      <pre><code>{`{
+  "mcpServers": {
+    "darnly": {
+      "url": "${MCP}"
+    }
+  }
+}`}</code></pre></li>
+    <li>In Cursor, find <strong>darnly</strong> in your MCP servers list in settings, make sure it's switched on, and click the button to log in. Your browser opens. Continue with Google.</li>
+    <li>In Cursor's agent chat, type: <code>fix my Darnly bugs</code></li>
+  </ol>
+  <p><strong>It worked if</strong> darnly shows a green dot and three tools (<code>list_bugs</code>, <code>get_bug</code>, <code>mark_fixed</code>) in the MCP list. <strong>If it stays red</strong>, check the file is valid JSON (no missing comma or bracket) and restart Cursor.</p>
+
+  <h2 id="codex">Codex</h2>
+  <p><strong>Without MCP:</strong> use the <a href="#without-mcp">project folder</a>. Codex reads <code>AGENTS.md</code>, where Darnly adds its note, plus a Codex skill. See also <a href="/guides/give-codex-a-screenshot/">how to give Codex a screenshot</a>.</p>
+  <p><strong>With MCP, in the Codex CLI:</strong></p>
+  <ol>
+    <li>Open your terminal and run:
+      <pre><code>codex mcp add darnly --url {MCP}</code></pre></li>
+    <li>Then sign in:
+      <pre><code>codex mcp login darnly</code></pre>
+      Your browser opens. Continue with Google. Keep the terminal open until the browser says you're signed in.</li>
+    <li>Start Codex with <code>codex</code> and type: <code>fix my Darnly bugs</code></li>
+  </ol>
+  <p>Prefer a config file? The <code>add</code> command writes this to <code>~/.codex/config.toml</code>, and you can add it by hand instead:</p>
+  <pre><code>{`[mcp_servers.darnly]
+url = "${MCP}"`}</code></pre>
+  <p><strong>In the Codex app:</strong> open <strong>Settings</strong>, then <strong>MCP servers</strong>, then <strong>Add server</strong>. Choose <strong>Streamable HTTP</strong>, name it <code>darnly</code>, paste the address, save, restart, and click <strong>Authenticate</strong>. The app, the CLI and the IDE extension share the same settings, so you only do this once.</p>
+  <p><strong>It worked if</strong> typing <code>/mcp</code> in Codex lists darnly. <strong>If the login fails</strong>, update Codex to the latest version and run <code>codex mcp login darnly</code> again.</p>
+
+  <h2 id="trouble">If something doesn't work</h2>
+  <ul>
+    <li><strong>The shortcut does nothing.</strong> Chrome doesn't let extensions run on its own pages (<code>chrome://</code> pages and the Chrome Web Store). Try it on your app. If another extension uses the same keys, change Darnly's at <code>chrome://extensions/shortcuts</code>.</li>
+    <li><strong>After signing in, the browser says "127.0.0.1 refused to connect".</strong> Your Darnly sign-in worked, but the agent stopped listening for it. This happens when the agent ran the sign-in command itself and that command ended before you clicked. Sign in again yourself: in Codex, run <code>codex mcp login darnly</code> in your own terminal and keep it open (or use <strong>Settings</strong>, <strong>MCP servers</strong>, <strong>Authenticate</strong> in the Codex app). In Claude Code, use <code>/mcp</code>. In Cursor, click the log-in button in the MCP list.</li>
+    <li><strong>The agent says there are no bugs.</strong> Check where the bug went. In folder mode, look in <code>.darnly/inbox/</code> of the project the agent is open in. In cloud mode, check the Darnly panel says <em>Sending bugs to your Darnly inbox</em>, and that you signed in to the agent with the same Google account.</li>
+    <li><strong>The agent doesn't know what Darnly is.</strong> Paste the <a href="#prompt">setup prompt</a> above, or click <strong>Set up this project</strong> in the Darnly panel.</li>
+    <li><strong>Still stuck?</strong> Write to hello@darnly.dev with your agent's name and what you see.</li>
+  </ul>
+
+  <h2 id="other-agents">Other agents</h2>
+  <p>Any agent that can add a remote MCP server by address can use the cloud inbox: give it <code>{MCP}</code> and sign in with Google when asked. Any agent that reads files in your project can use the project folder with no setup at all.</p>
+</GuidePage>
+<style>
+  .jump { font-size: 15px; }
+</style>
