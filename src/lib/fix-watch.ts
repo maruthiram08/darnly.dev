@@ -72,3 +72,30 @@ export async function loadJustFixed(): Promise<CaptureSummary[]> {
 export function saveJustFixed(list: CaptureSummary[]): void {
   chrome.storage.local.set({ [FIXED_KEY]: list }).catch(() => {});
 }
+
+/**
+ * True when the page runs on this computer (a dev server), so reloading shows the agent's fix right away.
+ * A live site only changes after the user deploys.
+ */
+export function isLocalPage(url: string | undefined): boolean {
+  if (!url) return false;
+  let host: string;
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'file:') return true;
+    host = u.hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    return false;
+  }
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  );
+}

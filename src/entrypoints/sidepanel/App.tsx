@@ -7,7 +7,7 @@ import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
-import { checkFixes, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
+import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
@@ -655,8 +655,18 @@ export function App() {
               </li>
             ))}
           </ul>
+          {/* Reloading only shows the fix on a dev server; a live site changes once the user deploys. */}
+          {justFixed.some((c) => !isLocalPage(c.pageUrl)) && (
+            <p className="mt-2 text-xs text-emerald-800">
+              {justFixed.every((c) => !isLocalPage(c.pageUrl)) ? 'The fix is in your code. Deploy it to see it on your live site, or check it on your local copy.' : 'Fixes for live sites show there after you deploy.'}
+            </p>
+          )}
           <div className="mt-2 flex gap-2">
-            <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
+            {justFixed.some((c) => isLocalPage(c.pageUrl)) ? (
+              <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
+            ) : (
+              <span className="flex-1" />
+            )}
             <button className="rounded-lg px-3 text-emerald-800" onClick={() => setJustFixed(() => [])}>Done</button>
           </div>
         </section>
@@ -720,7 +730,7 @@ export function App() {
 }
 
 function toSummary(b: CloudBug): CaptureSummary {
-  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined };
+  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined, pageUrl: b.pageUrl || undefined };
 }
 
 function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void }) {

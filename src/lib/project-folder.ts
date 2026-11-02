@@ -106,6 +106,8 @@ export interface CaptureSummary {
   fixedNote?: string;
   /** The agent's question when it is waiting for the user (the **Question:** line), on bugs still waiting. */
   question?: string;
+  /** The page the bug was captured on. */
+  pageUrl?: string;
 }
 
 /** Captures in .darnly/inbox (waiting for the agent) and .darnly/done (the agent moved them there after fixing). */
@@ -127,7 +129,8 @@ export async function listCaptures(root: FileSystemDirectoryHandle): Promise<Cap
       const title = (expected && expected !== '(no note given)' ? expected : undefined) ?? text.match(/^# (.+)$/m)?.[1] ?? name;
       const fixedNote = text.match(/^\*\*Fixed:\*\* (.+)$/m)?.[1]?.slice(0, 200);
       const question = status === 'waiting' ? text.match(/^\*\*Question:\*\* (.+)$/m)?.[1]?.slice(0, 200) : undefined;
-      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified, fixedNote, question });
+      const pageUrl = text.match(/^url: (.+)$/m)?.[1]?.trim().replace(/^"(.*)"$/, '$1');
+      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified, fixedNote, question, pageUrl });
     }
   }
   return out.sort((a, b) => b.modified - a.modified);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixedSince, mergeFixed, seenFrom } from './fix-watch';
+import { fixedSince, isLocalPage, mergeFixed, seenFrom } from './fix-watch';
 import type { CaptureSummary } from './project-folder';
 
 const bug = (id: string, status: 'waiting' | 'fixed', modified = 100): CaptureSummary => ({ id, title: id, status, modified });
@@ -27,5 +27,12 @@ describe('fixedSince', () => {
 describe('mergeFixed', () => {
   it('puts new fixes first without repeats', () => {
     expect(mergeFixed([bug('a', 'fixed'), bug('b', 'fixed')], [bug('b', 'fixed')]).map((c) => c.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('isLocalPage', () => {
+  it('knows dev servers from live sites', () => {
+    for (const u of ['http://localhost:3000/x', 'http://127.0.0.1:5173', 'http://app.localhost', 'http://192.168.1.4:8080', 'http://[::1]:3000', 'file:///Users/me/index.html']) expect(isLocalPage(u)).toBe(true);
+    for (const u of ['https://www.counterdraft.com/workspace', 'https://darnly.dev', 'not a url', undefined]) expect(isLocalPage(u)).toBe(false);
   });
 });

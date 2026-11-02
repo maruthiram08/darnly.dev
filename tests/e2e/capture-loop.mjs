@@ -184,6 +184,9 @@ try {
   await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
   await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 3000 }).catch(() => fail('fixed nudge missing'));
   await panel.getByText('made Pay now clickable in src/components/PayButton.tsx').waitFor({ timeout: 3000 }).catch(() => fail('agent fix note missing'));
+  // The bug was on localhost, so reloading shows the fix (a live site would say to deploy instead).
+  if (!(await panel.getByRole('button', { name: 'Reload the page' }).count())) fail('reload button missing for a localhost bug');
+  if (await panel.getByText('Deploy it to see it').count()) fail('deploy hint shown for a localhost bug');
   // Sprint 4: picking a big container still records the card under the cursor.
   const framesUrl = url.replace('/checkout', '/frames');
   await page.goto(framesUrl);
