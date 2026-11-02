@@ -318,6 +318,12 @@ export const TOOLS: Item[] = [
     name: 'What browser am I using?',
     blurb: 'Your browser, OS, viewport, screen, dark mode and time zone in one look. Copy it all for a bug report.',
   },
+  {
+    slug: 'shadcn-theme-generator',
+    category: 'Design',
+    name: 'shadcn/ui theme generator',
+    blurb: 'Pick a brand color, gray and corners, see real shadcn components change live in light and dark, copy globals.css.',
+  },
 ];
 
 // Same for guides.
