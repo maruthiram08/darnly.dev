@@ -8,7 +8,7 @@ const faq = [
   { q: 'Can Claude Code see my browser?', a: 'Not by itself. Claude Code reads and edits the files in your project. It only sees your screen when you give it a picture, or when you connect a browser tool to it.' },
   { q: 'What should I write next to the screenshot?', a: 'Three things: what you did, what happened, and what you expected instead. Add the page address, and say whether the fix should be only on this page or everywhere the same thing shows up.' },
   { q: 'Why does Claude Code fix the wrong thing?', a: 'Usually because the screenshot shows more than one thing that could be broken. Draw a box around the broken part, or name it in words, like "the Save plan button under the cards".' },
-  { q: 'Does Darnly work with Claude Code?', a: 'Yes. When you link your project folder and click Set up this project, Darnly adds a skill and an AGENTS.md note that tell Claude Code where your bug reports are. Then you say "fix my bugs".' },
+  { q: 'Does Darnly work with Claude Code?', a: 'Yes. When you link your project folder and click Set up this project, Darnly adds a skill and an AGENTS.md note that tell Claude Code where your bug reports are, plus a hook so Claude Code tells you when bugs are waiting. Then you type /darnly.' },
 ];
 ---
 <GuidePage
@@ -53,7 +53,7 @@ This is only about the settings page.</code></pre>
     <li>Type what you expected and press Enter.</li>
   </ol>
   <p>Darnly saves a report into <code>.darnly/inbox/</code> in your project: a screenshot with the broken part boxed in red, the element's selector, text and styles, the page address, and console errors and failed requests from the last 60 seconds. On localhost it can sometimes name the component and file that drew the element. Passwords, tokens and keys are replaced with <code>[hidden]</code> first.</p>
-  <p>The first time, link your project folder and click <strong>Set up this project</strong>. That adds a short AGENTS.md note and a skill, so Claude Code knows where to look. After that you just tell Claude Code "fix my bugs". It fixes each one, writes a <strong>Fixed:</strong> line saying what it changed, and moves the report to <code>.darnly/done/</code>.</p>
+  <p>The first time, link your project folder and click <strong>Set up this project</strong>. That adds a short AGENTS.md note, a skill and a hook, so Claude Code knows where to look and mentions new bugs when you start a session or send your next message. After that you type <code>/darnly</code>, or say yes when Claude Code offers. It fixes each one, writes a <strong>Fixed:</strong> line saying what it changed, and moves the report to <code>.darnly/done/</code>. The Darnly panel then says "1 bug fixed. Take a look."</p>
   <p>Code in the cloud, or on another computer? Add the Darnly MCP server to Claude Code once with <code>claude mcp add --transport http --scope user darnly https://api.darnly.dev/mcp</code>, and it reads your bugs from the Darnly cloud inbox. <a href="/setup/#claude-code">Set up Darnly in Claude Code</a>, or paste our setup prompt and let Claude Code do it.</p>
 
   <h2>Which one should you use?</h2>
