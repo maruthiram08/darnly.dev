@@ -69,6 +69,7 @@ const jsonLd = JSON.stringify([
     </nav>
     <div class="hero-grid" id="top">
       <div>
+        <a class="news" href="/changelog/"><b>New in 0.3.1</b> Type /darnly, then "Take a look" when it's fixed →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
         <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor the screenshot, the exact element and the recent errors, without breaking your flow.</p>
         <div class="cta">
@@ -103,7 +104,7 @@ const jsonLd = JSON.stringify([
           <p>Save plan should be clickable and save my week<span class="caret"></span></p>
           <span class="enter">Enter ↵</span>
         </div>
-        <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
+        <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed. Take a look.</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
       </div>
     </div>
   </div>
@@ -119,13 +120,13 @@ const jsonLd = JSON.stringify([
         <a class="way" href="/setup/#without-mcp">
           <span class="n">Without MCP</span>
           <h3>Code on your computer</h3>
-          <p>Link your project folder once. Each bug lands in <code>.darnly/inbox/</code> and your agent reads it there. No account. Cloud project? Copy and paste each bug instead.</p>
+          <p>Link your project folder once and click <strong>Set up this project</strong>. Each bug lands in <code>.darnly/inbox/</code> and <code>/darnly</code> fixes them. No account. Cloud project? Copy and paste each bug instead.</p>
           <span class="more-link">No-MCP setup →</span>
         </a>
         <a class="way" href="/setup/#with-mcp">
           <span class="n">With MCP</span>
           <h3>Code in the cloud, or anywhere</h3>
-          <p>Sign in with Google and add <code>api.darnly.dev/mcp</code> to your agent once. It fetches your bugs itself. Just say "fix my Darnly bugs".</p>
+          <p>Sign in with Google and add <code>api.darnly.dev/mcp</code> to your agent once. It fetches your bugs itself. Just type <code>/darnly</code>.</p>
           <span class="more-link">MCP setup →</span>
         </a>
       </div>
@@ -145,7 +146,7 @@ const jsonLd = JSON.stringify([
     <div class="wrap">
       <span class="eyebrow">How it works</span>
       <h2>No screenshots to drag. No explaining twice.</h2>
-      <p class="intro">Today a bug costs you a screenshot, an app switch, a hunt for the right file and a paragraph of description. With Darnly it is three moves, and you never leave the page.</p>
+      <p class="intro">Today a bug costs you a screenshot, an app switch, a hunt for the right file and a paragraph of description. With Darnly it is three moves, and you never leave the page. Then one command, and the panel tells you what got fixed.</p>
       <div class="loop">
         <div class="step">
           <span class="n">Step 1</span>
@@ -160,7 +161,25 @@ const jsonLd = JSON.stringify([
         <div class="step">
           <span class="n">Step 3</span>
           <h3>Say what you expected</h3>
-          <p>One sentence, then Enter. Got a picture of how it should look? Paste it in too. Then tell your agent "fix my bugs".</p>
+          <p>One sentence, then Enter. Got a picture of how it should look? Paste it in too. Capture as many as you like, then carry on testing.</p>
+        </div>
+      </div>
+      <h3 class="loop-h">Then your agent closes the loop</h3>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Step 4</span>
+          <h3>Type <code>/darnly</code></h3>
+          <p>In Claude Code or Cursor, one command fixes every bug in your project folder and your cloud inbox. In Claude Code, the agent even tells you when new bugs are waiting and offers to fix them.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 5</span>
+          <h3>Answer if it asks</h3>
+          <p>If your note is unclear, the agent asks one short question in its own chat. The Darnly panel shows "Your agent is waiting for your input" so you know to go back.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 6</span>
+          <h3>Take a look</h3>
+          <p>The panel says "2 bugs fixed. Take a look." with one line on what changed in each, even if it was closed while the agent worked.</p>
         </div>
       </div>
     </div>
