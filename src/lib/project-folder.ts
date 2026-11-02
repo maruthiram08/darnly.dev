@@ -190,6 +190,16 @@ async function writeFile(dir: FileSystemDirectoryHandle, name: string, data: Blo
 }
 
 /** Writes files into <project>/.darnly/<sub>/, creating folders as needed. */
+/** Deletes a captured bug: every file starting with its id, in .darnly/inbox or .darnly/done. */
+export async function deleteCapture(root: FileSystemDirectoryHandle, id: string, status: 'waiting' | 'fixed'): Promise<void> {
+  const dir = await dirAt(root, [ROOT_FOLDER, status === 'fixed' ? 'done' : 'inbox'], false);
+  const names: string[] = [];
+  for await (const [name] of (dir as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) {
+    if (name === `${id}.md` || name.startsWith(`${id}.`)) names.push(name);
+  }
+  for (const n of names) await dir.removeEntry(n);
+}
+
 export async function writeToProject(
   handle: FileSystemDirectoryHandle,
   sub: string,

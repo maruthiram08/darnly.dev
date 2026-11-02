@@ -259,6 +259,27 @@ try {
   await panel.getByRole('button', { name: 'change' }).click();
   await panel.getByRole('button', { name: 'project-a' }).click().catch(() => fail('other recent project not offered under change'));
   await panel.getByText('Saving to project-a').waitFor({ timeout: 5000 }).catch(() => fail('switching to another recent project failed'));
+  // Deleting one bug: × then Yes removes all of its files, and nothing else.
+  await panel.evaluate(async () => {
+    const a = await (await navigator.storage.getDirectory()).getDirectoryHandle('project-a');
+    const inbox = await (await a.getDirectoryHandle('.darnly', { create: true })).getDirectoryHandle('inbox', { create: true });
+    for (const [name, text] of [['bug-one.md', '**Expected:** delete me\n'], ['bug-one.png', 'x'], ['bug-two.md', '**Expected:** keep me\n']]) {
+      const w = await (await inbox.getFileHandle(name, { create: true })).createWritable();
+      await w.write(text);
+      await w.close();
+    }
+  });
+  await panel.getByText('2 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('bugs to delete not listed'));
+  await panel.getByRole('button', { name: 'Delete delete me' }).click();
+  await panel.getByRole('button', { name: 'Yes' }).click();
+  await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 5000 }).catch(() => fail('deleted bug still listed'));
+  const leftover = await panel.evaluate(async () => {
+    const inbox = await (await (await (await navigator.storage.getDirectory()).getDirectoryHandle('project-a')).getDirectoryHandle('.darnly')).getDirectoryHandle('inbox');
+    const names = [];
+    for await (const [name] of inbox.entries()) names.push(name);
+    return names.sort().join(',');
+  });
+  if (leftover !== 'bug-two.md') fail('delete removed the wrong files: ' + leftover);
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {

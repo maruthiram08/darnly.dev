@@ -5,10 +5,10 @@ import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
-import { chooseCloudFor, chooseFolderFor, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
+import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
-import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
+import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
 interface PendingCapture {
@@ -331,6 +331,27 @@ export function App() {
       setMessage('');
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setMessage(`Couldn't link that folder: ${(e as Error).message}`);
+    }
+  };
+
+  // One bug, deleted from wherever it lives (its files in the project, or the cloud inbox).
+  const [confirmBug, setConfirmBug] = useState<string | null>(null);
+  const deleteOne = async (c: CaptureSummary) => {
+    setConfirmBug(null);
+    try {
+      if (folder) {
+        if (!(await ensureAccess(folder))) return setMessage('Darnly needs "Allow" to delete from your project.');
+        await deleteCapture(folder, c.id, c.status);
+        setCaptures((list) => list.filter((x) => x.id !== c.id));
+        await refreshProject(folder);
+      } else if (session) {
+        await deleteCloudBug(session, c.id);
+        setCloudBugs((list) => list.filter((x) => x.id !== c.id));
+        refreshCloud(session);
+      }
+      setJustFixed((prev) => prev.filter((x) => x.id !== c.id));
+    } catch (e) {
+      setMessage(`Couldn't delete that bug: ${cloudReason(e)}`);
     }
   };
 
@@ -739,7 +760,15 @@ export function App() {
             {shown.slice(0, 20).map((c) => (
               <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : c.question ? 'bg-rose-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed' : c.question ? 'Your agent is waiting for your input' : 'Waiting for your agent'} />
-                <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
+                <span className={`min-w-0 flex-1 truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
+                {confirmBug === c.status + c.id ? (
+                  <span className="shrink-0 text-xs">
+                    Delete? <button className="font-medium text-rose-700 underline" onClick={() => deleteOne(c)}>Yes</button>{' '}
+                    <button className="underline" onClick={() => setConfirmBug(null)}>No</button>
+                  </span>
+                ) : (
+                  <button className="shrink-0 rounded px-1 text-gray-400 hover:text-rose-700" aria-label={`Delete ${c.title}`} title="Delete this bug" onClick={() => setConfirmBug(c.status + c.id)}>×</button>
+                )}
               </li>
             ))}
           </ul>
