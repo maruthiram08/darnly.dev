@@ -288,6 +288,12 @@ export const TOOLS: Item[] = [
     blurb: 'Edit a table like a spreadsheet or paste from Excel, and copy it as Markdown, HTML or CSV.',
     category: 'Code helpers',
   },
+  {
+    slug: 'exif-remover',
+    category: 'Security',
+    name: 'EXIF remover',
+    blurb: 'See if your photos show where you live, then remove the location, date and camera info in one click.',
+  },
 ];
 
 // Same for guides.

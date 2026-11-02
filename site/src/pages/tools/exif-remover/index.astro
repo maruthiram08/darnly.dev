@@ -1,0 +1,134 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in one photo or a whole batch (up to 50). JPG, PNG and WebP all work, and so do photos straight from your phone.',
+  'Each photo gets a card showing what’s hidden inside: where it was taken, when, which phone or camera, and any names. Photos that give away a location are marked in red.',
+  'Click <strong>Remove everything</strong>. Each photo is checked again after cleaning, then download them one by one or all in one ZIP.',
+];
+
+const faq = [
+  { q: 'Are my photos uploaded anywhere?', a: 'No. Everything happens in your browser. Your photos never leave your computer, and you can turn off your internet after the page loads to check.' },
+  { q: 'What is EXIF data?', a: 'Extra information your phone or camera saves inside every photo: the date and time, the phone model, the settings, and often the exact GPS spot where you took it. You can’t see it when you look at the picture, but anyone who downloads the file can read it.' },
+  { q: 'Does this make my photo look worse?', a: 'No. For JPG, PNG and WebP we take the hidden info out of the file without touching the picture, so the quality is exactly the same. Only other formats (like AVIF) are saved as a fresh copy.' },
+  { q: 'Why is the location so precise?', a: 'Phones save GPS to within a few metres. That’s enough to find someone’s house from a photo of their desk, their pet or their new setup.' },
+  { q: 'Don’t sites like X and Instagram remove it anyway?', a: 'Most big social apps remove it from what they show. But many places keep the original file: email, Slack and Discord attachments, GitHub issues, Google Drive links, forums, your own website, and photos you send to clients. Clean it first and you don’t have to know which.' },
+  { q: 'Why does it keep which way up the photo goes?', a: 'Phones save sideways photos with a note that says “turn this”. Without it, your photo would show up on its side. That note says nothing about you, so we keep only that.' },
+  { q: 'Why is there no map of the location?', a: 'Showing a map would mean sending your coordinates to a map service. The “See this spot on a map” link only opens if you click it.' },
+  { q: 'What about iPhone HEIC photos?', a: 'We can read what’s inside them, but Chrome and Firefox can’t open HEIC pictures, so we can’t clean them here. Open this page in Safari, or on your iPhone tap <strong>Share</strong>, then <strong>Options</strong> at the top, and turn off <strong>Location</strong> before you share.' },
+  { q: 'Do screenshots have hidden info?', a: 'Usually less than photos: no location, but often the date, the device and the app that made them. Drop one in to see.' },
+];
+---
+<ToolPage
+  slug="exif-remover"
+  title="Remove location and metadata from photos (EXIF remover) · Darnly"
+  description="See what your photos give away, like the exact GPS spot, date and phone, then remove it in one click without losing quality. Free, and nothing is uploaded."
+  h1="Remove location and metadata from photos"
+  lede="Photos can show exactly where you took them. Drop yours in to see what’s hidden inside, then remove it all in one click. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="er">
+    <label class="drop" id="er-drop">
+      <input id="er-file" type="file" accept="image/*,.heic,.heif" multiple />
+      <strong>Drop your photos here</strong>
+      <span>or click to choose. You can pick many at once, or paste one.</span>
+    </label>
+    <p class="error" id="er-error" role="alert" hidden></p>
+
+    <div class="bar" id="er-bar" hidden>
+      <p class="summary" id="er-summary" role="status"></p>
+      <div class="buttons">
+        <button id="er-clearall" type="button" class="ghost">Start over</button>
+        <button id="er-zip" type="button" class="ghost" hidden>Download all (ZIP)</button>
+        <button id="er-clean" type="button" class="primary">Remove everything</button>
+      </div>
+    </div>
+
+    <ul class="cards" id="er-list" aria-live="polite"></ul>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/exif-remover';
+</script>
+
+<style>
+  .er { display: grid; gap: 20px; }
+  .drop { position: relative; display: grid; place-items: center; gap: 6px; text-align: center; padding: 40px 24px; border: 2px dashed var(--line); border-radius: 20px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 22px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .error { margin: 0; color: #B4234F; }
+
+  .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; position: sticky; top: 8px; z-index: 2; padding: 12px 12px 12px 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); box-shadow: 0 6px 24px rgba(16, 37, 66, 0.08); }
+  .bar[hidden] { display: none; }
+  .summary { margin: 0; font-weight: 700; font-size: 17px; }
+  .summary:global(.danger) { color: #B4234F; }
+  .summary:global(.good) { color: #11795A; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+  .buttons button { font: 600 16px/1 var(--body); padding: 14px 20px; border-radius: 999px; cursor: pointer; }
+  .buttons button[hidden] { display: none; }
+  .buttons .primary { border: 0; background: #B4234F; color: var(--white); }
+  .buttons .primary:hover { background: #941A40; }
+  .buttons .ghost { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+  .buttons button:disabled { opacity: 0.6; cursor: wait; }
+
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+  .cards :global(.card) { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); border: 2px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--white); transition: border-color 0.3s; }
+  .cards :global(.card.danger) { border-color: #F0A3B9; }
+  .cards :global(.card.warn) { border-color: #F2D48A; }
+  .cards :global(.card.done), .cards :global(.card.ok) { border-color: #9BD8C2; }
+
+  .cards :global(.pic) { position: relative; min-height: 220px; background: repeating-conic-gradient(#e6eef2 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .cards :global(.pic img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cards :global(.pic .noprev) { display: none; position: absolute; inset: 0; place-items: center; padding: 20px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+  .cards :global(.pic.nopreview img) { display: none; }
+  .cards :global(.pic.nopreview .noprev) { display: grid; }
+  .cards :global(.badge) { position: absolute; left: 12px; top: 12px; padding: 8px 12px; border-radius: 999px; font: 700 14px/1 var(--body); color: #fff; background: #B4234F; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
+  .cards :global(.warn .badge) { background: #8A6100; }
+  .cards :global(.ok .badge), .cards :global(.done .badge) { background: #11795A; }
+  .cards :global(.sample) { position: absolute; right: 12px; bottom: 12px; padding: 6px 10px; border-radius: 8px; font: 600 12px/1 var(--mono); color: #fff; background: rgba(16, 20, 40, 0.7); }
+
+  .cards :global(.body) { display: grid; gap: 14px; align-content: start; padding: 18px 20px 20px; min-width: 0; }
+  .cards :global(.head) { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .cards :global(.name) { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cards :global(.size) { font: 500 13px/1 var(--mono); color: var(--ink-soft); white-space: nowrap; }
+  .cards :global(.line) { margin: 0; color: var(--ink-soft); }
+  .cards :global(.danger .line) { color: #8F1B3E; font-weight: 600; }
+
+  .cards :global(.loc) { display: grid; gap: 10px; padding: 14px 16px; border-radius: 14px; background: #FDECF1; border: 1px solid #F6C4D3; transition: opacity 0.3s; }
+  .cards :global(.where) { display: flex; gap: 12px; align-items: center; }
+  .cards :global(.pin) { font-size: 30px; line-height: 1; }
+  .cards :global(.where strong) { display: block; font: 700 19px/1.25 var(--mono); color: #8F1B3E; }
+  .cards :global(.where .sub) { font-size: 14px; color: #8F1B3E; }
+  .cards :global(.map) { justify-self: start; font-weight: 600; font-size: 14px; color: #8F1B3E; }
+
+  .cards :global(.facts) { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .cards :global(.facts .fact) { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); transition: opacity 0.3s; }
+  .cards :global(.facts .fact:first-child) { border-top: 0; }
+  .cards :global(.ic) { font-size: 18px; line-height: 1.4; text-align: center; }
+  .cards :global(.top) { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  .cards :global(.label) { font-weight: 600; }
+  .cards :global(.value) { overflow-wrap: anywhere; }
+  .cards :global(.why) { display: block; font-size: 13px; color: var(--ink-soft); }
+  .cards :global(.fact.gone) { opacity: 0.45; }
+  .cards :global(.fact.gone strong), .cards :global(.fact.gone .value) { text-decoration: line-through; }
+  .cards :global(.loc.gone) { background: var(--wash); border-color: var(--line); }
+
+  .cards :global(.after) { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 14px; background: #E7F6F0; color: #0B5B43; }
+  .cards :global(.after[hidden]) { display: none; }
+  .cards :global(.after.fail) { background: #FFF4D6; color: #6B4E00; }
+  .cards :global(.after .msg) { display: grid; gap: 4px; flex: 1 1 260px; font-size: 14px; }
+  .cards :global(.after .msg strong) { font-size: 16px; }
+  .cards :global(.dl) { font: 600 15px/1 var(--body); padding: 12px 18px; border-radius: 999px; background: #11795A; color: #fff; text-decoration: none; white-space: nowrap; }
+  .cards :global(.dl:hover) { background: #0B5B43; }
+
+  @media (max-width: 720px) {
+    .cards :global(.card) { grid-template-columns: 1fr; }
+    .cards :global(.pic) { min-height: 0; aspect-ratio: 3 / 2; }
+    .bar { position: static; }
+  }
+</style>
