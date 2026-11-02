@@ -1,0 +1,217 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste a messy class list, or a whole component. We find every <code>className="…"</code>, <code>class="…"</code> and <code>cn(…)</code> in it.',
+  'The preview at the top shows your classes before and after. Red ones fight each other, so only one of them works. Gray dashed ones aren’t Tailwind classes.',
+  'Pick which side of each fight you want to keep, then click “Copy”. Long lists can be split into a <code>cn()</code> call with one line per kind of class.',
+];
+
+const faq = [
+  { q: 'Is this the same order as the Prettier plugin?', a: 'Yes. The order comes from Tailwind v4 itself, using the same call the official <code>prettier-plugin-tailwindcss</code> makes. Classes Tailwind doesn’t know (your own classes) go first, in the order you wrote them, just like the plugin does.' },
+  { q: 'What counts as a conflict?', a: 'Two classes that set the exact same CSS, for the same screen size and state. <code>p-2 p-4</code> both set padding, so only one works. <code>p-4 px-2</code> is fine: <code>px-2</code> changes only the sides, on purpose. <code>p-4 md:p-8</code> is fine too, because they apply at different sizes.' },
+  { q: 'Which class wins a conflict?', a: 'Not the one you wrote last. In Tailwind, the order in your class list doesn’t matter: the browser uses whichever class comes later in Tailwind’s CSS file. So <code>text-lg text-sm</code> and <code>text-sm text-lg</code> both end up small. A class marked important, like <code>p-4!</code>, beats the others. We show the real winner, and you can pick the other one instead.' },
+  { q: 'Does removing the losing class change how my page looks?', a: 'No. The losing class already does nothing, so by default we keep the winner and your page looks exactly the same. If the loser is the one you actually meant, click it to keep that one instead. The “How it looks” box lets you compare.' },
+  { q: 'I use Tailwind v3. Does this still work?', a: 'Mostly. The order is very close in v3, and conflicts work the same way. A few classes were renamed in v4, like <code>flex-grow</code> to <code>grow</code>; we keep your names unless you turn on “Use the newer v4 names”. Classes v4 removed, like <code>bg-opacity-50</code>, show up as “not Tailwind” with what to use now.' },
+  { q: 'My own colors, like bg-brand, show as “not Tailwind”.', a: 'Open “Your theme” under the tool and paste your <code>@theme { … }</code> block from your CSS file. Then your colors, fonts and sizes are sorted and checked like any other class.' },
+  { q: 'How do I make my editor do this every time?', a: 'Install the Prettier plugin: <code>npm install -D prettier prettier-plugin-tailwindcss</code>, then add <code>"plugins": ["prettier-plugin-tailwindcss"]</code> to your <code>.prettierrc</code>. It sorts and removes duplicates when you save. It won’t tell you about conflicts, so paste here when something looks off.' },
+  { q: 'Is my code uploaded?', a: 'No. Everything runs in your browser, including Tailwind itself.' },
+];
+---
+<ToolPage
+  slug="tailwind-class-cleaner"
+  title="Tailwind class sorter and cleaner: sort, dedupe, find conflicts · Darnly"
+  description="Paste Tailwind classes or a whole component. Sort them in the official Prettier plugin order, remove duplicates, and see which classes fight each other (like p-2 p-4) and which one wins. Free, runs in your browser."
+  h1="Tailwind class cleaner: sort, dedupe and fix conflicts"
+  lede="Paste a messy class list or a whole component. See it sorted the way Prettier sorts it, with duplicates gone and the classes that cancel each other out in red. Copy the clean version in one click."
+  steps={steps}
+  faq={faq}
+>
+  <div class="tc">
+    <div class="stage" aria-label="Your classes before and after cleaning">
+      <p class="verdict" id="tc-verdict" role="status" aria-live="polite">Loading Tailwind…</p>
+      <div class="cards" id="tc-cards"></div>
+      <div class="out">
+        <pre id="tc-out" tabindex="0" aria-label="Cleaned result"></pre>
+        <button id="tc-copy" type="button" class="primary">Copy cleaned classes</button>
+      </div>
+      <ul class="legend" id="tc-legend" aria-label="Colors"></ul>
+    </div>
+
+    <div class="fights" id="tc-fights" hidden>
+      <h2>Classes that fight each other</h2>
+      <p class="sub">Only one class of each pair works. We keep the one that works today, so nothing changes. Meant the other one? Click it.</p>
+      <ul id="tc-conflicts"></ul>
+    </div>
+
+    <div class="notes" id="tc-notes" hidden>
+      <h2>Worth a look</h2>
+      <ul id="tc-note-list"></ul>
+    </div>
+
+    <div class="grid2">
+      <div class="input">
+        <label for="tc-in">Your classes or code</label>
+        <textarea id="tc-in" rows="6" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <div class="row">
+          <button type="button" id="tc-ex-classes" class="ghost small">Example: class list</button>
+          <button type="button" id="tc-ex-code" class="ghost small">Example: React component</button>
+          <button type="button" id="tc-clear" class="ghost small">Clear</button>
+        </div>
+      </div>
+
+      <div class="preview">
+        <div class="phead">
+          <span class="plabel">How it looks</span>
+          <div class="seg" role="group" aria-label="Show">
+            <button type="button" data-view="before" aria-pressed="false">Before</button>
+            <button type="button" data-view="after" aria-pressed="true">After</button>
+          </div>
+        </div>
+        <div class="pbox" id="tc-preview"></div>
+        <p class="pnote" id="tc-pnote"></p>
+      </div>
+    </div>
+
+    <div class="opts">
+      <label class="check"><input type="checkbox" id="tc-dedupe" checked /> Remove duplicates</label>
+      <label class="check"><input type="checkbox" id="tc-losers" checked /> Remove classes that do nothing</label>
+      <label class="check"><input type="checkbox" id="tc-rename" /> Use the newer v4 names</label>
+      <div class="seg" role="group" aria-label="Output">
+        <span>Output</span>
+        <button type="button" data-split="off" aria-pressed="true">One line</button>
+        <button type="button" data-split="on" aria-pressed="false">Split into</button>
+      </div>
+      <select id="tc-fn" aria-label="Function name">
+        <option value="cn">cn()</option>
+        <option value="clsx">clsx()</option>
+        <option value="twMerge">twMerge()</option>
+      </select>
+    </div>
+
+    <details class="more" id="tc-table-wrap">
+      <summary>See every class and the CSS it sets</summary>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>#</th><th>Class</th><th>Kind</th><th>CSS it sets</th></tr></thead>
+          <tbody id="tc-table"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Your theme (optional): for your own colors and fonts</summary>
+      <p class="hint">Paste the <code>@theme</code> block from your main CSS file, like <code>@theme {'{'} --color-brand: #0593c6; {'}'}</code>. Then classes like <code>bg-brand</code> are sorted and checked too.</p>
+      <textarea id="tc-theme" rows="5" spellcheck="false" placeholder="@theme {&#10;  --color-brand: #0593c6;&#10;  --font-display: 'Inter', sans-serif;&#10;}"></textarea>
+      <div class="row">
+        <button type="button" id="tc-theme-apply" class="ghost">Use my theme</button>
+        <span class="hint" id="tc-theme-status" role="status"></span>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="tc-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      <button id="tc-link" type="button" class="ghost">Copy link</button>
+      <p class="status" id="tc-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/tailwind-class-cleaner';
+</script>
+
+<style>
+  .tc { display: grid; gap: 20px; min-width: 0; }
+  .tc [hidden] { display: none !important; }
+  .stage { display: grid; gap: 16px; padding: 20px; border-radius: 24px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .verdict { margin: 0; font: 700 22px/1.35 var(--display); letter-spacing: -0.01em; }
+  .verdict :global(.ok) { color: #0B6B3A; }
+  .verdict :global(.bad) { color: #B4234F; }
+  .verdict :global(small) { display: block; margin-top: 4px; font: 500 15px/1.4 var(--body); color: var(--ink-soft); letter-spacing: 0; }
+  .cards { display: grid; gap: 12px; min-width: 0; }
+  .cards :global(.card) { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--wash); border: 2px solid transparent; min-width: 0; }
+  .cards :global(.card.pick) { cursor: pointer; }
+  .cards :global(.card.sel) { border-color: var(--sky); }
+  .cards :global(.clabel) { font: 600 13px/1.2 var(--mono); color: var(--ink-soft); }
+  .cards :global(.line) { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: start; }
+  .cards :global(.tag) { padding-top: 6px; font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  .cards :global(.chips) { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .cards :global(.chip) { position: relative; display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 5px 9px; border-radius: 8px; border: 1px solid transparent; font: 500 14px/1.2 var(--mono); overflow-wrap: anywhere; }
+  .cards :global(.chip.g-layout) { background: #E0F2FE; color: #075985; }
+  .cards :global(.chip.g-size) { background: #EDE9FE; color: #5B21B6; }
+  .cards :global(.chip.g-spacing) { background: #DCFCE7; color: #166534; }
+  .cards :global(.chip.g-type) { background: #FEF3C7; color: #92400E; }
+  .cards :global(.chip.g-color) { background: #FCE7F3; color: #9D174D; }
+  .cards :global(.chip.g-border) { background: #E0E7FF; color: #3730A3; }
+  .cards :global(.chip.g-effects) { background: #CCFBF1; color: #115E59; }
+  .cards :global(.chip.g-other) { background: #F1F5F9; color: #334155; }
+  .cards :global(.chip.g-custom) { background: var(--white); color: #475569; border: 1px dashed #94A3B8; }
+  .cards :global(.chip.dupe) { background: var(--white); color: #94A3B8; border: 1px solid var(--line); text-decoration: line-through; }
+  .cards :global(.chip.loser) { background: #FDE2E7; color: #B4234F; border-color: #E8A0B4; text-decoration: line-through; }
+  .cards :global(.chip.fight) { box-shadow: 0 0 0 2px #E8A0B4; }
+  .cards :global(.chip .badge) { font: 700 10px/1 var(--body); text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.8); text-decoration: none; }
+  .cards :global(.empty) { margin: 0; color: var(--ink-soft); }
+  .out { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+  .out pre { margin: 0; min-height: 48px; max-height: 340px; overflow: auto; padding: 14px 16px; border-radius: 12px; background: #0B2230; color: #E6F4FA; font: 500 14px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .primary { font: 700 15px/1 var(--body); padding: 15px 20px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .primary:hover { background: #12384D; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-soft); }
+  .legend :global(li) { display: inline-flex; align-items: center; gap: 6px; }
+  .legend :global(i) { width: 12px; height: 12px; border-radius: 4px; }
+  .fights, .notes { padding: 18px 20px; border-radius: 16px; background: #FFF1F4; border: 1px solid #F5C6D3; }
+  .notes { background: var(--wash); border-color: var(--line); }
+  .fights h2, .notes h2 { margin: 0 0 4px; font: 700 18px/1.3 var(--display); }
+  .sub { margin: 0 0 12px; font-size: 15px; color: var(--ink-soft); }
+  .fights ul, .notes ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .fights :global(li) { display: grid; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--white); }
+  .fights :global(.why) { margin: 0; font-size: 15px; line-height: 1.45; }
+  .fights :global(.why code), .notes :global(code) { font: 600 14px/1 var(--mono); }
+  .fights :global(.picks) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fights :global(.picks button) { font: 600 14px/1 var(--mono); padding: 9px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .fights :global(.picks button[aria-pressed='true']) { background: #0B6B3A; border-color: #0B6B3A; color: #fff; }
+  .fights :global(.picks button[aria-pressed='true'])::before { content: '✓ '; }
+  .fights :global(.where) { font: 600 12px/1 var(--mono); color: var(--ink-soft); }
+  .notes :global(li) { font-size: 15px; line-height: 1.45; }
+  .notes :global(button) { margin-left: 6px; font: 600 13px/1 var(--body); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+  .input { display: grid; gap: 8px; min-width: 0; align-content: start; }
+  .input label { font-weight: 600; }
+  textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); font: 500 14px/1.5 var(--mono); resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--sky); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .preview { display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .phead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .plabel { font-weight: 600; }
+  .pbox { min-height: 150px; padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: repeating-conic-gradient(#F3F7FA 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; overflow: hidden; display: grid; place-items: center; }
+  .pnote { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .opts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 14px 18px; border-radius: 16px; background: var(--wash); }
+  .check { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+  .seg { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); }
+  .seg span { padding: 0 8px; font-size: 14px; color: var(--ink-soft); }
+  .seg button { font: 600 14px/1 var(--body); padding: 8px 12px; border: 0; border-radius: 999px; background: none; color: var(--ink); cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  select { font: 600 14px/1 var(--mono); padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); }
+  .more { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .more summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .more textarea { margin-bottom: 10px; }
+  .tablewrap { overflow-x: auto; margin-bottom: 16px; }
+  .more table { width: 100%; border-collapse: collapse; font: 13px/1.4 var(--mono); }
+  .more th, .more :global(td) { text-align: left; vertical-align: top; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .more th { font: 600 13px/1.3 var(--body); color: var(--ink-soft); }
+  .hint { margin: 0 0 10px; font-size: 14px; color: var(--ink-soft); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost.small { font-size: 13px; padding: 8px 12px; }
+  .ghost:hover, .notes :global(button:hover), .fights :global(.picks button:hover) { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .stage { padding: 14px; }
+    .verdict { font-size: 19px; }
+    .grid2 { grid-template-columns: minmax(0, 1fr); }
+    .out { grid-template-columns: minmax(0, 1fr); }
+    .cards :global(.line) { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .cards :global(.tag) { padding-top: 0; }
+  }
+</style>

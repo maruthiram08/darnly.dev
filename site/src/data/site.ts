@@ -1,5 +1,5 @@
 // One place for links and the lists that the footer and hub pages read.
-export const STORE_URL = 'https://chromewebstore.google.com/detail/gognoljafcabnmbbpfoeeamcflpbgidj';
+export const STORE_URL = 'https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj';
 
 // Chrome Web Store link tagged with the page it came from, so installs can be counted per page.
 export const storeUrl = (source: string) => `${STORE_URL}?utm_source=${encodeURIComponent(source)}`;
@@ -181,6 +181,12 @@ export const TOOLS: Item[] = [
     blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
   },
   {
+    slug: 'broken-link-checker',
+    name: 'Broken link checker',
+    blurb: 'Find every dead link and missing image on your site, with the page it’s on, and fix them with one prompt.',
+    category: 'Launch & domains',
+  },
+  {
     slug: 'gitignore-generator',
     category: 'Code helpers',
     name: '.gitignore generator',
@@ -190,6 +196,23 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'video-to-gif',
+    category: 'Images',
+    name: 'Video to GIF',
+    blurb: 'Turn a screen recording into a GIF for your README or bug report. Trim it and see the size live.',
+  },
+  {
+    slug: 'tailwind-class-cleaner',
+    category: 'Code helpers',
+    name: 'Tailwind class cleaner',
+    blurb: 'Sort Tailwind classes the way Prettier does, remove duplicates, and see which classes cancel each other out.',
+  },
+  {
+    slug: 'loader-generator',
+    category: 'Design',
+    name: 'CSS loading spinners',
+    blurb: '20 pure-CSS spinners, dots and bars plus a skeleton card builder. Copy HTML and CSS, Tailwind or React.',
   },
   {
     slug: 'button-generator',

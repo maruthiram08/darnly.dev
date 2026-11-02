@@ -24,7 +24,18 @@ const TIME_BUDGET_MS = 25_000;
 
 const SKIP_EXT = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|pdf|zip|gz|tgz|rar|7z|dmg|exe|msi|apk|ipa|mp4|webm|mov|mp3|wav|ogg|m4a|css|js|mjs|map|json|xml|txt|rss|atom|woff2?|ttf|otf|eot|csv|xlsx?|docx?|pptx?|wasm)$/i;
 
-export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: Headers, firstStatus: number, fetchPage: Fetcher) {
+// Other tools reuse the crawl: the broken link checker reads every page's HTML (onPage) and the
+// answer for every address it opened (onFetch), with a smaller page limit.
+export type CrawlOptions = {
+  maxPages?: number;
+  timeBudgetMs?: number;
+  onPage?: (url: string, html: string, base: string) => void;
+  onFetch?: (requested: string, status: number, final: string) => void;
+};
+
+export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: Headers, firstStatus: number, fetchPage: Fetcher, opts: CrawlOptions = {}) {
+  const maxPages = opts.maxPages ?? MAX_PAGES;
+  const timeBudget = opts.timeBudgetMs ?? TIME_BUDGET_MS;
   const start = new URL(firstUrl);
   const origin = start.origin;
   const started = Date.now();
@@ -64,6 +75,7 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
 
   // The first page was already read by the Worker.
   seen.add(new URL(firstUrl).href);
+  opts.onFetch?.(new URL(firstUrl).href, firstStatus, new URL(firstUrl).href);
   handle({ url: firstUrl, requested: firstUrl, status: firstStatus, html: firstHtml, lastModified: firstHeaders.get('last-modified'), robotsHeader: firstHeaders.get('x-robots-tag') });
 
   function handle(r: { url: string; requested: string; status: number; html: string; lastModified: string | null; robotsHeader: string | null; from?: string }) {
@@ -78,6 +90,7 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
       return;
     }
     const head = readHead(r.html, final.href);
+    opts.onPage?.(final.href, r.html, head.base ?? final.href);
     for (const href of links(r.html, head.base ?? final.href)) enqueue(href, pathOf(final.href));
 
     if (!allowed(rules, final.pathname)) {
@@ -106,17 +119,18 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
 
   async function worker() {
     while (queue.length) {
-      if (fetched + 1 >= MAX_PAGES) {
+      if (fetched + 1 >= maxPages) {
         stopped = 'limit';
         return;
       }
-      if (Date.now() - started > TIME_BUDGET_MS) {
+      if (Date.now() - started > timeBudget) {
         stopped = 'time';
         return;
       }
       const next = queue.shift()!;
       fetched++;
       const res = await fetchPage(next.url, 'text/html,application/xhtml+xml');
+      opts.onFetch?.(next.url, res ? res.status : 0, res ? res.url : next.url);
       if (!res) {
         problems.push({ url: next.url, kind: 'error', status: 0, from: next.from });
         continue;
