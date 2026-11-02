@@ -87,6 +87,11 @@ export const TOOLS: Item[] = [
     blurb: 'Is your site ready to launch? Title, share preview, favicon, sitemap, 404 and more, with fixes.',
   },
   {
+    slug: 'asset-extractor',
+    name: 'Asset extractor',
+    blurb: 'Every image, SVG and icon on a website, with sizes. Download one or all as a ZIP.',
+  },
+  {
     slug: 'website-color-finder',
     category: 'Design',
     name: 'Website color finder',
