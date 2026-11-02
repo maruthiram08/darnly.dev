@@ -1,0 +1,182 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your site’s address.',
+  'We open up to 50 pages on your site, then check every link and image on them, including links to other sites.',
+  'See each broken link with the page it’s on and its text, then copy one prompt that asks Claude Code, Cursor or Codex to fix them all.',
+];
+
+const faq = [
+  { q: 'What counts as a broken link?', a: 'A link or image that answers with an error (like 404 Not found or 500 Server error), or doesn’t load at all. Visitors who click it hit a dead end, and Google sees it too.' },
+  { q: 'What are the amber redirects?', a: 'Links that still work but bounce through another address first, like /pricing to /plans. They aren’t broken, but pointing the link straight at the final address is faster and tidier. Fix them when you have a minute.' },
+  { q: 'Why does it say “couldn’t check” for some sites?', a: 'Sites like LinkedIn, X and some shops refuse automated checks and answer “forbidden” or “too many requests” even when the page is fine. We don’t count those as broken. Open them yourself to be sure.' },
+  { q: 'Why only 50 pages?', a: 'To keep it quick and gentle on your site. Most new sites have far fewer. If yours has more, we check the pages linked closest to your home page first.' },
+  { q: 'Can I check a site on localhost?', a: 'No. We read your site from the internet, so it needs a public address. Deploy a preview (Vercel, Netlify and Cloudflare all make one), then paste that.' },
+  { q: 'Does it find links that only appear after JavaScript runs?', a: 'No. We read the HTML your server sends. Most sites built with Next.js, Astro, Nuxt or SvelteKit send their links in it. If your site is a single-page app that builds everything in the browser, we may only see the home page.' },
+];
+---
+<ToolPage
+  slug="broken-link-checker"
+  title="Broken link checker: find dead links on your site, free · Darnly"
+  description="Paste your site and find every broken link and image in seconds. We check up to 50 pages and 150 links, show the page and link text for each one, and give you one prompt to fix them all."
+  h1="Broken link checker"
+  lede="Paste your site and see every dead link and missing image, which page it’s on, and what it says. Then fix them all with one prompt."
+  steps={steps}
+  faq={faq}
+>
+  <div class="bl">
+    <form id="bl-form" class="ask">
+      <label class="sr" for="bl-url">Website address</label>
+      <input id="bl-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="bl-go" type="submit">Find broken links</button>
+    </form>
+    <p class="error" id="bl-error" role="alert" hidden></p>
+
+    <section class="board" id="bl-board" aria-live="polite">
+      <p class="sample" id="bl-sample">Example result</p>
+      <div class="hero" id="bl-hero" data-tone="bad">
+        <div class="big">
+          <span class="num" id="bl-num">3</span>
+          <span class="what" id="bl-what">broken links on 2 pages</span>
+        </div>
+        <p class="sub" id="bl-sub">We checked 84 links and images on 12 pages of yoursite.com.</p>
+        <div class="bar" id="bl-bar" aria-hidden="true">
+          <span class="seg ok" style="flex-grow: 76"></span>
+          <span class="seg redirect" style="flex-grow: 4"></span>
+          <span class="seg broken" style="flex-grow: 3"></span>
+          <span class="seg blocked" style="flex-grow: 1"></span>
+        </div>
+        <ul class="legend" id="bl-legend">
+          <li><i class="dot ok"></i>76 fine</li>
+          <li><i class="dot redirect"></i>4 redirects</li>
+          <li><i class="dot broken"></i>3 broken</li>
+          <li><i class="dot blocked"></i>1 couldn’t check</li>
+        </ul>
+        <div class="actions">
+          <button id="bl-prompt" type="button" class="primary" disabled>Copy prompt for your AI agent</button>
+        </div>
+      </div>
+
+      <div class="working" id="bl-working" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <p class="w-title">Checking your links…</p>
+          <p class="w-sub" id="bl-working-sub">Opening your pages, then testing every link and image on them. This can take up to a minute.</p>
+        </div>
+      </div>
+
+      <p class="note" id="bl-note" hidden></p>
+
+      <div class="cards" id="bl-cards">
+        <article class="card broken">
+          <div class="c-top"><span class="badge broken">404 Not found</span><span class="c-where">on <b>/pricing</b></span></div>
+          <p class="c-link"><span class="anchor">Read the docs</span></p>
+          <p class="c-url">https://yoursite.com/docs/getting-started</p>
+        </article>
+        <article class="card broken">
+          <div class="c-top"><span class="badge broken">Doesn’t load</span><span class="c-where">on <b>/</b> and <b>/about</b></span></div>
+          <p class="c-link"><span class="anchor img">Image: team photo</span></p>
+          <p class="c-url">https://cdn.oldhost.com/team.jpg</p>
+        </article>
+        <article class="card redirect">
+          <div class="c-top"><span class="badge redirect">Redirects</span><span class="c-where">on <b>/blog</b></span></div>
+          <p class="c-link"><span class="anchor">Our story</span></p>
+          <p class="c-url">http://yoursite.com/about <span class="arrow">→</span> https://yoursite.com/about/</p>
+        </article>
+      </div>
+    </section>
+
+    <details class="group" id="bl-pages-box" hidden>
+      <summary id="bl-pages-title"></summary>
+      <ul class="pages" id="bl-pages"></ul>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/broken-link-checker';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .bl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  @media (max-width: 480px) { .ask { flex-wrap: wrap; } .ask button { width: 100%; padding: 14px 26px; } }
+  .error { margin: 0; color: #B4234F; }
+
+  .board { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; border: 1px solid var(--line); border-radius: 22px; background: #F5F8FB; padding: 22px; }
+  .board.is-sample .hero, .board.is-sample .cards { opacity: 0.55; }
+  .sample { position: absolute; top: -12px; left: 22px; margin: 0; font: 600 12px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; background: var(--ink); color: var(--white); padding: 6px 10px; border-radius: 999px; }
+  @media (max-width: 480px) { .board { padding: 16px; } }
+
+  .hero { border-radius: 18px; padding: 22px; background: var(--white); border: 2px solid var(--line); display: grid; gap: 12px; }
+  .hero[data-tone="bad"] { border-color: #F2B8C6; background: #FFF5F7; }
+  .hero[data-tone="warn"] { border-color: #F0D58A; background: #FFFBEE; }
+  .hero[data-tone="good"] { border-color: #A8DDBF; background: #F1FBF5; }
+  .big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+  .num { font: 800 clamp(56px, 12vw, 88px)/0.9 var(--display); letter-spacing: -0.03em; }
+  .hero[data-tone="bad"] .num { color: #C21E4A; }
+  .hero[data-tone="warn"] .num { color: #9A6B00; }
+  .hero[data-tone="good"] .num { color: #1C8A4E; }
+  .what { font: 700 clamp(22px, 4vw, 30px)/1.15 var(--display); }
+  .sub { margin: 0; color: var(--ink-soft); font-size: 16px; overflow-wrap: anywhere; }
+  .bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: #E6ECF2; gap: 2px; }
+  .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-soft); }
+  .legend :global(li) { display: flex; align-items: center; gap: 6px; }
+  .legend :global(.dot) { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .legend :global(.dot.ok) { background: #2FB36B; }
+  .legend :global(.dot.redirect) { background: #E8A915; }
+  .legend :global(.dot.broken) { background: #D7264F; }
+  .legend :global(.dot.blocked) { background: #9AA8B6; }
+  .bar :global(.seg.ok) { background: #2FB36B; }
+  .bar :global(.seg.redirect) { background: #E8A915; }
+  .bar :global(.seg.broken) { background: #D7264F; }
+  .bar :global(.seg.blocked) { background: #9AA8B6; }
+  .bar :global(.seg) { min-width: 4px; flex-basis: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .primary { font: 600 15px/1 var(--body); padding: 13px 20px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .primary:disabled { opacity: 0.5; cursor: default; }
+
+  .working { display: flex; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 16px; background: var(--white); border: 1px solid var(--line); }
+  .w-title { margin: 0; font: 600 17px/1.3 var(--body); }
+  .w-sub { margin: 2px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .spinner { width: 28px; height: 28px; flex: none; border-radius: 50%; border: 3px solid #D9E4EE; border-top-color: var(--sky); animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+  .note { margin: 0; font-size: 15px; padding: 12px 16px; border-radius: 12px; background: #FFF6DA; border: 1px solid #F0D58A; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .cards :global(.card) { background: var(--white); border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+  .cards :global(.card.broken) { border-left-color: #D7264F; }
+  .cards :global(.card.redirect) { border-left-color: #E8A915; }
+  .cards :global(.card.blocked) { border-left-color: #9AA8B6; }
+  .cards :global(.c-top) { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  .cards :global(.badge) { font: 700 12px/1 var(--body); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+  .cards :global(.badge.broken) { background: #FBE3E8; color: #A3173C; }
+  .cards :global(.badge.redirect) { background: #FFF1CC; color: #7A5600; }
+  .cards :global(.badge.blocked) { background: #EAF0F6; color: #3B4A5A; }
+  .cards :global(.c-where) { font-size: 14px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .cards :global(.c-where b) { color: var(--ink); font-weight: 600; }
+  .cards :global(.c-link) { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+  .cards :global(.anchor) { color: #1D5FD1; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .cards :global(.card.broken .anchor) { color: #A3173C; text-decoration-style: wavy; text-decoration-color: #D7264F; }
+  .cards :global(.anchor.img) { text-decoration: none; display: inline-flex; gap: 6px; align-items: center; }
+  .cards :global(.anchor.img::before) { content: ""; width: 18px; height: 14px; border-radius: 3px; border: 2px dashed currentColor; }
+  .cards :global(.c-url) { margin: 0; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .cards :global(.c-url a) { color: inherit; }
+  .cards :global(.arrow) { color: #9A6B00; font-weight: 700; }
+  .cards :global(.c-more) { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .cards :global(.all-good) { grid-column: 1 / -1; margin: 0; padding: 18px; border-radius: 14px; background: var(--white); border: 1px dashed #A8DDBF; color: #1C6B3E; font-size: 16px; text-align: center; }
+
+  .group { border: 1px solid var(--line); border-radius: 16px; background: var(--white); padding: 4px 18px; }
+  .group summary { cursor: pointer; font: 600 17px/1.3 var(--body); padding: 12px 0; }
+  .pages { list-style: none; margin: 0 0 12px; padding: 0; columns: 2 220px; column-gap: 24px; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .pages :global(li) { overflow-wrap: anywhere; break-inside: avoid; }
+</style>

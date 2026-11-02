@@ -181,6 +181,12 @@ export const TOOLS: Item[] = [
     blurb: 'Pick a schedule in plain words or paste a cron line, see the next runs in your time and UTC, copy code for Vercel or GitHub.',
   },
   {
+    slug: 'broken-link-checker',
+    name: 'Broken link checker',
+    blurb: 'Find every dead link and missing image on your site, with the page it’s on, and fix them with one prompt.',
+    category: 'Launch & domains',
+  },
+  {
     slug: 'gitignore-generator',
     category: 'Code helpers',
     name: '.gitignore generator',
@@ -190,6 +196,11 @@ export const TOOLS: Item[] = [
     slug: 'utm-builder',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
+  },  {
+    slug: 'video-to-gif',
+    category: 'Images',
+    name: 'Video to GIF',
+    blurb: 'Turn a screen recording into a GIF for your README or bug report. Trim it and see the size live.',
   },
   {
     slug: 'tailwind-class-cleaner',
