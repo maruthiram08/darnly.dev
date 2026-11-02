@@ -593,4 +593,7 @@ export const GUIDES: Item[] = [
   { slug: 'darnly-vs-screenshot', name: 'Darnly vs a plain screenshot', blurb: 'Our benchmark: both fixed 16 of 16 bugs, Darnly cost more. When each is the better pick.' },
   { slug: 'darnly-vs-marker-io', name: 'Darnly vs Marker.io', blurb: 'A free, local bug capture for solo builders, or a paid team feedback tool with a client widget.' },
   { slug: 'darnly-vs-chrome-devtools-mcp', name: 'Darnly vs Chrome DevTools MCP', blurb: 'You point at the bug you saw, or the agent drives its own browser. Often both.' },
+  { slug: 'darnly-vs-tracebug', name: 'Darnly vs TraceBug', blurb: 'A full bug recording for developers and QA, or a quick capture that lands in your project.' },
+  { slug: 'screenshot-wont-paste-into-claude-code', name: 'Screenshot won’t paste into Claude Code or Cursor?', blurb: 'The right paste key for Mac, Windows, WSL and VS Code, and the file path fallback that always works.' },
+  { slug: 'stuck-in-an-ai-error-loop', name: 'Stuck in an AI error loop? How to get out', blurb: 'Stop, revert to the last working commit, give the exact error and what you expected, one change at a time.' },
 ];

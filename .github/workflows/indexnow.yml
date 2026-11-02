@@ -1,0 +1,23 @@
+name: IndexNow
+# After a site change lands on main, tell Bing (and ChatGPT search, which uses Bing) about every page.
+# Waits for the Cloudflare deploy to finish, then reads the live sitemap. Never blocks a deploy.
+on:
+  push:
+    branches: [main]
+    paths: ['site/src/**', 'site/public/**']
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wait for the Cloudflare deploy
+        run: sleep 300
+      - name: Check the key file is live
+        run: curl -fsS https://darnly.dev/81482878266902640d1cb34de558b363.txt
+      - name: Send the sitemap to IndexNow
+        run: node site/scripts/indexnow.mjs

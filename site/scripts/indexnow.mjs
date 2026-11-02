@@ -1,5 +1,6 @@
 // Tells IndexNow search engines (Bing, Yandex, Seznam, Naver...) about every page in the sitemap.
-// Run by hand after a deploy: `npm run indexnow` in site/. Never part of the build, so it can't break a deploy.
+// Runs from .github/workflows/indexnow.yml after each site change on main, or by hand: `npm run indexnow` in site/.
+// Never part of the build, so it can't break a deploy.
 //
 // Reads dist/sitemap-*.xml if a build is there, otherwise the live https://darnly.dev/sitemap-index.xml.
 // `npm run indexnow -- --dry-run` prints the URLs without sending them.

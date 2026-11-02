@@ -1,0 +1,82 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-tracebug';
+const faq = [
+  { q: 'Is TraceBug free?', a: 'Yes. TraceBug\'s pricing page lists one plan, Free, at $0, and the project is open source under the MIT License. The same page says cloud sharing and team features may come later as paid add-ons, and local capture and export will stay free.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension and the Mac app are free.' },
+  { q: 'Does TraceBug work with Claude Code and Cursor?', a: 'Yes. TraceBug has a local MCP server. Its docs give <code>claude mcp add tracebug -- npx -y tracebug mcp --dir ./bug-reports</code> for Claude Code, and it needs Node 18 or later. The server reads the report files in that folder.' },
+  { q: 'Does Darnly need an MCP server?', a: 'Not for a project on your computer. Darnly saves each bug as a markdown file and a PNG in <code>.darnly/inbox/</code> and adds an AGENTS.md note so Claude Code, Codex or Cursor know where to look. The MCP connector at <code>api.darnly.dev/mcp</code> is only for the optional cloud inbox.' },
+  { q: 'Does TraceBug have a cloud inbox?', a: 'Not today. Its pricing page says cloud sharing isn\'t available yet and offers an email signup for when it ships.' },
+  { q: 'Can I use both?', a: 'Yes. They don\'t conflict. You could use TraceBug when you need a full recording of a hard bug, and Darnly for quick "this looks wrong" bugs you want in your project inbox.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="TraceBug alternative: Darnly vs TraceBug compared"
+  description="Darnly vs TraceBug: two free tools that turn a bug on screen into something your AI agent can fix. One records everything, one is quick. When to pick each."
+  h1="Darnly vs TraceBug"
+  lede="TraceBug and Darnly are both free tools that turn a bug you see in the browser into something your AI coding agent can fix, but TraceBug records much more evidence (replay, network, repro steps, a generated failing test) for developers and QA, while Darnly is a quicker capture (box the broken part, say what you expected) that lands in your project's inbox or a cloud inbox."
+  faq={faq}
+  sources={[
+    { name: 'TraceBug home page', url: 'https://tracebug.dev/' },
+    { name: 'TraceBug pricing', url: 'https://tracebug.dev/pricing' },
+    { name: 'TraceBug features', url: 'https://tracebug.dev/features' },
+    { name: 'TraceBug docs: MCP server', url: 'https://tracebug.dev/docs/mcp' },
+    { name: 'TraceBug docs: AI debugger', url: 'https://tracebug.dev/docs/ai-debugger' },
+    { name: 'TraceBug on the Chrome Web Store', url: 'https://chromewebstore.google.com/detail/fdemmibikigigkfjngclmdheeajhdgaj' },
+    { name: 'TraceBug on Firefox Add-ons', url: 'https://addons.mozilla.org/firefox/addon/tracebug-bug-reports-for-ai/' },
+    { name: 'prashantsinghmangat/tracebug-ai on GitHub', url: 'https://github.com/prashantsinghmangat/tracebug-ai' },
+  ]}
+>
+  <p>If you're looking for a TraceBug alternative, or deciding between the two, this page is for you. Both tools start from the same idea: a bug on your screen should become something your AI coding agent can read and fix. They make different trade-offs. Here's an honest look, with TraceBug's facts taken from its own pages on 2 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick TraceBug</strong> if you want the most evidence per bug: session replay, network calls, repro steps and a generated Playwright test. Also if you use Firefox, want to export to GitHub or Jira, or want open source.</li>
+    <li><strong>Pick Darnly</strong> if you want a quick capture (one key, click, one sentence) that saves straight into your project for Claude Code, Codex or Cursor with nothing to set up in the agent, or if your project lives in the cloud and you want a cloud inbox your agent can read.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>TraceBug</th></tr></thead>
+    <tbody>
+      <tr><td>Made for</td><td>People building with AI coding agents, including people who don't read code</td><td>Its Chrome Web Store listing says "For QA and devs". Its home page also names designers and product managers</td></tr>
+      <tr><td>Price</td><td>Free</td><td>Free, $0. Open source under the MIT License</td></tr>
+      <tr><td>How you capture</td><td>One key, click the broken part, say what you expected</td><td>Alt+B starts a capture. You can also record once and file several tickets from it</td></tr>
+      <tr><td>What's in a report</td><td>Screenshot with the broken part boxed, the element, the page address, console errors and failed requests from the last 60 seconds, and your note</td><td>Session replay, console errors with stack traces, network calls, repro steps, screenshots with annotation. Optional video and a spoken description</td></tr>
+      <tr><td>Proof the fix worked</td><td>No</td><td>Its MCP server can return a generated Playwright test that fails while the bug exists and should pass after the fix</td></tr>
+      <tr><td>Where reports go</td><td>Markdown and PNG files in your project's <code>.darnly/inbox/</code>, your clipboard, or an optional private cloud inbox</td><td>One offline .html file, plus JSON and PDF downloads and GitHub and Jira exports</td></tr>
+      <tr><td>AI coding agents</td><td>Adds AGENTS.md and a skill so Claude Code, Codex or Cursor read the inbox. No MCP needed for local projects</td><td>Local MCP server, added with a terminal command. Needs Node 18+ and a folder of exported reports</td></tr>
+      <tr><td>Cloud projects</td><td>Cloud inbox with an MCP connector at <code>api.darnly.dev/mcp</code> (Google sign-in)</td><td>Not today. Its pricing page has a signup for when cloud sharing ships</td></tr>
+      <tr><td>Browsers</td><td>Chrome</td><td>Chrome, Edge and Brave (from the Chrome Web Store), Firefox, and an npm SDK for your own app</td></tr>
+      <tr><td>Account needed</td><td>No, unless you use the cloud inbox</td><td>No</td></tr>
+      <tr><td>Mac apps and simulators</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Websites</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where TraceBug is the better pick</h2>
+  <p>TraceBug captures a lot more than Darnly does, and for many bugs that matters.</p>
+  <ul>
+    <li><strong>What happened before the bug.</strong> Session replay and repro steps show the clicks that led there. Darnly doesn't record steps, so for a bug like "it breaks after I add a coupon" you have to say that in your note.</li>
+    <li><strong>A check that the fix worked.</strong> TraceBug's generated Playwright test gives the agent something that fails before the fix and should pass after. Darnly has nothing like it.</li>
+    <li><strong>Network detail.</strong> TraceBug records network calls. Darnly keeps only recent errors and failed requests.</li>
+    <li><strong>Other browsers and tools.</strong> Firefox, Edge and Brave, an npm SDK, and GitHub and Jira exports for handing a bug to a person. Darnly is Chrome only and doesn't export to trackers.</li>
+    <li><strong>Open source.</strong> TraceBug is MIT-licensed, so you can read the code and run it yourself.</li>
+    <li><strong>Extras.</strong> It has in-browser detectors (accessibility, broken images, mixed content, JavaScript errors, failed or slow requests) and an optional AI debugger that uses your own Anthropic or OpenAI key, or a local Ollama.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>What you expected comes first.</strong> You box the broken part and write one sentence, so the report is about the thing you care about.</li>
+    <li><strong>Bugs go straight into your code folder.</strong> Each one is a markdown file and a PNG in <code>.darnly/inbox/</code>, next to your code. Your agent finds them with no terminal command, Node or MCP setup. Say "fix my bugs" and it works through them.</li>
+    <li><strong>Cloud projects.</strong> If your code isn't on your computer, the optional cloud inbox and its MCP connector let your agent read your bugs. TraceBug doesn't offer cloud sharing today.</li>
+    <li><strong>One inbox, with fixed and not fixed.</strong> The cloud inbox collects bugs from all your projects, and your agent marks each one fixed when it's done.</li>
+    <li><strong>Beyond the browser.</strong> The Mac app captures bugs in Mac apps, the iOS Simulator and the Android Emulator into the same inbox.</li>
+  </ul>
+
+  <h2>Using them together</h2>
+  <p>To be fair to TraceBug, capturing a bug with it is quick too, with no account. The extra setup is only in connecting its reports to your agent. If you hit a bug that only shows up after several steps, a TraceBug recording is the better record. For everyday "this button is in the wrong place" bugs you find while you build, Darnly is quicker to send. The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report for AI agents</a> covers what helps an agent most either way.</p>
+  <p>Want to try Darnly on your next bug? <a href={storeUrl(`guide-${slug}`)}>Add it to Chrome</a>. It's free.</p>
+</GuidePage>

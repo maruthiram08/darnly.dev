@@ -1,0 +1,64 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'stuck-in-an-ai-error-loop';
+const faq = [
+  { q: 'What is an AI error loop?', a: 'It is when your AI coding agent keeps "fixing" the same bug and each fix brings back the same error, or swaps it for a new one. Every round adds more changes on top of the last, so the code drifts further from anything that worked.' },
+  { q: 'What is vibe debugging?', a: 'Fixing bugs by telling the agent "it\'s still broken" and hoping, without giving it the exact error or saying what should happen. It feels fast, but it is the usual way people end up stuck in an error loop.' },
+  { q: 'Should I start a new chat?', a: 'Often, yes. A long chat is full of failed attempts the agent may keep building on. After you revert, a fresh chat with the exact error and the expected behavior is a clean start.' },
+  { q: 'What if I never committed?', a: 'Commit now, even if it is broken, so you can at least get back to this point. Then ask the agent to list what it changed for this bug and undo those changes one at a time. From now on, commit every time something works.' },
+  { q: 'How does Darnly help?', a: 'It writes the bug down for you: a screenshot with the broken part boxed, the page address, the element and recent console errors, saved into your project. That gives the agent the exact error and what you expected in one go.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Stuck in an AI error loop? How to get out"
+  description="Stuck in an error loop with your AI coding agent? Stop, go back to the last working commit, give it the exact error and expected result, fix one thing."
+  h1="Stuck in an AI error loop? How to get out"
+  lede="To get out of an AI error loop, stop asking for fixes, revert to your last working commit, then give the agent the exact error text and one sentence on what should happen, and let it make one change at a time."
+  faq={faq}
+>
+  <p>You know the loop. The agent says "Fixed!", you reload, and it's the same error. Or a new one. You paste "still broken", it tries again, and an hour later the page that half worked doesn't load at all. This is vibe debugging: fixing by feel, without telling the agent what is wrong or what right looks like. Here's how to get out.</p>
+
+  <h2>1. Stop asking for fixes</h2>
+  <p>Each "try again" adds changes on top of changes that didn't work. The agent also reads its own failed attempts in the chat and keeps building on them. The loop doesn't end by itself. The first step is to stop typing "still broken".</p>
+
+  <h2>2. Go back to the last version that worked</h2>
+  <p>If you use git, find the last commit where the page worked and go back to it. <code>git log --oneline</code> lists your commits. <code>git restore .</code> throws away changes you haven't committed yet. If you're not sure which command fits, the <a href="/tools/git-undo-helper/">git undo helper</a> picks the right one for what you want to undo.</p>
+  <p>If you didn't commit, commit now anyway so you have a point to come back to. Then ask the agent to list every file it changed for this bug, and undo them one at a time.</p>
+  <p>Throwing away an hour of changes feels bad. It is usually faster than untangling them.</p>
+
+  <h2>3. Write down the exact error</h2>
+  <p>"It doesn't work" gives the agent nothing to aim at. Get the real error text:</p>
+  <ul>
+    <li><strong>In the browser:</strong> open the console and copy the red lines. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
+    <li><strong>In the terminal:</strong> copy the full error from the dev server, not just the last line. The first lines often name the file.</li>
+    <li><strong>No error at all?</strong> Say so. "No error in the console, the button just does nothing" is a real clue.</li>
+  </ul>
+
+  <h2>4. Say what should happen</h2>
+  <p>This is the line people skip. Without it, the agent invents its own goal, and may "fix" the error by hiding it. Write one sentence: "Clicking Save should store the name and show a Saved message." Then add the scope: only this page, or everywhere.</p>
+  <p>Put it together in a fresh chat:</p>
+  <pre><code>Page: localhost:3000/settings
+What I did: changed my name, clicked Save
+What happened: nothing, and this error in the console:
+  TypeError: Cannot read properties of undefined (reading 'id')
+Expected: the name saves and a "Saved" message shows
+Scope: only this form
+Please explain the cause before changing any code.</code></pre>
+  <p>Asking for the cause first is a useful brake. If the explanation sounds wrong, you can say so before any files change. The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report for an AI agent</a> has a full template.</p>
+
+  <h2>5. One change at a time</h2>
+  <ul>
+    <li>Ask for one fix. Test it yourself in the browser.</li>
+    <li>If it works, commit. Now you have a new safe point.</li>
+    <li>If it doesn't, revert that one change and tell the agent what happened, with the new error text.</li>
+    <li>If the same fix comes back twice, stop and ask it to list three possible causes instead of trying a fourth fix.</li>
+  </ul>
+  <p>Small steps feel slower. They are how you stop going round in circles.</p>
+
+  <h2>Give the agent the facts with Darnly</h2>
+  <p>Step 3 and step 4 are the ones that break the loop, and they are the ones people skip when they're tired. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension and Mac app that makes them quick. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, and type what you expected.</p>
+  <p>Darnly saves a report into <code>.darnly/inbox/</code> in your project with a screenshot that has the broken part boxed in red, the page address, the element, and console errors and failed requests from the last 60 seconds. Your agent reads the exact error and your expected line from the file, instead of "still broken".</p>
+</GuidePage>
