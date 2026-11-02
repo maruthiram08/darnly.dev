@@ -306,6 +306,12 @@ export const TOOLS: Item[] = [
     name: 'Image watermark',
     blurb: 'Add your name or logo to one picture or a whole batch: corners or tiled, any opacity, color and angle. Download as a ZIP.',
   },
+  {
+    slug: 'ssl-checker',
+    name: 'SSL checker',
+    category: 'Launch & domains',
+    blurb: 'Is your certificate valid? Days left, who issued it, whether www is covered, and its history.',
+  },
 ];
 
 // Same for guides.
