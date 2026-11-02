@@ -264,6 +264,12 @@ export const TOOLS: Item[] = [
     name: 'curl converter',
     blurb: 'Paste a curl command from API docs and get fetch, axios, Node.js, Python or a Next.js route, with keys moved to .env.',
   },
+  {
+    slug: 'color-converter',
+    name: 'Color converter',
+    blurb: 'Any color as HEX, RGB, HSL, OKLCH, LAB, CSS name and Tailwind, with how it looks on white and black.',
+    category: 'Design',
+  },
 ];
 
 // Same for guides.
