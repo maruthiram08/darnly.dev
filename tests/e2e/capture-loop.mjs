@@ -142,11 +142,13 @@ try {
       for (const p of parts) d = await d.getDirectoryHandle(p);
       return (await (await d.getFileHandle(name)).getFile()).text();
     };
-    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md') };
+    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md'), claudeSettings: await read('.claude/settings.json') };
   });
   if (!setup.agents.includes('.darnly/inbox/')) fail('AGENTS.md block missing');
   if (!setup.skill.startsWith('---\nname: darnly') || setup.skill !== setup.claudeSkill) fail('skill files wrong');
   if (await panel.getByText('Set up this project').count()) fail('setup card still showing after setup');
+  if (!setup.claudeSettings.includes('darnly-inbox-check')) fail('Claude Code hooks missing');
+  await panel.getByText('Claude Code will offer to fix').first().waitFor({ timeout: 3000 }).catch(() => fail('panel still says to tell the agent after hooks are set up'));
   // The agent needs the user: it writes a **Question:** line, and the panel sends the user back to the agent.
   await panel.evaluate(async () => {
     const inbox = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly')).getDirectoryHandle('inbox');

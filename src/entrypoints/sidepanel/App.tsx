@@ -6,7 +6,7 @@ import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
-import { CURSOR_COMMAND_PATH, planSetup, type PlannedChange } from '@/lib/agent-setup';
+import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { checkFixes, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
@@ -98,6 +98,8 @@ export function App() {
   }, []);
   const [plan, setPlan] = useState<PlannedChange[] | null>(null);
   const [setupNeeded, setSetupNeeded] = useState(false);
+  // Our Claude Code hooks are in this project, so Claude Code brings up new bugs by itself.
+  const [hooksOn, setHooksOn] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
   // Chrome leaves the shortcut empty when another extension already uses the same keys.
   const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
@@ -209,6 +211,7 @@ export function App() {
     const next = planSetup(existing);
     setPlan(next);
     setSetupNeeded(next.length > 0);
+    setHooksOn(!!existing['.claude/settings.json']?.includes(HOOK_MARK));
   }, [setJustFixed]);
 
   const refreshFolder = useCallback(async () => {
@@ -581,7 +584,11 @@ export function App() {
           ) : lastFile ? (
             <>
               <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
-              <p className="text-gray-600">Tell your agent: <em>/darnly</em> <span className="text-gray-500">(or "fix the bugs in {INBOX_FOLDER}")</span></p>
+              {hooksOn ? (
+                <p className="text-gray-600">Claude Code will offer to fix it on your next message. In other agents, type <em>/darnly</em>.</p>
+              ) : (
+                <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+              )}
             </>
           ) : (
             <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
@@ -669,7 +676,7 @@ export function App() {
             ))}
           </ul>
           {shown.some((c) => c.status === 'waiting') && (
-            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>{folder ? '/darnly' : '"fix my Darnly bugs"'}</em></p>
+            <p className="mt-2 text-xs text-gray-500">{folder && hooksOn ? <>Claude Code will offer to fix these on your next message. In other agents, type <em>/darnly</em>.</> : <>Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></>}</p>
           )}
         </section>
       )}
