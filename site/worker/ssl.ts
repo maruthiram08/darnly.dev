@@ -11,6 +11,7 @@ export type CtCert = {
   notBefore: string; // ISO
   notAfter: string; // ISO
   names: string[];
+  log?: 'crt.sh' | 'certspotter'; // which log service this entry came from
 };
 
 export type SslProbe = { ok: boolean; status: number; finalUrl: string; error?: 'tls' | 'connect' | 'timeout' };
@@ -86,7 +87,7 @@ export function parseCrtSh(text: string): CtCert[] {
       prev.names = uniq([...prev.names, ...names]);
       continue;
     }
-    seen.set(key, { id: String(r.id ?? ''), issuer: friendlyIssuer(issuerName), issuerName, notBefore: nb, notAfter: na, names });
+    seen.set(key, { id: String(r.id ?? ''), issuer: friendlyIssuer(issuerName), issuerName, notBefore: nb, notAfter: na, names, log: 'crt.sh' });
   }
   return [...seen.values()];
 }
@@ -111,9 +112,32 @@ export function parseCertSpotter(text: string): CtCert[] {
         notBefore: isoDate(r.not_before) ?? '',
         notAfter: isoDate(r.not_after) ?? '',
         names: uniq(Array.isArray(r.dns_names) ? (r.dns_names as unknown[]).map(String) : []),
+        log: 'certspotter' as const,
       };
     })
     .filter((c) => c.notBefore && c.notAfter);
+}
+
+// Is this a real answer from a log service (a JSON list, maybe cut at our read limit), rather than
+// an error page or a "busy" message sent with a 200 status?
+export function isCtAnswer(text: string): boolean {
+  return text.trimStart().startsWith('[');
+}
+
+// The same certificate from both services, merged: crt.sh's entry wins because it has a page to link to.
+export function mergeCerts(...lists: CtCert[][]): CtCert[] {
+  const seen = new Map<string, CtCert>();
+  for (const c of lists.flat()) {
+    const key = `${c.notBefore.slice(0, 16)}|${c.notAfter.slice(0, 16)}|${[...c.names].sort().join(',')}`;
+    if (!seen.has(key)) seen.set(key, c);
+  }
+  return [...seen.values()];
+}
+
+// Does any of these certificates cover the host right now?
+export function hasCurrent(certs: CtCert[], host: string, now: Date): boolean {
+  const t = now.getTime();
+  return certs.some((c) => covers(c.names, host) && Date.parse(c.notBefore) <= t && Date.parse(c.notAfter) > t);
 }
 
 function isoDate(v: unknown): string | null {
@@ -347,14 +371,21 @@ export function analyze(input: {
       title: 'The certificate logs didn’t answer',
       detail: 'The public logs we read for the dates and history are slow or down right now. The live https check above still ran. Try again in a minute for the full picture.',
     });
+  } else if (!current && https?.ok) {
+    // The site serves a trusted certificate, so it exists. The logs just haven't shown it to us.
+    const sub = host.split('.').length > 2 && !host.startsWith('www.');
+    issues.push({
+      id: 'logs',
+      level: 'warn',
+      title: 'We can’t see the certificate’s dates yet',
+      detail: `${host} has a working, trusted certificate (the check above proves it), but the public logs we read didn’t list a current one for this name. New certificates can take a few hours to show up there${sub ? ', and some hosts use one certificate for a parent name instead' : ''}. Nothing is wrong with your site. Check again later to see the dates.`,
+    });
   } else if (!certs.length) {
     issues.push({
       id: 'logs',
-      level: https?.ok ? 'warn' : 'fail',
+      level: 'fail',
       title: 'No certificates in the public logs',
-      detail: https?.ok
-        ? 'The site works, so its certificate is probably issued for a parent wildcard or a different name. We just can’t show its dates.'
-        : 'No certificate has ever been issued for this name. If you just added the domain, wait 10 minutes and check again.',
+      detail: 'No certificate has been issued for this name yet. If you just added the domain, wait 10 minutes and check again.',
     });
   }
 
@@ -366,7 +397,7 @@ export function analyze(input: {
     live: { https, http: input.http, www: input.www, dns: dnsOk, wwwDns: wwwDnsOk },
     current,
     history: mine.slice(0, 12),
-    source: input.source,
+    source: current?.log ?? input.source,
     hostedOn,
     issues,
   };
