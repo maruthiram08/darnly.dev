@@ -581,7 +581,7 @@ export function App() {
           ) : lastFile ? (
             <>
               <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
-              <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+              <p className="text-gray-600">Tell your agent: <em>/darnly</em> <span className="text-gray-500">(or "fix the bugs in {INBOX_FOLDER}")</span></p>
             </>
           ) : (
             <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
@@ -669,7 +669,7 @@ export function App() {
             ))}
           </ul>
           {shown.some((c) => c.status === 'waiting') && (
-            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></p>
+            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>{folder ? '/darnly' : '"fix my Darnly bugs"'}</em></p>
           )}
         </section>
       )}
