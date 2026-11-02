@@ -5,7 +5,7 @@ import { storeUrl } from '../../data/site';
 
 const slug = 'changelog';
 const faq = [
-  { q: 'What is the latest version of Darnly?', a: 'Darnly 0.3.0. It adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
+  { q: 'What is the latest version of Darnly?', a: 'Darnly 0.3.1. It adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
   { q: 'How do I update Darnly?', a: 'Chrome updates extensions by itself, usually within a few hours of a release. To update now, open chrome://extensions, switch on Developer mode, and click Update.' },
   { q: 'Do I need to set up my project again after an update?', a: 'To get the new /darnly command and the Claude Code hook, click Set up this project in the Darnly panel once more. Darnly only adds its own lines and keeps the rest of your files as they are.' },
 ];
@@ -17,11 +17,11 @@ const faq = [
   title="What's new in Darnly: release notes"
   description="Release notes for the Darnly Chrome extension: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed, the cloud inbox and MCP server."
   h1="What's new in Darnly"
-  lede={`Darnly 0.3.0 closes the loop: type /darnly to fix every waiting bug, see when your agent has a question for you, and get a "Take a look" card when a bug is fixed.`}
+  lede={`Darnly 0.3.1 closes the loop: type /darnly to fix every waiting bug, see when your agent has a question for you, and get a "Take a look" card when a bug is fixed.`}
   faq={faq}
   strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
-  <h2 id="v0-3-0">0.3.0: close the loop</h2>
+  <h2 id="v0-3-1">0.3.1: close the loop</h2>
   <p>Capturing a bug was already quick. This release covers what happens after: starting the fix, answering your agent's questions, and checking the result.</p>
   <ul>
     <li><strong><code>/darnly</code> fixes every waiting bug.</strong> In Claude Code and Cursor, one command fixes the bugs in your project folder and your cloud inbox. In Codex, say "fix my bugs". <a href="/setup/#loop">How the loop works</a>.</li>
@@ -30,8 +30,17 @@ const faq = [
     <li><strong>"1 bug fixed. Take a look."</strong> The panel now remembers what it last saw, so you get this card even if it was closed while the agent worked, with one line on what changed. For bugs on localhost, <strong>Reload the page</strong> shows the fix straight away; for a live site, it reminds you to deploy.</li>
     <li><strong>Several projects, no re-linking.</strong> Each site remembers its own project, a folder or the cloud. On a new site, Darnly offers your recent projects to pick from. <strong>change</strong> now lets you pick another recent project, another folder, or the cloud. <a href="/setup/#projects">How it works</a>.</li>
     <li><strong>Delete one bug.</strong> Each bug in the list has a <strong>×</strong>. In a project folder it deletes that bug's files; in the cloud, the bug and its picture.</li>
+    <li><strong>A cleaner panel.</strong> Darnly's own colours, a project bar showing where bugs go, big shortcut keys, and Waiting, Needs you and Fixed tags on every bug.</li>
     <li><strong>Two agents don't fix the same bug.</strong> An agent marks the bug it's working on for 20 minutes, so another agent in the same project skips it.</li>
   </ul>
+  <figure class="shot">
+    <img src="/changelog/agent-waiting.jpg" alt="The Darnly panel showing 'Your agent is waiting for your input. Return to your agent.' with the agent's question" width="1280" height="800" loading="lazy" />
+    <figcaption>When your agent has a question, the panel tells you to go back to it.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="/changelog/take-a-look.jpg" alt="The Darnly panel showing '1 bug fixed. Take a look.' with the agent's note and a Reload the page button" width="1280" height="800" loading="lazy" />
+    <figcaption>When it's fixed, you see what changed and can reload the page to check.</figcaption>
+  </figure>
   <p><strong>To get it:</strong> after Chrome updates Darnly, open the panel and click <strong>Set up this project</strong> once more, then restart your agent.</p>
 
   <h2 id="v0-2-0">0.2.0: the cloud inbox</h2>
@@ -51,3 +60,8 @@ const faq = [
 
   <p><a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, or read the <a href="/setup/">setup guide</a>.</p>
 </GuidePage>
+<style>
+  .shot { margin: 24px 0; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(11, 34, 48, 0.1); }
+  .shot figcaption { margin-top: 8px; font-size: 14px; color: var(--ink-soft); }
+</style>

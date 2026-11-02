@@ -159,7 +159,7 @@ section.tools-strip { padding-bottom: 0; }
 .toast { position: absolute; left: -18px; top: 0; display: flex; gap: 10px; align-items: center; background: var(--white); color: var(--ink); border-radius: 14px; padding: 10px 14px; box-shadow: 0 16px 40px rgba(11, 34, 48, 0.3); font-size: 13px; }
 .toast div { display: grid; }
 .toast span:not(.tick) { color: var(--ink-soft); font: 500 11.5px/1.4 var(--mono); }
-.tick { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: #fff; font-weight: 700; flex: none; }
+.tick { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #079455; color: #fff; font-weight: 700; flex: none; }
 @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
 @media (max-width: 860px) {
   .browser { transform: none; }
