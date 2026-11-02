@@ -1,4 +1,7 @@
 /* Shared by every page: brand tokens, type, buttons, footer. Page-specific styles live next to the page. */
+/* `hidden` always hides, even when a page gives the element display: grid or flex. */
+[hidden] { display: none !important; }
+
 :root {
   --sky: #0593C6;
   --pink: #D83995;
