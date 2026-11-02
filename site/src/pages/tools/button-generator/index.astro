@@ -1,0 +1,277 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick a style: solid, outline, soft, gradient, 3D, glass or neo-brutal. Every style is shown in your color, so you can compare them at a glance.',
+  'Change the color, corners, size, font, shadow and what happens on hover and press. Hover and click the big buttons to feel it, on a light and a dark page.',
+  'Check the badge: it tells you if the label is easy to read. Then copy the CSS, the Tailwind classes, a React component, a shadcn variant, or a prompt for your AI agent.',
+];
+
+const faq = [
+  { q: 'Which should I copy: CSS, Tailwind, React or shadcn?', a: 'If your project has a <code>tailwind.config</code> file or uses Tailwind v4, copy Tailwind. If it has a <code>components/ui/button.tsx</code> file, it uses shadcn/ui: copy the shadcn variant and use <code>&lt;Button variant="brand"&gt;</code>. Otherwise copy the CSS. Not sure? Copy the prompt and let your AI agent pick.' },
+  { q: 'What does the contrast badge mean?', a: 'It compares the label color with the color right behind it, using the WCAG rule. 4.5:1 or more is easy to read for almost everyone. Below 3:1 many people struggle, especially on a phone in the sun. For more color pairs, use the <a href="/tools/contrast-checker/">contrast checker</a>.' },
+  { q: 'Why does the outline button fail on the dark page?', a: 'An outline button has no fill, so its label sits on the page itself. A dark color reads well on white but disappears on a dark page. Use a lighter color for dark mode, or a solid style.' },
+  { q: 'Why does the prompt say to change only the main buttons?', a: 'If you just ask an agent to “make the button look like this”, it often restyles every button in the app. The prompt tells it to change the main call-to-action buttons only, and to ask you if it is not sure.' },
+  { q: 'Do hover effects work on phones?', a: 'Phones have no hover, so the press effect is what people feel. That’s why every style has a press state. People who turn off animations in their settings get no movement, thanks to the reduced-motion rule in the code.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser. The share link keeps your settings in the address, nothing is saved on a server.' },
+];
+---
+<ToolPage
+  slug="button-generator"
+  title="CSS button generator with Tailwind, React and shadcn code · Darnly"
+  description="Design a button with a live preview on light and dark pages: solid, outline, soft, gradient, 3D, glass or neo-brutal, with hover and press states. Copy CSS, Tailwind classes, a React component or a shadcn variant. Free."
+  h1="CSS button generator"
+  lede="Pick a style, make it yours, and hover and click the real button on a light and a dark page. A badge tells you if the label is easy to read. Copy it as CSS, Tailwind, React or a shadcn variant."
+  steps={steps}
+  faq={faq}
+>
+  <div class="bg" id="bg">
+    <style id="bg-style" is:inline></style>
+
+    <div class="stages">
+      <div class="stage light" id="bg-stage-light">
+        <span class="tag">Light page</span>
+        <span class="badge" id="bg-badge-light"></span>
+        <div class="zoom" style="zoom: 1.5"><button type="button" class="bg-live"></button></div>
+      </div>
+      <div class="stage dark" id="bg-stage-dark">
+        <span class="tag">Dark page</span>
+        <span class="badge" id="bg-badge-dark"></span>
+        <div class="zoom" style="zoom: 1.5"><button type="button" class="bg-live"></button></div>
+      </div>
+    </div>
+
+    <div class="stagebar">
+      <div class="field inline">
+        <span>Hover and click the buttons, or show:</span>
+        <div class="seg" role="radiogroup" aria-label="Show state" id="bg-state">
+          <button type="button" role="radio" data-v="" aria-checked="true">Normal</button>
+          <button type="button" role="radio" data-v="is-hover" aria-checked="false">Hover</button>
+          <button type="button" role="radio" data-v="is-active" aria-checked="false">Pressed</button>
+        </div>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Preview size" id="bg-zoom">
+        <button type="button" role="radio" data-v="1.5" aria-checked="true">Big</button>
+        <button type="button" role="radio" data-v="1" aria-checked="false">Real size</button>
+      </div>
+    </div>
+
+    <div class="presets" id="bg-presets" role="radiogroup" aria-label="Button style"></div>
+
+    <div class="controls">
+      <div class="field">
+        <span>Button color</span>
+        <span class="pair">
+          <input id="bg-color" type="color" value="#0f766e" aria-label="Pick the button color" />
+          <input id="bg-color-hex" type="text" value="#0F766E" spellcheck="false" autocomplete="off" aria-label="Hex code of the button color" maxlength="7" />
+        </span>
+      </div>
+      <div class="field">
+        <span>Label color</span>
+        <span class="pair">
+          <input id="bg-text" type="color" value="#ffffff" aria-label="Pick the label color" />
+          <label class="check"><input id="bg-text-auto" type="checkbox" checked /><span>Pick for me</span></label>
+        </span>
+      </div>
+      <label class="field">
+        <span>Label</span>
+        <input id="bg-label" type="text" value="Get started" maxlength="40" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="controls sliders">
+      <label class="field">
+        <span>Corners <output id="bg-radius-out"></output></span>
+        <input id="bg-radius" type="range" min="0" max="33" value="12" />
+      </label>
+      <label class="field">
+        <span>Width padding <output id="bg-padx-out"></output></span>
+        <input id="bg-padx" type="range" min="8" max="48" step="2" value="24" />
+      </label>
+      <label class="field">
+        <span>Height padding <output id="bg-pady-out"></output></span>
+        <input id="bg-pady" type="range" min="4" max="24" step="1" value="12" />
+      </label>
+      <label class="field">
+        <span>Text size <output id="bg-size-out"></output></span>
+        <input id="bg-size" type="range" min="12" max="24" step="1" value="16" />
+      </label>
+      <label class="field">
+        <span>Font</span>
+        <select id="bg-font"></select>
+      </label>
+      <label class="field">
+        <span>Weight</span>
+        <select id="bg-weight">
+          <option value="400">Regular</option>
+          <option value="500">Medium</option>
+          <option value="600" selected>Semibold</option>
+          <option value="700">Bold</option>
+          <option value="800">Extra bold</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="controls">
+      <div class="field" id="bg-shadow-field">
+        <span>Shadow</span>
+        <div class="seg" role="radiogroup" aria-label="Shadow" id="bg-shadow">
+          <button type="button" role="radio" data-v="none" aria-checked="false">None</button>
+          <button type="button" role="radio" data-v="soft" aria-checked="true">Soft</button>
+          <button type="button" role="radio" data-v="medium" aria-checked="false">Medium</button>
+          <button type="button" role="radio" data-v="strong" aria-checked="false">Strong</button>
+        </div>
+      </div>
+      <label class="field" id="bg-hover-field">
+        <span>On hover</span>
+        <select id="bg-hover">
+          <option value="darken">Change color</option>
+          <option value="lift">Lift up</option>
+          <option value="glow">Glow</option>
+          <option value="grow">Grow</option>
+          <option value="none">Nothing</option>
+        </select>
+      </label>
+      <label class="field" id="bg-press-field">
+        <span>On press</span>
+        <select id="bg-press">
+          <option value="sink">Push down</option>
+          <option value="shrink">Shrink</option>
+          <option value="none">Nothing</option>
+        </select>
+      </label>
+      <p class="note own" id="bg-own" hidden>This style has its own hover and press: it pops up on hover and pushes in when clicked.</p>
+      <label class="check">
+        <input id="bg-icon" type="checkbox" checked />
+        <span>Arrow icon</span>
+      </label>
+    </div>
+
+    <details class="more-opts">
+      <summary>Page colors for the preview</summary>
+      <div class="controls">
+        <label class="field">
+          <span>Light page</span>
+          <span class="pair"><input id="bg-page-light" type="color" value="#f6f8f9" aria-label="Light page color" /></span>
+        </label>
+        <label class="field">
+          <span>Dark page</span>
+          <span class="pair"><input id="bg-page-dark" type="color" value="#0e161c" aria-label="Dark page color" /></span>
+        </label>
+      </div>
+    </details>
+
+    <div class="summary">
+      <p class="status" id="bg-status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" class="ghost" id="bg-random">Surprise me</button>
+        <button type="button" class="ghost" id="bg-share">Copy share link</button>
+        <button type="button" class="primary" id="bg-prompt">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="code">
+      <div class="code-head">
+        <div class="code-tabs" role="tablist" aria-label="Code format" id="bg-formats">
+          <button type="button" role="tab" data-v="css" aria-selected="true">CSS</button>
+          <button type="button" role="tab" data-v="tailwind" aria-selected="false" tabindex="-1">Tailwind</button>
+          <button type="button" role="tab" data-v="react" aria-selected="false" tabindex="-1">React</button>
+          <button type="button" role="tab" data-v="shadcn" aria-selected="false" tabindex="-1">shadcn</button>
+        </div>
+        <button type="button" id="bg-copy">Copy</button>
+      </div>
+      <pre id="bg-code" role="tabpanel"></pre>
+    </div>
+    <p class="note" id="bg-code-note"></p>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/button-generator';
+</script>
+
+<style>
+  .bg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .bg [hidden] { display: none !important; }
+
+  .stages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .stage { position: relative; min-height: 300px; border-radius: 24px; display: grid; place-items: center; padding: 56px 16px 40px; box-sizing: border-box; overflow: hidden; isolation: isolate; transition: background-color 0.15s; }
+  .stage.light { background: var(--page-light, #f6f8f9); border: 1px solid rgba(11, 34, 48, 0.08); }
+  .stage.dark { background: var(--page-dark, #0e161c); }
+  .stage::before, .stage::after { content: ''; position: absolute; z-index: -1; border-radius: 50%; opacity: 0; transition: opacity 0.2s; background: var(--c, #0f766e); }
+  .stage::before { width: 220px; height: 220px; left: 50%; top: 50%; margin: -150px 0 0 -170px; }
+  .stage::after { width: 160px; height: 160px; left: 50%; top: 50%; margin: -40px 0 0 10px; background: var(--c2, #337f9c); }
+  .bg.glass .stage::before, .bg.glass .stage::after { opacity: 1; }
+  .tag { position: absolute; top: 16px; left: 18px; font: 600 13px/1 var(--body); color: var(--ink-soft); }
+  .dark .tag { color: #9DB3BF; }
+  .badge { position: absolute; top: 10px; right: 12px; font: 600 13px/1 var(--body); padding: 7px 10px; border-radius: 999px; background: #E3F5EA; color: #11603A; }
+  .badge.warn { background: #FFF1D6; color: #7A4B00; }
+  .badge.bad { background: #FDE2E7; color: #9B1C3A; }
+  .zoom { display: grid; place-items: center; }
+  .zoom :global(.bg-live) { max-width: 100%; }
+
+  .stagebar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; }
+  .field.inline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .stagebar .seg { min-width: 220px; }
+  .field.inline .seg { min-width: 280px; }
+
+  .presets { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+  .presets :global(.pre) { display: grid; gap: 10px; justify-items: center; align-content: center; padding: 18px 6px 12px; min-height: 104px; border: 2px solid var(--line); border-radius: 16px; background: var(--white); cursor: pointer; font: 600 13px/1.2 var(--body); color: var(--ink-soft); position: relative; overflow: hidden; isolation: isolate; }
+  .presets :global(.pre[aria-checked='true']) { border-color: var(--ink); color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .presets :global(.pre:hover) { border-color: var(--ink-soft); }
+  .presets :global(.pre.glass-chip) { background: radial-gradient(circle at 34% 30%, var(--c, #0f766e) 0 17%, transparent 18%), radial-gradient(circle at 64% 44%, var(--c2, #337f9c) 0 14%, transparent 15%), var(--white); }
+  .presets :global(.pre > span:first-child) { pointer-events: none; white-space: nowrap; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; }
+  .controls > .field { flex: 1 1 200px; }
+  .sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field output { font-family: var(--mono); color: var(--ink); margin-left: 4px; }
+  .field input[type='text'], .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; height: 48px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='text']:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .field input[aria-invalid='true'] { border-color: #B4234F; }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .pair { display: flex; gap: 8px; min-width: 0; align-items: center; }
+  .pair input[type='text'] { flex: 1; min-width: 0; font-family: var(--mono); text-transform: uppercase; }
+  .pair input[type='color'] { flex: none; width: 56px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .pair input[type='color']:disabled { opacity: 0.4; cursor: not-allowed; }
+  .check { display: flex; gap: 8px; align-items: center; height: 48px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+  .seg { display: flex; gap: 4px; padding: 4px; height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 0 10px; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  #bg-shadow-field { flex: 2 1 300px; }
+
+  .more-opts summary { cursor: pointer; font: 600 14px/1.4 var(--body); color: var(--ink-soft); padding: 4px 0; }
+  .more-opts .controls { margin-top: 12px; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); flex: 1 1 280px; }
+  .status :global(a) { color: var(--ink); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 14px/1 var(--body); padding: 0 14px; min-height: 44px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .note.own { flex: 2 1 300px; align-self: center; }
+  .note :global(code) { font-family: var(--mono); font-size: 13px; }
+
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 8px 8px; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .code-tabs button { font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 8px; border: 0; background: transparent; color: #8FB4C4; cursor: pointer; }
+  .code-tabs button[aria-selected='true'] { background: rgba(252, 255, 255, 0.14); color: var(--white); }
+  #bg-copy { font: 600 13px/1 var(--body); padding: 8px 14px; border-radius: 8px; border: 0; background: var(--white); color: var(--ink); cursor: pointer; }
+  .code pre { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 400 13px/1.7 var(--mono); max-height: 460px; overflow: auto; }
+
+  @media (max-width: 860px) {
+    .presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .stages { grid-template-columns: minmax(0, 1fr); }
+    .stage { min-height: 220px; }
+    .sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .presets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field.inline .seg, .stagebar .seg { min-width: 0; width: 100%; }
+  }
+</style>

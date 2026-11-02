@@ -342,6 +342,12 @@ export const TOOLS: Item[] = [
     name: 'Git undo helper',
     blurb: 'Pick what went wrong in git and see the fix on a picture of your commits, with the exact commands or a prompt for your agent.',
   },
+  {
+    slug: 'button-generator',
+    category: 'Design',
+    name: 'CSS button generator',
+    blurb: 'Design a button with hover and press, see it on light and dark pages, copy CSS, Tailwind, React or shadcn.',
+  },
 ];
 
 // Same for guides.
