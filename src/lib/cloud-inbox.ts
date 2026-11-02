@@ -170,6 +170,10 @@ export async function listCloudBugs(s: CloudSession): Promise<CloudBug[]> {
   return (await call<{ bugs: CloudBug[] }>('/v1/bugs?limit=50', { token: s.token })).bugs;
 }
 
+export async function deleteCloudBug(s: CloudSession, id: string): Promise<void> {
+  await call(`/v1/bugs/${encodeURIComponent(id)}`, { method: 'DELETE', token: s.token });
+}
+
 export async function deleteAllCloudBugs(s: CloudSession): Promise<number> {
   return (await call<{ deleted: number }>('/v1/bugs', { method: 'DELETE', token: s.token })).deleted;
 }

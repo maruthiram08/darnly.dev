@@ -136,6 +136,19 @@ describe('cloud inbox API', () => {
     expect((await SELF.fetch(`${BASE}/v1/me`, auth(token))).status).toBe(401);
   });
 
+  it('deletes one bug and its files, and never someone else’s', async () => {
+    const token = await signIn('delete-one@example.com');
+    const keep = (await (await upload(token)).json()) as { id: string };
+    const drop = (await (await upload(token)).json()) as { id: string };
+    const other = await signIn('delete-one-other@example.com');
+    expect((await SELF.fetch(`${BASE}/v1/bugs/${drop.id}`, { method: 'DELETE', ...auth(other) })).status).toBe(404);
+    expect((await SELF.fetch(`${BASE}/v1/bugs/${drop.id}`, { method: 'DELETE', ...auth(token) })).status).toBe(200);
+    const list = (await (await SELF.fetch(`${BASE}/v1/bugs`, auth(token))).json()) as { bugs: { id: string }[] };
+    expect(list.bugs.map((b) => b.id)).toEqual([keep.id]);
+    const left = await env.FILES.list({ prefix: 'u/' });
+    expect(left.objects.filter((o) => o.key.includes(drop.id))).toHaveLength(0);
+  });
+
   it('cleans up fixed bugs after 30 days, and keeps waiting ones', async () => {
     const token = await signIn('cleanup@example.com');
     const a = (await (await upload(token, { title: 'old fixed' })).json()) as { id: string };
