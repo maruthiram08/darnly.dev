@@ -354,6 +354,12 @@ export const TOOLS: Item[] = [
     name: 'CSS loading spinners',
     blurb: '20 pure-CSS spinners, dots and bars plus a skeleton card builder. Copy HTML and CSS, Tailwind or React.',
   },
+  {
+    slug: 'tailwind-class-cleaner',
+    category: 'Code helpers',
+    name: 'Tailwind class cleaner',
+    blurb: 'Sort Tailwind classes the way Prettier does, remove duplicates, and see which classes cancel each other out.',
+  },
 ];
 
 // Same for guides.
