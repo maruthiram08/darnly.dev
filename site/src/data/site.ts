@@ -324,6 +324,12 @@ export const TOOLS: Item[] = [
     name: 'shadcn/ui theme generator',
     blurb: 'Pick a brand color, gray and corners, see real shadcn components change live in light and dark, copy globals.css.',
   },
+  {
+    slug: 'npm-package-checker',
+    category: 'Code helpers',
+    name: 'npm package checker',
+    blurb: 'Is this npm package safe to use? Downloads, last release, license, size and types, with a verdict. Compare up to 3.',
+  },
 ];
 
 // Same for guides.

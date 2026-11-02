@@ -86,6 +86,10 @@
 // GET /api/whoami
 //   Sends back the visitor's own IP address and country (from Cloudflare's request data), for the
 //   browser info tool at /tools/browser-info/. Fetches nothing, logs nothing, and is never cached.
+// GET /api/npm?name=zod
+//   Same rate limit and one hour cache. Reads one package from the npm registry (and its
+//   download counts) and grades it, for the npm package checker at /tools/npm-package-checker/.
+//   Only fixed npm addresses are fetched; the name is checked against npm's naming rules first.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -103,6 +107,7 @@ import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer
 import { checkA11y } from './a11y';
 import { sendRequest } from './request';
 import { analyze, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
+import { checkPackage, cleanName, type GetJson } from './npm';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -149,6 +154,7 @@ export default {
     }
     if (url.pathname === '/api/ssl') return sslApi(req, url, env, ctx);
     if (url.pathname === '/api/whoami') return whoami(req);
+    if (url.pathname === '/api/npm') return npmApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -384,6 +390,14 @@ async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
 
   const cache = (caches as unknown as { default: Cache }).default;
   const cacheKey = new Request(`https://darnly.dev/api/ssl?domain=${encodeURIComponent(host)}`);
+// /api/npm: one npm package, graded. Missing packages are cached for 10 minutes, found ones for an hour.
+async function npmApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const name = cleanName(url.searchParams.get('name') ?? '');
+  if (!name) return json({ error: 'That isn’t a valid npm package name. Names look like zod or @tanstack/react-query.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/npm?name=${encodeURIComponent(name)}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
@@ -409,6 +423,26 @@ async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
 
   const data = analyze({ host, now: new Date(), certs: ct.certs, source: ct.source, https, http, www: wwwProbe, dns, wwwDns });
   const body = json(data, 200, 600);
+  const getJson: GetJson = async (raw, max = 500_000) => {
+    const res = await get(new URL(raw), url, env, 'application/json', 6_000);
+    if (res.status === 404) {
+      res.body?.cancel().catch(() => {});
+      return { status: 404, data: null };
+    }
+    if (!res.ok) {
+      res.body?.cancel().catch(() => {});
+      throw new Error(`npm answered ${res.status}`);
+    }
+    return { status: res.status, data: JSON.parse(await readLimited(res, max)) };
+  };
+
+  let report;
+  try {
+    report = await checkPackage(name, getJson);
+  } catch {
+    return json({ error: 'We couldn’t reach npm just now. Try again in a minute.' }, 502);
+  }
+  const body = json(report, 200, report.found ? CACHE_SECONDS : 600);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
