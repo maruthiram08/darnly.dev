@@ -20,6 +20,7 @@ export const SETUP_PROMPT = `Set up Darnly for me. Darnly is a Chrome extension 
    - Claude Code: if .claude/skills/darnly/ doesn't exist, create .claude/commands/darnly.md with that text
    - Cursor: create .cursor/commands/darnly.md with that text
    - Codex: skip this, Codex reads AGENTS.md and I'll say "fix my bugs"
+   - Claude Code only: also add two hooks to .claude/settings.json in this project, keeping every other setting and hook, so you offer to fix new bugs without me asking. If hooks ending in "# darnly-inbox-check" are already there, leave them. A SessionStart hook and a UserPromptSubmit hook, each a shell command ending in "# darnly-inbox-check" that: counts the .md files in .darnly/inbox/ (for UserPromptSubmit, only files newer than .darnly/.told), then touches .darnly/.told; prints nothing if the count is 0, otherwise prints "Darnly: N bug(s) waiting in .darnly/inbox/. Tell the user in one line and offer to fix them now (same as /darnly)."; and always exits 0, even if .darnly/ doesn't exist.
 
 5. Add ".darnly/" to .gitignore (create it if missing), because screenshots can hold private data.
 
