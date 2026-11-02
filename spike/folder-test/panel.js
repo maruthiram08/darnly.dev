@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 
 async function log(entry) {
   const { results = [] } = await chrome.storage.local.get('results');
-  results.unshift({ at: new Date().toISOString(), ...entry });
+  results.unshift({ at: new Date().toISOString(), version: 2, ...entry });
   await chrome.storage.local.set({ results: results.slice(0, 50) });
 }
 
@@ -60,6 +60,17 @@ $('allow').onclick = async () => {
   render();
 };
 
+$('check').onclick = async () => {
+  const r = await chrome.runtime.sendMessage({ type: 'check-offscreen' });
+  await log({ path: 'background access check (panel open)', ok: r?.permission === 'granted', ...r });
+  render();
+};
+
+$('clear').onclick = async () => {
+  await chrome.storage.local.set({ results: [] });
+  render();
+};
+
 $('copy').onclick = async () => {
   const { results = [] } = await chrome.storage.local.get('results');
   const report = JSON.stringify({ browser: navigator.userAgent, platform: navigator.platform, results }, null, 2);
@@ -78,6 +89,8 @@ chrome.storage.onChanged.addListener(render);
 
 // Record the access state every time the panel opens (key for the restart check).
 (async () => {
+  // Keep the hidden background page open, so folder access may survive closing this panel.
+  await chrome.runtime.sendMessage({ type: 'ensure-offscreen' }).catch(() => {});
   const handle = await loadHandle();
   if (handle) await log({ path: 'panel opened', ok: true, permission: await permissionState(handle) });
   render();

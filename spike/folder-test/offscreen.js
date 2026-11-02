@@ -1,6 +1,10 @@
 import { loadHandle, permissionState, writeTestCapture } from './shared.js';
 
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (msg.type === 'offscreen-permission') {
+    loadHandle().then(permissionState).then((permission) => reply({ permission }));
+    return true;
+  }
   if (msg.type !== 'write-from-offscreen') return;
   (async () => {
     const handle = await loadHandle();
