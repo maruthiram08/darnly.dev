@@ -230,6 +230,35 @@ try {
   if (await panel.getByText('Saving to').count()) fail('folder still linked after switching to the cloud');
   await panel.reload();
   await panel.getByRole('button', { name: 'Sign in with Google' }).waitFor({ timeout: 3000 }).catch(() => fail('switch to the cloud not remembered'));
+  // Several projects: a site Darnly hasn't seen asks which project it is, then remembers the answer.
+  await panel.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const a = await root.getDirectoryHandle('project-a', { create: true });
+    const b = await root.getDirectoryHandle('project-b', { create: true });
+    await chrome.storage.local.set({ siteCloud: {}, cloudProject: false });
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.open('darnly-folders', 1);
+      req.onsuccess = () => {
+        const tx = req.result.transaction('handles', 'readwrite');
+        const store = tx.objectStore('handles');
+        store.clear();
+        store.put([a, b], 'recent');
+        store.put(a, 'project');
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+  });
+  await page.bringToFront();
+  await panel.reload();
+  await panel.getByText('Which project is').waitFor({ timeout: 5000 }).catch(() => fail('no project chooser for a new site with several projects'));
+  await panel.getByRole('button', { name: 'project-b' }).click().catch(() => fail('recent project not offered'));
+  await panel.getByText('Saving to project-b').waitFor({ timeout: 5000 }).catch(() => fail('picked project not used'));
+  await panel.reload();
+  await panel.getByText('Saving to project-b').waitFor({ timeout: 5000 }).catch(() => fail('site did not remember its project'));
+  await panel.getByRole('button', { name: 'change' }).click();
+  await panel.getByRole('button', { name: 'project-a' }).click().catch(() => fail('other recent project not offered under change'));
+  await panel.getByText('Saving to project-a').waitFor({ timeout: 5000 }).catch(() => fail('switching to another recent project failed'));
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {

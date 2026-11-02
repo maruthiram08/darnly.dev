@@ -27,17 +27,6 @@ export async function saveFolder(handle: FileSystemDirectoryHandle): Promise<voi
   });
 }
 
-/** Unlinks the project folder (switching to the cloud inbox). The files in the project stay where they are. */
-export async function forgetFolder(): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(KEY);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
 export async function loadFolder(): Promise<FileSystemDirectoryHandle | null> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
@@ -45,6 +34,135 @@ export async function loadFolder(): Promise<FileSystemDirectoryHandle | null> {
     req.onsuccess = () => resolve(req.result ?? null);
     req.onerror = () => reject(req.error);
   });
+}
+
+async function idbGet<T>(key: string): Promise<T | null> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE).objectStore(STORE).get(key);
+    req.onsuccess = () => resolve((req.result as T | undefined) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key: string, value: unknown | null): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    if (value == null) tx.objectStore(STORE).delete(key);
+    else tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/** The site part of a page address (https://app.example.com), or null for pages without one. */
+export function originOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+const MAX_RECENT = 8;
+
+async function sameFolder(a: FileSystemDirectoryHandle, b: FileSystemDirectoryHandle): Promise<boolean> {
+  try {
+    return await a.isSameEntry(b);
+  } catch {
+    return a.name === b.name;
+  }
+}
+
+/** Project folders the user linked, most recent first. */
+export async function recentFolders(): Promise<FileSystemDirectoryHandle[]> {
+  const list = (await idbGet<FileSystemDirectoryHandle[]>('recent')) ?? [];
+  if (list.length) return list;
+  // Before per-site projects, one folder was linked: it becomes the first recent one.
+  const last = await loadFolder();
+  return last ? [last] : [];
+}
+
+/** Where bugs from one site go: its own folder, the cloud inbox, or (several projects, new site) ask the user. */
+export type Target =
+  | { kind: 'folder'; handle: FileSystemDirectoryHandle }
+  | { kind: 'cloud' }
+  | { kind: 'ask'; recent: FileSystemDirectoryHandle[] }
+  | { kind: 'none' };
+
+async function cloudSites(): Promise<Record<string, boolean>> {
+  try {
+    const r = await chrome.storage.local.get('siteCloud');
+    return (r.siteCloud as Record<string, boolean> | undefined) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Each site remembers its project. A site seen for the first time goes to the only project there is
+ * (and remembers it), or, when the user has several, the panel asks once which one it belongs to.
+ */
+export async function targetFor(origin: string | null, signedIn: boolean): Promise<Target> {
+  if (origin) {
+    if ((await cloudSites())[origin]) return { kind: 'cloud' };
+    const mine = await idbGet<FileSystemDirectoryHandle>(`site:${origin}`);
+    if (mine) return { kind: 'folder', handle: mine };
+  }
+  const recent = await recentFolders();
+  let lastWasCloud = false;
+  try {
+    lastWasCloud = (await chrome.storage.local.get('cloudProject')).cloudProject === true;
+  } catch {
+    /* treat as not cloud */
+  }
+  const choices = recent.length + (signedIn || lastWasCloud ? 1 : 0);
+  if (origin && choices >= 2) return { kind: 'ask', recent };
+  if (!origin) {
+    const last = await loadFolder();
+    if (lastWasCloud) return { kind: 'cloud' };
+    return last ? { kind: 'folder', handle: last } : { kind: 'none' };
+  }
+  if (recent.length === 1) {
+    await chooseFolderFor(origin, recent[0]!);
+    return { kind: 'folder', handle: recent[0]! };
+  }
+  if (lastWasCloud) {
+    await chooseCloudFor(origin);
+    return { kind: 'cloud' };
+  }
+  return { kind: 'none' };
+}
+
+/** Bugs from this site go into this folder from now on. */
+export async function chooseFolderFor(origin: string | null, handle: FileSystemDirectoryHandle): Promise<void> {
+  if (origin) {
+    await idbSet(`site:${origin}`, handle);
+    const sites = await cloudSites();
+    if (sites[origin]) {
+      delete sites[origin];
+      await chrome.storage.local.set({ siteCloud: sites }).catch(() => {});
+    }
+  }
+  await saveFolder(handle);
+  const recent = await recentFolders();
+  const rest: FileSystemDirectoryHandle[] = [];
+  for (const r of recent) if (!(await sameFolder(r, handle))) rest.push(r);
+  await idbSet('recent', [handle, ...rest].slice(0, MAX_RECENT));
+  await chrome.storage.local.set({ cloudProject: false }).catch(() => {});
+}
+
+/** Bugs from this site go to the cloud inbox from now on. */
+export async function chooseCloudFor(origin: string | null): Promise<void> {
+  if (origin) {
+    await idbSet(`site:${origin}`, null);
+    const sites = await cloudSites();
+    await chrome.storage.local.set({ siteCloud: { ...sites, [origin]: true } }).catch(() => {});
+  }
+  await chrome.storage.local.set({ cloudProject: true }).catch(() => {});
 }
 
 type Handle = FileSystemDirectoryHandle & {

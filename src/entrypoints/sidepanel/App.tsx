@@ -5,7 +5,7 @@ import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
-import { ensureAccess, folderAccess, forgetFolder, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
+import { chooseCloudFor, chooseFolderFor, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
@@ -68,6 +68,11 @@ export function App() {
       return null;
     });
   const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
+  const folderRef = useRef<FileSystemDirectoryHandle | null>(null);
+  folderRef.current = folder;
+  // Several projects and a site Darnly hasn't seen yet: the panel asks which project it belongs to.
+  const [askRecent, setAskRecent] = useState<FileSystemDirectoryHandle[] | null>(null);
+  const [recent, setRecent] = useState<FileSystemDirectoryHandle[]>([]);
   const [access, setAccess] = useState<string>('none');
   const [message, setMessage] = useState('');
   const [lastMarkdown, setLastMarkdown] = useState('');
@@ -111,6 +116,8 @@ export function App() {
   }, []);
   // Cloud inbox: signed in, bugs upload to Darnly cloud and the agent reads them through MCP.
   const [session, setSession] = useState<CloudSession | null>(null);
+  const sessionRef = useRef<CloudSession | null>(null);
+  sessionRef.current = session;
   const [cloudBugs, setCloudBugs] = useState<CaptureSummary[]>([]);
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
@@ -180,9 +187,14 @@ export function App() {
     setConfirmDelete(false);
   };
 
-  const chooseCloud = (v: boolean) => {
+  const activeOrigin = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    return originOf(tab?.url);
+  };
+  const chooseCloud = async (v: boolean) => {
+    if (v) await chooseCloudFor(await activeOrigin()).catch(() => {});
     setCloud(v);
-    chrome.storage.local.set({ cloudProject: v }).catch(() => {});
+    if (v) await refreshFolderRef.current();
   };
 
   const refreshSite = useCallback(async () => {
@@ -214,12 +226,37 @@ export function App() {
     setHooksOn(!!existing['.claude/settings.json']?.includes(HOOK_MARK));
   }, [setJustFixed]);
 
+  // Works out this tab's project (each site remembers its own) and shows it.
   const refreshFolder = useCallback(async () => {
-    const f = await loadFolder();
-    setFolder(f);
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    const t = await targetFor(originOf(tab?.url), !!sessionRef.current);
+    setRecent(await recentFolders());
+    const f = t.kind === 'folder' ? t.handle : null;
+    setAskRecent(t.kind === 'ask' ? t.recent : null);
+    if (t.kind !== 'ask') setCloud(t.kind === 'cloud');
+    const same = !!(f && folderRef.current && (await f.isSameEntry(folderRef.current).catch(() => false)));
+    if (!same) {
+      setFolder(f);
+      setCaptures([]);
+      setPlan(null);
+      setSetupNeeded(false);
+      setHooksOn(false);
+    }
     setAccess(await folderAccess(f));
     await refreshProject(f);
   }, [refreshProject]);
+  const refreshFolderRef = useRef(refreshFolder);
+  refreshFolderRef.current = refreshFolder;
+
+  // Fixes in the user's other projects still show up, whichever site is open.
+  const watchOtherProjects = useCallback(async () => {
+    for (const r of await recentFolders()) {
+      if (folderRef.current && (await r.isSameEntry(folderRef.current).catch(() => false))) continue;
+      if ((await folderAccess(r)) !== 'granted') continue;
+      const fixedNow = await checkFixes(`folder:${r.name}`, await listCaptures(r).catch(() => []));
+      if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
+    }
+  }, [setJustFixed]);
 
   const applySetup = async () => {
     if (!folder || !plan) return;
@@ -239,8 +276,14 @@ export function App() {
       chrome.commands.getAll().then((all) => setShortcut(all.find((c) => c.name === 'start-capture')?.shortcut || null));
     checkShortcut();
     addEventListener('focus', checkShortcut);
-    const poll = setInterval(() => loadFolder().then(refreshProject), 5000);
-    const onTab = () => refreshSite();
+    const poll = setInterval(() => {
+      refreshProject(folderRef.current);
+      watchOtherProjects();
+    }, 5000);
+    const onTab = () => {
+      refreshSite();
+      refreshFolder();
+    };
     chrome.tabs.onActivated.addListener(onTab);
     chrome.tabs.onUpdated.addListener(onTab);
     type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
@@ -277,14 +320,13 @@ export function App() {
       chrome.tabs.onActivated.removeListener(onTab);
       chrome.tabs.onUpdated.removeListener(onTab);
     };
-  }, [refreshFolder, refreshSite, refreshProject]);
+  }, [refreshFolder, refreshSite, refreshProject, watchOtherProjects]);
 
   const linkFolder = async () => {
     try {
       const handle = await (window as unknown as { showDirectoryPicker(o: object): Promise<FileSystemDirectoryHandle> })
         .showDirectoryPicker({ id: 'project', mode: 'readwrite' });
-      await saveFolder(handle);
-      chooseCloud(false);
+      await chooseFolderFor(await activeOrigin(), handle);
       await refreshFolder();
       setMessage('');
     } catch (e) {
@@ -292,17 +334,17 @@ export function App() {
     }
   };
 
-  // From a linked folder to the cloud inbox: unlink the folder, then show the cloud sign-in (or the signed-in inbox).
+  // This site's bugs go to the cloud inbox from now on (sign-in, or the signed-in inbox, shows next).
   const useCloud = async () => {
-    await forgetFolder().catch(() => {});
-    setFolder(null);
-    setAccess('none');
-    setCaptures([]);
-    setPlan(null);
-    setSetupNeeded(false);
-    setHooksOn(false);
     setMessage('');
-    chooseCloud(true);
+    await chooseCloud(true);
+  };
+
+  // This site belongs to one of the user's other projects.
+  const pickProject = async (h: FileSystemDirectoryHandle) => {
+    setMessage('');
+    await chooseFolderFor(await activeOrigin(), h);
+    await refreshFolder();
   };
 
   const pickerCommand = async (action: 'cancel' | 'whole') => {
@@ -465,14 +507,17 @@ export function App() {
     <main className="space-y-4 p-4 text-sm text-gray-900">
       <header>
         <h1 className="text-base font-semibold">{PRODUCT.NAME}</h1>
-        {!folder && cloud === false && <Welcome onLink={linkFolder} onCloud={() => chooseCloud(true)} />}
-        {!folder && cloud && session && (
+        {askRecent && (
+          <ProjectChooser site={site.origin} recent={askRecent} onPick={pickProject} onLink={linkFolder} onCloud={useCloud} />
+        )}
+        {!askRecent && !folder && cloud === false && <Welcome onLink={linkFolder} onCloud={useCloud} />}
+        {!askRecent && !folder && cloud && session && (
           <p className="mt-1 text-xs text-gray-500">
             Sending bugs to your Darnly inbox ({session.email}) ·{' '}
             <button className="underline" onClick={linkFolder}>link a folder instead</button>
           </p>
         )}
-        {!folder && cloud && !session && (
+        {!askRecent && !folder && cloud && !session && (
           <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
             <p className="font-medium">Send bugs straight to your agent</p>
             <p className="text-xs text-gray-500">Sign in once, and each bug goes to your private Darnly inbox. Your agent picks it up there, with nothing to paste.</p>
@@ -483,7 +528,7 @@ export function App() {
             </p>
           </div>
         )}
-        {folder && <FolderLine folder={folder} access={access} onLink={linkFolder} onCloud={useCloud} />}
+        {folder && <FolderLine folder={folder} access={access} recent={recent} onPick={pickProject} onLink={linkFolder} onCloud={useCloud} />}
       </header>
 
       {site.recordable && !site.builtIn && !site.on && (
@@ -758,7 +803,23 @@ function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void 
   );
 }
 
-function FolderLine({ folder, access, onLink, onCloud }: { folder: FileSystemDirectoryHandle | null; access: string; onLink: () => void; onCloud?: () => void }) {
+function ProjectChooser({ site, recent, onPick, onLink, onCloud }: { site?: string; recent: FileSystemDirectoryHandle[]; onPick: (h: FileSystemDirectoryHandle) => void; onLink: () => void; onCloud: () => void }) {
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3">
+      <p className="font-medium">Which project is {site ? site.replace(/^https?:\/\//, '') : 'this site'}?</p>
+      <p className="text-xs text-gray-500">Darnly remembers it for this site.</p>
+      <div className="flex flex-wrap gap-2">
+        {recent.map((r, i) => (
+          <button key={i} className="rounded-lg border border-gray-300 px-3 py-1.5" onClick={() => onPick(r)}>{r.name}</button>
+        ))}
+        <button className="rounded-lg border border-gray-300 px-3 py-1.5" onClick={onCloud}>In the cloud</button>
+      </div>
+      <button className="text-xs underline" onClick={onLink}>Another folder…</button>
+    </div>
+  );
+}
+
+function FolderLine({ folder, access, recent = [], onPick, onLink, onCloud }: { folder: FileSystemDirectoryHandle | null; access: string; recent?: FileSystemDirectoryHandle[]; onPick?: (h: FileSystemDirectoryHandle) => void; onLink: () => void; onCloud?: () => void }) {
   const [choosing, setChoosing] = useState(false);
   if (!folder) {
     return (
@@ -776,6 +837,15 @@ function FolderLine({ folder, access, onLink, onCloud }: { folder: FileSystemDir
       {access !== 'granted' && ' (Chrome will ask to allow on your next save)'} ·{' '}
       {choosing ? (
         <>
+          {onPick &&
+            recent
+              .filter((r) => r.name !== folder.name)
+              .slice(0, 4)
+              .map((r, i) => (
+                <span key={i}>
+                  <button className="underline" onClick={() => { setChoosing(false); onPick(r); }}>{r.name}</button> ·{' '}
+                </span>
+              ))}
           <button className="underline" onClick={() => { setChoosing(false); onLink(); }}>another folder</button> ·{' '}
           {onCloud && (
             <>
