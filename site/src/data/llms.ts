@@ -22,6 +22,7 @@ const LINKS = `## Darnly
 - [Darnly on the Chrome Web Store](${STORE_URL}): install the free extension
 - [Darnly for Mac](${SITE}/#mac): the menu bar app for Mac, iOS Simulator and Android Emulator bugs
 - [Privacy policy](${SITE}/privacy): what is captured, hidden and stored
+- [What is Darnly](${SITE}/what-is-darnly/): short answers about what Darnly is, who it is for, price, agents and privacy
 - [All free tools](${SITE}/tools/): every tool, grouped by category`;
 
 const OPTIONAL = `## Optional
