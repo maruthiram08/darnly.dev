@@ -106,6 +106,8 @@ section.tools-strip { padding-bottom: 0; }
 
 footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+footer .badges img { display: block; max-width: 100%; height: auto; }
 
 /* Hero scene: a crisp mock of the capture moment, drawn in HTML so it stays sharp */
 .scene { position: relative; padding: 24px 0 80px; min-width: 0; }

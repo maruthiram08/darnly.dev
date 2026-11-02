@@ -27,6 +27,8 @@ h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-
 
 footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+footer .badges img { display: block; max-width: 100%; height: auto; }
 /* Tools on top, guides below in columns, both full width (a side column of guides left a big gap next to the tools). */
 footer .lists { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; width: 100%; margin-bottom: 12px; }
 footer .lists h2 { font: 600 14px/1.4 var(--body); letter-spacing: 0; color: var(--ink); margin-bottom: 6px; }
