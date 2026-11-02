@@ -1,0 +1,66 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'test-your-vibe-coded-app';
+const faq = [
+  { q: 'How long should testing take before launch?', a: 'For a small app, an hour or two is enough to walk through every main path on a laptop and a phone. Write each bug down as you go and fix them in a batch afterwards.' },
+  { q: 'Do I need automated tests?', a: 'Not to launch a first version. A careful walk-through catches most of what users will hit. If you want, ask your agent to write a few tests for sign-up and payments later.' },
+  { q: 'What do people forget to test?', a: 'Phones, empty states (a new user with no data), wrong input in forms, slow connections, being logged out, and what happens after a payment or email link.' },
+  { q: 'Should I test on the live address or localhost?', a: 'Both. Build and test on localhost, then do one last walk-through on the real address, because hosting settings, environment variables and domains can break things that worked locally.' },
+  { q: 'How does Darnly help with testing?', a: 'It makes writing each bug down one key: click the broken part, say what you expected, and it saves a report your AI agent can fix later, with the screenshot and recent errors.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to test a web app before launch: a checklist"
+  description="Test your vibe-coded app before launch: walk every main path on laptop and phone, try wrong input, check launch basics, note each bug, then fix in a batch."
+  h1="How to test your vibe-coded app before launch: a checklist"
+  lede="To test a web app before launch, walk through every main path as a new user on a laptop and a phone, try wrong input on purpose, run a few free checks on the live address, and write down each bug as you find it so your agent can fix them in one batch."
+  faq={faq}
+>
+  <p>AI agents write code that usually works on the path you asked for. The bugs hide on the paths nobody asked about: the empty account, the long name, the phone screen, the second click. An hour of testing like a stranger finds most of them before your users do.</p>
+
+  <h2>1. Make a short list of paths</h2>
+  <p>Write down the five to ten things a user must be able to do. For example: sign up, log in, create a project, edit it, pay, log out, reset a password. This is your test plan. Nothing fancy.</p>
+
+  <h2>2. Walk through each one as a new user</h2>
+  <ul>
+    <li><strong>Use a fresh account.</strong> Your own account has data in it. A new one shows the empty states, like "no projects yet", which are often broken or blank.</li>
+    <li><strong>Use a private window.</strong> It has no saved logins or old cached files.</li>
+    <li><strong>Click everything once.</strong> Every button, link and menu on each page.</li>
+    <li><strong>Read the words.</strong> Placeholder text like "Lorem ipsum" or "Your tagline here" is easy to miss.</li>
+  </ul>
+
+  <h2>3. Try to break it</h2>
+  <ul>
+    <li>Submit forms empty. Then with a very long name, an emoji, and an email with no @.</li>
+    <li>Double-click buttons that save or pay.</li>
+    <li>Press back after a step. Reload in the middle of a flow.</li>
+    <li>Log out in one tab and keep using the app in another.</li>
+    <li>Need realistic test data? The <a href="/tools/fake-data-generator/">fake data generator</a> makes users, products or orders as JSON, CSV or SQL.</li>
+  </ul>
+
+  <h2>4. Check phones and small screens</h2>
+  <p>Open the app on your actual phone. Look for text that spills out of boxes, buttons too small to tap, and menus that don't open. The <a href="/tools/responsive-checker/">responsive checker</a> shows a page at phone, tablet and desktop widths side by side, which is quicker for a first look.</p>
+
+  <h2>5. Run the launch checks</h2>
+  <p>Once it's on the real address, a few free checks catch the things people forget:</p>
+  <ul>
+    <li><a href="/tools/launch-checker/">Launch checker</a>: title, share preview, favicon, sitemap, 404 page.</li>
+    <li><a href="/tools/broken-link-checker/">Broken link checker</a>: dead links and missing images.</li>
+    <li><a href="/tools/api-key-leak-checker/">API key leak checker</a>: secret keys exposed in your JavaScript.</li>
+    <li><a href="/tools/accessibility-checker/">Accessibility checker</a>: missing labels, low contrast and more.</li>
+    <li><a href="/tools/page-speed-checker/">Page speed checker</a>: why it's slow, with the top fixes.</li>
+  </ul>
+
+  <h2>6. Write each bug down, then fix in a batch</h2>
+  <p>Don't stop to fix each bug as you find it. You'll lose your place and test less. Note each one with the page, what you did, what happened and what you expected. Then hand the list to your agent in one sitting. The guide on <a href="/guides/keep-a-list-of-bugs/">keeping a list of bugs</a> shows a simple file format your agent can read and tick off.</p>
+  <p>After the fixes, walk the main paths once more. Fixes sometimes break something next door.</p>
+
+  <h2>Make step 6 one key with Darnly</h2>
+  <p>Writing bugs down is the step that makes testing slow, so people skip it. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that makes it one move. While you test, press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click what's broken, type what you expected, press Enter, and keep testing.</p>
+  <p>Each bug is saved into your project's <code>.darnly/inbox/</code> with a screenshot that has the broken part boxed in red, the page address, the element, and console errors and failed requests from the last 60 seconds. That last part matters for testing: a button that silently fails usually leaves an error you'd never have opened the console to see. On localhost the errors are recorded automatically. On the live address, click <strong>Record errors on this site</strong> once.</p>
+  <p>When you're done, tell Claude Code, Codex or Cursor "fix my bugs". It works through the inbox and writes one line per bug saying what it changed, so you know what to check on your second walk-through.</p>
+  <p>Testing a Mac app or a mobile app in the iOS Simulator or Android Emulator? The Darnly Mac app does the same there, into the same inbox. It's in early access: write to hello@darnly.dev.</p>
+</GuidePage>

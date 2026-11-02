@@ -1,0 +1,60 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'show-claude-code-a-bug';
+const faq = [
+  { q: 'How do I paste a screenshot into Claude Code?', a: 'Copy the image, click into the Claude Code prompt and press Ctrl+V (Alt+V on Windows and WSL). You can also drag the image file into the window, or type its path in your message.' },
+  { q: 'Can Claude Code see my browser?', a: 'Not by itself. Claude Code reads and edits the files in your project. It only sees your screen when you give it a picture, or when you connect a browser tool to it.' },
+  { q: 'What should I write next to the screenshot?', a: 'Three things: what you did, what happened, and what you expected instead. Add the page address, and say whether the fix should be only on this page or everywhere the same thing shows up.' },
+  { q: 'Why does Claude Code fix the wrong thing?', a: 'Usually because the screenshot shows more than one thing that could be broken. Draw a box around the broken part, or name it in words, like "the Save plan button under the cards".' },
+  { q: 'Does Darnly work with Claude Code?', a: 'Yes. When you link your project folder and click Set up this project, Darnly adds a skill and an AGENTS.md note that tell Claude Code where your bug reports are. Then you say "fix my bugs".' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to show Claude Code a bug you see on screen · Darnly"
+  description="Show Claude Code a bug with a marked screenshot, the page address and one sentence on what you expected. The manual way, and the one-key way."
+  h1="How to show Claude Code a bug you see on screen"
+  lede="To show Claude Code a bug, give it a screenshot with the broken part marked, the page address, and one sentence on what you expected, then ask it to fix that."
+  faq={faq}
+>
+  <p>Claude Code works in your project's files. It can't see the page in your browser. So when something looks wrong, your job is to carry what you see over to it. The better you carry it, the fewer rounds of "can you tell me more?" you get.</p>
+
+  <h2>The manual way: a Claude Code screenshot, step by step</h2>
+  <ol>
+    <li><strong>Take a screenshot of the broken part.</strong> On a Mac, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> lets you drag a box. On Windows, <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>. Keep enough around it that the agent can tell where on the page it is.</li>
+    <li><strong>Mark the broken bit.</strong> If the picture has several buttons or cards, draw a circle or box on the one that's wrong. The Mac screenshot preview and the Windows Snipping Tool both let you draw.</li>
+    <li><strong>Get it into Claude Code.</strong> Claude Code's docs list three ways: drag the image into the Claude Code window, copy it and paste with <kbd>Ctrl</kbd>+<kbd>V</kbd> (<kbd>Alt</kbd>+<kbd>V</kbd> on Windows and WSL), or type the path to the image file in your message.</li>
+    <li><strong>Write one short message.</strong> What you did, what happened, what you expected. Add the page address, like <code>localhost:3000/settings</code>.</li>
+    <li><strong>Paste any red error text.</strong> If the page broke after a click, open the browser console and copy the red lines too. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors for your AI agent</a>.</li>
+  </ol>
+
+  <p>A good message looks like this:</p>
+  <pre><code>[screenshot]
+On localhost:3000/settings, I changed my name and clicked Save.
+Nothing happened and the old name came back after a reload.
+Expected: the new name is saved and a "Saved" message shows.
+This is only about the settings page.</code></pre>
+
+  <h2>Why each part matters</h2>
+  <p><strong>The marked picture</strong> tells Claude Code which element you mean. A plain screenshot of a whole page is fine for "the logo is huge", but for "this button is grey" the agent has to guess which button.</p>
+  <p><strong>The page address</strong> narrows the search. A route like <code>/settings</code> usually maps to a file or folder with a similar name.</p>
+  <p><strong>"Expected"</strong> is the most important line. "It's broken" makes the agent invent a goal. "It should save and show Saved" gives it one to aim at.</p>
+  <p><strong>The scope</strong> ("only here" or "everywhere") stops the agent asking, or worse, changing a shared style that breaks other pages. There's a whole guide on <a href="/guides/local-or-global-change/">why your agent asks if a change is local or global</a>.</p>
+
+  <div class="tip"><p>Need your browser, screen size and dark mode setting for the report? <a href="/tools/browser-info/">What browser am I using?</a> copies them in one click. Got a screen recording of the bug instead? <a href="/tools/video-to-gif/">Video to GIF</a> turns it into something you can attach.</p></div>
+
+  <h2>The one-key way with Darnly</h2>
+  <p>The manual way works. It's also six steps and an app switch, every time. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that does the carrying for you:</p>
+  <ol>
+    <li>Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on a Mac (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows).</li>
+    <li>Click the broken part. A red box follows your cursor. The arrow keys make it bigger or smaller, <kbd>W</kbd> picks the whole page.</li>
+    <li>Type what you expected and press Enter.</li>
+  </ol>
+  <p>Darnly saves a report into <code>.darnly/inbox/</code> in your project: a screenshot with the broken part boxed in red, the element's selector, text and styles, the page address, and console errors and failed requests from the last 60 seconds. On localhost it can sometimes name the component and file that drew the element. Passwords, tokens and keys are replaced with <code>[hidden]</code> first.</p>
+  <p>The first time, link your project folder and click <strong>Set up this project</strong>. That adds a short AGENTS.md note and a skill, so Claude Code knows where to look. After that you just tell Claude Code "fix my bugs". It fixes each one, writes a <strong>Fixed:</strong> line saying what it changed, and moves the report to <code>.darnly/done/</code>.</p>
+
+  <h2>Which one should you use?</h2>
+  <p>To be honest about it: in our own test on 8 planted bugs in a real app, a pasted screenshot plus one sentence got every bug fixed, and so did Darnly. Darnly cost more per bug, because of its extra steps. So a screenshot is not the wrong way. Darnly is for when you don't want to leave the page, when the bug is in the console and not on screen, or when you'd rather collect five bugs and fix them in one go. The full numbers are in <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a>.</p>
+</GuidePage>

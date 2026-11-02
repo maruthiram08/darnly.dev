@@ -1,0 +1,56 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'send-bugs-from-testers-to-ai';
+const faq = [
+  { q: 'What should I ask testers to send?', a: 'The page address, what they did, what happened, what they expected, and a screenshot with the broken part circled. Their browser and device too. Give them a short template.' },
+  { q: 'Can I paste a client\'s email straight into my AI agent?', a: 'You can, but rewrite it first into page, steps, what happened and Expected. Client emails often mix several bugs and opinions, and the agent works best on one clear bug at a time.' },
+  { q: 'Can my client use Darnly without any setup?', a: 'They need to add the free Chrome extension. They can skip linking a project folder: after each capture they click Copy picture and Copy details and send both to you.' },
+  { q: 'Does Darnly have a feedback widget for my site?', a: 'No. Darnly is an extension the person reporting installs. If you want clients to report from a widget on your site without installing anything, a tool like Marker.io is built for that.' },
+  { q: 'Can testers send bugs straight into my Darnly cloud inbox?', a: 'No. The cloud inbox is private to the Google account that signs in. Testers capture in their own Darnly and send you the copied picture and details.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to send bugs from a tester or client to your AI agent"
+  description="Send bugs from a tester or client to your AI agent: give them a short template, collect the screenshot and errors, rewrite each into one bug, then paste."
+  h1="How to send bugs from a tester or client to your AI agent"
+  lede="To send bugs from a tester or client to your AI agent, give them a short template to fill in, collect a marked screenshot and the page address for each bug, then turn each one into a single clear report with an Expected line before you paste it into your agent."
+  faq={faq}
+>
+  <p>Clients and testers see your app with fresh eyes, which is why their bug reports are gold. They also write things like "the button thing on the main page is off again". Your AI agent can't do much with that. The trick is to make it easy for them to send the right details, and quick for you to pass them on.</p>
+
+  <h2>1. Give them a template</h2>
+  <p>Send this once and ask them to copy it for every bug:</p>
+  <pre><code>Page: (copy the address from the browser bar)
+What I did:
+What happened:
+What I expected:
+Screenshot: (circle the broken part)
+Browser and device:</code></pre>
+  <p>For the last line, send them to <a href="/tools/browser-info/">What browser am I using?</a>. It copies their browser, system, screen size and dark mode setting in one click, so they don't have to know what any of that means.</p>
+  <p>If the bug is something that moves, like a menu that flickers, ask for a short screen recording. <a href="/tools/video-to-gif/">Video to GIF</a> turns it into a GIF you can attach.</p>
+
+  <h2>2. Ask for one bug per message</h2>
+  <p>A list of twelve things in one email gets messy fast. One bug per message, or a numbered list with one screenshot each, keeps it clear for them, you and the agent.</p>
+
+  <h2>3. Turn each one into an agent-ready report</h2>
+  <p>Before pasting, spend thirty seconds on each bug:</p>
+  <ol>
+    <li><strong>Try it yourself.</strong> If you can make it happen, copy the red console errors while you're there. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
+    <li><strong>Separate the bug from the opinion.</strong> "The button is grey and does nothing" is a bug. "I don't love the font" is a design choice for you to decide on.</li>
+    <li><strong>Write the Expected line.</strong> Use their words if they're clear.</li>
+    <li><strong>Add the scope.</strong> "Only this page" or "everywhere". See <a href="/guides/local-or-global-change/">why your agent asks if a change is local or global</a>.</li>
+    <li><strong>Paste it with the screenshot.</strong> Into Claude Code, Codex or Cursor, one bug at a time or as a numbered list.</li>
+  </ol>
+  <p>The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report an AI agent can fix</a> has a fuller template and examples.</p>
+
+  <h2>4. Close the loop</h2>
+  <p>When the agent says it's fixed, check it yourself, then tell the person who reported it. A quick "fixed, thanks" makes people far more likely to report the next one.</p>
+
+  <h2>Using Darnly with testers</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension, and anyone can use it, not just the person with the code. A tester adds it, skips the "link your project folder" step, and when they see a bug they press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part and type what they expected.</p>
+  <p>Darnly then offers <strong>1. Copy picture</strong> (the screenshot with the broken part boxed in red) and <strong>2. Copy details</strong> (the page address, the element, and recent failed requests, plus console errors if they switched on <strong>Record errors on this site</strong>). They paste both into an email or chat to you, and you paste them into your agent. Passwords and card numbers are blurred in the screenshot, and tokens and keys in the details become <code>[hidden]</code>, which matters when someone else's screen is involved.</p>
+  <p>Where Darnly isn't the right fit: if you have many clients who won't install anything, or you need bugs to go into Jira or Linear with comments and statuses, a team feedback tool with a widget on your site will serve you better. We compare one in <a href="/guides/darnly-vs-marker-io/">Darnly vs Marker.io</a>.</p>
+</GuidePage>

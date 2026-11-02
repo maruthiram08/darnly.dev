@@ -1,0 +1,76 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-screenshot';
+const faq = [
+  { q: 'Does Darnly fix more bugs than a screenshot?', a: 'Not in our test. On 8 planted bugs in Excalidraw, run twice each, a screenshot with one sentence and a Darnly report both got 16 of 16 fixed, all from the first message.' },
+  { q: 'Does Darnly save tokens?', a: 'No. In our test Darnly runs cost about 1.6 times as much per bug ($0.11 vs $0.07 on average) and used more tokens, mostly because of Darnly\'s own steps like reading the inbox and moving files when done.' },
+  { q: 'Then why use Darnly?', a: 'For the capture: one key instead of screenshot, app switch and typing, without leaving the page. For bugs a picture can\'t show, like console errors and failed requests. And for keeping an inbox of bugs to fix in one go.' },
+  { q: 'When is a plain screenshot the better choice?', a: 'When the bug is visible, you\'re already in your agent\'s chat, you only have one bug, and cost matters. That covers a lot of everyday bugs.' },
+  { q: 'Can I see the full results?', a: 'The method and the main numbers are on this page. For the per-bug numbers, write to hello@darnly.dev.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Darnly vs a plain screenshot: an honest comparison"
+  description="We tested Darnly against a screenshot plus one sentence on 8 real-app bugs. Both fixed 16 of 16. Darnly cost more. Here's when each is the better pick."
+  h1="Darnly vs a plain screenshot"
+  lede="A plain screenshot with one clear sentence fixed visual bugs just as well as a Darnly report in our test, and cost less, so Darnly is worth it for faster capture, console errors and a bug inbox, not for better fixes."
+  faq={faq}
+  sources={[{ name: 'Darnly\'s own "turns to fix" benchmark, run on 1 November 2026: Claude Code (Sonnet), Excalidraw, 8 bugs, 2 ways, 2 repeats' }, { name: 'Excalidraw, the open source app we tested on', url: 'https://github.com/excalidraw/excalidraw' }]}
+>
+  <p>We make Darnly, so we wanted to know if it actually beats the obvious way: take a screenshot, paste it into your agent, type a sentence. We tested it. Here is what we found, including the parts that don't flatter us.</p>
+
+  <h2>The test</h2>
+  <ul>
+    <li><strong>A real app:</strong> Excalidraw, an open source drawing app with about 1,300 files.</li>
+    <li><strong>8 planted bugs:</strong> colors, sizes, a hover style, a zoom button, a reset that throws an error. Four needed a fix in a shared place, four needed a local fix.</li>
+    <li><strong>Two ways:</strong> a screenshot pasted into Claude Code with one sentence, or a Darnly report with the same sentence as the note.</li>
+    <li><strong>Twice each,</strong> 32 conversations in all, with Claude Code on the Sonnet model. A browser check confirmed each fix and its scope.</li>
+  </ul>
+
+  <h2>The results</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Screenshot + sentence</th><th>Darnly</th></tr></thead>
+    <tbody>
+      <tr><td>Fixed, right scope</td><td>16 of 16</td><td>16 of 16</td></tr>
+      <tr><td>Fixed from the first message</td><td>16 of 16</td><td>16 of 16</td></tr>
+      <tr><td>Follow-up questions from the agent</td><td>0</td><td>0</td></tr>
+      <tr><td>Cost per bug (average)</td><td>$0.07</td><td>$0.11</td></tr>
+      <tr><td>Tokens per bug (median)</td><td>157,000</td><td>358,000</td></tr>
+      <tr><td>Code searches per bug (average)</td><td>3.2</td><td>2.1</td></tr>
+      <tr><td>File reads per bug (average)</td><td>2.7</td><td>1.6</td></tr>
+      <tr><td>Agent time per bug (average)</td><td>11 s</td><td>23 s</td></tr>
+    </tbody>
+  </table></div>
+  <p>In plain words:</p>
+  <ol>
+    <li><strong>Both fixed everything.</strong> A screenshot was enough for these bugs.</li>
+    <li><strong>Darnly's report helped the agent find the code a bit faster.</strong> About a third fewer searches and file reads.</li>
+    <li><strong>Darnly's workflow cost more than that saved.</strong> About 10 of its 15 tool calls per bug were bookkeeping: loading its instructions, reading the inbox, opening the screenshot, writing a Fixed line and moving files to <code>done/</code>. So Darnly cost about 1.6 times as much per bug.</li>
+    <li><strong>The agent never asked "local or global?"</strong> With a screenshot, it found the shared theme for shared bugs and kept local ones local, every time.</li>
+  </ol>
+  <p>The limits: one app, one model, 8 bugs we planted, all visible on screen. Real bugs that need several steps to reproduce, or only show in the console, weren't well covered. Only one of the 8 involved an error.</p>
+
+  <h2>When a plain screenshot is the better pick</h2>
+  <ul>
+    <li>The bug is visible on screen.</li>
+    <li>You're already in your agent's chat and only have one bug.</li>
+    <li>You're watching usage or cost closely.</li>
+    <li>You don't want to install anything.</li>
+  </ul>
+  <p>If that's you, take a screenshot, mark the broken part, and write one sentence with what you expected. The guide on <a href="/guides/show-claude-code-a-bug/">how to show Claude Code a bug</a> shows how. For nicer screenshots to share, the <a href="/tools/screenshot-beautifier/">screenshot beautifier</a> frames them.</p>
+
+  <h2>When Darnly is the better pick</h2>
+  <ul>
+    <li><strong>You don't want to break your flow.</strong> One key, click, one sentence, and you keep testing. No screenshot shortcut, no app switch, no dragging files.</li>
+    <li><strong>The bug isn't visible.</strong> A button that does nothing looks fine in a picture. Darnly keeps console errors and failed requests from the last 60 seconds, so the cause comes with the report.</li>
+    <li><strong>Several look the same.</strong> Darnly records the exact element you clicked: selector, text, HTML and styles.</li>
+    <li><strong>You find bugs in batches.</strong> Capture ten while you test, then tell your agent "fix my bugs" once. Each report gets a Fixed line, and the panel shows what's waiting and what's done.</li>
+    <li><strong>Your code is somewhere else.</strong> With the optional cloud inbox, bugs from all your projects wait in one private list that your agent reads over MCP.</li>
+  </ul>
+
+  <h2>What we learned</h2>
+  <p>Most of Darnly's extra cost is its own file moving after a fix, and our benchmark write-up lists making that one step or none as the first thing to change. Until it changes, we'll keep saying it plainly: Darnly makes reporting a bug easier, not cheaper. If that's worth it to you, <a href={storeUrl(`guide-${slug}`)}>add it to Chrome, it's free</a>.</p>
+</GuidePage>

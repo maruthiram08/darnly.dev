@@ -578,5 +578,19 @@ export const TOOLS: Item[] = [
   },
 ];
 
-// Same for guides.
-export const GUIDES: Item[] = [];
+// Same for guides: add new ones at the END. Each lives at /guides/<slug>/.
+export const GUIDES: Item[] = [
+  { slug: 'show-claude-code-a-bug', name: 'How to show Claude Code a bug', blurb: 'A marked screenshot, the page and one sentence on what you expected. The manual way and the one-key way.' },
+  { slug: 'report-a-bug-to-cursor', name: 'How to report a bug to Cursor', blurb: 'Give Cursor a screenshot, the page, what you expected and the errors, in one clear message.' },
+  { slug: 'give-codex-a-screenshot', name: 'How to give Codex a screenshot of a bug', blurb: 'Paste it or use codex --image, and add what a picture can’t show.' },
+  { slug: 'write-a-bug-report-for-ai-agents', name: 'How to write a bug report for an AI coding agent', blurb: 'A copyable template, with a bad and a good example.' },
+  { slug: 'local-or-global-change', name: 'Why your agent asks “local or global?”', blurb: 'Why one fix can have two homes, and the one line that answers it up front.' },
+  { slug: 'copy-console-errors-for-ai', name: 'How to copy console errors in Chrome', blurb: 'Open the console, catch the red lines and failed requests, remove secrets, paste.' },
+  { slug: 'fix-a-bug-on-a-live-site', name: 'How to fix a bug on a live site you built with AI', blurb: 'Capture it, rule out the host, try it on localhost, fix, redeploy, check.' },
+  { slug: 'keep-a-list-of-bugs', name: 'How to keep a list of bugs across projects', blurb: 'A BUGS.md your agent can tick off, or an inbox that fills as you capture.' },
+  { slug: 'test-your-vibe-coded-app', name: 'How to test your app before launch', blurb: 'A checklist: every main path, phones, wrong input, launch checks, then fix in a batch.' },
+  { slug: 'send-bugs-from-testers-to-ai', name: 'How to send bugs from testers to your AI agent', blurb: 'A template for testers and clients, and how to turn their notes into one clear bug each.' },
+  { slug: 'darnly-vs-screenshot', name: 'Darnly vs a plain screenshot', blurb: 'Our benchmark: both fixed 16 of 16 bugs, Darnly cost more. When each is the better pick.' },
+  { slug: 'darnly-vs-marker-io', name: 'Darnly vs Marker.io', blurb: 'A free, local bug capture for solo builders, or a paid team feedback tool with a client widget.' },
+  { slug: 'darnly-vs-chrome-devtools-mcp', name: 'Darnly vs Chrome DevTools MCP', blurb: 'You point at the bug you saw, or the agent drives its own browser. Often both.' },
+];
