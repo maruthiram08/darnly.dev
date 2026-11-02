@@ -2,6 +2,7 @@
 // Home page: sells Darnly's bug capture. Markup and styles are unchanged from the old hand-written page.
 import Base from '../layouts/Base.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import SetupPrompt from '../components/SetupPrompt.astro';
 import { STORE_URL, TOOLS, storeUrl } from '../data/site';
 import '../styles/home.css';
 
@@ -58,6 +59,7 @@ const jsonLd = JSON.stringify([
     <nav>
       <a class="brand" href="#top"><img src="icon.png" alt="">Darnly</a>
       <div class="nav-links">
+        <a href="/setup/">Set up your agent</a>
         <a href="#how">How it works</a>
         <a href="#report">The report</a>
         <a href="#mac">Mac app</a>
@@ -74,7 +76,7 @@ const jsonLd = JSON.stringify([
           <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
         </div>
         <div class="agents" aria-label="Works with">
-          <span>Works with</span><strong>Claude Code</strong><strong>Codex</strong><strong>Cursor</strong>
+          <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
       </div>
       <div class="scene" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
@@ -108,7 +110,38 @@ const jsonLd = JSON.stringify([
 </header>
 
 <main>
-  <section class="band" id="how">
+  <section class="band setup" id="setup" aria-labelledby="setup-h">
+    <div class="wrap">
+      <span class="eyebrow">Set up in two minutes</span>
+      <h2 id="setup-h">Connect Darnly to your agent.</h2>
+      <p class="intro">Two ways to get bugs to Claude Code, Cursor or Codex. Pick the one that matches where your code lives, or paste one prompt and let your agent set it up for you.</p>
+      <div class="ways">
+        <a class="way" href="/setup/#without-mcp">
+          <span class="n">Without MCP</span>
+          <h3>Code on your computer</h3>
+          <p>Link your project folder once. Each bug lands in <code>.darnly/inbox/</code> and your agent reads it there. No account. Cloud project? Copy and paste each bug instead.</p>
+          <span class="more-link">No-MCP setup →</span>
+        </a>
+        <a class="way" href="/setup/#with-mcp">
+          <span class="n">With MCP</span>
+          <h3>Code in the cloud, or anywhere</h3>
+          <p>Sign in with Google and add <code>api.darnly.dev/mcp</code> to your agent once. It fetches your bugs itself. Just say "fix my Darnly bugs".</p>
+          <span class="more-link">MCP setup →</span>
+        </a>
+      </div>
+      <div class="agent-links" aria-label="Setup steps for each agent">
+        <span>Step-by-step for</span>
+        <a href="/setup/#claude-code">Claude Code</a>
+        <a href="/setup/#cursor">Cursor</a>
+        <a href="/setup/#codex">Codex</a>
+      </div>
+      <h3 class="prompt-h">Or let your agent do it all</h3>
+      <SetupPrompt compact />
+      <a class="all-tools" href="/setup/">Read the full setup guide →</a>
+    </div>
+  </section>
+
+  <section class="band" id="how" style="padding-top: 0">
     <div class="wrap">
       <span class="eyebrow">How it works</span>
       <h2>No screenshots to drag. No explaining twice.</h2>
@@ -117,7 +150,7 @@ const jsonLd = JSON.stringify([
         <div class="step">
           <span class="n">Step 1</span>
           <h3>Press the key</h3>
-          <p><kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>B</kbd> on any page, on localhost or your live site.</p>
+          <p><kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>B</kbd> on any page, on localhost or your live site. On Windows, <kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>B</kbd>.</p>
         </div>
         <div class="step">
           <span class="n">Step 2</span>

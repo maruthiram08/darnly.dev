@@ -8,7 +8,7 @@ const faq = [
   { q: 'Can Codex read a screenshot from a file path?', a: 'Yes, pass the path with --image when you start it. You can also save the picture inside your project and mention where it is in your message.' },
   { q: 'Does Codex read AGENTS.md?', a: 'Yes. AGENTS.md is the file Codex reads for project instructions, which is why Darnly writes its short note about where bug reports live there.' },
   { q: 'What if Codex fixes the wrong element?', a: 'Mark the broken part on the screenshot, quote the text it shows, and say what it should look like compared to something that already works on the page.' },
-  { q: 'Does Darnly work with Codex in the cloud?', a: 'Yes, two ways. Copy the picture and details from Darnly and paste them into the chat, or sign in to the optional Darnly cloud inbox and add its connector, https://api.darnly.dev/mcp, if your Codex setup lets you add MCP connectors.' },
+  { q: 'Does Darnly work with Codex in the cloud?', a: 'Yes, two ways. Copy the picture and details from Darnly and paste them into the chat, or sign in to the optional Darnly cloud inbox and add its MCP server, https://api.darnly.dev/mcp, with <code>codex mcp add darnly --url https://api.darnly.dev/mcp</code>. <a href="/setup/#codex">Setup steps for Codex</a>.' },
 ];
 ---
 <GuidePage
@@ -52,6 +52,6 @@ const faq = [
   <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that builds the screenshot and the note together. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected and press Enter.</p>
   <p>You get a PNG with the broken part boxed in red, plus a markdown report with the page address, the element's selector, text, HTML and styles, and console errors and failed requests from the last 60 seconds. Passwords, card numbers, tokens and keys are replaced with <code>[hidden]</code> before anything is saved.</p>
   <p>If the project is on your computer, link its folder once and click <strong>Set up this project</strong>. Darnly adds a note to AGENTS.md, which Codex reads, and a skill file. The bug lands in <code>.darnly/inbox/</code>, and you tell Codex "fix the bugs in .darnly/inbox". It fixes them, adds a <strong>Fixed:</strong> line, and moves each report to <code>.darnly/done/</code>.</p>
-  <p>Using Codex in the cloud? Click <strong>1. Copy picture</strong> and paste, then <strong>2. Copy details</strong> and paste.</p>
+  <p>Using Codex in the cloud? Click <strong>1. Copy picture</strong> and paste, then <strong>2. Copy details</strong> and paste. Or connect Codex to the Darnly cloud inbox over MCP once, and it fetches your bugs itself: <a href="/setup/#codex">set up Darnly in Codex</a>.</p>
   <p>One honest note: in our benchmark, a pasted screenshot with one sentence fixed visual bugs just as often as a Darnly report, and cost less. Darnly is worth it for the capture itself (one key, no app switch) and for the errors and element details a picture leaves out. Details in <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a>.</p>
 </GuidePage>
