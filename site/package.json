@@ -13,6 +13,7 @@
     "astro": "7.4.4",
     "marked": "18.1.0",
     "qrcode-generator": "1.4.4",
+    "sql-formatter": "15.8.2",
     "tesseract.js": "7.0.0",
     "yaml": "2.9.1"
   }
