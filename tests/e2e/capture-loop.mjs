@@ -223,6 +223,13 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   if (await page.evaluate(() => !!document.querySelector('darnly-picker'))) fail('Esc did not cancel the picker');
+  // Switching from a linked folder to the cloud inbox: "change" offers the cloud, and choosing it unlinks the folder.
+  await panel.getByRole('button', { name: 'change' }).click();
+  await panel.getByRole('button', { name: 'use the cloud instead' }).click().catch(() => fail('no way to switch from a folder to the cloud'));
+  await panel.getByRole('button', { name: 'Sign in with Google' }).waitFor({ timeout: 3000 }).catch(() => fail('cloud sign-in not shown after switching'));
+  if (await panel.getByText('Saving to').count()) fail('folder still linked after switching to the cloud');
+  await panel.reload();
+  await panel.getByRole('button', { name: 'Sign in with Google' }).waitFor({ timeout: 3000 }).catch(() => fail('switch to the cloud not remembered'));
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {

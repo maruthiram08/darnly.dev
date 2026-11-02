@@ -5,7 +5,7 @@ import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
-import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
+import { ensureAccess, folderAccess, forgetFolder, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
@@ -292,6 +292,19 @@ export function App() {
     }
   };
 
+  // From a linked folder to the cloud inbox: unlink the folder, then show the cloud sign-in (or the signed-in inbox).
+  const useCloud = async () => {
+    await forgetFolder().catch(() => {});
+    setFolder(null);
+    setAccess('none');
+    setCaptures([]);
+    setPlan(null);
+    setSetupNeeded(false);
+    setHooksOn(false);
+    setMessage('');
+    chooseCloud(true);
+  };
+
   const pickerCommand = async (action: 'cancel' | 'whole') => {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (tab?.id) await chrome.tabs.sendMessage(tab.id, { type: 'picker-command', action }).catch(() => {});
@@ -470,7 +483,7 @@ export function App() {
             </p>
           </div>
         )}
-        {folder && <FolderLine folder={folder} access={access} onLink={linkFolder} />}
+        {folder && <FolderLine folder={folder} access={access} onLink={linkFolder} onCloud={useCloud} />}
       </header>
 
       {site.recordable && !site.builtIn && !site.on && (
@@ -745,7 +758,8 @@ function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void 
   );
 }
 
-function FolderLine({ folder, access, onLink }: { folder: FileSystemDirectoryHandle | null; access: string; onLink: () => void }) {
+function FolderLine({ folder, access, onLink, onCloud }: { folder: FileSystemDirectoryHandle | null; access: string; onLink: () => void; onCloud?: () => void }) {
+  const [choosing, setChoosing] = useState(false);
   if (!folder) {
     return (
       <>
@@ -760,7 +774,19 @@ function FolderLine({ folder, access, onLink }: { folder: FileSystemDirectoryHan
     <p className="mt-1 text-xs text-gray-500">
       Saving to <strong>{folder.name}</strong>
       {access !== 'granted' && ' (Chrome will ask to allow on your next save)'} ·{' '}
-      <button className="underline" onClick={onLink}>change</button>
+      {choosing ? (
+        <>
+          <button className="underline" onClick={() => { setChoosing(false); onLink(); }}>another folder</button> ·{' '}
+          {onCloud && (
+            <>
+              <button className="underline" onClick={() => { setChoosing(false); onCloud(); }}>use the cloud instead</button> ·{' '}
+            </>
+          )}
+          <button className="underline" onClick={() => setChoosing(false)}>cancel</button>
+        </>
+      ) : (
+        <button className="underline" onClick={() => (onCloud ? setChoosing(true) : onLink())}>change</button>
+      )}
     </p>
   );
 }

@@ -27,6 +27,17 @@ export async function saveFolder(handle: FileSystemDirectoryHandle): Promise<voi
   });
 }
 
+/** Unlinks the project folder (switching to the cloud inbox). The files in the project stay where they are. */
+export async function forgetFolder(): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function loadFolder(): Promise<FileSystemDirectoryHandle | null> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
