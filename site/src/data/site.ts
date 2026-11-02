@@ -270,6 +270,12 @@ export const TOOLS: Item[] = [
     blurb: 'Any color as HEX, RGB, HSL, OKLCH, LAB, CSS name and Tailwind, with how it looks on white and black.',
     category: 'Design',
   },
+  {
+    slug: 'accessibility-checker',
+    category: 'Launch & domains',
+    name: 'Accessibility checker',
+    blurb: 'An accessibility score for your site, with the HTML behind each problem, a one-line fix and one prompt for your AI agent.',
+  },
 ];
 
 // Same for guides.

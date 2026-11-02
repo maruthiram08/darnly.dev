@@ -69,6 +69,10 @@
 //   Up to 12 names. For each: free, taken (with dates), maybe (no DNS, registry didn't answer) or
 //   unknown. Asks each registry's RDAP server (from the IANA list, cached a day) and Cloudflare DNS.
 //   Own rate limit (DOMAIN_LIMIT). Used by the domain name finder at /tools/domain-name-finder/.
+// GET /api/a11y?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Reads the page's HTML and
+//   runs the automated accessibility checks, for the accessibility checker at
+//   /tools/accessibility-checker/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -83,6 +87,7 @@ import { checkLinks, type ProbeResult } from './links';
 import { buildCsp } from './csp';
 import { checkPwa } from './pwa';
 import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer, type RdapAnswer, type Result } from './domains';
+import { checkA11y } from './a11y';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -117,6 +122,7 @@ export default {
     if (url.pathname === '/api/csp') return cspApi(req, url, env, ctx);
     if (url.pathname === '/api/pwa') return pwaApi(req, url, env, ctx);
     if (url.pathname === '/api/domains') return domainsApi(req, url, env, ctx);
+    if (url.pathname === '/api/a11y') return a11yApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -177,6 +183,17 @@ function cspApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
     status: p.status,
     ...(await buildCsp(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, 'text/css,application/javascript,*/*;q=0.1', 1_500_000))),
   }));
+// /api/a11y: automated accessibility checks on one page's HTML. Not cached, so a re-check after a fix is fresh.
+function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'a11y',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkA11y(p.html, p.finalUrl) }),
+    { cache: false },
+  );
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
