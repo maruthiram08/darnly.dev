@@ -1,5 +1,5 @@
 // One place for links and the lists that the footer and hub pages read.
-export const STORE_URL = 'https://chromewebstore.google.com/detail/gognoljafcabnmbbpfoeeamcflpbgidj';
+export const STORE_URL = 'https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj';
 
 // Chrome Web Store link tagged with the page it came from, so installs can be counted per page.
 export const storeUrl = (source: string) => `${STORE_URL}?utm_source=${encodeURIComponent(source)}`;
