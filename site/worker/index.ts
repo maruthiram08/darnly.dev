@@ -46,6 +46,11 @@
 //   Same guards, plus its own limit of 2 a minute per visitor. Uses the sitemap crawler (up to
 //   50 pages) to read each page's title and description, checks robots.txt for AI crawlers and
 //   whether an llms.txt exists, for the llms.txt generator at /tools/llms-txt-generator/.
+// GET /api/headers?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Grades the page's
+//   security headers (HSTS, CSP, framing, nosniff, referrer, permissions, cookie flags, server
+//   version) from A to F, for the security headers checker at /tools/security-headers-checker/.
+//   Cookie values are never sent back, only their names and flags.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -55,6 +60,7 @@ import { findStack } from './stack';
 import { crawl, type Fetched } from './sitemap';
 import { llmsSite } from './llms';
 import { findLeaks } from './secrets';
+import { checkHeaders } from './headers';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -82,6 +88,7 @@ export default {
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
     if (url.pathname === '/api/llms') return llmsApi(req, url, env, ctx);
+    if (url.pathname === '/api/headers') return headersApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -177,6 +184,19 @@ async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Resp
   const body = json({ keys }, 200, CACHE_SECONDS);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
+}
+
+// /api/headers: a page's security headers, graded. Not cached, so a re-check after a fix is fresh.
+function headersApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'headers',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkHeaders(p.headers, p.finalUrl, p.html) }),
+    { cache: false },
+  );
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
