@@ -57,6 +57,10 @@
 //   security headers (HSTS, CSP, framing, nosniff, referrer, permissions, cookie flags, server
 //   version) from A to F, for the security headers checker at /tools/security-headers-checker/.
 //   Cookie values are never sent back, only their names and flags.
+// GET /api/csp?url=https://example.com
+//   Same guards. Reads the page, up to 6 stylesheets and up to 12 of its own JavaScript files, and
+//   returns every place it loads things from, grouped by CSP directive, plus its inline scripts
+//   (with hashes), for the CSP generator at /tools/csp-generator/.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -68,6 +72,7 @@ import { llmsSite } from './llms';
 import { findLeaks } from './secrets';
 import { checkHeaders } from './headers';
 import { checkLinks, type ProbeResult } from './links';
+import { buildCsp } from './csp';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -98,6 +103,7 @@ export default {
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
     if (url.pathname === '/api/llms') return llmsApi(req, url, env, ctx);
     if (url.pathname === '/api/headers') return headersApi(req, url, env, ctx);
+    if (url.pathname === '/api/csp') return cspApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -148,6 +154,16 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     }),
     { cache: false, maxBytes: 2_000_000 },
   );
+}
+
+// /api/csp: everything a page loads, grouped by Content-Security-Policy directive.
+function cspApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('csp', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await buildCsp(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, 'text/css,application/javascript,*/*;q=0.1', 1_500_000))),
+  }));
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
