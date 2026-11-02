@@ -47,7 +47,7 @@ const jsonLd = JSON.stringify([
 ---
 <Base
   title="Darnly: Turn on-screen bugs into context for AI agents"
-  description="Spot a bug, press a key, click it. Darnly hands your AI coding agent the screenshot, the element and the errors it needs to fix it on the first try."
+  description="Spot a bug, press a key, click it. Darnly hands your AI coding agent the screenshot, the element and the recent errors, so it can find and fix it."
   ogDescription="Spot a bug, press a key, click it. Your AI coding agent gets everything it needs to fix it."
 >
 <script slot="head" type="application/ld+json" set:html={jsonLd} />
@@ -68,7 +68,7 @@ const jsonLd = JSON.stringify([
     <div class="hero-grid" id="top">
       <div>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
-        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it on the first try.</p>
+        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor the screenshot, the exact element and the recent errors, without breaking your flow.</p>
         <div class="cta">
           <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
           <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
