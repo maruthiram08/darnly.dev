@@ -43,7 +43,7 @@ Tools:
 | `list_bugs` `{status?}` | Waiting bugs by default, newest first, with ids |
 | `get_bug` `{id}` | The report (fenced page data) plus the screenshot as an image |
 | `ask_user` `{id, question}` | Saves the question the agent asked the user in its chat; the panel shows "Your agent is waiting for your input". An empty question clears it (needs migration 0005) |
-| `mark_fixed` `{id, note}` | Marks it fixed; the extension shows the note | (and clears any question) |
+| `mark_fixed` `{id, note}` | Marks it fixed and clears any question; the extension shows the note |
 
 Deleting an account revokes every agent's access.
 
