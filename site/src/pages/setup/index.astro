@@ -10,7 +10,7 @@ const faq = [
   { q: 'What is the Darnly MCP address?', a: `${MCP}. It's a remote MCP server (Streamable HTTP) with Google sign-in, so there's nothing to install and no API key to copy.` },
   { q: 'Which tools does the Darnly MCP server give my agent?', a: 'Four: list_bugs (your waiting bugs), get_bug (one report with its screenshot), ask_user (flags that the agent asked you a question in its chat, so the Darnly panel can tell you to go back) and mark_fixed (marks it fixed with one line on what changed, which the Darnly panel then shows you).' },
   { q: 'What is the /darnly command?', a: 'One command that fixes every waiting bug for the project you are in, from the project folder and the cloud inbox. Click Set up this project in the Darnly panel (or paste the setup prompt) and it works in Claude Code and Cursor. In Codex, say "fix my bugs" instead.' },
-  { q: 'Can the agent start fixing bugs without me asking?', a: 'Not by itself. Nothing in a browser can wake a coding agent. In Claude Code, Set up this project adds a hook: when you start a session, or send a message after capturing new bugs, the agent hears how many are waiting in your project folder and offers to fix them (it finishes what it was doing first). It stays quiet when there is nothing new. The hook only runs in Claude Code (the terminal, or the Code tab of the Claude desktop app), only sees the project folder, not the cloud inbox, and you still say yes. In other agents, type /darnly.' },
+  { q: 'Can the agent start fixing bugs without me asking?', a: 'Not by itself. Nothing in a browser can wake a coding agent. In Claude Code, Set up this project (or the setup prompt) adds a hook: when you start a session, or send a message after capturing new bugs, the agent hears how many are waiting in your project folder and offers to fix them (it finishes what it was doing first). It stays quiet when there is nothing new. The hook only runs in Claude Code (the terminal, or the Code tab of the Claude desktop app), only sees the project folder, not the cloud inbox, and you still say yes. In other agents, type /darnly.' },
   { q: 'How do I know a bug was fixed?', a: 'The Darnly panel says "1 bug fixed. Take a look." with the agent\'s one-line note on what it changed. It remembers what it last saw, so you get this even if the panel was closed while the agent worked.' },
   { q: 'Can Claude Code, Cursor and Codex share one inbox on the same project?', a: 'Yes. In folder mode they all read the same <code>.darnly/inbox/</code> (Codex and Cursor through AGENTS.md, Claude Code through CLAUDE.md and its skill). In cloud mode, connect each agent with the same Google account and they all see the same list. Each agent marks the bug it\'s working on, so the others skip it for 20 minutes: in the cloud inbox Darnly does this when the agent opens the bug, and in the folder the agent writes a Working on it line into the bug file. If an agent stalls, the mark runs out and the bug is free again.' },
   { q: 'Can my agent see bugs from my other projects?', a: 'The cloud inbox holds bugs from all your projects in one private list. Darnly tells the agent to only fix the bugs whose page belongs to the code it\'s working on.' },
@@ -24,6 +24,7 @@ const sources = [
   { name: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/mcp' },
   { name: 'OpenAI Codex docs: MCP', url: 'https://developers.openai.com/codex/mcp' },
 ];
+import FixLoopVideo from '../../components/FixLoopVideo.astro';
 ---
 <GuidePage
   slug={slug}
@@ -53,6 +54,7 @@ const sources = [
     <li><strong>Take a look.</strong> When the agent is done, the panel says <em>1 bug fixed. Take a look.</em> with one line on what changed. For a bug on localhost it has a button to reload the page. A fix for your live site shows there after you deploy it. It stays until you click <strong>Done</strong>. It remembers what it last saw, so this shows up even if the panel was closed while the agent worked.</li>
   </ol>
   <p>The one thing Darnly can't do is start your agent for you. A browser can't wake a coding agent, so the loop starts when you type <code>/darnly</code>, or say yes when Claude Code offers.</p>
+  <FixLoopVideo caption="Watch it once: a bug captured on localhost, fixed by Claude Code after one /darnly, and checked in the panel." />
 
   <h2 id="pick">Which way is right for you?</h2>
   <p>It depends on one thing: where your project's code lives. The Darnly panel asks you this the first time you open it.</p>
