@@ -282,6 +282,12 @@ export const TOOLS: Item[] = [
     name: 'API tester',
     blurb: 'Send GET or POST with headers, JSON and a token. See the status in plain words, time, size and CORS, and copy it as curl.',
   },
+  {
+    slug: 'markdown-table-generator',
+    name: 'Markdown table generator',
+    blurb: 'Edit a table like a spreadsheet or paste from Excel, and copy it as Markdown, HTML or CSV.',
+    category: 'Code helpers',
+  },
 ];
 
 // Same for guides.
