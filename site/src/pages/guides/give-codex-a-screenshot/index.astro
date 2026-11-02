@@ -1,0 +1,57 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'give-codex-a-screenshot';
+const faq = [
+  { q: 'How do I attach an image in the Codex CLI?', a: 'OpenAI\'s Codex CLI docs describe two ways: start Codex with codex --image and the path to the picture, or paste an image into the interactive composer.' },
+  { q: 'Can Codex read a screenshot from a file path?', a: 'Yes, pass the path with --image when you start it. You can also save the picture inside your project and mention where it is in your message.' },
+  { q: 'Does Codex read AGENTS.md?', a: 'Yes. AGENTS.md is the file Codex reads for project instructions, which is why Darnly writes its short note about where bug reports live there.' },
+  { q: 'What if Codex fixes the wrong element?', a: 'Mark the broken part on the screenshot, quote the text it shows, and say what it should look like compared to something that already works on the page.' },
+  { q: 'Does Darnly work with Codex in the cloud?', a: 'Yes, two ways. Copy the picture and details from Darnly and paste them into the chat, or sign in to the optional Darnly cloud inbox and add its connector, https://api.darnly.dev/mcp, if your Codex setup lets you add MCP connectors.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to give Codex a screenshot of a bug · Darnly"
+  description="Give Codex a screenshot of a bug with codex --image or a paste, plus the page, what you expected and the errors. Or save it in one key with Darnly."
+  h1="How to give Codex a screenshot of a bug"
+  lede="To paste a screenshot into Codex, paste the image into the Codex composer or start Codex with codex --image and the picture's path, then say what's wrong and what you expected."
+  faq={faq}
+>
+  <p>Codex can't see your browser, but it can look at a picture. A screenshot with a short note is often all it needs to find a visual bug. Here's how to do it well, and what to add when a picture isn't enough.</p>
+
+  <h2>Step by step in the Codex CLI</h2>
+  <ol>
+    <li><strong>Take the screenshot.</strong> Crop it to the broken area plus a bit around it, so Codex can tell where on the page it is.</li>
+    <li><strong>Save it where you can find it.</strong> Your Desktop is fine, or a <code>screenshots/</code> folder in your project. If you save it in the project, keep it out of git.</li>
+    <li><strong>Attach it.</strong> OpenAI's Codex CLI docs show <code>codex --image</code> for passing a screenshot with your first prompt, and you can also paste an image into the interactive composer.</li>
+    <li><strong>Write the note.</strong> What page, what you did, what happened, what you expected. Keep it to three or four lines.</li>
+  </ol>
+  <pre><code>codex --image ~/Desktop/cart.png "On /cart the subtotal stays at $20 when I change the quantity to 3. Expected: $60. Only the cart page."</code></pre>
+
+  <h2>Make the picture do more work</h2>
+  <ul>
+    <li><strong>Mark the broken part.</strong> A red box or circle tells Codex which of the ten things on screen you mean.</li>
+    <li><strong>Show a good example too.</strong> If another part of the app looks right, say so: "should match the cards on the home page". Codex can open that code and copy the pattern.</li>
+    <li><strong>Keep secrets out of the picture.</strong> Screenshots of dashboards often show API keys or emails. Crop them out or blur them before you share.</li>
+    <li><strong>Add what the picture can't show.</strong> A button that does nothing looks fine in a screenshot. The reason is often a red error in the browser console. Copy it as text and paste it in. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
+  </ul>
+
+  <h2>What a screenshot can't carry</h2>
+  <p>A picture is great for "this looks wrong". It's weak for:</p>
+  <ul>
+    <li>errors that happen on click, with nothing visible on screen;</li>
+    <li>failed requests, like an image or API call that returned an error;</li>
+    <li>which exact element it is, when several look the same;</li>
+    <li>bugs that only show after a few steps, like adding three items to a cart.</li>
+  </ul>
+  <p>For those, write the steps out and paste the error text. A screenshot alone will make Codex guess.</p>
+
+  <h2>The one-key way with Darnly</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that builds the screenshot and the note together. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected and press Enter.</p>
+  <p>You get a PNG with the broken part boxed in red, plus a markdown report with the page address, the element's selector, text, HTML and styles, and console errors and failed requests from the last 60 seconds. Passwords, card numbers, tokens and keys are replaced with <code>[hidden]</code> before anything is saved.</p>
+  <p>If the project is on your computer, link its folder once and click <strong>Set up this project</strong>. Darnly adds a note to AGENTS.md, which Codex reads, and a skill file. The bug lands in <code>.darnly/inbox/</code>, and you tell Codex "fix the bugs in .darnly/inbox". It fixes them, adds a <strong>Fixed:</strong> line, and moves each report to <code>.darnly/done/</code>.</p>
+  <p>Using Codex in the cloud? Click <strong>1. Copy picture</strong> and paste, then <strong>2. Copy details</strong> and paste.</p>
+  <p>One honest note: in our benchmark, a pasted screenshot with one sentence fixed visual bugs just as often as a Darnly report, and cost less. Darnly is worth it for the capture itself (one key, no app switch) and for the errors and element details a picture leaves out. Details in <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a>.</p>
+</GuidePage>

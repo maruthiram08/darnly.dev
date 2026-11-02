@@ -1,0 +1,74 @@
+---
+// Short answers to the questions people ask search engines and AI assistants about Darnly.
+import GuidePage from '../../layouts/GuidePage.astro';
+import { storeUrl } from '../../data/site';
+
+const slug = 'what-is-darnly';
+const faq = [
+  { q: 'What is Darnly?', a: 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix.' },
+  { q: 'Who is Darnly for?', a: 'People who build websites and apps with AI coding agents, especially vibecoders who aren\'t developers and find it hard to describe a bug in code terms.' },
+  { q: 'How much does Darnly cost?', a: 'The Chrome extension is free. The Mac app is in early access by email.' },
+  { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp.' },
+  { q: 'Does Darnly send my data anywhere?', a: 'Not by default. Reports stay on your computer as files in your project or text you choose to paste. Only the optional cloud inbox sends bugs to your private Darnly inbox.' },
+  { q: 'Does Darnly save tokens?', a: 'No. In our own benchmark, Darnly reports cost about 1.6 times as much per bug as a pasted screenshot, and both fixed every bug. Darnly saves you effort, not tokens.' },
+];
+---
+<GuidePage
+  slug={slug}
+  path="/what-is-darnly/"
+  crumb={null}
+  title="What is Darnly? Bug reports for AI coding agents"
+  description="Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report Claude Code, Codex or Cursor can fix. Short answers here."
+  h1="What is Darnly?"
+  lede="Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix."
+  faq={faq}
+>
+  <p>Below are short, plain answers to the questions people most often ask about Darnly.</p>
+
+  <h2>How does Darnly work?</h2>
+  <p>You press one key (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on a Mac, <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part of the page, type what you expected, and press Enter.</p>
+
+  <h2>What is in a Darnly report?</h2>
+  <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the page address, your note, and console errors and failed requests from the last 60 seconds.</p>
+
+  <h2>Where do the reports go?</h2>
+  <p>Into <code>.darnly/inbox/</code> in your project as a markdown file and a PNG, with an AGENTS.md note and a skill that tell your agent to look there, so you just say "fix my bugs".</p>
+
+  <h2>What if my code is in the cloud?</h2>
+  <p>Darnly lets you copy the picture and the details to paste into your agent's chat, or send bugs to an optional private cloud inbox that agents read through Darnly's MCP server for bug reports at <code>https://api.darnly.dev/mcp</code>.</p>
+
+  <h2>Who is Darnly for?</h2>
+  <p>Darnly is for people who build with AI coding agents, especially non-technical vibecoders who know what looks wrong but not which file is behind it.</p>
+
+  <h2>How much does Darnly cost?</h2>
+  <p>The Darnly Chrome extension is free, with no account needed, and the Mac app is in early access (write to hello@darnly.dev for the download).</p>
+
+  <h2>Which AI coding agents does it work with?</h2>
+  <p>Darnly works with Claude Code, Codex and Cursor, and any agent that reads AGENTS.md or can connect to an MCP server can use its reports.</p>
+
+  <h2>Which browsers does it work in?</h2>
+  <p>Darnly is a Chrome extension and works in Chrome, Edge, Brave and Arc.</p>
+
+  <h2>Is Darnly private?</h2>
+  <p>Yes: by default nothing leaves your computer, passwords, card numbers, tokens and API keys are hidden before saving, <code>.darnly/</code> is kept out of git, and errors are only recorded on localhost and on sites you switch on one at a time.</p>
+
+  <h2>What does the Mac app do?</h2>
+  <p>The Darnly Mac app does the same for bugs outside the browser, in Mac apps, the iOS Simulator and the Android Emulator, with <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, saving into the same inbox.</p>
+
+  <h2>How is Darnly different from a screenshot?</h2>
+  <p>A screenshot shows what the page looks like, while Darnly also keeps the exact element and the recent errors and saves it without leaving the page; in our test both got every bug fixed, and Darnly cost more, so it's about convenience, not better fixes (<a href="/guides/darnly-vs-screenshot/">see the numbers</a>).</p>
+
+  <h2>How is Darnly different from Marker.io?</h2>
+  <p>Marker.io is a paid feedback tool for teams and clients with a website widget and tracker integrations, while Darnly is free and saves your own bugs straight into your project for your agent (<a href="/guides/darnly-vs-marker-io/">full comparison</a>).</p>
+
+  <h2>How is Darnly different from Chrome DevTools MCP?</h2>
+  <p>Chrome DevTools MCP lets the agent drive its own browser, while Darnly captures the bug you saw in yours; they work well together (<a href="/guides/darnly-vs-chrome-devtools-mcp/">full comparison</a>).</p>
+
+  <h2>Does Darnly make the agent fix more bugs or use fewer tokens?</h2>
+  <p>No: in our benchmark a pasted screenshot and one sentence fixed the same 16 of 16 bugs, and Darnly cost about 1.6 times as much per bug, so we only claim it makes capturing bugs easier.</p>
+
+  <h2>How do I contact Darnly?</h2>
+  <p>Write to hello@darnly.dev, or follow <a href="https://x.com/darnlyhq">@darnlyhq</a> on X.</p>
+
+  <p><a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, or read the <a href="/guides/">guides for vibecoders</a>.</p>
+</GuidePage>

@@ -1,0 +1,66 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-chrome-devtools-mcp';
+const faq = [
+  { q: 'What is Chrome DevTools MCP?', a: 'An open source MCP server from the Chrome DevTools team that lets a coding agent control and inspect a live Chrome browser: take screenshots, read console messages, look at network requests, record performance traces and automate clicks.' },
+  { q: 'Is Chrome DevTools MCP free?', a: 'Yes. It\'s open source under the Apache-2.0 license. You run it with Node.js through npx.' },
+  { q: 'Do I need both?', a: 'No, but they work well together. Darnly is for showing the agent a bug you saw. DevTools MCP is for letting the agent open the page and check its fix itself.' },
+  { q: 'Does Chrome DevTools MCP collect data?', a: 'Its README says usage statistics are collected by default and can be turned off with --no-usage-statistics, and that performance tools may send trace URLs to Google\'s CrUX API unless you pass --no-performance-crux.' },
+  { q: 'Does Darnly need Node.js or any setup in my agent?', a: 'No. For a project on your computer, Darnly writes plain files plus an AGENTS.md note and a skill. The MCP connector is only for the optional cloud inbox.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Chrome DevTools MCP vs Darnly: which do you need?"
+  description="Chrome DevTools MCP vs Darnly: one lets your AI agent drive its own Chrome, the other lets you point at a bug you saw. When each is the better pick."
+  h1="Chrome DevTools MCP vs Darnly"
+  lede="Chrome DevTools MCP lets your AI coding agent open and control its own Chrome to look for problems, while Darnly lets you point at a bug you already saw in your own browser and hands the agent that exact moment, so DevTools MCP is better for the agent checking its own work and Darnly is better for reporting what you found."
+  faq={faq}
+  sources={[
+    { name: 'ChromeDevTools/chrome-devtools-mcp on GitHub (README)', url: 'https://github.com/ChromeDevTools/chrome-devtools-mcp' },
+  ]}
+>
+  <p>People often ask if they need a bug capture tool when their agent can already use a browser. Fair question. The two solve different halves of the same problem: finding the bug and showing it, versus reproducing it and checking the fix. Facts about Chrome DevTools MCP below come from its README, checked on 2 November 2026.</p>
+
+  <h2>What each one is</h2>
+  <p><strong>Chrome DevTools MCP</strong> is an MCP server that gives a coding agent access to a live Chrome browser. Its README calls it "Chrome DevTools for coding agents". It can take screenshots, read console messages with source-mapped stack traces, analyze network requests, record performance traces, and automate actions with Puppeteer. It's open source (Apache-2.0), runs with Node.js via <code>npx chrome-devtools-mcp@latest</code>, and by default starts its own browser when the agent needs one.</p>
+  <p><strong>Darnly</strong> is a free Chrome extension and Mac app. You press one key, click the broken part, and say what you expected. It saves a report with a screenshot (the broken part boxed in red), the element, the page address and recent console errors and failed requests, into <code>.darnly/inbox/</code> in your project for Claude Code, Codex or Cursor.</p>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Chrome DevTools MCP</th></tr></thead>
+    <tbody>
+      <tr><td>Who drives the browser</td><td>You, in your normal Chrome</td><td>The agent, in a browser it starts (or one you connect it to)</td></tr>
+      <tr><td>Good at</td><td>Showing exactly what you saw, with your note on what you expected</td><td>Reproducing a bug, checking a fix, performance traces</td></tr>
+      <tr><td>Your login and app state</td><td>Already there, it's your browser</td><td>The agent's browser starts fresh unless you connect it to a running Chrome</td></tr>
+      <tr><td>Setup</td><td>Install the extension, link your project folder once</td><td>Add the server to your MCP client config. Needs Node.js and Chrome</td></tr>
+      <tr><td>Data</td><td>Stays on your computer unless you turn on the cloud inbox. Secrets hidden before saving</td><td>Exposes the browser's content to your MCP client. Usage statistics on by default, can be turned off</td></tr>
+      <tr><td>Beyond the browser</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Chrome. Other Chromium browsers "may work"</td></tr>
+      <tr><td>Price</td><td>Free</td><td>Free, open source</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>When Chrome DevTools MCP is the better pick</h2>
+  <ul>
+    <li><strong>You want the agent to check its own fix.</strong> It can open the page, click through, and look at the console after changing code. Darnly can't do that. That's a big deal for longer sessions.</li>
+    <li><strong>Performance work.</strong> Recording a trace and getting insights is something only DevTools MCP does here.</li>
+    <li><strong>The bug is easy to describe.</strong> "The form on /signup shows an error when I submit" is enough for an agent with a browser to find it.</li>
+    <li><strong>You're comfortable with MCP config and Node.js.</strong> Setup is a few lines in your client's config.</li>
+  </ul>
+
+  <h2>When Darnly is the better pick</h2>
+  <ul>
+    <li><strong>The bug is hard to put into words.</strong> "That thing is a few pixels off" is easy to click and hard to describe so an agent finds the same spot.</li>
+    <li><strong>It took several steps to get there.</strong> You were logged in, had items in a cart, a menu open. Darnly captures that moment in your own browser. An agent would have to redo all of it.</li>
+    <li><strong>You don't want to stop.</strong> One key, a click, a sentence, and you keep testing. Collect ten bugs, then tell the agent "fix my bugs" once.</li>
+    <li><strong>You'd rather not set up MCP.</strong> For a local project there's nothing to add to your agent. Darnly writes files and an AGENTS.md note.</li>
+    <li><strong>The bug isn't in Chrome.</strong> The Mac app captures Mac apps and mobile simulators.</li>
+  </ul>
+
+  <h2>Using both</h2>
+  <p>A good loop for <a href="/guides/test-your-vibe-coded-app/">testing an app before launch</a>: you click around and capture bugs with Darnly as you find them. Then the agent fixes them from the inbox and, with Chrome DevTools MCP, opens the pages to check its own fixes. You look last.</p>
+  <p>One honest note from our own testing: our benchmark didn't let the agent open a browser, so we haven't measured how an agent with DevTools MCP compares on the same bugs. We'd expect it to do well on bugs that are easy to reproduce from a sentence.</p>
+  <p>Want to try the Darnly half? <a href={storeUrl(`guide-${slug}`)}>Add it to Chrome</a>, it's free.</p>
+</GuidePage>
