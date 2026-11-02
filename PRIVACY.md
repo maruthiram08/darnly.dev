@@ -41,7 +41,7 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 
 **Where it lives:** on Cloudflare, which runs Darnly cloud for us (a database for the bug list, file storage for screenshots and reports). Data is encrypted at rest by Cloudflare.
 
-**Who can see it:** only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them and mark them fixed. It can't see anyone else's bugs.
+**Who can see it:** only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them, mark them fixed with a one-line note, and save one short question it asked you about a bug (so the panel can tell you it is waiting; the question is cleared once the bug is fixed). It can't see anyone else's bugs.
 
 **How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.
 
