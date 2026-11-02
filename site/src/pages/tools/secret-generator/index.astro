@@ -1,0 +1,254 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick what you need: an auth secret, a JWT secret, a webhook secret, an API key, a UUID or a password. A fresh value is ready the moment you click.',
+  'Change the length, encoding or prefix if you want, then copy the value, or copy it as a ready <code>NAME=value</code> line for your <code>.env</code> file.',
+  'Need several at once? Tick them under “Your .env lines”, rename them if you like, and copy or download the whole block. Nothing leaves your browser.',
+];
+
+const faq = [
+  { q: 'Is it safe to make secrets on a website?', a: 'This one, yes. Every value is made in your browser with crypto.getRandomValues, the same random source your operating system uses for keys. Nothing is sent to a server, stored or logged, and the page keeps working with your Wi-Fi turned off. Close the tab and the values are gone.' },
+  { q: 'What should I use for AUTH_SECRET or NEXTAUTH_SECRET?', a: 'A random 32-byte value in base64, which is what the “Auth secret” card makes. It is the same as running npx auth secret or openssl rand -base64 32. Auth.js v5 reads AUTH_SECRET, and NextAuth v4 reads NEXTAUTH_SECRET: rename the line in “Your .env lines” to match.' },
+  { q: 'How long should a JWT secret be?', a: 'For HS256, at least 32 bytes (256 bits) of real randomness. This tool makes 64 bytes by default, which also covers HS512. Never use a word or a sentence: short secrets can be guessed offline from any token someone has seen.' },
+  { q: 'What is a webhook signing secret?', a: 'A shared secret your server uses to check that a webhook really came from the sender, by recomputing an HMAC signature. The whsec_ prefix is the style Stripe, Svix and Clerk use. Change the prefix or clear it to match the service you are setting up.' },
+  { q: 'UUID v4 or v7?', a: 'Both are unique IDs, not secrets. v4 is fully random. v7 starts with the time it was made, so new rows sort in order and database indexes stay fast, which makes it the better choice for primary keys. Don’t use either as a password or a token.' },
+  { q: 'Should I paste my secrets into Claude Code, Cursor or Codex?', a: 'Better not: whatever you paste into a chat goes to the AI provider. Put the values in .env.local yourself, then use “Copy prompt for your AI agent”, which names your variables without their values and asks the agent to wire them up and keep them out of git.' },
+  { q: 'I committed a secret to git by accident. What now?', a: 'Make a new one here, replace the old value everywhere it is used, and turn the old one off. Deleting the file is not enough, because the old value stays in your git history. Then add .env files to your .gitignore with the .gitignore generator.' },
+];
+---
+<ToolPage
+  slug="secret-generator"
+  title="Secret generator: AUTH_SECRET, JWT secret, API keys and UUIDs · Darnly"
+  description="Free secret generator for your .env file: AUTH_SECRET and NEXTAUTH_SECRET, JWT secrets, webhook signing secrets, API keys with your own prefix, UUID v4 and v7, and strong passwords. Made in your browser with crypto.getRandomValues; nothing is sent or stored."
+  h1="Generate secrets for your .env"
+  lede="One click for an AUTH_SECRET, a JWT secret, a webhook secret, an API key, a UUID or a strong password, ready to paste into your .env file. Everything is made in your browser and nothing is sent, stored or logged."
+  steps={steps}
+  faq={faq}
+>
+  <div class="sg">
+    <div class="kinds" id="sg-kinds" role="tablist" aria-label="What do you need?">
+      <button type="button" role="tab" data-kind="auth" aria-selected="true"><b>Auth secret</b><span>AUTH_SECRET</span></button>
+      <button type="button" role="tab" data-kind="jwt" aria-selected="false"><b>JWT secret</b><span>JWT_SECRET</span></button>
+      <button type="button" role="tab" data-kind="webhook" aria-selected="false"><b>Webhook secret</b><span>whsec_…</span></button>
+      <button type="button" role="tab" data-kind="apikey" aria-selected="false"><b>API key</b><span>sk_live_…</span></button>
+      <button type="button" role="tab" data-kind="uuid" aria-selected="false"><b>UUID</b><span>v4 or v7</span></button>
+      <button type="button" role="tab" data-kind="password" aria-selected="false"><b>Password</b><span>with strength</span></button>
+    </div>
+
+    <section class="hero" aria-label="Your secret">
+      <div class="hbar">
+        <span class="hname" id="sg-name">AUTH_SECRET</span>
+        <span class="hmeta" id="sg-meta"></span>
+        <button type="button" class="eye" id="sg-eye" aria-pressed="false" title="Hide the value while you share your screen">Hide</button>
+      </div>
+      <output class="value" id="sg-value" aria-live="polite" tabindex="0"></output>
+      <div class="meter" id="sg-meter">
+        <div class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="mtext"><b id="sg-level"></b> <span id="sg-crack"></span></p>
+      </div>
+      <div class="hactions">
+        <button type="button" class="regen" id="sg-regen"><span aria-hidden="true">↻</span> Regenerate</button>
+        <button type="button" class="light" id="sg-copy">Copy value</button>
+        <button type="button" class="light" id="sg-copy-env">Copy as .env line</button>
+      </div>
+      <p class="safe"><span aria-hidden="true">🔒</span> Made in your browser with <code>crypto.getRandomValues</code>. Nothing is sent, stored or logged.</p>
+    </section>
+
+    <section class="opts" id="sg-opts" aria-label="Options">
+      <div class="opt" data-for="auth jwt webhook">
+        <span class="olabel">Length</span>
+        <div class="seg" id="sg-bytes"></div>
+      </div>
+      <div class="opt" data-for="auth jwt">
+        <span class="olabel">Encoding</span>
+        <div class="seg" id="sg-enc">
+          <button type="button" data-v="base64">base64</button>
+          <button type="button" data-v="base64url">base64url</button>
+          <button type="button" data-v="hex">hex</button>
+        </div>
+      </div>
+      <div class="opt" data-for="webhook">
+        <label class="olabel" for="sg-whprefix">Prefix</label>
+        <input id="sg-whprefix" class="text" value="whsec_" maxlength="24" spellcheck="false" autocomplete="off" />
+      </div>
+      <div class="opt" data-for="apikey">
+        <label class="olabel" for="sg-prefix">Prefix</label>
+        <div class="prefix">
+          <input id="sg-prefix" class="text" value="sk_live_" maxlength="24" spellcheck="false" autocomplete="off" />
+          <div class="chips" id="sg-prefix-chips">
+            <button type="button" data-v="sk_live_">sk_live_</button>
+            <button type="button" data-v="sk_test_">sk_test_</button>
+            <button type="button" data-v="pk_">pk_</button>
+            <button type="button" data-v="api_">api_</button>
+            <button type="button" data-v="">none</button>
+          </div>
+        </div>
+      </div>
+      <div class="opt" data-for="apikey">
+        <span class="olabel">Characters</span>
+        <div class="seg" id="sg-apilen">
+          <button type="button" data-v="24">24</button>
+          <button type="button" data-v="32">32</button>
+          <button type="button" data-v="40">40</button>
+          <button type="button" data-v="48">48</button>
+        </div>
+      </div>
+      <div class="opt" data-for="uuid">
+        <span class="olabel">Version</span>
+        <div class="seg" id="sg-uuidv">
+          <button type="button" data-v="4">v4 · random</button>
+          <button type="button" data-v="7">v7 · sorts by time</button>
+        </div>
+      </div>
+      <div class="opt" data-for="password">
+        <label class="olabel" for="sg-pwlen">Length <b id="sg-pwlen-v">20</b></label>
+        <input type="range" id="sg-pwlen" min="8" max="64" value="20" />
+      </div>
+      <div class="opt" data-for="password">
+        <span class="olabel">Use</span>
+        <div class="checks">
+          <label><input type="checkbox" id="sg-pw-lower" checked /> <span>a–z</span></label>
+          <label><input type="checkbox" id="sg-pw-upper" checked /> <span>A–Z</span></label>
+          <label><input type="checkbox" id="sg-pw-digits" checked /> <span>0–9</span></label>
+          <label><input type="checkbox" id="sg-pw-symbols" checked /> <span>!%&amp;*+</span></label>
+          <label><input type="checkbox" id="sg-pw-look" /> <span>No look-alikes (0 O 1 l I)</span></label>
+        </div>
+      </div>
+      <p class="tip" id="sg-tip"></p>
+    </section>
+
+    <section class="env" aria-labelledby="sg-env-h">
+      <div class="envhead">
+        <h2 id="sg-env-h">Your .env lines</h2>
+        <button type="button" class="ghost" id="sg-regen-all"><span aria-hidden="true">↻</span> Regenerate all</button>
+      </div>
+      <ul class="rows" id="sg-rows"></ul>
+      <div class="window">
+        <div class="bar">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="fname">.env.local</span>
+          <span class="count" id="sg-count"></span>
+        </div>
+        <pre class="code" id="sg-env" tabindex="0" aria-label="Your .env lines"></pre>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="sg-env-copy">Copy .env lines</button>
+        <button type="button" class="ghost" id="sg-env-download">Download .env.local</button>
+        <button type="button" class="ghost" id="sg-prompt">Copy prompt for your AI agent</button>
+      </div>
+      <p class="status" id="sg-status" role="status"></p>
+      <p class="hint">The prompt names your variables but never their values, so your secrets don’t go into an AI chat. Next: list the names for your team with the <a href="/tools/env-example-generator/">.env.example generator</a>, and keep the real file out of git with the <a href="/tools/gitignore-generator/">.gitignore generator</a>.</p>
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/secret-generator';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .sg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+
+  .kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .kinds button { display: grid; gap: 3px; text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); cursor: pointer; font: inherit; }
+  .kinds button b { font: 600 16px/1.2 var(--body); }
+  .kinds button span { font: 12px/1.2 var(--mono); color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kinds button:hover { border-color: var(--sky); }
+  .kinds button[aria-selected='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .kinds button[aria-selected='true'] span { color: #9FC3D3; }
+
+  .hero { display: grid; gap: 16px; padding: 20px; border-radius: 20px; background: #0E1B24; color: #DCE7EE; box-shadow: 0 18px 40px -24px rgba(11, 34, 48, 0.6); min-width: 0; }
+  .hbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hname { font: 600 14px/1 var(--mono); color: #FFD772; background: rgba(255, 196, 61, 0.14); padding: 6px 9px; border-radius: 7px; }
+  .hmeta { font: 13px/1.3 var(--mono); color: #8DA3B0; }
+  .eye { margin-left: auto; font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid #2E4452; background: transparent; color: #B9CBD5; cursor: pointer; }
+  .eye[aria-pressed='true'] { background: #DCE7EE; color: #0E1B24; }
+  .value { display: block; font: 500 clamp(18px, 3.2vw, 26px)/1.45 var(--mono); color: #fff; word-break: break-all; overflow-wrap: anywhere; padding: 18px; border-radius: 14px; background: #15262F; border: 1px solid #22394A; min-height: 2.9em; cursor: copy; user-select: all; transition: background 0.25s; }
+  .value.flash { background: #1C3A2E; }
+  .value.masked { color: transparent; text-shadow: 0 0 14px rgba(220, 231, 238, 0.85); user-select: none; }
+  .value .pre { color: #FFD772; }
+
+  .meter { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .bars { display: flex; gap: 5px; }
+  .bars i { width: 34px; height: 8px; border-radius: 4px; background: #2A3D49; }
+  .meter[data-level='0'] .bars i:nth-child(-n+1) { background: #FF6B6B; }
+  .meter[data-level='1'] .bars i:nth-child(-n+2) { background: #FFB547; }
+  .meter[data-level='2'] .bars i:nth-child(-n+3) { background: #E4D95A; }
+  .meter[data-level='3'] .bars i:nth-child(-n+4) { background: #5ED38A; }
+  .meter[data-level='4'] .bars i { background: #34C77B; }
+  .meter[data-level='id'] .bars { display: none; }
+  .mtext { margin: 0; font-size: 15px; color: #B9CBD5; }
+  .mtext b { color: #fff; }
+
+  .hactions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .regen { font: 700 17px/1 var(--body); padding: 14px 22px; border: 0; border-radius: 999px; background: #FFD772; color: #0E1B24; cursor: pointer; }
+  .regen:hover { background: #FFE39B; }
+  .regen span { display: inline-block; transition: transform 0.35s; }
+  .regen:active span { transform: rotate(180deg); }
+  .light { font: 600 15px/1 var(--body); padding: 13px 16px; border: 1px solid #2E4452; border-radius: 999px; background: #15262F; color: #fff; cursor: pointer; }
+  .light:hover { border-color: #5B7A8C; }
+  .safe { margin: 0; font-size: 14px; color: #9FE3B9; }
+  .safe code { color: #CFF5DE; }
+
+  .opts { display: grid; gap: 12px; padding: 16px 18px; border-radius: 16px; background: var(--wash); }
+  .opt { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .olabel { font: 600 14px/1.2 var(--body); color: var(--ink-soft); min-width: 92px; }
+  .olabel b { color: var(--ink); }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; background: #fff; border: 1px solid var(--line); border-radius: 999px; }
+  .seg :global(button) { font: 600 14px/1 var(--body); padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .seg :global(button[aria-pressed='true']) { background: var(--ink); color: var(--white); }
+  .text { font: 15px/1 var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); width: 14ch; }
+  .prefix { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { font: 13px/1 var(--mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer; }
+  .chips button:hover { border-color: var(--sky); }
+  input[type='range'] { flex: 1 1 220px; max-width: 380px; accent-color: var(--ink); }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .checks label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; cursor: pointer; }
+  .checks input { accent-color: var(--ink); width: 17px; height: 17px; }
+  .tip { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .tip :global(code) { color: var(--ink); }
+
+  .env { display: grid; gap: 12px; margin-top: 18px; min-width: 0; }
+  .envhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .envhead h2 { font-size: 24px; }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .rows :global(li) { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; min-width: 0; }
+  .rows :global(li.off) { background: var(--wash); }
+  .rows :global(li.off input[type='text']) { color: var(--ink-soft); }
+  .rows :global(input[type='checkbox']) { accent-color: var(--ink); width: 18px; height: 18px; flex: none; margin: 0; }
+  .rows :global(input[type='text']) { flex: 1 1 auto; min-width: 0; font: 14px/1 var(--mono); padding: 7px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); }
+  .rows :global(input[type='text']:hover), .rows :global(input[type='text']:focus) { border-color: var(--line); background: #fff; }
+  .rows :global(.kind) { flex: none; font: 600 11px/1 var(--body); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+
+  .window { border-radius: 16px; overflow: hidden; background: #0E1B24; color: #DCE7EE; min-width: 0; }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #15262F; font: 500 14px/1 var(--mono); }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 11px; height: 11px; border-radius: 50%; background: #3A4C57; }
+  .dots i:first-child { background: #FF5F57; }
+  .dots i:nth-child(2) { background: #FEBC2E; }
+  .dots i:nth-child(3) { background: #28C840; }
+  .fname { color: #fff; }
+  .count { margin-left: auto; color: #8DA3B0; }
+  .code { margin: 0; padding: 14px 16px 16px; font: 14px/1.7 var(--mono); white-space: pre-wrap; word-break: break-all; max-height: 360px; overflow: auto; }
+  .code :global(.k) { color: #FFD772; }
+  .code :global(.c) { color: #7F96A3; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .status:empty { display: none; }
+  .hint { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .hint a { color: var(--sky); }
+
+  @media (max-width: 520px) {
+    .hero { padding: 16px; }
+    .value { padding: 14px; }
+    .olabel { min-width: 100%; }
+    .kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
