@@ -6,3 +6,4 @@ node_modules/
 .output-e2e/
 .wrangler/
 .dev.vars
+.output-shots/

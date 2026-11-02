@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* Darnly brand colours, the same as darnly.dev. */
+@theme {
+  --color-sky: #0593c6;
+  --color-sky-deep: #04729a;
+  --color-pink: #d83995;
+  --color-ink: #0b2230;
+  --color-ink-soft: #4a6472;
+  --color-line: #d7e9f0;
+  --color-wash: #eef8fb;
+}
+
+body {
+  background: #f7fbfc;
+  color: var(--color-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:focus-visible {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 2px;
+}
