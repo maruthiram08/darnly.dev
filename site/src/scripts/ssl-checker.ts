@@ -148,7 +148,7 @@ function renderTimeline(r: Result) {
   timeline.replaceChildren();
   const certs = [...r.history].sort((a, b) => b.notBefore.localeCompare(a.notBefore)).slice(0, 8);
   if (!certs.length) {
-    timeline.append(el('p', 'empty', r.source ? 'No certificates in the public logs for this name yet.' : 'The certificate logs didn’t answer this time. Try again in a minute to see the history.'));
+    timeline.append(el('p', 'empty', r.source ? (r.live.https?.ok ? 'The public logs haven’t listed this certificate yet. New ones can take a few hours to appear.' : 'No certificates in the public logs for this name yet.') : 'The certificate logs didn’t answer this time. Try again in a minute to see the history.'));
     return;
   }
   const now = Date.parse(r.checkedAt);
@@ -256,7 +256,7 @@ function render(r: Result) {
     days.textContent = '?';
     daysLabel.textContent = 'dates unknown';
     ring.style.strokeDashoffset = String(CIRC);
-    issuer.textContent = r.source ? 'Not in the logs for this exact name' : 'Logs didn’t answer, try again';
+    issuer.textContent = r.source ? 'Trusted, but not in the logs yet' : 'Logs didn’t answer, try again';
     dates.textContent = '–';
     renews.textContent = '–';
   } else {

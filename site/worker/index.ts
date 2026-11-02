@@ -104,7 +104,7 @@
 //   See request.ts.
 // GET /api/ssl?domain=example.com
 //   Same rate limit. Reads the domain's certificates from the public Certificate Transparency logs
-//   (crt.sh, with Cert Spotter as a fallback, cached for an hour), looks up its DNS through
+//   (crt.sh, topped up from Cert Spotter when crt.sh is down or behind, cached up to an hour), looks up its DNS through
 //   Cloudflare's DNS-over-HTTPS, and opens https://, http:// and the www (or bare) name to confirm
 //   what visitors get, for the SSL checker at /tools/ssl-checker/. Results are cached 10 minutes.
 // GET /api/whoami
@@ -141,7 +141,7 @@ import { checkPwa } from './pwa';
 import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer, type RdapAnswer, type Result } from './domains';
 import { checkA11y } from './a11y';
 import { sendRequest } from './request';
-import { analyze, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
+import { analyze, hasCurrent, isCtAnswer, mergeCerts, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
 import { checkPackage, cleanName as cleanPackageName, type GetJson } from './npm';
 import { takeShots } from './shots';
 import { checkSlop, mainScripts } from './slop';
@@ -643,7 +643,7 @@ async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
   const ownHost = isOwnHost(new URL(`https://${host}/`), url);
 
   const [ct, https, http, wwwProbe, dns, wwwDns] = await Promise.all([
-    certsFor([host, www, ...(wildcard ? [wildcard] : [])], url, env, ctx),
+    certsFor(host, [host, www, ...(wildcard ? [wildcard] : [])], url, env, ctx),
     sslProbe(`https://${host}/`, url, env),
     ownHost ? Promise.resolve(null) : sslProbe(`http://${host}/`, url, env),
     sslProbe(`https://${www}/`, url, env),
@@ -657,8 +657,10 @@ async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
   return body;
 }
 
-// Certificates for these names from crt.sh, falling back to Cert Spotter. Each answer is cached an hour.
-async function certsFor(names: string[], self: URL, env: Env, ctx: Ctx): Promise<{ certs: CtCert[]; source: 'crt.sh' | 'certspotter' | null }> {
+// Certificates for these names from crt.sh, topped up from Cert Spotter when crt.sh is down, slow
+// to list a new certificate, or has nothing current for the host. Real answers are cached an hour,
+// empty ones only 10 minutes so a brand-new certificate shows up soon. Error pages aren't cached.
+async function certsFor(host: string, names: string[], self: URL, env: Env, ctx: Ctx): Promise<{ certs: CtCert[]; source: 'crt.sh' | 'certspotter' | null }> {
   const cache = (caches as unknown as { default: Cache }).default;
   const read = async (api: string, accept: string, timeout: number, max: number): Promise<string | null> => {
     const key = new Request(api);
@@ -671,25 +673,29 @@ async function certsFor(names: string[], self: URL, env: Env, ctx: Ctx): Promise
         return null;
       }
       const text = await readLimited(res, max);
-      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${CACHE_SECONDS}` } })));
+      if (!isCtAnswer(text)) return null;
+      const ttl = /^\s*\[\s*\]\s*$/.test(text) ? 600 : CACHE_SECONDS;
+      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${ttl}` } })));
       return text;
     } catch {
       return null;
     }
   };
 
-  const crt = await Promise.all(
+  const crtText = await Promise.all(
     names.map((n) => read(`https://crt.sh/?q=${encodeURIComponent(n)}&output=json&deduplicate=Y`, 'application/json', 15_000, 3_000_000)),
   );
-  if (crt.some((t) => t !== null)) return { certs: crt.flatMap((t) => (t ? parseCrtSh(t) : [])), source: 'crt.sh' };
+  const crt = crtText.some((t) => t !== null) ? crtText.flatMap((t) => (t ? parseCrtSh(t) : [])) : null;
+  if (crt && hasCurrent(crt, host, new Date())) return { certs: crt, source: 'crt.sh' };
 
-  const spot = await Promise.all(
+  const spotText = await Promise.all(
     names
       .filter((n) => !n.startsWith('*.'))
       .map((n) => read(`https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(n)}&expand=dns_names&expand=issuer`, 'application/json', 10_000, 1_000_000)),
   );
-  if (spot.some((t) => t !== null)) return { certs: spot.flatMap((t) => (t ? parseCertSpotter(t) : [])), source: 'certspotter' };
-  return { certs: [], source: null };
+  const spot = spotText.some((t) => t !== null) ? spotText.flatMap((t) => (t ? parseCertSpotter(t) : [])) : null;
+  if (!crt && !spot) return { certs: [], source: null };
+  return { certs: mergeCerts(crt ?? [], spot ?? []), source: crt ? 'crt.sh' : 'certspotter' };
 }
 
 // Opens one address and reports whether a secure connection worked. Only the status is read.
