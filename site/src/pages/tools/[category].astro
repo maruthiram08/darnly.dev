@@ -1,0 +1,212 @@
+---
+// One page per tool category at /tools/<slug>/ (slugs in CATEGORY_SLUGS): an intro, that category's tools, a short FAQ.
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import CategoryIcon from '../../components/CategoryIcon.astro';
+import DarnlyStrip from '../../components/DarnlyStrip.astro';
+import { TOOLS, NEW_COUNT, CATEGORIES, CATEGORY_SLUGS, type Category } from '../../data/site';
+
+type Copy = { title: string; description: string; h1: string; intro: string; faq: { q: string; a: string }[] };
+
+const FREE = { q: 'Are these tools really free?', a: 'Yes. Every tool on darnly.dev is free, with no sign-in and nothing to install. They are made by Darnly, a free Chrome extension and Mac app that turns a bug you see on screen into context your AI coding agent can fix.' };
+
+const COPY: Record<Category, Copy> = {
+  Design: {
+    title: 'Free design tools for vibecoders · Darnly',
+    description: 'Free design tools for people building with AI agents: colors, fonts, contrast, Tailwind and shadcn/ui themes, gradients and DESIGN.md files.',
+    h1: 'Free design tools for vibecoders',
+    intro: 'These tools are for people building an app or site with Claude Code, Codex or Cursor who want it to look deliberate instead of like every other AI-made page. Pull the colors and fonts from a site you like, turn them into a DESIGN.md or a shadcn/ui theme your agent can follow, check that your text has enough contrast, and see how your colors look to people with color blindness. There are also generators for gradients, shadows, buttons, loaders, animations, glass effects and fluid type, each giving you CSS or Tailwind to paste or hand to your agent.',
+    faq: [
+      FREE,
+      { q: 'How do I get my AI agent to follow a design?', a: 'Give it something concrete. The DESIGN.md generator turns any website into a style guide file with its colors, fonts and spacing, which you can drop in your project for Claude Code, Codex or Cursor to read. The shadcn/ui theme and Tailwind color tools give you values to paste straight into your config.' },
+      { q: 'Do these work with Tailwind?', a: 'Most of them do. The color, gradient, button and theme tools give you Tailwind classes or config alongside plain CSS, and Hex to Tailwind finds the closest Tailwind color for any hex code.' },
+    ],
+  },
+  Images: {
+    title: 'Free image tools for vibecoders · Darnly',
+    description: 'Free image tools for app builders: favicons, app icons, compression, format conversion, social sizes, App Store screenshots and GIFs.',
+    h1: 'Free image tools for vibecoders',
+    intro: 'For the image jobs that come up while you build: making a favicon or app icon from one picture, shrinking and converting files so pages load fast, resizing one image for every social platform, and making App Store screenshots. You can also pull every image off a website, add a watermark, turn a screen recording into a GIF, read the text in a screenshot, clean up an SVG or turn it into JSX, and make blur placeholders. Apart from the asset extractor, which reads a live website, they work on your file right in your browser.',
+    faq: [
+      FREE,
+      { q: 'Are my images uploaded anywhere?', a: 'No, for the tools that take your own file. Compressing, converting, resizing, watermarking and the rest happen in your browser, so your pictures stay on your computer. The asset extractor is different: it fetches the website you give it to list its images.' },
+      { q: 'Which image format should my site use?', a: 'WebP is a safe default for photos and screenshots: it is much smaller than PNG or JPG and works in every current browser. Keep SVG for logos and icons. The image compressor shows the size before and after, so you can compare.' },
+    ],
+  },
+  'SEO & sharing': {
+    title: 'Free SEO and share preview tools for vibecoders · Darnly',
+    description: 'Free SEO and sharing tools: check link previews, write meta tags, make OG images, sitemaps, schema markup, llms.txt, UTM links and QR codes.',
+    h1: 'Free SEO and sharing tools for vibecoders',
+    intro: 'When you share a link, the preview people see comes from tags that AI-built sites often get wrong or leave out. These tools check how your link looks on X, LinkedIn, WhatsApp and Slack, write the meta tags, make a 1200×630 share image, and preview a post before you publish it. They also cover the files that help search engines and AI assistants understand your site: a sitemap, schema markup and llms.txt. Add UTM links to see which posts bring visitors, and QR codes for anything printed.',
+    faq: [
+      FREE,
+      { q: 'Why does my link show no picture when I share it?', a: 'The picture comes from an og:image tag in your page’s head. If it is missing, too small, or the URL is not absolute, apps show a plain link. The Open Graph checker tells you what is wrong, and the OG image generator makes a 1200×630 image with the tags to paste.' },
+      { q: 'What is llms.txt?', a: 'A short Markdown file at the root of your site that tells AI assistants what your site is and which pages matter. It is a proposed convention, not a standard every assistant reads yet, but it is cheap to add. The llms.txt generator writes one for you.' },
+    ],
+  },
+  'Launch & domains': {
+    title: 'Free launch and domain tools for vibecoders · Darnly',
+    description: 'Free tools for launching a site: a launch checklist, page speed, accessibility, broken links, SSL, domains, redirects and a privacy policy.',
+    h1: 'Free launch and domain tools for vibecoders',
+    intro: 'For the stretch between “it works on my machine” and a site real people use. Run a launch check for the basics, test page speed, accessibility and broken links, see how pages look on phones, and confirm your SSL certificate and PWA setup. Find and check a domain name, see what any other site is built with, and write redirect rules for your host. There are generators for a privacy policy and a cookie banner too, as starting points you should read and adjust for your own app.',
+    faq: [
+      FREE,
+      { q: 'What should I check before I launch?', a: 'Start with the launch checker: it looks at your title, share preview, favicon, sitemap, 404 page and more, and tells you how to fix each one. Then run the page speed and accessibility checkers, and the broken link checker once your pages are live.' },
+      { q: 'Is the generated privacy policy legally enough?', a: 'It is a plain-language starting point, not legal advice. Read it, make sure it matches what your app really collects and which services it uses, and ask a lawyer if you handle sensitive data or sell in places with strict privacy laws.' },
+    ],
+  },
+  'Code helpers': {
+    title: 'Free code helpers for vibecoders · Darnly',
+    description: 'Free code helpers for vibecoders: JSON to TypeScript, HTML to JSX, CSS to Tailwind, diffs, regex, cron, SQL, curl, API tests and git undo.',
+    h1: 'Free code helpers for vibecoders',
+    intro: 'Small helpers for the moments when your agent hands you something you need to read, fix or convert. Turn JSON into TypeScript types, HTML into JSX or CSS into Tailwind, compare two versions of a file, test a regex, build a cron schedule, format SQL, convert curl commands and send API requests. If git goes wrong, the git undo helper explains how to get back. Others decode Base64, explain HTTP status codes, check npm packages, write a README or .gitignore, and make fake data for testing.',
+    faq: [
+      FREE,
+      { q: 'Why use these when my AI agent can write code?', a: 'Because they are quick and they show you the answer. Checking a regex, reading a cron schedule or comparing two files takes seconds here, and you can see the result for yourself instead of trusting a guess. You can paste what you get back to your agent.' },
+      { q: 'I broke something with git. Where do I start?', a: 'Open the git undo helper and pick what happened, like committing to the wrong branch or pushing your .env file. It shows a before and after picture of your commits and gives you the exact commands, or a prompt to hand your AI agent.' },
+    ],
+  },
+  Security: {
+    title: 'Free security tools for vibecoders · Darnly',
+    description: 'Free security tools for AI-built apps: find leaked API keys, check security headers, build a CSP, decode JWTs, make secrets, strip photo EXIF.',
+    h1: 'Free security tools for vibecoders',
+    intro: 'AI agents write working code fast, but they can also leave API keys in the frontend, skip security headers or put secrets in files that get committed. These tools help you catch that. Scan a live site for exposed API keys, check its security headers, build a Content Security Policy, and decode a JWT to see what it allows. Make strong secrets, write a safe .env.example, and strip location and camera data from photos before you post them. They point out problems, but fixing them is still up to you.',
+    faq: [
+      FREE,
+      { q: 'I found a leaked API key. What now?', a: 'Rotate it first: make a new key in the provider’s dashboard and delete the old one, because anyone may already have copied it. Then move the call that uses it to your server, so the new key never reaches the browser. The API key leak checker gives you these steps and a prompt for your AI agent.' },
+      { q: 'Do these tools make my site secure?', a: 'No single check can. They catch common mistakes that AI-built apps make, like exposed keys and missing headers. Your database rules, authentication and server code still need their own review.' },
+    ],
+  },
+};
+
+export const getStaticPaths = (() =>
+  CATEGORIES.map((name) => ({ params: { category: CATEGORY_SLUGS[name] }, props: { name } }))) satisfies GetStaticPaths;
+
+const { name } = Astro.props as { name: Category };
+const copy = COPY[name];
+const slug = CATEGORY_SLUGS[name];
+const tools = TOOLS.filter((t) => t.category === name);
+const newest = new Set(TOOLS.slice(-NEW_COUNT).map((t) => t.slug));
+const others = CATEGORIES.filter((c) => c !== name);
+const abs = (path: string) => new URL(path, Astro.site).toString();
+const url = abs(`/tools/${slug}/`);
+
+const jsonLd = JSON.stringify([
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: copy.h1,
+    description: copy.description,
+    url,
+    isPartOf: { '@type': 'WebSite', name: 'Darnly', url: abs('/') },
+    publisher: { '@type': 'Organization', name: 'Darnly', url: abs('/') },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: tools.length,
+      itemListElement: tools.map((t, i) => ({ '@type': 'ListItem', position: i + 1, name: t.name, url: abs(`/tools/${t.slug}/`) })),
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Darnly', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: 'Free tools', item: abs('/tools/') },
+      { '@type': 'ListItem', position: 3, name, item: url },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: copy.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+]);
+---
+<Base title={copy.title} description={copy.description} image="/og/tools.jpg" imageAlt={`${copy.h1}, from Darnly`}>
+  <script slot="head" type="application/ld+json" set:html={jsonLd} />
+  <SiteHeader source={`tools-${slug}`} />
+  <main class="wrap cat-page">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/tools/">Free tools</a><span aria-hidden="true">/</span><span aria-current="page">{name}</span>
+    </nav>
+    <h1><span class="badge-icon"><CategoryIcon name={name} size={26} /></span>{copy.h1}</h1>
+    <p class="intro">{copy.intro}</p>
+    <p class="meta">{tools.length} free tools · No sign-in · <a href="/tools/">See all {TOOLS.length} tools</a></p>
+
+    <ul class="cards">
+      {tools.map((t) => (
+        <li>
+          <a href={`/tools/${t.slug}/`}>
+            <span class="card-top">
+              <span class="card-icon"><CategoryIcon name={name} /></span>
+              {newest.has(t.slug) && <span class="new">New</span>}
+            </span>
+            <strong>{t.name}</strong>
+            <span class="blurb">{t.blurb}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <DarnlyStrip source={`tools-${slug}`} />
+
+    <section class="faq" aria-labelledby="faq-h">
+      <h2 id="faq-h">Questions</h2>
+      {copy.faq.map((f) => (
+        <details>
+          <summary>{f.q}</summary>
+          <p>{f.a}</p>
+        </details>
+      ))}
+    </section>
+
+    <nav class="others" aria-labelledby="others-h">
+      <h2 id="others-h">More free tools</h2>
+      <div class="chips">
+        {others.map((c) => (
+          <a href={`/tools/${CATEGORY_SLUGS[c]}/`}><CategoryIcon name={c} size={16} />{c}<span>{TOOLS.filter((t) => t.category === c).length}</span></a>
+        ))}
+        <a class="all" href="/tools/">All {TOOLS.length} tools</a>
+      </div>
+    </nav>
+  </main>
+  <SiteFooter />
+</Base>
+<style>
+  .cat-page { padding-block: 48px 96px; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 8px; font: 500 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+  .crumbs a { color: var(--sky); text-decoration: none; }
+  .crumbs a:hover { text-decoration: underline; }
+  h1 { display: flex; align-items: center; gap: 14px; font-size: clamp(32px, 4.6vw, 48px); line-height: 1.05; margin-top: 16px; }
+  .badge-icon { display: inline-grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--ink); color: var(--white); }
+  .intro { color: var(--ink-soft); max-width: 68ch; margin: 18px 0 0; }
+  .meta { margin: 14px 0 0; font-size: 15px; color: var(--ink-soft); }
+  .meta a { color: var(--sky); font-weight: 600; text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+
+  .cards { list-style: none; padding: 0; margin: 32px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .cards a { display: grid; align-content: start; gap: 6px; padding: 20px; border-radius: 16px; background: var(--wash); text-decoration: none; height: 100%; transition: transform .12s ease; }
+  .cards a:hover { outline: 2px solid var(--sky); transform: translateY(-2px); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .card-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--white); color: var(--sky); }
+  .new { font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--white); background: var(--pink); padding: 5px 8px; border-radius: 999px; }
+  .cards strong { font-size: 18px; }
+  .blurb { color: var(--ink-soft); font-size: 15px; }
+
+  .faq, .others { margin-top: 64px; }
+  .faq h2, .others h2 { font-size: 26px; line-height: 1.1; margin-bottom: 16px; }
+  .faq details { border-top: 1px solid var(--line); padding: 16px 0; max-width: 70ch; }
+  .faq details:last-child { border-bottom: 1px solid var(--line); }
+  .faq summary { cursor: pointer; font-weight: 600; }
+  .faq p { margin: 10px 0 0; color: var(--ink-soft); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips a { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--wash); text-decoration: none; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .chips a span { color: var(--ink-soft); font-weight: 500; }
+  .chips a:hover { outline: 2px solid var(--sky); }
+  .chips a.all { color: var(--sky); }
+  @media (max-width: 520px) { .badge-icon { width: 40px; height: 40px; } }
+  @media (prefers-reduced-motion: reduce) { .cards a { transition: none; } .cards a:hover { transform: none; } }
+</style>

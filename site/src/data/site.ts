@@ -8,6 +8,22 @@ export const storeUrl = (source: string) => `${STORE_URL}?utm_source=${encodeURI
 export const CATEGORIES = ['Design', 'Images', 'SEO & sharing', 'Launch & domains', 'Code helpers', 'Security'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+// Each category's own page at /tools/<slug>/. Keep these clear of tool slugs.
+export const CATEGORY_SLUGS: Record<Category, string> = {
+  Design: 'design',
+  Images: 'images',
+  'SEO & sharing': 'seo',
+  'Launch & domains': 'launch',
+  'Code helpers': 'code',
+  Security: 'security',
+};
+
+// Link to a category's page, or undefined for a heading with no page (like "More").
+export const categoryHref = (name: string): string | undefined => {
+  const slug = CATEGORY_SLUGS[name as Category];
+  return slug ? `/tools/${slug}/` : undefined;
+};
+
 export type Item = { slug: string; name: string; blurb: string; category?: Category };
 
 // A tool with no category shows under this heading.
