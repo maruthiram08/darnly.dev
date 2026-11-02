@@ -105,4 +105,17 @@ describe('Claude Code hooks', () => {
     utimesSync(join(dir, '.darnly/inbox/b.md'), later, later);
     expect(run(promptSubmit)).toMatch(/^Darnly: 1 new captured bug\(s\)/);
   });
+
+  it('finds the main checkout inbox from a git worktree (Claude desktop sessions)', () => {
+    const main = mkdtempSync(join(tmpdir(), 'darnly-main-'));
+    const git = (...a: string[]) => execFileSync('git', a, { cwd: main, stdio: 'ignore' });
+    git('init', '-q');
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'x');
+    mkdirSync(join(main, '.darnly/inbox'), { recursive: true });
+    writeFileSync(join(main, '.darnly/inbox/a.md'), 'x');
+    const wt = join(main, '..', `${main.split('/').pop()}-wt`);
+    git('worktree', 'add', '-q', wt);
+    const out = execFileSync('sh', ['-c', hookCommands().sessionStart], { env: { ...process.env, CLAUDE_PROJECT_DIR: wt } }).toString();
+    expect(out).toMatch(/^Darnly: 1 captured bug\(s\) waiting/);
+  });
 });

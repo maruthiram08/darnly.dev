@@ -53,7 +53,7 @@ Bug reports live in \`${INBOX_FOLDER}/\`. Each bug has:
 - \`<id>.reference.png\` (sometimes): a picture of what it should look like; match it, and follow the note where they differ
 
 Steps:
-1. List \`${INBOX_FOLDER}/*.md\`, newest first. If it is empty (and there are no cloud bugs, see step 8), tell the user there are no captured bugs.
+1. List \`${INBOX_FOLDER}/*.md\`, newest first. If this project has no \`${ROOT_FOLDER}\` folder, you may be in a git worktree: look in the main checkout instead (the first path from \`git worktree list\`), and read and move the bug files there. If it is empty (and there are no cloud bugs, see step 8), tell the user there are no captured bugs.
 2. For each bug, read the \`.md\` and look at the \`.png\`. If it has a \`**Working on it:**\` line less than 20 minutes old, another agent is fixing it: skip it unless the user asks you to take it over. Otherwise add \`**Working on it:** <your name, like Claude Code>, <current time>\` right under the **Expected** line before you change any code.
 3. Find the code: start with the \`code:\` file when given, then the "Where to look" hints, the selector's test id, class names or visible text, and the error stack.
 4. If the note is vague and the code doesn't settle it, add \`**Question:** <your one short question>\` right under the **Expected** line, then ask the user that question in the chat and wait. ${PRODUCT.NAME} shows them "Your agent is waiting for your input. Return to your agent." Remove the Question line once they answer.
@@ -80,7 +80,9 @@ export const HOOK_MARK = `# ${PRODUCT.SLUG}-inbox-check`;
  * SessionStart: every bug waiting. UserPromptSubmit: only bugs captured since the agent was last told.
  */
 export function hookCommands(): { sessionStart: string; promptSubmit: string } {
-  const d = `d="\${CLAUDE_PROJECT_DIR:-.}/${ROOT_FOLDER}"; [ -d "$d/inbox" ] || exit 0`;
+  // Claude's desktop app often runs a session in a git worktree, where the git-ignored .darnly folder doesn't exist:
+  // fall back to the main checkout's .darnly.
+  const d = `p="\${CLAUDE_PROJECT_DIR:-.}"; d="$p/${ROOT_FOLDER}"; if [ ! -d "$d/inbox" ]; then c=$(git -C "$p" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && d="$(dirname "$c")/${ROOT_FOLDER}"; fi; [ -d "$d/inbox" ] || exit 0`;
   const say = (what: string) =>
     `[ "$n" -gt 0 ] 2>/dev/null && echo "${PRODUCT.NAME}: $n ${what} in ${INBOX_FOLDER}/. Tell the user in one line and offer to fix them now (follow the ${PRODUCT.SLUG} skill, same as /${PRODUCT.SLUG}). If you are in the middle of other work, finish that first."`;
   return {
