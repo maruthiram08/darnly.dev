@@ -1,0 +1,208 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Link related tools only once their pages exist, so a parallel build never ships a broken link.
+const has = (slug: string) => TOOLS.some((t) => t.slug === slug);
+
+const steps = [
+  'Paste your <code>.env</code> file into the box, or try one of the examples. It never leaves your browser: there is no upload, and nothing is saved.',
+  'The card at the top tells you straight away if a secret would be shipped to the browser. Frameworks put every key that starts with <code>NEXT_PUBLIC_</code>, <code>VITE_</code>, <code>PUBLIC_</code> or <code>REACT_APP_</code> into the JavaScript your visitors download.',
+  'Copy or download your <code>.env.example</code> and commit it. Every value is removed and each key gets a short note saying what it is and whether it’s server only. If something leaked, press <strong>Copy prompt</strong> and paste it into your AI agent to move the secret to server code.',
+];
+
+const faq = [
+  { q: 'Is it safe to paste my real .env here?', a: 'Yes. Everything happens in this browser tab with JavaScript on the page. Your file is never sent to Darnly or anyone else, and it isn’t saved, so closing the tab forgets it. You can even turn off your internet after the page loads and it still works.' },
+  { q: 'What is a .env.example file?', a: 'It’s a copy of your <code>.env</code> with the values taken out. You commit it to Git so you, your teammates and your AI agent know which settings the app needs, without sharing the real keys. The real <code>.env</code> stays on your computer and in your host’s settings, and is listed in <code>.gitignore</code>.' },
+  { q: 'Why is NEXT_PUBLIC_ or VITE_ dangerous for secrets?', a: 'Those prefixes tell the framework “this value is fine for the browser”, so it copies the value into your site’s JavaScript. Anyone can open DevTools and read it. That is right for a Supabase anon key or a Stripe publishable key, and wrong for a Stripe secret key, an OpenAI key or a database password, which must only be used in server code.' },
+  { q: 'A secret already went live with a public prefix. What now?', a: 'Treat it as stolen. Create a new key in the provider’s dashboard and delete the old one, then rename the variable without the prefix and move the code that uses it to an API route or server function. The prompt button writes those instructions for your AI agent.' },
+  { q: 'How does it know which keys are secret?', a: 'It looks at the name (words like SECRET, TOKEN, PASSWORD, API_KEY), at known services like Supabase, Stripe, Clerk, Firebase, OpenAI and Anthropic, and at the shape of the value, such as <code>sk_live_</code>, <code>sk-ant-</code>, <code>ghp_</code>, private keys and database URLs with a password. It even reads Supabase keys to tell the anon key from the service role key. When it can’t tell, it says so.' },
+  { q: 'Does it keep any values?', a: 'Only harmless ones if you leave “Keep harmless values” on: plain settings like <code>PORT=3000</code>, <code>NODE_ENV=development</code> or a localhost URL. Everything else is emptied, including old keys you commented out.' },
+];
+---
+<ToolPage
+  slug="env-example-generator"
+  title=".env.example generator: make a safe .env.example from your .env · Darnly"
+  description="Paste your .env and get a .env.example with values removed and a note for every key. Flags secrets that NEXT_PUBLIC_ or VITE_ would ship to the browser. Nothing is uploaded."
+  h1=".env.example generator: is your .env safe?"
+  lede="Paste your .env to get a clean .env.example you can commit, with a note for every key. It also catches secrets your framework would ship to every visitor’s browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ee">
+    <div class="stage" id="ee-stage" data-tone="idle" aria-live="polite">
+      <p class="private">🔒 Runs only in your browser. Your .env is never uploaded or saved, not even by us.</p>
+      <div class="verdict">
+        <span class="icon" id="ee-icon" aria-hidden="true">•</span>
+        <div>
+          <p class="headline" id="ee-headline">Reading the example…</p>
+          <p class="subline" id="ee-subline"></p>
+        </div>
+      </div>
+      <div class="stats" id="ee-stats"></div>
+      <div class="leaks" id="ee-leaks"></div>
+
+      <div class="panes">
+        <div class="pane">
+          <div class="pane-head">
+            <label for="ee-input" class="lab">Your .env <span class="muted">(stays here)</span></label>
+            <div class="btns">
+              <button id="ee-paste" type="button" class="ghost sm">Paste</button>
+              <button id="ee-clear" type="button" class="ghost sm">Clear</button>
+            </div>
+          </div>
+          <textarea id="ee-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="DATABASE_URL=postgres://…&#10;STRIPE_SECRET_KEY=sk_live_…&#10;NEXT_PUBLIC_SUPABASE_URL=https://…"></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-head">
+            <span class="lab">.env.example <span class="muted" id="ee-out-count"></span></span>
+            <div class="legend"><span class="sw leak"></span>leaks <span class="sw secret"></span>server only</div>
+          </div>
+          <pre class="out" id="ee-output" tabindex="0" aria-label=".env.example preview"></pre>
+        </div>
+      </div>
+
+      <div class="problems" id="ee-problems"></div>
+
+      <div class="actions">
+        <button id="ee-copy" type="button" class="primary">Copy .env.example</button>
+        <button id="ee-download" type="button" class="ghost">Download</button>
+        <button id="ee-copy-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+        <p class="status" id="ee-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <p class="examples">Try an example:
+        <button type="button" class="chip" data-example="next">Next.js + Supabase (has a leak)</button>
+        <button type="button" class="chip" data-example="vite">Vite + Firebase</button>
+        <button type="button" class="chip" data-example="clean">All good</button>
+      </p>
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="ee-notes" checked /> Add a note for each key</label>
+        <label class="check"><input type="checkbox" id="ee-keep" checked /> Keep harmless values (PORT, NODE_ENV, localhost)</label>
+        <label class="check"><input type="checkbox" id="ee-comments" checked /> Keep my own comments</label>
+      </div>
+    </div>
+
+    <details class="fold">
+      <summary>See every key explained</summary>
+      <div class="fold-body">
+        <div class="table"><table>
+          <thead><tr><th>Key</th><th>What it is</th><th>Where</th><th>Why</th></tr></thead>
+          <tbody id="ee-table"></tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>What to do next</summary>
+      <div class="fold-body">
+        <ol class="next">
+          <li>Save the file as <code>.env.example</code> in your project’s top folder, next to <code>package.json</code>, and commit it.</li>
+          <li>Make sure <code>.env</code> is in <code>.gitignore</code> so the real one is never committed{has('gitignore-generator') && <Fragment>. The <a href="/tools/gitignore-generator/">.gitignore generator</a> adds it for you</Fragment>}.</li>
+          <li>Put the real values in your host’s settings too (Vercel, Netlify or Cloudflare: Environment Variables).</li>
+          <li>Already live? Run the <a href="/tools/api-key-leak-checker/">API key leak checker</a> on your site to see whether a secret is already in its public JavaScript.</li>
+        </ol>
+      </div>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/env-example-generator';
+</script>
+
+<style>
+  .ee { display: grid; gap: 24px; min-width: 0; }
+  .ee [hidden] { display: none !important; }
+  .stage { display: grid; gap: 18px; padding: 28px; border-radius: 24px; border: 2px solid var(--line); background: var(--wash); min-width: 0; transition: background 0.15s, border-color 0.15s; }
+  .stage[data-tone='ok'] { border-color: #9ED9B8; background: #F1FBF5; }
+  .stage[data-tone='warn'] { border-color: #F2CF7A; background: #FFF9EA; }
+  .stage[data-tone='bad'] { border-color: #F0A3B9; background: #FFF2F5; }
+  .private { margin: 0; justify-self: start; padding: 8px 14px; border-radius: 999px; background: var(--ink); color: var(--white); font: 600 14px/1.3 var(--body); }
+  .verdict { display: flex; gap: 16px; align-items: flex-start; }
+  .icon { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 999px; background: var(--ink-soft); color: #fff; font: 800 28px/1 var(--display); }
+  .stage[data-tone='ok'] .icon { background: #1A9B5A; }
+  .stage[data-tone='warn'] .icon { background: #C98A00; }
+  .stage[data-tone='bad'] .icon { background: #C2224F; }
+  .headline { margin: 0; font: 800 clamp(24px, 3.4vw, 34px)/1.12 var(--display); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .stage[data-tone='bad'] .headline { color: #9C1C44; }
+  .subline { margin: 6px 0 0; color: var(--ink-soft); font-size: 17px; overflow-wrap: anywhere; }
+  .subline:empty { display: none; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .stats:empty { display: none; }
+  .stats :global(.stat) { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--white); border: 1px solid var(--line); }
+  .stats :global(.stat strong) { font: 800 26px/1 var(--display); color: var(--ink); }
+  .stats :global(.stat span) { font-size: 13px; color: var(--ink-soft); }
+  .stats :global(.stat.bad) { border-color: #F0A3B9; }
+  .stats :global(.stat.bad strong) { color: #C2224F; }
+  .stats :global(.stat.ok strong) { color: #0B6B3A; }
+  .leaks { display: grid; gap: 10px; }
+  .leaks:empty { display: none; }
+  .leaks :global(.leak-card) { display: grid; gap: 4px; padding: 12px 16px; border-radius: 14px; background: #C2224F; color: #fff; }
+  .leaks :global(.leak-card.warn) { background: #FFF; color: var(--ink); border: 1px solid #F2CF7A; }
+  .leaks :global(.leak-card > code) { font: 700 15px/1.3 var(--mono); overflow-wrap: anywhere; }
+  .leaks :global(.leak-card p) { margin: 0; font-size: 15px; }
+  .leaks :global(.leak-card p code) { background: rgba(255, 255, 255, 0.2); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  .leaks :global(.leak-card.warn p code) { background: var(--wash); }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  .pane { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-width: 0; }
+  .pane-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 36px; }
+  .lab { font-weight: 700; }
+  .muted { font-weight: 400; color: var(--ink-soft); font-size: 14px; }
+  .legend { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 6px; }
+  .sw.leak { background: #FAD4DF; border: 1px solid #C2224F; }
+  .sw.secret { background: #EEF0F5; border: 1px solid #9AA3B5; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  textarea, .out { width: 100%; min-width: 0; box-sizing: border-box; height: 440px; margin: 0; font: 400 13px/1.6 var(--mono); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); }
+  textarea { resize: vertical; white-space: pre; overflow: auto; }
+  textarea:focus, .out:focus { outline: none; border-color: var(--sky); }
+  .out { overflow: auto; }
+  .out :global(.ln) { display: block; min-height: 1.6em; white-space: pre-wrap; overflow-wrap: anywhere; padding: 0 6px; margin: 0 -6px; border-radius: 4px; }
+  .out :global(.c) { color: #7A8294; }
+  .out :global(.note) { color: #3B7A57; }
+  .out :global(.leak-note) { color: #9C1C44; font-weight: 600; }
+  .out :global(.k) { font-weight: 600; }
+  .out :global(.secret) { background: #EEF0F5; }
+  .out :global(.leak) { background: #FAD4DF; color: #9C1C44; }
+  .out :global(.warn) { background: #FFF1C9; }
+  .problems { display: grid; gap: 6px; font-size: 14px; color: #8A5C00; }
+  .problems:empty { display: none; }
+  .problems :global(p) { margin: 0; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .controls { display: grid; gap: 12px; }
+  .examples { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-soft); }
+  .chip { font: 600 14px/1 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--wash); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+  .fold { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .fold-body { display: grid; gap: 10px; padding-bottom: 18px; min-width: 0; }
+  .next { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .table { overflow-x: auto; background: var(--white); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, .table :global(td) { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid var(--line); }
+  th { border-top: 0; font-size: 13px; color: var(--ink-soft); }
+  .table :global(td:first-child code) { overflow-wrap: anywhere; }
+  .table :global(.tag) { display: inline-block; white-space: nowrap; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--wash); }
+  .table :global(.tag.secret) { background: #EEF0F5; color: #3A4255; }
+  .table :global(.tag.public) { background: #E2F5EA; color: #0B6B3A; }
+  .table :global(.tag.bad) { background: #C2224F; color: #fff; }
+  .table :global(.tag.warn) { background: #FFF1C9; color: #8A5C00; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost.sm { padding: 7px 12px; font-size: 14px; }
+  .ghost:hover { border-color: var(--sky); }
+  .primary:disabled, .ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .stage { padding: 18px; }
+    .icon { width: 44px; height: 44px; font-size: 22px; }
+    .panes { grid-template-columns: minmax(0, 1fr); }
+    textarea, .out { height: 300px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
