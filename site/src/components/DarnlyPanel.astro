@@ -1,0 +1,32 @@
+---
+// Side panel next to each free tool on wide screens: a short Darnly pitch that stays in view while the tool is used.
+// Hidden below 1280px; the Darnly strip under the tool covers phones and laptops.
+import { storeUrl } from '../data/site';
+interface Props { source: string }
+const { source } = Astro.props;
+---
+<aside class="darnly-panel" aria-label="About Darnly">
+  <span class="eyebrow">Made by Darnly</span>
+  <img src="/darnly-panel.jpg" alt="Darnly picking a broken button on a page" width="520" height="293" loading="lazy" />
+  <p class="lead">Spot a bug? Point at it.</p>
+  <ul>
+    <li>Press one key, click the broken part</li>
+    <li>Say what you expected</li>
+    <li>Claude Code, Codex or Cursor gets the screenshot, element and errors</li>
+  </ul>
+  <a class="add" href={storeUrl(`${source}-panel`)}>Add to Chrome, it's free</a>
+  <a class="more" href="/">See how it works</a>
+</aside>
+<style>
+  .darnly-panel { display: none; }
+  @media (min-width: 1280px) {
+    .darnly-panel { display: grid; gap: 14px; position: sticky; top: 24px; padding: 20px; border-radius: 20px; background: var(--ink); color: var(--white); }
+  }
+  .eyebrow { font: 600 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #8FD3EA; }
+  img { display: block; width: 100%; height: auto; border-radius: 12px; }
+  .lead { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; }
+  ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; line-height: 1.4; color: #CFE6EF; }
+  .add { display: block; text-align: center; padding: 12px 14px; border-radius: 999px; background: var(--white); color: var(--ink); font-weight: 700; text-decoration: none; }
+  .add:hover { background: #fff; text-decoration: underline; }
+  .more { text-align: center; font-size: 14px; color: #8FD3EA; }
+</style>

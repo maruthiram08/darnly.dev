@@ -4,6 +4,7 @@ import Base from './Base.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import DarnlyStrip from '../components/DarnlyStrip.astro';
+import DarnlyPanel from '../components/DarnlyPanel.astro';
 import { TOOLS } from '../data/site';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -62,7 +63,8 @@ const jsonLd = JSON.stringify([
 <Base title={title} description={description} image={image} imageAlt={`${h1.split(":")[0]}, a free tool from Darnly`}>
   <script slot="head" type="application/ld+json" set:html={jsonLd} />
   <SiteHeader source={source} />
-  <main class="wrap tool-page">
+  <main class="wrap tool-layout">
+  <div class="tool-page">
     <a class="crumb" href="/tools/">Free tools</a>
     <h1>{h1}</h1>
     <p class="lede">{lede}</p>
@@ -95,11 +97,18 @@ const jsonLd = JSON.stringify([
         </details>
       ))}
     </section>
+  </div>
+  <DarnlyPanel source={source} />
   </main>
   <SiteFooter />
 </Base>
 <style>
-  .tool-page { padding-block: 40px 96px; max-width: 960px; }
+  .tool-layout { padding-block: 40px 96px; max-width: 960px; }
+  .tool-page { min-width: 0; }
+  /* Wide screens: the tool stays 960px wide and the Darnly panel sits beside it. */
+  @media (min-width: 1280px) {
+    .tool-layout { max-width: 1280px; display: grid; grid-template-columns: minmax(0, 960px) 260px; gap: 40px; align-items: start; justify-content: center; }
+  }
   .crumb { font: 500 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sky); text-decoration: none; }
   h1 { font-size: clamp(32px, 4.6vw, 48px); line-height: 1.05; margin-top: 14px; }
   .lede { color: var(--ink-soft); font-size: 19px; max-width: 60ch; margin: 14px 0 0; }
