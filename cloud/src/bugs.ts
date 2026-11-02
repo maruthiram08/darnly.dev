@@ -22,6 +22,10 @@ export interface BugSummary {
   hasLogs: boolean;
   createdAt: number;
   fixedAt: number | null;
+  /** The agent working on it right now, if any (claims expire after CLAIM_TTL). */
+  claimedBy: string | null;
+  claimedName: string | null;
+  claimedAt: number | null;
 }
 
 interface BugRow {
@@ -35,9 +39,22 @@ interface BugRow {
   files_prefix: string;
   created_at: number;
   fixed_at: number | null;
+  claimed_by: string | null;
+  claimed_name: string | null;
+  claimed_at: number | null;
 }
 
-const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at';
+const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at';
+
+const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at';
+
+/** How long an agent's claim on a bug lasts without being renewed. */
+export const CLAIM_TTL = 20 * 60 * 1000;
+
+/** A claim that still counts: on a waiting bug and not expired. */
+function liveClaim(row: BugRow, now = Date.now()): boolean {
+  return row.status === 'waiting' && !!row.claimed_by && !!row.claimed_at && now - row.claimed_at < CLAIM_TTL;
+}
 
 function summary(row: BugRow): BugSummary {
   return {
@@ -50,6 +67,9 @@ function summary(row: BugRow): BugSummary {
     hasLogs: row.has_logs === 1,
     createdAt: row.created_at,
     fixedAt: row.fixed_at,
+    claimedBy: liveClaim(row) ? row.claimed_by : null,
+    claimedName: liveClaim(row) ? row.claimed_name : null,
+    claimedAt: liveClaim(row) ? row.claimed_at : null,
   };
 }
 
@@ -189,10 +209,13 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     files_prefix: prefix,
     created_at: now,
     fixed_at: null,
+    claimed_by: null,
+    claimed_name: null,
+    claimed_at: null,
   };
   try {
     await env.DB.prepare(
-      `INSERT INTO bugs (${COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bugs (${INSERT_COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null, bytes)
       .run();
@@ -246,14 +269,36 @@ export async function getReference(env: Env, userId: string, bugId: string): Pro
   return obj ? obj.arrayBuffer() : null;
 }
 
+export interface Agent {
+  /** Stable per connected agent (its OAuth client), so one agent can renew its own claim. */
+  key: string;
+  /** What the user and other agents see, like "Codex" or "Cursor". */
+  name: string;
+}
+
+/**
+ * Marks a waiting bug as being worked on by this agent, unless another agent's claim is still live.
+ * Returns who holds the claim afterwards. One UPDATE, so two agents racing can't both win.
+ */
+export async function claimBug(env: Env, userId: string, bugId: string, agent: Agent): Promise<{ mine: boolean; holder: BugSummary }> {
+  const now = Date.now();
+  const res = await env.DB.prepare(
+    "UPDATE bugs SET claimed_by = ?, claimed_name = ?, claimed_at = ? WHERE id = ? AND user_id = ? AND status = 'waiting' AND (claimed_by IS NULL OR claimed_by = ? OR claimed_at IS NULL OR claimed_at < ?)",
+  )
+    .bind(agent.key, agent.name, now, bugId, userId, agent.key, now - CLAIM_TTL)
+    .run();
+  const row = await ownBug(env, userId, bugId);
+  return { mine: (res.meta.changes ?? 0) > 0, holder: summary(row) };
+}
+
 export async function markFixed(env: Env, userId: string, bugId: string, note: unknown): Promise<BugSummary> {
   const row = await ownBug(env, userId, bugId);
   const fixedNote = clip(note, LIMITS.fixedNote) || null;
   const now = Date.now();
-  await env.DB.prepare("UPDATE bugs SET status = 'fixed', fixed_note = ?, fixed_at = ? WHERE id = ? AND user_id = ?")
+  await env.DB.prepare("UPDATE bugs SET status = 'fixed', fixed_note = ?, fixed_at = ?, claimed_by = NULL, claimed_name = NULL, claimed_at = NULL WHERE id = ? AND user_id = ?")
     .bind(fixedNote, now, bugId, userId)
     .run();
-  return summary({ ...row, status: 'fixed', fixed_note: fixedNote, fixed_at: now });
+  return summary({ ...row, status: 'fixed', fixed_note: fixedNote, fixed_at: now, claimed_by: null, claimed_name: null, claimed_at: null });
 }
 
 async function deleteRows(env: Env, rows: { id: string; files_prefix: string }[]): Promise<void> {
