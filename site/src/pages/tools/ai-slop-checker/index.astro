@@ -1,0 +1,124 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste the address of your site, or any site you’re curious about.',
+  'We read the page, its stylesheets and, for sites that build themselves with JavaScript, its main script. Then we look for 12 tells: default fonts, the purple gradient, template colors, emoji headings, stock phrases, leftovers from the starter template and more.',
+  'You get a score from 0 (hand-made) to 100 (peak AI slop), a one-line fix for each tell, and one prompt that asks your AI coding agent to fix them all. Share the link to show off your score.',
+];
+
+const faq = [
+  { q: 'How do I know if my website looks AI-generated?', a: 'Paste it above. We check for the patterns AI app builders and coding agents fall back on: Inter or Geist everywhere, a purple-to-blue gradient hero, the default shadcn/ui or Tailwind colors, emoji in headings, three icon cards under a centered hero, phrases like “Elevate your” and “Seamless”, and template leftovers like “Create Next App”.' },
+  { q: 'Is a high score bad?', a: 'It means visitors may read your site as a quick AI build and trust it less. None of these tells is wrong on its own; together they make a site look like every other one. Each fix below is small.' },
+  { q: 'How is the score worked out?', a: 'Each tell has points: 20 at most for stock phrases (5 each), 15 for a default font, a purple gradient, lorem ipsum or a template leftover, 10 for template colors, three icon cards or a builder badge, 8 for emoji headings, and 5 each for a missing favicon, a missing share image or an old footer year. The total is capped at 100.' },
+  { q: 'Does it work with Lovable, Bolt, v0 and Replit sites?', a: 'Yes. Those sites build the page with JavaScript, so we also read their main script to find the words and styles. If a site loads its content later, from a database, a few tells can be missed.' },
+  { q: 'How do I fix everything at once?', a: 'Click “Copy prompt for your AI agent” and paste it into Claude Code, Cursor, Codex, Lovable or Bolt. It lists every tell we found and what to change, so the agent can fix them in one go.' },
+];
+---
+<ToolPage
+  slug="ai-slop-checker"
+  title="AI slop checker: does my website look AI-made? · Darnly"
+  description="Paste a URL and get a score from 0 to 100 for how AI-generated your site looks: default fonts, purple gradients, template colors, stock phrases and leftovers. Get a fix for each and one prompt for your AI agent."
+  h1="AI slop checker: does my site look AI-made?"
+  lede="Paste a URL to get a score from 0 to 100 and the tells that give it away. Each comes with a one-line fix, plus one prompt that asks your AI agent to fix them all."
+  steps={steps}
+  faq={faq}
+>
+  <div class="slop">
+    <form id="as-form" class="ask">
+      <label class="sr" for="as-url">Website address</label>
+      <input id="as-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="as-go" type="submit">Check my site</button>
+    </form>
+    <p class="error" id="as-error" role="alert" hidden></p>
+
+    <div id="as-out" hidden>
+      <article class="card" id="as-card">
+        <div class="meter" id="as-meter" aria-hidden="true"><span id="as-score">0</span><small>/100</small></div>
+        <div class="verdict">
+          <span class="eyebrow">AI slop score</span>
+          <h2 id="as-verdict"></h2>
+          <p id="as-host"></p>
+        </div>
+        <ul class="chips" id="as-chips"></ul>
+        <p class="brand">darnly.dev/tools/ai-slop-checker</p>
+      </article>
+
+      <div class="actions">
+        <button id="as-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+        <button id="as-share" type="button">Copy link to this score</button>
+      </div>
+
+      <section class="tells" aria-labelledby="as-tells-h">
+        <h3 id="as-tells-h">What gives it away</h3>
+        <ol id="as-list"></ol>
+      </section>
+
+      <details class="passed">
+        <summary id="as-passed-h">Checks it passed</summary>
+        <ul id="as-passed"></ul>
+      </details>
+      <p class="note" id="as-note" hidden></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/ai-slop-checker';
+</script>
+
+<style>
+  .slop { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .slop :global([hidden]) { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .error { margin: 0; color: #B4234F; }
+
+  #as-out { display: grid; gap: 20px; min-width: 0; }
+  .card { --c: #1F7A45; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px 26px; align-items: center; padding: 28px; border-radius: 24px; background: var(--wash); border: 1px solid var(--line); min-width: 0; }
+  .card[data-level='1'] { --c: #A35F00; }
+  .card[data-level='2'] { --c: #C2410C; }
+  .card[data-level='3'] { --c: #B4234F; }
+  .meter { --p: 0; width: 140px; height: 140px; border-radius: 50%; display: grid; place-content: center; text-align: center; background: radial-gradient(closest-side, var(--white) 78%, transparent 79%), conic-gradient(var(--c) calc(var(--p) * 1%), var(--line) 0); }
+  .meter span { font: 700 46px/1 var(--display); color: var(--c); letter-spacing: -0.03em; }
+  .meter small { font-size: 14px; color: var(--ink-soft); }
+  .verdict { min-width: 0; }
+  .verdict h2 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin-top: 8px; color: var(--c); }
+  .verdict p { margin: 6px 0 0; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .chips { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips :global(li) { font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); }
+  .chips :global(li.ok) { color: #1F7A45; }
+  .brand { grid-column: 1 / -1; margin: 0; font: 500 12px/1 var(--mono); letter-spacing: 0.04em; color: var(--ink-soft); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .actions button { font: 600 15px/1 var(--body); padding: 12px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .actions button:hover { border-color: var(--sky); }
+  .actions .primary { border: 0; background: var(--ink); color: var(--white); }
+
+  .tells h3 { font-size: 22px; margin-bottom: 12px; }
+  .tells ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .tells :global(li) { border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; background: var(--white); display: grid; gap: 6px; min-width: 0; }
+  .tells :global(.head) { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; }
+  .tells :global(strong) { font-size: 18px; }
+  .tells :global(.pts) { flex: none; font: 600 13px/1 var(--mono); color: #B4234F; }
+  .tells :global(p) { margin: 0; overflow-wrap: anywhere; }
+  .tells :global(.detail) { color: var(--ink-soft); font-size: 15px; }
+  .tells :global(.fix b) { color: #1F7A45; }
+  .tells :global(.fix a) { color: var(--sky); }
+  .tells :global(.clean) { color: #1F7A45; font-weight: 600; }
+
+  .passed summary { cursor: pointer; font-weight: 600; }
+  .passed ul { margin: 10px 0 0; padding-left: 20px; color: var(--ink-soft); }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 560px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px 26px; }
+    .card { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 24px 18px; }
+    .chips { justify-content: center; }
+  }
+</style>
