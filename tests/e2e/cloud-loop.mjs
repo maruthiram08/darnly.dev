@@ -126,12 +126,15 @@ try {
     if (bug.title !== 'Pay now should open the payment form') fail('title wrong: ' + bug.title);
 
     await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 10000 }).catch(() => fail('cloud list missing'));
+    // Close the panel while the agent works: the nudge must still show when it opens again.
+    const panelUrl = panel.url();
+    await panel.goto(panelUrl.replace('sidepanel.html', 'keepalive.html'));
     // The agent connects through MCP (OAuth sign-in like Claude or Cursor), reads the bug and marks it fixed.
     const agentToken = await connectAgent('maruthi@example.com');
     const client = new Client({ name: 'e2e-agent', version: '1.0.0' });
     await client.connect(new StreamableHTTPClientTransport(new URL(`${cloud}/mcp`), { requestInit: { headers: { authorization: `Bearer ${agentToken}` } } }));
     const tools = (await client.listTools()).tools.map((t) => t.name).join(',');
-    if (tools !== 'list_bugs,get_bug,mark_fixed') fail('MCP tools wrong: ' + tools);
+    if (tools !== 'list_bugs,get_bug,mark_fixed,ask_user') fail('MCP tools wrong: ' + tools);
     const listed = await client.callTool({ name: 'list_bugs', arguments: {} });
     if (!listed.content[0].text.includes(bug.id)) fail('MCP list_bugs missing the bug');
     const got = await client.callTool({ name: 'get_bug', arguments: { id: bug.id } });
@@ -139,8 +142,14 @@ try {
     if (got.content[1]?.type !== 'image') fail('MCP get_bug missing the picture');
     if (got.content[3]?.type !== 'image' || !String(got.content[2]?.text).includes('What it should look like')) fail('MCP get_bug missing the picture of what it should look like');
     if (!got.content[0].text.includes('the second picture returned with this bug')) fail('report does not mention the reference picture');
+    await client.callTool({ name: 'ask_user', arguments: { id: bug.id, question: 'Should it open in a new tab?' } });
+    await panel.goto(panelUrl);
+    await panel.getByText('Your agent is waiting for your input. Return to your agent.').waitFor({ timeout: 12000 }).catch(() => fail('waiting-for-input notice missing'));
+    await panel.getByText('Should it open in a new tab?').waitFor({ timeout: 3000 }).catch(() => fail('agent question missing'));
+    await panel.goto(panelUrl.replace('sidepanel.html', 'keepalive.html'));
     await client.callTool({ name: 'mark_fixed', arguments: { id: bug.id, note: 'wired Pay now to openPaymentForm()' } });
     await client.close();
+    await panel.goto(panelUrl);
     await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 12000 }).catch(() => fail('fixed nudge missing'));
     await panel.getByText('wired Pay now to openPaymentForm()').waitFor({ timeout: 3000 }).catch(() => fail('fix note missing'));
   }
