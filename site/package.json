@@ -11,6 +11,7 @@
     "@astrojs/sitemap": "3.7.4",
     "@tesseract.js-data/eng": "1.0.0",
     "astro": "7.4.4",
+    "gifenc": "1.0.3",
     "marked": "18.1.0",
     "qrcode-generator": "1.4.4",
     "sql-formatter": "15.8.2",
