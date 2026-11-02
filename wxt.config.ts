@@ -10,8 +10,11 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   vite: () => ({ plugins: [tailwindcss()] }),
   manifest: {
-    name: PRODUCT.NAME,
-    description: 'Turn a bug you see on screen into a ready-to-fix note for your AI coding agent.',
+    // Store title and summary: the search words people type ("bug report", "AI coding agents") come first.
+    // short_name keeps the toolbar and menus to just "Darnly". PRODUCT.NAME stays "Darnly" inside the app.
+    name: `${PRODUCT.NAME}: Bug reports for AI coding agents`,
+    short_name: PRODUCT.NAME,
+    description: 'Bug reports for AI coding agents: press a key, click the broken part, say what you expected. For Claude Code, Codex and Cursor.',
     // identity: "Sign in with Google" for the cloud inbox (projects whose code isn't on this computer).
     permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest', 'identity'],
     // The Google OAuth client (type "Chrome extension") is created once the store gives the extension its id.
