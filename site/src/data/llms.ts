@@ -9,7 +9,7 @@ const INTRO = `# Darnly
 
 > Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into context for AI coding agents such as Claude Code, Codex and Cursor. Press one key, click the broken part, say what you expected: the agent gets a marked-up screenshot, the element, the file that drew it and recent errors.
 
-- Chrome extension: press Option+Shift+B (Alt+Shift+B on Windows and Linux) on any page, localhost or live, click the broken element and type one sentence. Works in Chrome, Edge, Brave and Arc.
+- Chrome extension: press Option+Shift+B on a Mac on any page (Windows is coming soon), localhost or live, click the broken element and type one sentence. Works in Chrome, Edge, Brave and Arc.
 - What the agent gets: a screenshot with the element boxed in red, the element's selector, text, HTML and styles, the source file and component on a local project, and console errors and failed requests from the last 60 seconds.
 - Where reports go: plain Markdown files in \`.darnly/inbox/\` inside the project, so any agent that reads files can fix them ("fix my bugs"). Cloud projects can copy the picture and details instead, or use the optional cloud inbox, which agents read through Darnly's remote MCP server at https://api.darnly.dev/mcp (OAuth with Google sign-in; tools list_bugs, get_bug, mark_fixed). Setup for Claude Code, Cursor and Codex: https://darnly.dev/setup/
 - Darnly for Mac: a menu bar app for Mac apps, the iOS Simulator and the Android Emulator, using macOS accessibility to find the element. Early access by email at hello@darnly.dev.
