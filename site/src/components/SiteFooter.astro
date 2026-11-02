@@ -3,6 +3,15 @@
 import { TOOLS, GUIDES, toolsByCategory, categoryHref } from '../data/site';
 const PER_CATEGORY = 4;
 const groups = toolsByCategory();
+// Launch-site badges. Add new ones at the end; w/h are the image's own size (only the ratio matters, the CSS sets the height).
+const BADGES = [
+  // LaunchIgniter asks for this badge on the site before it gives a free launch slot.
+  { href: 'https://launchigniter.com/product/darnly?ref=badge-darnly', img: 'https://launchigniter.com/api/badge/darnly?theme=light', alt: 'Featured on LaunchIgniter', w: 212, h: 55 },
+  // Uneed's "Launching soon" badge.
+  { href: 'https://www.uneed.best/tool/darnly', img: 'https://www.uneed.best/EMBED3B.png', alt: 'Launching Soon on Uneed', w: 250, h: 54 },
+  // PeerPush gives a small ranking boost ("Verified") to products whose site links back to their page.
+  { href: 'https://peerpush.com/p/darnly', img: 'https://peerpush.com/p/darnly/badge.png', alt: 'Darnly on PeerPush', w: 230, h: 65 },
+];
 ---
 <footer>
   <div class="wrap">
@@ -35,21 +44,18 @@ const groups = toolsByCategory();
         )}
       </nav>
     )}
-    <span>© 2026 Darnly. Made for people who build with AI coding agents.</span>
-    <span><a href="/privacy">Privacy policy</a></span>
-    <span class="badges">
-      {/* LaunchIgniter asks for this badge on the site before it gives a free launch slot. */}
-      <a class="badge" href="https://launchigniter.com/product/darnly?ref=badge-darnly" target="_blank" rel="noopener">
-        <img src="https://launchigniter.com/api/badge/darnly?theme=light" alt="Featured on LaunchIgniter" width="212" height="55" loading="lazy" />
-      </a>
-      {/* Uneed's "Launching soon" badge, light version to match the white footer. */}
-      <a class="badge" href="https://www.uneed.best/tool/darnly" target="_blank" rel="noopener">
-        <img src="https://www.uneed.best/EMBED3B.png" alt="Launching Soon on Uneed" width="250" loading="lazy" />
-      </a>
-      {/* PeerPush gives a small ranking boost ("Verified") to products whose site links back to their page. */}
-      <a class="badge" href="https://peerpush.com/p/darnly" target="_blank" rel="noopener">
-        <img src="https://peerpush.com/p/darnly/badge.png" alt="Darnly on PeerPush" width="230" height="65" loading="lazy" />
-      </a>
-    </span>
+    {/* "Featured on" strip: every badge is shown at the same height, so a new one is just a new line in BADGES. */}
+    <section class="featured" aria-label="Darnly is featured on">
+      <span class="featured-label">Featured on</span>
+      <ul class="badges">
+        {BADGES.map((b) => (
+          <li><a class="badge" href={b.href} target="_blank" rel="noopener"><img src={b.img} alt={b.alt} width={b.w} height={b.h} loading="lazy" /></a></li>
+        ))}
+      </ul>
+    </section>
+    <div class="legal">
+      <span>© 2026 Darnly. Made for people who build with AI coding agents.</span>
+      <a href="/privacy">Privacy policy</a>
+    </div>
   </div>
 </footer>

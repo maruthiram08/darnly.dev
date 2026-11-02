@@ -104,10 +104,6 @@ section.tools-strip { padding-bottom: 0; }
 .report li code { font: 0.9em var(--mono); }
 .mail { font: 500 16px/1 var(--mono); user-select: all; background: rgba(252, 255, 255, 0.16); padding: 10px 14px; border-radius: 10px; }
 
-footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); font-size: 14px; color: var(--ink-soft); }
-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
-footer .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-footer .badges img { display: block; max-width: 100%; height: auto; }
 
 /* Hero scene: a crisp mock of the capture moment, drawn in HTML so it stays sharp */
 .scene { position: relative; padding: 24px 0 80px; min-width: 0; }
