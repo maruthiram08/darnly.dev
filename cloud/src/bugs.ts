@@ -29,6 +29,8 @@ export interface BugSummary {
   claimedAt: number | null;
   /** What the agent asked the user and is waiting on (questions go stale after QUESTION_TTL). */
   question: string | null;
+  /** The project name from the Darnly panel (null on older bugs). */
+  project: string | null;
 }
 
 interface BugRow {
@@ -47,11 +49,12 @@ interface BugRow {
   claimed_at: number | null;
   question: string | null;
   question_at: number | null;
+  project: string | null;
 }
 
-const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at';
+const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at, project';
 
-const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at';
+const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, project';
 
 /** How long an agent's claim on a bug lasts without being renewed. */
 export const CLAIM_TTL = 20 * 60 * 1000;
@@ -78,6 +81,7 @@ function summary(row: BugRow): BugSummary {
     claimedBy: liveClaim(row) ? row.claimed_by : null,
     claimedName: liveClaim(row) ? row.claimed_name : null,
     claimedAt: liveClaim(row) ? row.claimed_at : null,
+    project: row.project ?? null,
     question: row.status === 'waiting' && row.question && row.question_at && Date.now() - row.question_at < QUESTION_TTL ? row.question : null,
   };
 }
@@ -113,6 +117,8 @@ export interface NewBug {
   logs?: string;
   /** Random id the extension makes once per capture, so a repeated upload isn't saved twice. */
   clientId?: string;
+  /** The project name from the Darnly panel. */
+  project?: string;
 }
 
 async function readPng(part: File, tooLarge: string): Promise<ArrayBuffer> {
@@ -150,7 +156,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   ) {
     throw new HttpError(400, 'missing_parts');
   }
-  let parsed: { title?: unknown; pageUrl?: unknown; clientId?: unknown };
+  let parsed: { title?: unknown; pageUrl?: unknown; clientId?: unknown; project?: unknown };
   try {
     parsed = JSON.parse(meta);
   } catch {
@@ -173,6 +179,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
     picture: bytes,
     reference: referenceBytes,
     logs: logsText,
+    project: projectName(parsed.project),
     clientId: typeof parsed.clientId === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(parsed.clientId) ? parsed.clientId : undefined,
   };
 }
@@ -223,12 +230,13 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     claimed_at: null,
     question: null,
     question_at: null,
+    project: bug.project ?? null,
   };
   try {
     await env.DB.prepare(
-      `INSERT INTO bugs (${INSERT_COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bugs (${INSERT_COLUMNS}, user_id, client_id, bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, userId, bug.clientId ?? null, bytes)
+      .bind(row.id, row.title, row.page_url, row.site, row.status, row.fixed_note, row.has_logs, row.files_prefix, row.created_at, row.fixed_at, row.project, userId, bug.clientId ?? null, bytes)
       .run();
   } catch (e) {
     // Two copies of the same capture arrived at once: keep the first, drop this one's files.
@@ -240,14 +248,48 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
   return summary(row);
 }
 
-export async function listBugs(env: Env, userId: string, status: 'waiting' | 'fixed' | 'all' = 'all', limit = 100): Promise<BugSummary[]> {
+/** A project name as the panel saves it: lowercase letters, digits, dots, dashes and underscores. */
+export function projectName(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const n = v.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  return n || undefined;
+}
+
+/**
+ * The user's bugs, newest first. With a project, only that project's bugs, plus older bugs saved before
+ * projects had names whose site contains the name (so "counterdraft" still finds www.counterdraft.com bugs).
+ */
+export async function listBugs(
+  env: Env,
+  userId: string,
+  status: 'waiting' | 'fixed' | 'all' = 'all',
+  limit = 100,
+  project?: string,
+): Promise<BugSummary[]> {
   const n = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 100;
-  const stmt =
-    status === 'all'
-      ? env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`).bind(userId, n)
-      : env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT ?`).bind(userId, status, n);
-  const { results } = await stmt.all<BugRow>();
+  const where = ['user_id = ?'];
+  const args: unknown[] = [userId];
+  if (status !== 'all') {
+    where.push('status = ?');
+    args.push(status);
+  }
+  const p = projectName(project);
+  if (p) {
+    where.push("(project = ? OR (project IS NULL AND site LIKE ? ESCAPE '\\'))");
+    args.push(p, `%${p.replace(/[\\%_]/g, (c) => '\\' + c)}%`);
+  }
+  const { results } = await env.DB.prepare(`SELECT ${COLUMNS} FROM bugs WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ?`)
+    .bind(...args, n)
+    .all<BugRow>();
   return results.map(summary);
+}
+
+/** The project names the user has bugs under, so an agent can tell which one is its own. */
+export async function listProjects(env: Env, userId: string): Promise<string[]> {
+  const { results } = await env.DB.prepare("SELECT DISTINCT project FROM bugs WHERE user_id = ? AND project IS NOT NULL AND status = 'waiting' ORDER BY project")
+    .bind(userId)
+    .all<{ project: string }>();
+  return results.map((r) => r.project);
 }
 
 /** Finds a bug that belongs to this user. Someone else's bug looks the same as a missing one. */

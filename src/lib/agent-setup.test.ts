@@ -64,6 +64,16 @@ describe('planSetup', () => {
   });
 });
 
+describe('Darnly project name', () => {
+  it('tells the agent its project name for the cloud inbox', () => {
+    expect(agentsBlock('Counter Draft')).toContain('Darnly project: `counter-draft`');
+    expect(agentsBlock('x')).toContain('list_bugs');
+    expect(agentsBlock()).not.toContain('Darnly project:');
+    const out = mergeAgentsMd(null, 'counterdraft')!;
+    expect(mergeAgentsMd(out, 'counterdraft')).toBeNull();
+  });
+});
+
 describe('Claude Code hooks', () => {
   it('adds both hooks, keeps other settings, and is idempotent', () => {
     const existing = JSON.stringify({ permissions: { allow: ['Bash(npm test)'] }, hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'echo mine' }] }] } });

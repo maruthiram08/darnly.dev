@@ -75,7 +75,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (path === '/v1/bugs' && method === 'GET') {
     const status = url.searchParams.get('status');
     const pick = status === 'waiting' || status === 'fixed' ? status : 'all';
-    return json({ bugs: await listBugs(env, user.id, pick, Number(url.searchParams.get('limit') ?? 100)) });
+    return json({ bugs: await listBugs(env, user.id, pick, Number(url.searchParams.get('limit') ?? 100), url.searchParams.get('project') ?? undefined) });
   }
   if (path === '/v1/bugs' && method === 'DELETE') return json({ deleted: await deleteAllBugs(env, user.id) });
 

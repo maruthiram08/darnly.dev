@@ -124,6 +124,9 @@ try {
     const pic = await fetch(`${cloud}/v1/bugs/${bug.id}/picture`, { headers: { authorization: `Bearer ${token}` } });
     if (pic.status !== 200 || (await pic.arrayBuffer()).byteLength < 1000) fail('picture missing');
     if (bug.title !== 'Pay now should open the payment form') fail('title wrong: ' + bug.title);
+    // The bug goes under a project named from the page (localhost: its title), shown in the panel and filterable over MCP.
+    if (bug.project !== 'checkout') fail('project name wrong: ' + bug.project);
+    await panel.getByText('Project checkout').waitFor({ timeout: 5000 }).catch(() => fail('project name not shown in the panel'));
 
     await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 10000 }).catch(() => fail('cloud list missing'));
     // Close the panel while the agent works: the nudge must still show when it opens again.
@@ -136,6 +139,10 @@ try {
     const tools = (await client.listTools()).tools.map((t) => t.name).join(',');
     if (tools !== 'list_bugs,get_bug,mark_fixed,ask_user') fail('MCP tools wrong: ' + tools);
     const listed = await client.callTool({ name: 'list_bugs', arguments: {} });
+    const mineOnly = await client.callTool({ name: 'list_bugs', arguments: { project: 'checkout' } });
+    if (!mineOnly.content[0].text.includes(bug.id)) fail('list_bugs with project missed the bug');
+    const others = await client.callTool({ name: 'list_bugs', arguments: { project: 'some-other-app' } });
+    if (others.content[0].text.includes(bug.id)) fail('list_bugs with another project returned this bug');
     if (!listed.content[0].text.includes(bug.id)) fail('MCP list_bugs missing the bug');
     const got = await client.callTool({ name: 'get_bug', arguments: { id: bug.id } });
     if (!got.content[0].text.includes('Pay now should open the payment form')) fail('MCP get_bug missing the note');
