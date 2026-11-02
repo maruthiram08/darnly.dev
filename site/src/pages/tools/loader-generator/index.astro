@@ -1,0 +1,263 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick a loader from the grid. Every one is pure CSS, so there is nothing to install.',
+  'Change its color, size and speed, and see it on a light or dark page and inside a button.',
+  'Copy it as HTML and CSS, as a Tailwind class, or as a React component. Or switch to “Skeleton screens” and build a gray placeholder card that matches your layout.',
+];
+
+const faq = [
+  { q: 'Spinner or skeleton: which should I use?', a: 'Use a skeleton when you know roughly what is coming, like a list of posts or a profile card. It makes the page feel faster because the layout is already there. Use a spinner or a bar for short waits with no layout to show, like a button that is saving.' },
+  { q: 'What happens for people who turn off animations?', a: 'Every code snippet includes a <code>prefers-reduced-motion</code> rule. Loaders slow down to a third of their speed, so people still see that something is happening. Skeletons stop moving and stay as calm gray blocks.' },
+  { q: 'Do I need a library or an icon font?', a: 'No. Each loader is one <code>div</code>, sometimes with a few empty <code>span</code>s inside, plus a little CSS. No JavaScript, images or packages.' },
+  { q: 'Can screen readers tell it is loading?', a: 'Yes. Each loader has <code>role="status"</code> and a label (“Loading” by default, which you can change), so screen readers announce it.' },
+  { q: 'How do I change the color later?', a: 'Each loader reads three CSS variables: <code>--loader-color</code>, <code>--loader-size</code> and <code>--loader-speed</code>. Change them in the CSS, or set them on one element. In the Tailwind version the color is the text color, so <code>text-sky-500</code> works.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="loader-generator"
+  title="CSS loading spinner and skeleton generator for HTML, Tailwind and React · Darnly"
+  description="20 pure-CSS loading spinners, dots, bars and progress loaders, plus a skeleton card builder. Change color, size and speed, then copy HTML and CSS, Tailwind or a React component. Respects reduced motion. Free."
+  h1="CSS loading spinners and skeletons"
+  lede="Pick one of 20 pure-CSS loaders, set its color, size and speed, and copy it as HTML and CSS, Tailwind or React. Or build a skeleton card that matches your layout."
+  steps={steps}
+  faq={faq}
+>
+  <div class="lg">
+    <div class="tabs" role="tablist" aria-label="What to make">
+      <button type="button" role="tab" id="lg-tab-loaders" aria-controls="lg-loaders" aria-selected="true">Loaders</button>
+      <button type="button" role="tab" id="lg-tab-skeleton" aria-controls="lg-skeleton" aria-selected="false" tabindex="-1">Skeleton screens</button>
+    </div>
+
+    <!-- Loaders -->
+    <section class="panel" id="lg-loaders" role="tabpanel" aria-labelledby="lg-tab-loaders">
+      <div class="filters" id="lg-filters" role="group" aria-label="Show"></div>
+      <div class="grid" id="lg-grid" aria-label="Loaders. Pick one to customize it."></div>
+
+      <div class="custom" id="lg-custom">
+        <div class="stage" id="lg-stage" data-bg="light" aria-label="Your loader, large">
+          <div class="bg-switch" role="radiogroup" aria-label="Preview background" id="lg-bg">
+            <button type="button" role="radio" data-v="light" aria-checked="true">Light</button>
+            <button type="button" role="radio" data-v="dark" aria-checked="false">Dark</button>
+          </div>
+          <p class="stage-name" id="lg-name"></p>
+          <div class="stage-main" id="lg-main"></div>
+          <div class="stage-uses">
+            <span class="use-btn" id="lg-use-btn"><span class="use-loader" id="lg-use-btn-loader"></span>Saving</span>
+            <span class="use-card"><span class="use-loader" id="lg-use-card-loader"></span><span>Fetching your projects</span></span>
+          </div>
+          <p class="stage-note" id="lg-fit" hidden>Shown smaller to fit. The code uses your size.</p>
+        </div>
+
+        <div class="controls">
+          <div class="field">
+            <span>Color</span>
+            <span class="pair">
+              <input id="lg-color" type="color" value="#0593c6" aria-label="Loader color" />
+              <input id="lg-hex" type="text" value="#0593C6" spellcheck="false" autocomplete="off" maxlength="7" aria-label="Hex code of the loader color" />
+            </span>
+            <span class="swatches" id="lg-swatches" aria-label="Quick colors"></span>
+          </div>
+          <label class="field">
+            <span>Size <output id="lg-size-out">64px</output></span>
+            <input id="lg-size" type="range" min="16" max="160" value="64" />
+          </label>
+          <label class="field">
+            <span>Speed <output id="lg-speed-out"></output></span>
+            <input id="lg-speed" type="range" min="0" max="8" value="3" aria-describedby="lg-speed-hint" />
+            <small id="lg-speed-hint">Left is slow and calm, right is fast.</small>
+          </label>
+          <label class="field">
+            <span>Label for screen readers</span>
+            <input id="lg-label" type="text" value="Loading" maxlength="40" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="summary">
+          <p class="status" id="lg-status" role="status" aria-live="polite"></p>
+          <div class="actions">
+            <button type="button" class="primary" id="lg-prompt">Copy prompt for your AI agent</button>
+          </div>
+        </div>
+
+        <div class="seg format" role="radiogroup" aria-label="Code format" id="lg-format">
+          <button type="button" role="radio" data-v="html" aria-checked="true">HTML + CSS</button>
+          <button type="button" role="radio" data-v="tailwind" aria-checked="false">Tailwind</button>
+          <button type="button" role="radio" data-v="react" aria-checked="false">React</button>
+        </div>
+        <div class="codes" id="lg-code"></div>
+      </div>
+    </section>
+
+    <!-- Skeleton -->
+    <section class="panel" id="lg-skeleton" role="tabpanel" aria-labelledby="lg-tab-skeleton" hidden>
+      <div class="stage sk-stage" id="sk-stage" aria-label="Your skeleton card">
+        <div class="sk-compare">
+          <div class="sk-preview" id="sk-preview"></div>
+        </div>
+      </div>
+
+      <div class="presets" id="sk-presets" role="group" aria-label="Layouts"></div>
+
+      <div class="controls">
+        <div class="field">
+          <span>Parts</span>
+          <span class="checks">
+            <label class="check"><input type="checkbox" id="sk-image" /> Picture</label>
+            <label class="check"><input type="checkbox" id="sk-title" /> Title</label>
+            <label class="check"><input type="checkbox" id="sk-button" /> Button</label>
+          </span>
+        </div>
+        <label class="field">
+          <span>Avatar</span>
+          <select id="sk-avatar">
+            <option value="none">None</option>
+            <option value="circle">Circle</option>
+            <option value="square">Rounded square</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Text lines <output id="sk-lines-out"></output></span>
+          <input id="sk-lines" type="range" min="0" max="5" value="3" />
+        </label>
+        <label class="field">
+          <span>Rows <output id="sk-rows-out"></output></span>
+          <input id="sk-rows" type="range" min="1" max="5" value="1" />
+        </label>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <span>Animation</span>
+          <div class="seg" role="radiogroup" aria-label="Animation" id="sk-anim">
+            <button type="button" role="radio" data-v="shimmer" aria-checked="true">Shimmer</button>
+            <button type="button" role="radio" data-v="pulse" aria-checked="false">Pulse</button>
+            <button type="button" role="radio" data-v="none" aria-checked="false">Still</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>Theme</span>
+          <div class="seg" role="radiogroup" aria-label="Theme" id="sk-theme">
+            <button type="button" role="radio" data-v="light" aria-checked="true">Light</button>
+            <button type="button" role="radio" data-v="dark" aria-checked="false">Dark</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Block color</span>
+          <span class="pair"><input id="sk-base" type="color" value="#e6ebef" aria-label="Block color" /></span>
+        </label>
+        <label class="field">
+          <span>Corners <output id="sk-radius-out"></output></span>
+          <input id="sk-radius" type="range" min="0" max="16" value="8" />
+        </label>
+      </div>
+
+      <div class="summary">
+        <p class="status" id="sk-status" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="primary" id="sk-prompt">Copy prompt for your AI agent</button>
+        </div>
+      </div>
+
+      <div class="seg format" role="radiogroup" aria-label="Code format" id="sk-format">
+        <button type="button" role="radio" data-v="html" aria-checked="true">HTML + CSS</button>
+        <button type="button" role="radio" data-v="tailwind" aria-checked="false">Tailwind</button>
+        <button type="button" role="radio" data-v="react" aria-checked="false">React</button>
+      </div>
+      <div class="codes" id="sk-code"></div>
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/loader-generator';
+</script>
+
+<style>
+  .lg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .lg [hidden] { display: none !important; }
+  .panel, .custom { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+
+  .tabs { display: inline-flex; justify-self: start; gap: 4px; padding: 4px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); }
+  .tabs button { font: 600 15px/1 var(--body); padding: 11px 20px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); color: var(--white); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters :global(button) { font: 600 14px/1 var(--body); padding: 0 14px; min-height: 40px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink-soft); cursor: pointer; }
+  .filters :global(button[aria-pressed='true']) { border-color: var(--ink); background: var(--ink); color: var(--white); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .grid :global(.tile) { display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center; gap: 10px; height: 150px; padding: 18px 10px 12px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 18px; background: #FFFFFF; cursor: pointer; font: 600 14px/1.2 var(--body); color: var(--ink); overflow: hidden; }
+  .grid :global(.tile:hover) { border-color: #A9CFDD; }
+  .grid :global(.tile[aria-pressed='true']) { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset; }
+  .grid :global(.tile:focus-visible) { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .grid :global(.tile-art) { display: grid; place-items: center; min-height: 64px; }
+
+  .stage { position: relative; display: grid; justify-items: center; align-content: center; gap: 24px; min-height: 380px; padding: 64px 20px 28px; box-sizing: border-box; border-radius: 24px; border: 1px solid rgba(11, 34, 48, 0.08); background: #F4F8FA; color: var(--ink); overflow: hidden; transition: background 0.15s; }
+  .stage[data-bg='dark'] { background: #0E1A22; color: #E8F1F5; }
+  .stage-name { position: absolute; top: 18px; left: 20px; margin: 0; font: 700 18px/1.2 var(--display); }
+  .stage-main { display: grid; place-items: center; min-height: 170px; max-width: 100%; }
+  .stage-note { margin: -8px 0 0; font-size: 13px; opacity: 0.75; }
+  .bg-switch { position: absolute; top: 12px; right: 12px; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(11, 34, 48, 0.08); }
+  .stage[data-bg='dark'] .bg-switch { background: rgba(255, 255, 255, 0.12); }
+  .bg-switch button { font: 600 13px/1 var(--body); padding: 8px 12px; min-height: 0; border: 0; border-radius: 999px; background: none; color: inherit; cursor: pointer; opacity: 0.7; }
+  .bg-switch button[aria-checked='true'] { background: var(--ink); color: #FFFFFF; opacity: 1; }
+  .stage[data-bg='dark'] .bg-switch button[aria-checked='true'] { background: #FFFFFF; color: var(--ink); }
+
+  .stage-uses { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .use-btn { display: inline-flex; align-items: center; gap: 10px; font: 600 15px/1 var(--body); padding: 0 20px 0 16px; min-height: 46px; border-radius: 999px; background: var(--ink); color: #FFFFFF; }
+  .stage[data-bg='dark'] .use-btn { background: #FFFFFF; color: var(--ink); }
+  .use-card { display: inline-flex; align-items: center; gap: 12px; padding: 0 18px; min-height: 46px; border-radius: 14px; background: #FFFFFF; color: var(--ink); font-size: 14px; box-shadow: 0 1px 2px rgba(11, 34, 48, 0.08); }
+  .stage[data-bg='dark'] .use-card { background: #1A2832; color: #E8F1F5; box-shadow: none; }
+  .use-loader { display: inline-grid; place-items: center; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: start; }
+  .controls > .field { flex: 1 1 200px; }
+  .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+  .field small { font-size: 12px; }
+  .field output { font-family: var(--mono); color: var(--ink); margin-left: 4px; }
+  .field input[type='text'], .field select { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--ink); padding: 11px 12px; height: 48px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .field input[type='text']:focus, .field select:focus { outline: none; border-color: var(--sky); }
+  .field input[aria-invalid='true'] { border-color: #B4234F; }
+  .field input[type='range'] { width: 100%; height: 48px; margin: 0; accent-color: var(--ink); }
+  .pair { display: flex; gap: 8px; min-width: 0; }
+  .pair input[type='text'] { flex: 1; min-width: 0; font-family: var(--mono); text-transform: uppercase; }
+  .pair input[type='color'] { flex: none; width: 56px; height: 48px; padding: 3px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); cursor: pointer; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatches :global(button) { width: 28px; height: 28px; min-height: 0; padding: 0; border-radius: 50%; border: 2px solid #FFFFFF; box-shadow: 0 0 0 1px rgba(11, 34, 48, 0.25); cursor: pointer; }
+  .swatches :global(button[aria-pressed='true']) { box-shadow: 0 0 0 2px var(--ink); }
+  .checks { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .check { display: inline-flex; gap: 8px; align-items: center; min-height: 48px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+  .seg { display: flex; gap: 4px; padding: 4px; height: 48px; box-sizing: border-box; border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+  .seg button { flex: 1; font: 600 14px/1 var(--body); border: 0; border-radius: 8px; background: none; color: var(--ink-soft); cursor: pointer; padding: 0 10px; min-height: 0; }
+  .seg button[aria-checked='true'] { background: var(--ink); color: var(--white); }
+  .format { justify-self: start; width: min(420px, 100%); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets :global(button) { font: 600 14px/1 var(--body); padding: 0 14px; min-height: 40px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink-soft); cursor: pointer; }
+  .presets :global(button[aria-pressed='true']) { border-color: var(--ink); background: var(--ink); color: var(--white); }
+
+  .sk-stage { padding: 32px 20px; background: #EEF3F6; }
+  .sk-stage[data-theme='dark'] { background: #0B1116; }
+  .sk-compare { width: min(360px, 100%); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+
+  .codes { display: grid; gap: 14px; min-width: 0; }
+  .codes :global(.code) { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .codes :global(.code-head) { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .codes :global(.code-head button) { flex: none; font: 600 13px/1 var(--body); padding: 7px 12px; min-height: 0; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .codes :global(pre) { margin: 0; padding: 16px; max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 400 13px/1.7 var(--mono); }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .grid :global(.tile) { height: 132px; }
+    .stage { min-height: 320px; }
+  }
+</style>
