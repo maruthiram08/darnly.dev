@@ -3,15 +3,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node scripts/copy-ocr.mjs && astro dev",
+    "build": "node scripts/copy-ocr.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
+    "@cloudflare/puppeteer": "1.4.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "astro": "7.4.4",
     "gifenc": "1.0.3",
+    "marked": "18.1.0",
     "qrcode-generator": "1.4.4",
-    "tailwindcss": "4.3.3"
+    "sql-formatter": "15.8.2",
+    "tailwindcss": "4.3.3",
+    "tesseract.js": "7.0.0",
+    "yaml": "2.9.1"
   }
 }

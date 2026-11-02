@@ -1,0 +1,249 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { CASES, ENV_PREFIXES } from '../../../scripts/text-case-converter-core';
+
+// Point at sibling tools once they ship.
+const jsonTs = TOOLS.find((t) => t.slug === 'json-to-typescript');
+const gitignore = TOOLS.find((t) => t.slug === 'gitignore-generator');
+
+const KEY_TARGETS = ['camel', 'snake', 'pascal', 'kebab', 'screaming'];
+const ENV_TARGETS = ['screaming', 'camel', 'snake'];
+const nameOf = (id: string) => CASES.find((c) => c.id === id)!.name;
+
+const sampleJson = `{
+  "user_id": 42,
+  "first_name": "Ada",
+  "created_at": "2026-11-01T10:00:00Z",
+  "is_active": true,
+  "profile_settings": {
+    "avatar_url": "https://example.com/ada.png",
+    "dark_mode": false
+  },
+  "recent_orders": [
+    { "order_id": 7, "total_price": 19.5 }
+  ]
+}`;
+
+const sampleEnv = `# Pasted from the dashboard
+databaseUrl=postgres://localhost:5432/app
+stripe-secret-key=sk_test_123
+supabase url=https://xyz.supabase.co
+apiBaseUrl=https://api.example.com`;
+
+const steps = [
+  'Type or paste a word, a phrase or a variable name, like <code>user profile url</code> or <code>getUserName</code>. Every case shows up at once, and the one you pasted is marked.',
+  'Click any row to copy it. Have a list? Put one name per line and every row converts each line, so you can copy the whole list in the case you need.',
+  'Need to rename the keys of an API response, or the names in a <code>.env</code> file? Switch to “JSON keys” or “.env names”. Values stay exactly as they were.',
+];
+
+const faq = [
+  { q: 'What is the difference between camelCase, PascalCase, snake_case and kebab-case?', a: '<strong>camelCase</strong> joins words and capitalizes each one after the first: <code>userName</code>. <strong>PascalCase</strong> capitalizes the first word too: <code>UserName</code>. <strong>snake_case</strong> joins lowercase words with underscores: <code>user_name</code>. <strong>kebab-case</strong> uses dashes: <code>user-name</code>.' },
+  { q: 'Which case should I use where?', a: 'JavaScript and TypeScript use camelCase for variables and PascalCase for components, classes and types. Python, Ruby and most databases (including Supabase and Postgres) use snake_case. CSS classes, file names and URLs use kebab-case. Environment variables use SCREAMING_SNAKE_CASE.' },
+  { q: 'How do I turn snake_case API keys into camelCase?', a: 'Switch to “JSON keys”, paste the response and pick camelCase. Every key is renamed, nested ones too, and the values are left alone. If two keys end up with the same name, the tool warns you.' },
+  { q: 'Why is my NEXT_PUBLIC_ variable flagged?', a: 'Anything starting with <code>NEXT_PUBLIC_</code>, <code>VITE_</code> or <code>EXPO_PUBLIC_</code> is built into the code that runs in every visitor’s browser. Secret keys, passwords and database URLs must never get that prefix. Keep them server-side only.' },
+  { q: 'How are words split?', a: 'At spaces, underscores, dashes, dots and other symbols, and where a capital letter starts a new word, so <code>getHTTPResponse</code> becomes get, HTTP, Response. In sentences with spaces, Title case and Sentence case keep words like OpenAI and iPhone as they are.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+---
+<ToolPage
+  slug="text-case-converter"
+  title="Case converter: camelCase, snake_case, kebab-case and more · Darnly"
+  description="Convert text to camelCase, PascalCase, snake_case, SCREAMING_SNAKE, kebab-case, Title Case, Sentence case, dot.case and URL slugs at once. Bulk lists, JSON keys and .env names too. Free."
+  h1="Case converter: camelCase, snake_case, kebab-case"
+  lede="Paste a word, a name or a whole list and see it in every case at once. Click a row to copy it. Rename JSON keys and .env names too."
+  steps={steps}
+  faq={faq}
+>
+  <div class="tc">
+    <div class="modes" id="tc-modes" role="tablist" aria-label="What are you converting?">
+      <button type="button" role="tab" data-mode="text" aria-selected="true">Text or names</button>
+      <button type="button" role="tab" data-mode="json" aria-selected="false">JSON keys</button>
+      <button type="button" role="tab" data-mode="env" aria-selected="false">.env names</button>
+    </div>
+
+    <!-- Text or names -->
+    <section id="tc-text" class="pane">
+      <div class="in-wrap">
+        <label class="sr" for="tc-in">Your text</label>
+        <textarea id="tc-in" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Type or paste, like user profile url">user profile picture url</textarea>
+        <div class="in-meta">
+          <span class="badge" id="tc-detected" hidden></span>
+          <span class="count" id="tc-count"></span>
+          <button type="button" class="link" id="tc-clear">Clear</button>
+        </div>
+      </div>
+
+      <ul class="rows" id="tc-rows" aria-label="Your text in every case">
+        {CASES.map((c) => (
+          <li>
+            <button type="button" class="row" data-case={c.id} title={`Copy as ${c.name}`}>
+              <span class="row-head">
+                <span class="row-name">{c.name}</span>
+                <span class="row-you" hidden>You pasted this</span>
+                <span class="row-use">{c.use}</span>
+              </span>
+              <span class="row-val" data-val>{c.example}</span>
+              <span class="row-copy" aria-hidden="true">Copy</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p class="empty" id="tc-empty" hidden>Type something above to see it in every case.</p>
+    </section>
+
+    <!-- JSON keys -->
+    <section id="tc-json" class="pane" hidden>
+      <div class="pick">
+        <span class="pick-label">Rename keys to</span>
+        <div class="chips" id="tc-json-target" role="radiogroup" aria-label="Key case">
+          {KEY_TARGETS.map((id, i) => (
+            <button type="button" role="radio" class="chip" data-case={id} aria-checked={i === 0 ? 'true' : 'false'}>{nameOf(id)}</button>
+          ))}
+        </div>
+      </div>
+      <div class="split">
+        <div class="col">
+          <label for="tc-json-in">Paste JSON</label>
+          <textarea id="tc-json-in" class="code" spellcheck="false" autocomplete="off" autocapitalize="off">{sampleJson}</textarea>
+        </div>
+        <div class="col">
+          <span class="col-label">Renamed keys <span class="legend"><mark>changed</mark></span></span>
+          <pre id="tc-json-out" class="out" tabindex="0" aria-label="JSON with renamed keys"></pre>
+        </div>
+      </div>
+      <p class="bad" id="tc-json-error" role="alert" hidden></p>
+      <p class="warn" id="tc-json-clash" role="alert" hidden></p>
+      <div class="opts">
+        <label><input type="checkbox" id="tc-json-deep" checked /> Nested keys too</label>
+        <span class="count" id="tc-json-count"></span>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="tc-json-copy">Copy JSON</button>
+        <button type="button" class="ghost" id="tc-json-prompt">Copy prompt for your AI agent</button>
+        {jsonTs && <a class="ghost" href={`/tools/${jsonTs.slug}/`}>Turn it into TypeScript types</a>}
+      </div>
+    </section>
+
+    <!-- .env names -->
+    <section id="tc-env" class="pane" hidden>
+      <div class="pick">
+        <span class="pick-label">Rename to</span>
+        <div class="chips" id="tc-env-target" role="radiogroup" aria-label="Name case">
+          {ENV_TARGETS.map((id, i) => (
+            <button type="button" role="radio" class="chip" data-case={id} aria-checked={i === 0 ? 'true' : 'false'}>{nameOf(id)}</button>
+          ))}
+        </div>
+        <label class="prefix">Prefix
+          <select id="tc-env-prefix">
+            {ENV_PREFIXES.map((p) => <option value={p}>{p || 'None'}</option>)}
+          </select>
+        </label>
+      </div>
+      <div class="split">
+        <div class="col">
+          <label for="tc-env-in">Paste a .env file or a list of names</label>
+          <textarea id="tc-env-in" class="code" spellcheck="false" autocomplete="off" autocapitalize="off">{sampleEnv}</textarea>
+        </div>
+        <div class="col">
+          <span class="col-label">Renamed <span class="legend"><mark>changed</mark></span></span>
+          <pre id="tc-env-out" class="out" tabindex="0" aria-label="Renamed .env"></pre>
+        </div>
+      </div>
+      <p class="warn" id="tc-env-secret" role="alert" hidden></p>
+      <div class="opts"><span class="count" id="tc-env-count"></span></div>
+      <div class="actions">
+        <button type="button" class="primary" id="tc-env-copy">Copy</button>
+        {gitignore && <a class="ghost" href={`/tools/${gitignore.slug}/`}>Keep .env out of git</a>}
+      </div>
+    </section>
+
+    <p class="status" id="tc-status" role="status" aria-live="polite"></p>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/text-case-converter';
+</script>
+
+<style>
+  .tc { display: grid; gap: 20px; min-width: 0; }
+  .tc [hidden] { display: none !important; }
+  .pane { display: grid; gap: 18px; min-width: 0; }
+  .modes { display: flex; gap: 6px; padding: 4px; background: var(--wash); border-radius: 999px; justify-self: start; max-width: 100%; overflow-x: auto; }
+  .modes button { font: 600 16px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .modes button[aria-selected='true'] { background: var(--ink); color: var(--white); }
+
+  .in-wrap { display: grid; gap: 8px; padding: 6px; border-radius: 22px; background: var(--wash); border: 1px solid var(--line); }
+  #tc-in { box-sizing: border-box; width: 100%; min-height: 72px; max-height: 320px; margin: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); color: var(--ink); font: 600 22px/1.4 var(--mono); font-variant-ligatures: none; resize: vertical; }
+  #tc-in:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .in-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 2px 10px 6px; min-height: 28px; }
+  .badge { font: 700 13px/1 var(--mono); padding: 6px 10px; border-radius: 999px; background: var(--ink); color: var(--white); }
+  .count { font-size: 14px; color: var(--ink-soft); }
+  .link { margin-left: auto; font: 600 14px/1 var(--body); padding: 4px; border: 0; background: none; color: var(--sky); cursor: pointer; }
+
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
+  .row { box-sizing: border-box; width: 100%; display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); color: var(--ink); text-align: left; cursor: copy; font: inherit; transition: border-color 0.12s, transform 0.12s; }
+  .row:hover, .row:focus-visible { border-color: var(--sky); outline: none; }
+  .row:active { transform: scale(0.995); }
+  .row:global(.you) { border-color: var(--ink); background: var(--wash); }
+  .row:global(.done) { border-color: var(--pink); }
+  .row-head { display: grid; gap: 4px; min-width: 0; }
+  .row-name { font: 700 14px/1.2 var(--mono); color: var(--ink); }
+  .row-you { justify-self: start; font: 700 11px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 7px; border-radius: 999px; background: var(--ink); color: var(--white); }
+  .row-use { font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+  .row-val { min-width: 0; max-height: 9.6em; overflow: auto; font: 600 22px/1.6 var(--mono); font-variant-ligatures: none; color: var(--sky); white-space: pre; overflow-wrap: normal; }
+  .row-val:global(.many) { font-size: 16px; }
+  .row-copy { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); background: var(--white); }
+  .row:hover .row-copy { border-color: var(--sky); }
+  .row:global(.done) .row-copy { border-color: var(--pink); color: var(--pink); }
+  .empty { margin: 0; color: var(--ink-soft); }
+
+  .pick { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .pick-label, .prefix { font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: 600 15px/1 var(--mono); padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .chip:hover { border-color: var(--sky); }
+  .chip[aria-checked='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .prefix { display: flex; align-items: center; gap: 8px; }
+  .prefix select { font: 600 15px/1 var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-width: 0; }
+  .col { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-width: 0; }
+  .col label, .col-label { font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .legend mark, .out :global(mark) { background: #FBE1EF; color: #A0206A; border-radius: 4px; padding: 0 2px; }
+  .legend { font-weight: 500; font-size: 13px; }
+  .code, .out { box-sizing: border-box; width: 100%; height: 340px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; font: 400 13.5px/1.6 var(--mono); font-variant-ligatures: none; tab-size: 2; }
+  .code { background: var(--white); color: var(--ink); resize: vertical; }
+  .code:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .out { overflow: auto; background: var(--ink); color: #E6F6FB; white-space: pre; }
+  .out :global(mark) { background: #D83995; color: #fff; }
+  .out :global(.k) { color: #8FD8F2; }
+  .out :global(.s) { color: #C7F0B5; }
+  .out :global(.n) { color: #FFD48A; }
+  .out :global(.c) { color: #8AA5B3; }
+
+  .opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font-size: 15px; }
+  .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .bad, .warn { margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 15px; }
+  .bad { background: #FDECEF; color: #B4234F; }
+  .warn { background: #FFF4DB; color: #7A4B00; }
+  .warn :global(code) { font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  @media (max-width: 720px) {
+    .row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 14px; }
+    .row-head { grid-column: 1 / -1; }
+    .row-use { display: none; }
+    .row-val { font-size: 18px; }
+    .split { grid-template-columns: minmax(0, 1fr); }
+    .code, .out { height: 240px; }
+    #tc-in { font-size: 18px; }
+    .modes button { padding: 11px 14px; font-size: 15px; }
+  }
+</style>

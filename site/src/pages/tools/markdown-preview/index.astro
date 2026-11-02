@@ -1,0 +1,237 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+// Link to the README generator only once it ships.
+const hasReadme = TOOLS.some((t) => t.slug === 'readme-generator');
+
+const steps = [
+  'Type or paste Markdown on the left. The preview on the right shows it the way GitHub would: headings, tables, checklists, code with colors and <code>&gt; [!NOTE]</code> boxes.',
+  'Not sure of the symbols? Use the buttons above the editor for bold, links, tables, checklists and more. Ctrl+B, Ctrl+I and Ctrl+K work too (⌘ on a Mac). Tick a checklist box in the preview and it ticks in your text.',
+  'When it looks right, press <strong>Copy for Notion or Docs</strong> to paste it with formatting, <strong>Download HTML</strong> for a web page, or <strong>Download .md</strong> to save it as your README.',
+];
+
+const faq = [
+  { q: 'What is Markdown?', a: 'Markdown is plain text with a few symbols for formatting: <code>#</code> for a heading, <code>**bold**</code>, <code>- </code> for a list and <code>[text](link)</code> for a link. GitHub READMEs, Notion, Discord, Reddit and most AI tools use it, which is why Claude and ChatGPT answer in it.' },
+  { q: 'Will it look the same on GitHub?', a: 'Very close. The preview follows GitHub Flavored Markdown: tables, task lists, strikethrough, auto links, fenced code blocks and alerts like <code>&gt; [!NOTE]</code> and <code>&gt; [!WARNING]</code>. Fonts and exact spacing differ a little, and GitHub-only extras like emoji shortcodes, @mentions and Mermaid diagrams show as plain text here.' },
+  { q: 'Is my text uploaded?', a: 'No. Everything happens in your browser. Your draft is kept only in this browser so it’s still here if you close the tab; press <strong>Clear</strong> to remove it. Images you link to are loaded from wherever they live, like any web page.' },
+  { q: 'Why did my &lt;script&gt; or &lt;iframe&gt; disappear?', a: 'For safety, the preview keeps only harmless HTML: things like <code>&lt;details&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code> and <code>&lt;img&gt;</code>. Scripts, iframes, styles and forms are removed, and so are <code>javascript:</code> links. GitHub does the same, so what you see is what your README will show.' },
+  { q: 'How do I paste it into Notion or Google Docs?', a: 'Press <strong>Copy for Notion or Docs</strong>, then paste. Headings, bold, lists, links, tables and code keep their formatting. Notion also understands plain Markdown, so <strong>Copy Markdown</strong> works there too.' },
+  { q: 'How do I make a README for my project?', a: 'Save your text as a file called <code>README.md</code> in the top folder of your project (press <strong>Download .md</strong>), then commit and push it. GitHub shows it on your repository’s front page. You can also ask your AI agent: “Create README.md with this content”.' },
+];
+---
+<ToolPage
+  slug="markdown-preview"
+  title="Markdown editor and live preview (GitHub style) · Darnly"
+  description="Write Markdown and see it as GitHub shows it: tables, checklists, code colors and alerts. Buttons for beginners. Copy into Notion or Docs, or download HTML. Free, nothing uploaded."
+  h1="Markdown preview: see it like GitHub shows it"
+  lede="Type Markdown and watch it turn into a formatted page on the right, with tables, checklists and colored code. Copy it into Notion or Docs, or download it as HTML."
+  steps={steps}
+  faq={faq}
+>
+  <div class="mp">
+    <div class="stage">
+      <div class="bar">
+        <div class="bar-left">
+          <button id="md-open" type="button" class="ghost sm">Open a file</button>
+          <button id="md-sample" type="button" class="ghost sm">Sample README</button>
+          <button id="md-clear" type="button" class="ghost sm">Clear</button>
+          <input id="md-file" type="file" accept=".md,.markdown,.mdx,.txt,text/markdown,text/plain" hidden />
+        </div>
+        <p class="restored" id="md-restored" hidden>Your last draft is back.</p>
+      </div>
+
+      <div class="panes">
+        <section class="pane edit" aria-label="Your Markdown">
+          <div class="toolbar" id="md-toolbar" role="toolbar" aria-label="Formatting">
+            <button type="button" data-action="heading" title="Heading">H</button>
+            <button type="button" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button type="button" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button type="button" data-action="strike" title="Strikethrough"><s>S</s></button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" data-action="link" title="Link (Ctrl+K)">Link</button>
+            <button type="button" data-action="image" title="Image">Image</button>
+            <button type="button" data-action="code" title="Inline code">&lt;/&gt;</button>
+            <button type="button" data-action="codeblock" title="Code block">Code</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" data-action="ul" title="Bullet list">• List</button>
+            <button type="button" data-action="ol" title="Numbered list">1. List</button>
+            <button type="button" data-action="task" title="Checklist">☑ To-do</button>
+            <button type="button" data-action="table" title="Table">Table</button>
+            <button type="button" data-action="quote" title="Quote">Quote</button>
+            <button type="button" data-action="alert" title="Note box">Note box</button>
+            <button type="button" data-action="hr" title="Divider line">—</button>
+          </div>
+          <label for="md-input" class="sr">Markdown text</label>
+          <textarea id="md-input" spellcheck="true" autocomplete="off" autocapitalize="sentences"></textarea>
+        </section>
+
+        <section class="pane show" aria-label="Preview">
+          <div class="show-head">
+            <span class="badge">Preview</span>
+            <span class="stats" id="md-stats"></span>
+            <button type="button" class="verdict" id="md-verdict" data-tone="ok" aria-controls="md-issues" aria-expanded="false"></button>
+          </div>
+          <ul class="issues" id="md-issues" hidden></ul>
+          <article class="md" id="md-preview" aria-live="off"></article>
+        </section>
+      </div>
+      <p class="private">🔒 Your text stays in your browser. Nothing is uploaded.</p>
+    </div>
+
+    <div class="actions">
+      <button id="md-copy-rich" type="button" class="primary">Copy for Notion or Docs</button>
+      <button id="md-download-html" type="button" class="ghost">Download HTML</button>
+      <button id="md-download-md" type="button" class="ghost">Download .md</button>
+      <button id="md-copy-md" type="button" class="ghost">Copy Markdown</button>
+      <button id="md-copy-html" type="button" class="ghost">Copy HTML</button>
+      <p class="status" id="md-status" role="status" aria-live="polite"></p>
+    </div>
+
+    {hasReadme && (
+      <p class="cross">Starting a README from nothing? The <a href="/tools/readme-generator/">README generator</a> writes one from a few answers, then bring it back here to polish it.</p>
+    )}
+
+    <details class="fold">
+      <summary>Markdown cheat sheet</summary>
+      <div class="fold-body">
+        <div class="table">
+          <table>
+            <thead><tr><th>Type this</th><th>To get</th></tr></thead>
+            <tbody>
+              <tr><td><code># Title</code>, <code>## Section</code></td><td>Headings (big to small, up to ######)</td></tr>
+              <tr><td><code>**bold**</code>, <code>_italic_</code>, <code>~~gone~~</code></td><td><strong>bold</strong>, <em>italic</em>, <s>gone</s></td></tr>
+              <tr><td><code>[Darnly](https://darnly.dev)</code></td><td>A link</td></tr>
+              <tr><td><code>![what it shows](image.png)</code></td><td>An image</td></tr>
+              <tr><td><code>- item</code> or <code>1. item</code></td><td>A bullet or numbered list</td></tr>
+              <tr><td><code>- [ ] todo</code>, <code>- [x] done</code></td><td>A checklist</td></tr>
+              <tr><td><code>`code`</code></td><td>Code inside a sentence</td></tr>
+              <tr><td><code>```js</code> … <code>```</code></td><td>A code block with colors (name the language after the backticks)</td></tr>
+              <tr><td><code>&gt; quote</code></td><td>A quote</td></tr>
+              <tr><td><code>&gt; [!NOTE]</code> (or TIP, IMPORTANT, WARNING, CAUTION)</td><td>A colored note box</td></tr>
+              <tr><td><code>| a | b |</code> then <code>| --- | --- |</code></td><td>A table</td></tr>
+              <tr><td><code>---</code></td><td>A divider line</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details class="fold" id="md-html-fold">
+      <summary>See the HTML code</summary>
+      <div class="fold-body">
+        <p class="hint">The safe HTML your Markdown turns into. Scripts and other risky tags are already removed.</p>
+        <pre id="md-html"></pre>
+      </div>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/markdown-preview';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .mp { display: grid; gap: 20px; min-width: 0; }
+  .stage { display: grid; gap: 12px; padding: 16px; border-radius: 24px; border: 2px solid var(--line); background: var(--wash); min-width: 0; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .bar-left { display: flex; gap: 8px; flex-wrap: wrap; }
+  .restored { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 12px; min-width: 0; }
+  .pane { display: flex; flex-direction: column; min-width: 0; border-radius: 16px; border: 1px solid var(--line); background: var(--white); overflow: hidden; height: min(72vh, 720px); min-height: 420px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); background: #F7FBFD; }
+  .toolbar button { font: 600 13px/1 var(--body); padding: 6px 7px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .toolbar button:hover { background: var(--white); border-color: var(--line); }
+  .sep { width: 1px; margin: 4px 2px; background: var(--line); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  textarea { flex: 1; width: 100%; min-height: 0; padding: 16px; border: 0; resize: none; background: var(--white); color: var(--ink); font: 400 14px/1.65 var(--mono); tab-size: 2; }
+  textarea:focus { outline: none; box-shadow: inset 0 0 0 2px var(--sky); }
+  .show-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #F7FBFD; }
+  .badge { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sky); }
+  .stats { font-size: 14px; color: var(--ink-soft); }
+  .verdict { margin-left: auto; font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 999px; border: 1px solid #9ED9B8; background: #F1FBF5; color: #0B6B3A; cursor: default; }
+  .verdict[data-tone='warn'] { border-color: #F2CF7A; background: #FFF9EA; color: #8A5C00; cursor: pointer; }
+  .verdict[data-tone='warn']::after { content: ' ▾'; }
+  .issues { margin: 0; padding: 10px 14px 10px 32px; display: grid; gap: 4px; background: #FFF9EA; border-bottom: 1px solid #F2CF7A; font-size: 14px; color: #5C3D00; }
+  .private { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  /* The preview, styled close to a GitHub README. */
+  .md { flex: 1; overflow: auto; padding: 24px 28px 40px; color: #1F2328; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; overflow-wrap: break-word; }
+  .md :global(> *:first-child) { margin-top: 0; }
+  .md :global(h1), .md :global(h2), .md :global(h3), .md :global(h4), .md :global(h5), .md :global(h6) { margin: 24px 0 16px; font-family: inherit; font-weight: 600; line-height: 1.25; letter-spacing: 0; scroll-margin-top: 12px; }
+  .md :global(h1) { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid #D1D9E0; }
+  .md :global(h2) { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #D1D9E0; }
+  .md :global(h3) { font-size: 1.25em; }
+  .md :global(h4) { font-size: 1em; }
+  .md :global(h5) { font-size: 0.875em; }
+  .md :global(h6) { font-size: 0.85em; color: #59636E; }
+  .md :global(p), .md :global(ul), .md :global(ol), .md :global(blockquote), .md :global(pre), .md :global(table), .md :global(details), .md :global(dl), .md :global(.md-alert) { margin: 0 0 16px; }
+  .md :global(a) { color: #0969DA; text-decoration: underline; text-underline-offset: 2px; }
+  .md :global(img) { display: inline-block; max-width: 100%; vertical-align: middle; border-radius: 4px; }
+  .md :global(ul), .md :global(ol) { padding-left: 2em; }
+  .md :global(li + li) { margin-top: 0.25em; }
+  .md :global(li > ul), .md :global(li > ol) { margin: 0.25em 0 0; }
+  .md :global(ul.tasks) { list-style: none; padding-left: 1.4em; }
+  .md :global(li.task > input) { margin: 0 0.45em 0 -1.4em; vertical-align: middle; width: 15px; height: 15px; accent-color: #1A9B5A; }
+  .md :global(li.task > input:not([disabled])) { cursor: pointer; }
+  .md :global(code) { font: 85% ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 0.2em 0.4em; border-radius: 6px; background: #EFF1F3; }
+  .md :global(pre) { position: relative; padding: 16px; border-radius: 8px; background: #F6F8FA; overflow: auto; line-height: 1.45; }
+  .md :global(pre[data-lang])::after { content: attr(data-lang); position: absolute; top: 6px; right: 10px; font: 600 11px/1 ui-monospace, Menlo, monospace; color: #8C959F; text-transform: lowercase; }
+  .md :global(pre code) { padding: 0; background: none; font-size: 85%; white-space: pre; }
+  .md :global(blockquote) { padding: 0 1em; color: #59636E; border-left: 0.25em solid #D1D9E0; }
+  .md :global(hr) { height: 0.25em; margin: 24px 0; border: 0; background: #D1D9E0; }
+  .md :global(table) { display: block; width: max-content; max-width: 100%; overflow: auto; border-collapse: collapse; }
+  .md :global(th), .md :global(td) { padding: 6px 13px; border: 1px solid #D1D9E0; }
+  .md :global(th) { font-weight: 600; background: #F6F8FA; }
+  .md :global(tr:nth-child(2n) td) { background: #F6F8FA; }
+  .md :global(kbd) { display: inline-block; padding: 3px 5px; font: 11px ui-monospace, Menlo, monospace; border: 1px solid #D1D9E0; border-bottom-width: 2px; border-radius: 6px; background: #F6F8FA; }
+  .md :global(summary) { cursor: pointer; font-weight: 600; }
+  .md :global(.md-alert) { padding: 8px 16px; border-left: 0.25em solid #0969DA; }
+  .md :global(.md-alert > :last-child) { margin-bottom: 0; }
+  .md :global(.md-alert-title) { margin-bottom: 4px; font-weight: 600; }
+  .md :global(.md-alert-note) { border-color: #0969DA; } .md :global(.md-alert-note .md-alert-title) { color: #0969DA; }
+  .md :global(.md-alert-tip) { border-color: #1A7F37; } .md :global(.md-alert-tip .md-alert-title) { color: #1A7F37; }
+  .md :global(.md-alert-important) { border-color: #8250DF; } .md :global(.md-alert-important .md-alert-title) { color: #8250DF; }
+  .md :global(.md-alert-warning) { border-color: #9A6700; } .md :global(.md-alert-warning .md-alert-title) { color: #9A6700; }
+  .md :global(.md-alert-caution) { border-color: #D1242F; } .md :global(.md-alert-caution .md-alert-title) { color: #D1242F; }
+  .md :global(.md-empty) { color: #8C959F; }
+  .md :global(.tok-c) { color: #6E7781; font-style: italic; }
+  .md :global(.tok-s) { color: #0A3069; }
+  .md :global(.tok-n) { color: #0550AE; }
+  .md :global(.tok-k) { color: #CF222E; }
+  .md :global(.tok-f) { color: #8250DF; }
+  .md :global(.tok-a) { color: #0550AE; }
+  .md :global(.tok-add) { color: #116329; background: #DAFBE1; }
+  .md :global(.tok-del) { color: #82071E; background: #FFEBE9; }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .ghost.sm { font-size: 14px; padding: 8px 12px; }
+  .status { flex-basis: 100%; margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .cross { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .cross a { color: var(--sky); font-weight: 600; }
+  .fold { padding: 4px 20px; border-radius: 16px; background: var(--wash); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .fold-body { display: grid; gap: 10px; padding-bottom: 18px; min-width: 0; }
+  .hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .fold pre { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--white); font: 13px/1.5 var(--mono); overflow: auto; max-height: 420px; white-space: pre-wrap; word-break: break-word; }
+  .table { overflow-x: auto; background: var(--white); border-radius: 12px; }
+  .table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .table th, .table td { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .table thead th { border-top: 0; }
+  .table code { font: 13px var(--mono); background: var(--wash); padding: 1px 5px; border-radius: 5px; }
+
+  @media (max-width: 820px) {
+    .stage { padding: 10px; border-radius: 18px; }
+    .panes { grid-template-columns: minmax(0, 1fr); }
+    /* Preview first on a phone, then where you type. */
+    .show { order: -1; height: 60vh; min-height: 320px; }
+    .edit { height: 55vh; min-height: 300px; }
+    .md { padding: 18px 16px 28px; }
+    .actions > button { flex: 1 1 calc(50% - 10px); }
+    .actions > .primary { flex-basis: 100%; }
+  }
+</style>

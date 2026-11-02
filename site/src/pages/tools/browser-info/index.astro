@@ -1,0 +1,227 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { storeUrl } from '../../../data/site';
+
+const steps = [
+  'Open this page. Your browser, system, screen and settings show up straight away, read live from your own browser.',
+  'Resize the window or switch dark mode on and off: the cards update as you go. The viewport drawing shows how much of your screen the page actually gets.',
+  'Press <strong>Copy for a bug report</strong> and paste the block into a GitHub issue, Linear, Slack, an email or your chat with Claude Code, Cursor or Codex. Your IP address is left out unless you tick the box.',
+  'Supporting someone? Press <strong>Copy link to send to a user</strong>, send it, and ask them to paste back what they copy.',
+];
+
+const faq = [
+  { q: 'Why do developers ask “what browser are you on?”', a: 'Because the same page can behave differently in Safari, Chrome and Firefox, at different window sizes, in dark mode or on a touch screen. Knowing the exact browser, version, viewport and settings lets them reproduce the bug on their own machine instead of guessing.' },
+  { q: 'What is the viewport, and why is it different from my screen size?', a: 'The viewport is the part of the window the page is drawn in, without the tabs, address bar and dock. Most layout bugs depend on the viewport, not the screen. If a bug only shows up when the window is narrow, the viewport width (and its Tailwind breakpoint, like <code>md</code>) is the number to share.' },
+  { q: 'What is device pixel ratio?', a: 'How many real screen pixels make up one CSS pixel. Retina Macs and most phones are <code>2x</code> or <code>3x</code>; many Windows laptops are <code>1.25x</code> or <code>1.5x</code> from display scaling. Blurry images or 1px lines that look thick usually come down to this. Browser zoom changes it too.' },
+  { q: 'Why can’t it tell my exact macOS version or Windows 11?', a: 'Browsers stopped putting those in the user agent to make tracking harder: every Mac says “10.15.7” and Windows 11 says “Windows NT 10.0”. Chrome and Edge still share the real version when a page asks politely (client hints), so this page asks. Safari and Firefox don’t, so it says so instead of guessing.' },
+  { q: 'Do you store my IP address?', a: 'No. The page asks darnly.dev for your country and IP address, which come from the request your browser already made, and the answer goes straight back to you. This tool doesn’t save it. Everything else is read inside your browser and never leaves it.' },
+  { q: 'Why does it say “Instagram in-app browser”?', a: 'Links opened inside Instagram, Facebook, TikTok, LinkedIn or X open in the app’s own built-in browser, which is a different browser from Safari or Chrome. It often breaks logins, downloads and payments. If a user reports a bug from one of these, that is a big clue.' },
+];
+---
+<ToolPage
+  slug="browser-info"
+  title="What browser am I using? Browser, screen and device info · Darnly"
+  description="See your browser and version, operating system, viewport and screen size, pixel ratio, dark mode, time zone, connection and country in one look. Copy it all as a clean block for a bug report. Free."
+  h1="What browser am I using?"
+  lede="Your browser, system, screen and settings in one look, read live from this browser. One click copies it all as a clean block for a bug report."
+  steps={steps}
+  faq={faq}
+>
+  <div class="bi">
+    <div class="hero" aria-live="polite">
+      <span class="eyebrow">You’re using</span>
+      <p class="headline">
+        <span class="b" id="bi-headline-browser">Your browser</span>
+        <span class="on">on</span>
+        <span class="o" id="bi-headline-os">your system</span>
+      </p>
+      <span class="chip" id="bi-headline-device">Desktop</span>
+      <div class="actions">
+        <button id="bi-copy" type="button" class="primary">Copy for a bug report</button>
+        <button id="bi-copy-plain" type="button" class="ghost">Copy as plain text</button>
+        <button id="bi-share" type="button" class="ghost">Copy link to send to a user</button>
+      </div>
+      <div class="opts">
+        <label><input type="checkbox" id="bi-include-ip" /> Include my IP address</label>
+        <label><input type="checkbox" id="bi-include-ua" /> Include the full user agent</label>
+      </div>
+      <p class="status" id="bi-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <span class="label">Browser</span>
+        <span class="value" id="bi-browser">…</span>
+        <span class="note" id="bi-browser-note"></span>
+      </div>
+      <div class="card">
+        <span class="label">Operating system</span>
+        <span class="value" id="bi-os">…</span>
+        <span class="note" id="bi-os-note"></span>
+      </div>
+      <div class="card device" id="bi-device-card">
+        <span class="label">Device</span>
+        <span class="value" id="bi-device">…</span>
+        <span class="note" id="bi-device-note"></span>
+      </div>
+
+      <div class="card wide view">
+        <div class="view-text">
+          <span class="label">Viewport (what the page gets)</span>
+          <span class="value big" id="bi-viewport">…</span>
+          <span class="tag" id="bi-bp"></span>
+          <span class="note">Resize the window and watch it change. Inside the outline: your screen, <span id="bi-screen"></span>.</span>
+        </div>
+        <div class="draw" id="bi-draw" aria-hidden="true">
+          <div class="draw-screen" id="bi-draw-screen"><div class="draw-vp" id="bi-draw-vp"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <span class="label">Pixel ratio</span>
+        <span class="value big" id="bi-dpr">…</span>
+        <span class="note" id="bi-dpr-note"></span>
+      </div>
+
+      <div class="card scheme" id="bi-scheme-card">
+        <span class="label">Color scheme</span>
+        <span class="value" id="bi-scheme">…</span>
+        <span class="note" id="bi-scheme-note"></span>
+      </div>
+      <div class="card motion" id="bi-motion-card">
+        <span class="label">Motion</span>
+        <span class="value" id="bi-motion">…</span>
+        <span class="note" id="bi-motion-note"></span>
+      </div>
+      <div class="card">
+        <span class="label">Language</span>
+        <span class="value" id="bi-lang">…</span>
+        <span class="note" id="bi-lang-note"></span>
+      </div>
+
+      <div class="card">
+        <span class="label">Time zone</span>
+        <span class="value" id="bi-tz">…</span>
+        <span class="note" id="bi-tz-note"></span>
+      </div>
+      <div class="card">
+        <span class="label">Touch</span>
+        <span class="value" id="bi-touch">…</span>
+        <span class="note" id="bi-touch-note"></span>
+      </div>
+      <div class="card cookies" id="bi-cookies-card">
+        <span class="label">Cookies</span>
+        <span class="value" id="bi-cookies">…</span>
+        <span class="note" id="bi-cookies-note"></span>
+      </div>
+
+      <div class="card">
+        <span class="label">Connection</span>
+        <span class="value" id="bi-net">…</span>
+        <span class="note" id="bi-net-note"></span>
+      </div>
+      <div class="card wide">
+        <span class="label">Country</span>
+        <span class="value" id="bi-country">Checking…</span>
+        <span class="note" id="bi-country-note"></span>
+        <span class="ip-row">Your IP address: <button type="button" id="bi-ip" class="ip" title="Copy" hidden></button></span>
+      </div>
+    </div>
+
+    <details class="fold">
+      <summary>See what gets copied</summary>
+      <pre id="bi-report" tabindex="0" aria-label="The bug report block"></pre>
+      <div class="actions"><button id="bi-copy-2" type="button" class="primary">Copy for a bug report</button></div>
+    </details>
+
+    <aside class="cta">
+      <div>
+        <strong>Darnly adds all of this to every bug report automatically.</strong>
+        <p>Press one key, click the broken part of your site, say what you expected. Darnly saves a screenshot, the element, console errors and this browser info for Claude Code, Codex or Cursor to fix.</p>
+      </div>
+      <a href={storeUrl('tool-browser-info')}>Add Darnly to Chrome, free</a>
+    </aside>
+
+    <details class="fold">
+      <summary>Technical details: user agent, client hints, graphics</summary>
+      <div class="table-wrap"><table><tbody id="bi-tech"></tbody></table></div>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/browser-info';
+</script>
+
+<style>
+  .bi { display: grid; gap: 24px; min-width: 0; }
+  .bi [hidden] { display: none !important; }
+  .hero { display: grid; justify-items: start; gap: 14px; padding: 36px; border-radius: 24px; background: linear-gradient(140deg, #0B2230, #123B52); color: #E6F6FB; min-width: 0; overflow: hidden; }
+  .eyebrow { font: 700 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: #7FD3F2; }
+  .headline { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font: 800 52px/1.05 var(--display); letter-spacing: -0.02em; color: var(--white); min-width: 0; }
+  .headline .on { font-size: 0.5em; font-weight: 600; color: #A9C7D3; }
+  .headline .o { color: #7FD3F2; overflow-wrap: anywhere; }
+  .chip { font: 700 14px/1 var(--body); padding: 8px 14px; border-radius: 999px; background: var(--pink); color: var(--white); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .hero .actions { margin-top: 8px; }
+  .primary { font: 700 16px/1 var(--body); padding: 14px 22px; border: 0; border-radius: 999px; background: var(--pink); color: var(--white); cursor: pointer; }
+  .primary:hover { box-shadow: 0 6px 20px rgba(216, 57, 149, 0.4); }
+  .ghost { font: 600 15px/1 var(--body); padding: 12px 16px; border: 1px solid #2B4A5A; border-radius: 999px; background: transparent; color: #E6F6FB; cursor: pointer; }
+  .ghost:hover { border-color: #7FD3F2; }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: #A9C7D3; }
+  .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opts input { accent-color: var(--pink); width: 16px; height: 16px; }
+  .status { margin: 0; min-height: 1.5em; font-size: 15px; color: #7FD3F2; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .card { display: grid; align-content: start; gap: 6px; padding: 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--white); min-width: 0; transition: background 0.3s, color 0.3s; }
+  .card.wide { grid-column: span 2; }
+  .label { font: 700 12px/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .value { font: 800 28px/1.1 var(--display); letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; }
+  .value.big { font-size: 40px; font-variant-numeric: tabular-nums; }
+  .note { font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
+  .tag { justify-self: start; font: 700 13px/1 var(--mono); padding: 6px 10px; border-radius: 999px; background: #DDF2FA; color: var(--sky); }
+  .view { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; background: var(--wash); }
+  .view-text { display: grid; gap: 6px; min-width: 0; }
+  .draw { width: 260px; height: 170px; display: grid; place-items: center; }
+  .draw-screen { position: relative; border: 2px solid var(--ink); border-radius: 6px; background: var(--white); box-sizing: content-box; }
+  .draw-vp { position: absolute; left: 0; bottom: 0; border-radius: 3px; background: repeating-linear-gradient(135deg, rgba(5, 147, 198, 0.28) 0 6px, rgba(5, 147, 198, 0.16) 6px 12px); outline: 2px solid var(--sky); outline-offset: -2px; transition: width 0.15s, height 0.15s; }
+  .scheme[data-dark="true"] { background: #0B2230; border-color: #0B2230; }
+  .scheme[data-dark="true"] .value { color: var(--white); }
+  .scheme[data-dark="true"] .label, .scheme[data-dark="true"] .note { color: #A9C7D3; }
+  .scheme[data-dark="false"] { background: linear-gradient(160deg, #FFF6D9, var(--white)); }
+  .motion[data-reduce="true"] .value { color: var(--pink); }
+  .cookies[data-ok="false"] { border-color: #F2B6C8; background: #FDEEF3; }
+  .cookies[data-ok="false"] .value { color: #B4234F; }
+  .ip-row { margin-top: 4px; font-size: 14px; color: var(--ink-soft); }
+  .ip { font: 600 15px/1.2 var(--mono); padding: 6px 10px; border-radius: 10px; border: 1px dashed var(--ink-soft); background: var(--white); color: var(--ink); cursor: copy; overflow-wrap: anywhere; text-align: left; }
+  .ip:hover { border-color: var(--pink); }
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .fold .primary { background: var(--ink); }
+  pre { box-sizing: border-box; margin: 4px 0 12px; padding: 16px; border-radius: 14px; overflow: auto; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; border-radius: 20px; background: #FBE3F0; border: 1px solid #F2B6D6; }
+  .cta div { flex: 1 1 360px; min-width: 0; }
+  .cta strong { font: 800 20px/1.25 var(--display); color: var(--ink); }
+  .cta p { margin: 8px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .cta a { flex: none; text-decoration: none; font-weight: 700; padding: 13px 20px; border-radius: 999px; background: var(--pink); color: var(--white); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  table :global(th) { text-align: left; vertical-align: top; font: 600 14px/1.4 var(--body); color: var(--ink-soft); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table :global(td) { font: 400 13px/1.5 var(--mono); padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; word-break: break-word; }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card.wide { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .hero { padding: 22px; }
+    .headline { font-size: 34px; }
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .view { grid-template-columns: minmax(0, 1fr); }
+    .draw { width: 100%; height: 150px; }
+    .value { font-size: 24px; }
+    .value.big { font-size: 32px; }
+    .primary, .ghost { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .draw-vp { transition: none; }
+  }
+</style>

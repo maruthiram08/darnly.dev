@@ -1,0 +1,247 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+import { RATIOS, DEFAULTS } from '../../../scripts/fluid-type-generator-core';
+
+// Point at sibling tools once they ship.
+const pxToRem = TOOLS.find((t) => t.slug === 'px-to-rem');
+const fontFinder = TOOLS.find((t) => t.slug === 'font-finder');
+
+const steps = [
+  'Drag the screen width slider, or press Play. The sample page resizes from a phone to a desktop and the text grows smoothly with it, with no jumps at breakpoints.',
+  'Pick how big body text is on a phone and on a desktop, and how fast headings grow (the ratio). Each heading is the size below it times the ratio.',
+  'Copy the result as CSS variables, a Tailwind v4 <code>@theme</code> block or a Tailwind v3 config, or copy a prompt that asks your AI coding agent to put it in your project.',
+];
+
+const faq = [
+  { q: 'What is fluid typography?', a: 'Text that grows smoothly with the screen instead of jumping at breakpoints. A heading might be 28px on a phone and 42px on a laptop, and every width in between gets a size in between. You write it once with CSS <code>clamp()</code> and need no <code>md:</code> or <code>lg:</code> text classes.' },
+  { q: 'How does clamp() work for font sizes?', a: '<code>clamp(min, preferred, max)</code> uses the preferred value but never goes below min or above max. Here the preferred value is a rem amount plus a vw amount, so it grows with the screen width. Below the small screen width the text stays at the min size, and above the large width it stays at the max.' },
+  { q: 'What is a type scale ratio?', a: 'Each step is the step below it times the ratio. With a 16px body and a 1.25 ratio (major third), the next sizes are 20px, 25px, 31.25px and so on. Small ratios like 1.125 feel calm and suit phones and dense apps. Large ratios like 1.5 make big, dramatic headings. Using a smaller ratio on phones and a bigger one on desktop is common.' },
+  { q: 'Does fluid type break browser zoom?', a: 'It can. Text sized only in <code>vw</code> does not grow when people zoom in. This tool always mixes rem with vw, so zoom and the browser’s font size setting still work. The zoom check marks any size whose large value is more than 2.5 times its small value, because then zooming to 200% may not double it (WCAG 1.4.4).' },
+  { q: 'How do I use it with Tailwind?', a: 'In Tailwind v4, paste the <code>@theme</code> block into your main CSS file after <code>@import "tailwindcss"</code>. It replaces <code>text-base</code>, <code>text-xl</code>, <code>text-3xl</code> and the others with fluid versions, so your existing classes just work. In Tailwind v3, add the sizes to <code>theme.extend.fontSize</code> in <code>tailwind.config.js</code>.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser.' },
+];
+
+const devices = [
+  { label: 'Phone', w: 375 },
+  { label: 'Tablet', w: 768 },
+  { label: 'Laptop', w: 1280 },
+  { label: 'Desktop', w: 1536 },
+];
+---
+<ToolPage
+  slug="fluid-type-generator"
+  title="Fluid type scale generator, CSS clamp() for font sizes · Darnly"
+  description="Make font sizes that grow smoothly from phone to desktop. Pick a base size and a scale ratio, drag the screen width to watch your headings resize, then copy CSS clamp() variables or a Tailwind v4 or v3 config. Free."
+  h1="Fluid font sizes with clamp()"
+  lede="Pick a body size and a scale ratio, then drag the screen from phone to desktop and watch every heading resize. Copy it as CSS variables or a Tailwind config."
+  steps={steps}
+  faq={faq}
+>
+  <div class="ft">
+    <div class="stage" aria-label="Live preview">
+      <div class="bar-top">
+        <div class="width-read">
+          <span class="w-now" id="ft-w">768px</span>
+          <span class="w-label" id="ft-w-label">Tablet</span>
+        </div>
+        <div class="devices" role="group" aria-label="Screen presets">
+          {devices.map((d) => (
+            <button type="button" class="dev" data-w={d.w}>{d.label} <span>{d.w}</span></button>
+          ))}
+          <button type="button" class="play" id="ft-play" aria-pressed="false">▶ Play</button>
+        </div>
+      </div>
+      <label class="sr" for="ft-slider">Screen width</label>
+      <input id="ft-slider" class="slider" type="range" min="320" max="1600" step="1" value="768" />
+      <div class="ticks" aria-hidden="true">
+        <span id="ft-tick-min" class="tick">360</span>
+        <span id="ft-tick-max" class="tick">1280</span>
+      </div>
+
+      <div class="viewport" id="ft-viewport">
+        <div class="screen" id="ft-screen">
+          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span id="ft-chrome-w">768px</span></div>
+          <div class="page" id="ft-page">
+            <p class="pv" data-step="5">Ship it today</p>
+            <p class="pv" data-step="4">Fluid headings, no breakpoints</p>
+            <p class="pv body" data-step="0">Your text grows with the screen. On a phone it stays compact, on a big monitor it has room to breathe, and every width in between gets a size in between.</p>
+            <p class="pv" data-step="3">A section heading</p>
+            <p class="pv body" data-step="0">Drag the slider above or press Play to watch every size change at once.</p>
+            <p class="pv" data-step="2">A smaller heading</p>
+            <p class="pv" data-step="1">A card title</p>
+            <p class="pv small" data-step="-1">Small print · captions · labels</p>
+          </div>
+        </div>
+      </div>
+      <p class="scaled" id="ft-scaled" hidden></p>
+    </div>
+
+    <div class="ladder-card">
+      <div class="ladder-head">
+        <h2 class="h">Your type scale</h2>
+        <p class="verdict" id="ft-verdict"></p>
+      </div>
+      <div class="ladder-grid">
+        <ol class="ladder" id="ft-ladder" aria-label="Sizes at the current screen width"></ol>
+        <figure class="chart">
+          <svg id="ft-chart" viewBox="0 0 360 240" role="img" aria-label="Font size by screen width"></svg>
+          <figcaption>Font size (px) by screen width. Flat ends are where clamp() stops.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="settings">
+      <fieldset>
+        <legend>📱 Small screen</legend>
+        <div class="field">
+          <label for="ft-minvw">Screen width</label>
+          <div class="box-in"><input id="ft-minvw" type="text" inputmode="decimal" value={DEFAULTS.minVw} autocomplete="off" /><span>px</span></div>
+        </div>
+        <div class="field">
+          <label for="ft-minbase">Body text size</label>
+          <div class="box-in"><input id="ft-minbase" type="text" inputmode="decimal" value={DEFAULTS.minBase} autocomplete="off" /><span>px</span></div>
+        </div>
+        <div class="field">
+          <label for="ft-minratio">Heading ratio</label>
+          <select id="ft-minratio">
+            {RATIOS.map((r) => <option value={r.value} selected={r.value === DEFAULTS.minRatio}>{r.name} · {r.value}</option>)}
+            <option value="custom">Custom…</option>
+          </select>
+          <div class="box-in custom" id="ft-minratio-custom-box" hidden><input id="ft-minratio-custom" type="text" inputmode="decimal" aria-label="Custom ratio for small screens" autocomplete="off" /><span>×</span></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>🖥️ Large screen</legend>
+        <div class="field">
+          <label for="ft-maxvw">Screen width</label>
+          <div class="box-in"><input id="ft-maxvw" type="text" inputmode="decimal" value={DEFAULTS.maxVw} autocomplete="off" /><span>px</span></div>
+        </div>
+        <div class="field">
+          <label for="ft-maxbase">Body text size</label>
+          <div class="box-in"><input id="ft-maxbase" type="text" inputmode="decimal" value={DEFAULTS.maxBase} autocomplete="off" /><span>px</span></div>
+        </div>
+        <div class="field">
+          <label for="ft-maxratio">Heading ratio</label>
+          <select id="ft-maxratio">
+            {RATIOS.map((r) => <option value={r.value} selected={r.value === DEFAULTS.maxRatio}>{r.name} · {r.value}</option>)}
+            <option value="custom">Custom…</option>
+          </select>
+          <div class="box-in custom" id="ft-maxratio-custom-box" hidden><input id="ft-maxratio-custom" type="text" inputmode="decimal" aria-label="Custom ratio for large screens" autocomplete="off" /><span>×</span></div>
+        </div>
+      </fieldset>
+    </div>
+    <p class="bad" id="ft-error" role="alert" hidden></p>
+
+    <div class="code-card">
+      <div class="tabs" role="tablist" aria-label="Copy as">
+        <button type="button" role="tab" class="tab" data-format="css" aria-selected="true">CSS variables</button>
+        <button type="button" role="tab" class="tab" data-format="tw4" aria-selected="false">Tailwind v4</button>
+        <button type="button" role="tab" class="tab" data-format="tw3" aria-selected="false">Tailwind v3</button>
+      </div>
+      <pre id="ft-code" tabindex="0" aria-label="Code to copy"></pre>
+      <div class="actions">
+        <button id="ft-copy" type="button" class="primary">Copy code</button>
+        <button id="ft-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="ft-link" type="button" class="ghost">Copy link</button>
+      <button id="ft-reset" type="button" class="ghost">Reset</button>
+      {pxToRem && <a class="ghost" href={`/tools/${pxToRem.slug}/`}>px to rem converter</a>}
+      {fontFinder && <a class="ghost" href={`/tools/${fontFinder.slug}/`}>Find a site’s fonts</a>}
+      <p class="status" id="ft-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/fluid-type-generator';
+</script>
+
+<style>
+  .ft { display: grid; gap: 24px; min-width: 0; }
+  .ft [hidden] { display: none !important; }
+  .stage { display: grid; gap: 10px; padding: 24px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; overflow: hidden; }
+  .bar-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .width-read { display: flex; align-items: baseline; gap: 10px; }
+  .w-now { font: 800 36px/1 var(--display); letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .w-label { font: 600 15px/1 var(--body); color: var(--ink-soft); }
+  .devices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dev, .play { font: 600 14px/1 var(--body); padding: 9px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .dev span { font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+  .dev:hover, .play:hover { border-color: var(--sky); }
+  .dev:global(.on) { border-color: var(--sky); background: #DDF2FA; }
+  .play { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .play[aria-pressed='true'] { background: var(--pink); border-color: var(--pink); }
+  .slider { width: 100%; margin: 6px 0 0; accent-color: var(--pink); cursor: ew-resize; height: 28px; }
+  .ticks { position: relative; height: 16px; margin-top: -6px; }
+  .tick { position: absolute; top: 0; margin-left: -1px; font: 500 11px/1 var(--mono); color: var(--ink-soft); white-space: nowrap; }
+  .tick::before { content: ''; display: block; width: 1px; height: 6px; margin: 0 0 2px; background: var(--ink-soft); }
+  .viewport { position: relative; min-width: 0; overflow: hidden; margin-top: 6px; }
+  .screen { transform-origin: top left; border-radius: 14px; border: 1px solid var(--line); background: var(--white); box-shadow: 0 10px 30px rgba(11, 34, 48, 0.08); overflow: hidden; }
+  .chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #F6FBFD; }
+  .chrome i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .chrome span { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+  .page { padding: 28px 24px 32px; }
+  .pv { margin: 0 0 0.5em; font-family: var(--display); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; }
+  .pv[data-step='5'] { font-weight: 800; letter-spacing: -0.03em; color: var(--sky); }
+  .pv.body { font-family: var(--body); font-weight: 400; line-height: 1.55; letter-spacing: 0; color: var(--ink-soft); margin-bottom: 1.1em; max-width: 65ch; }
+  .pv.small { font-family: var(--body); font-weight: 500; line-height: 1.4; letter-spacing: 0; color: var(--ink-soft); margin: 0; }
+  .scaled { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+  .ladder-card, .code-card { padding: 20px 24px 24px; border-radius: 20px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .ladder-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 12px; }
+  .h { margin: 0; font: 700 20px/1.2 var(--display); }
+  .verdict { margin: 0; font-size: 14px; font-weight: 600; }
+  .verdict:global(.ok) { color: #157A4B; }
+  .verdict:global(.warn) { color: #B4234F; }
+  .ladder-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .ladder :global(li) { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .ladder :global(.role) { font: 600 13px/1.2 var(--body); color: var(--ink-soft); }
+  .ladder :global(.role b) { display: block; font: 500 12px/1.2 var(--mono); color: var(--ink); }
+  .ladder :global(.track) { position: relative; height: 10px; border-radius: 99px; background: var(--wash); }
+  .ladder :global(.range) { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: #BFE4F2; }
+  .ladder :global(.now) { position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--pink); }
+  .ladder :global(.px) { font: 600 14px/1.2 var(--mono); color: var(--ink); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ladder :global(.px small) { display: block; font: 500 11px/1.3 var(--mono); color: var(--ink-soft); }
+  .ladder :global(.zoom) { color: #B4234F; }
+  .chart { margin: 0; min-width: 0; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart figcaption { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+
+  .settings { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  fieldset { display: grid; gap: 12px; margin: 0; padding: 14px 18px 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); min-width: 0; }
+  legend { padding: 0 6px; font: 700 15px/1 var(--display); }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label { font-weight: 600; font-size: 14px; }
+  .box-in { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+  .box-in:focus-within { border-color: var(--sky); }
+  .box-in input { flex: 1; width: 0; min-width: 0; font: 600 18px/1.2 var(--mono); padding: 8px 0; border: 0; background: none; color: var(--ink); }
+  .box-in input:focus { outline: none; }
+  .box-in span { font: 500 14px/1 var(--mono); color: var(--ink-soft); }
+  select { font: 600 15px/1.2 var(--body); padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); min-width: 0; }
+  .bad { margin: -12px 0 0; color: #B4234F; font-size: 14px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tab { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tab[aria-selected='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  pre { box-sizing: border-box; margin: 0 0 14px; max-height: 340px; overflow: auto; padding: 16px; border-radius: 14px; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; white-space: pre; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .ladder-grid { grid-template-columns: minmax(0, 1fr); }
+    .settings { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 16px; }
+    .w-now { font-size: 28px; }
+    .ladder-card, .code-card { padding: 16px; }
+  }
+</style>

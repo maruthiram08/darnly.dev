@@ -1,0 +1,159 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const finder = TOOLS.find((t) => t.slug === 'font-finder');
+
+const steps = [
+  'Pick a heading font, choose a style (modern, classic, friendly, technical or editorial), or press <strong>Shuffle</strong> for six new ideas.',
+  'Each pair is shown on a small landing page with a headline, a paragraph, buttons and cards, so you can judge it by eye. Type your project name and headline to see them in your own words.',
+  'Click “Use this pair”, then copy the Google Fonts <code>&lt;link&gt;</code> tag, CSS variables, a Tailwind config, or a prompt that tells your AI coding agent to switch the fonts for you.',
+];
+
+const faq = [
+  { q: 'Are these fonts free?', a: 'Yes. Every font here is free on Google Fonts, including for commercial projects.' },
+  { q: 'How were the pairs picked?', a: 'By hand. Each heading font has six body fonts that look good next to it, usually with some contrast, like a serif headline over a clean sans-serif body. Every body font has a regular and a bold weight.' },
+  { q: 'Which weights should I load?', a: 'Only what you use. The code we give you loads one weight for the heading font and regular plus bold for the body font. Loading fewer weights makes your pages faster.' },
+  { q: 'I use Next.js. Should I use the link tag?', a: 'Use <code>next/font/google</code> instead. It hosts the fonts with your app and avoids layout shift. The agent prompt tells your AI agent to do that when it sees a Next.js app.' },
+  { q: 'I saw a font I like on another site. Can I pair it?', a: 'Find its name with the free <a href="/tools/font-finder/">font finder</a>. If it is one of the heading fonts here, pick it in the list to see its pairs.' },
+  { q: 'Is anything uploaded?', a: 'No. Everything runs in your browser. The only requests are for the fonts on screen, which come from Google Fonts.' },
+];
+---
+<ToolPage
+  slug="font-pairing"
+  title="Font pairing ideas: Google Fonts that look good together · Darnly"
+  description="See hand-picked Google Fonts pairings on a real-looking landing page. Pick a style or shuffle, then copy the link tag, CSS, a Tailwind config or a prompt for your AI agent. Free."
+  h1="Font pairing ideas: Google Fonts that go together"
+  lede="Pick a heading font or press Shuffle, and see six hand-picked pairs on a real-looking landing page. Found one you like? Copy the code in one click."
+  steps={steps}
+  faq={faq}
+>
+  <div class="fp">
+    <div class="controls">
+      <div class="row">
+        <label class="field-wrap">
+          <span>Heading font</span>
+          <select id="fp-heading">
+            <option value="">Any heading font</option>
+          </select>
+        </label>
+        <button id="fp-shuffle" type="button" class="primary">Shuffle</button>
+      </div>
+      <div class="moods" id="fp-moods" role="group" aria-label="Style">
+        <button type="button" data-mood="all" aria-pressed="true">All</button>
+        <button type="button" data-mood="modern" aria-pressed="false">Modern</button>
+        <button type="button" data-mood="classic" aria-pressed="false">Classic</button>
+        <button type="button" data-mood="friendly" aria-pressed="false">Friendly</button>
+        <button type="button" data-mood="technical" aria-pressed="false">Technical</button>
+        <button type="button" data-mood="editorial" aria-pressed="false">Editorial</button>
+      </div>
+      <details class="own">
+        <summary>Try it with your own words</summary>
+        <div class="own-fields">
+          <label><span>Project name</span><input id="fp-name" type="text" placeholder="Brightside" maxlength="30" autocomplete="off" /></label>
+          <label><span>Headline</span><input id="fp-headline" type="text" placeholder="Ship your side project this weekend" maxlength="80" autocomplete="off" /></label>
+        </div>
+      </details>
+    </div>
+
+    <p class="note" id="fp-note" hidden></p>
+    <div class="grid" id="fp-grid" aria-live="polite"></div>
+
+    <section class="pick" id="fp-pick" aria-labelledby="fp-pick-name">
+      <p class="eyebrow">Your pick</p>
+      <h2 id="fp-pick-name">Playfair Display + Source Sans 3</h2>
+      <p class="why" id="fp-pick-why"></p>
+      <div class="copy">
+        <button type="button" class="primary" data-copy="prompt">Copy prompt for your AI agent</button>
+        <button type="button" class="ghost" data-copy="link">Copy &lt;link&gt; tag</button>
+        <button type="button" class="ghost" data-copy="css">Copy CSS</button>
+        <button type="button" class="ghost" data-copy="tailwind">Copy Tailwind config</button>
+      </div>
+      <p class="status" id="fp-status" role="status" aria-live="polite"></p>
+      <details class="code">
+        <summary>See the code</summary>
+        <div class="tabs" id="fp-tabs" role="tablist">
+          <button type="button" role="tab" data-tab="link" aria-selected="true">&lt;link&gt; tag</button>
+          <button type="button" role="tab" data-tab="css" aria-selected="false">CSS</button>
+          <button type="button" role="tab" data-tab="tailwind" aria-selected="false">Tailwind</button>
+          <button type="button" role="tab" data-tab="prompt" aria-selected="false">Agent prompt</button>
+        </div>
+        <pre><code id="fp-code"></code></pre>
+      </details>
+      {finder && (
+        <p class="finder">Found a font you like on another site? <a href={`/tools/${finder.slug}/`}>Find its name with the font finder</a>, then pair it here.</p>
+      )}
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/font-pairing';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .fp { display: grid; gap: 22px; min-width: 0; }
+  .controls { display: grid; gap: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .field-wrap { display: grid; gap: 6px; flex: 1 1 260px; min-width: 0; font-weight: 600; }
+  select, .own input { font: 500 16px/1.2 var(--body); padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); min-width: 0; width: 100%; }
+  select:focus, .own input:focus { outline: none; border-color: var(--sky); }
+  .moods { display: flex; flex-wrap: wrap; gap: 8px; }
+  .moods button { font: 600 14px/1 var(--body); padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .moods button:hover { border-color: var(--sky); }
+  .moods button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .own summary { cursor: pointer; font-weight: 600; color: var(--ink-soft); }
+  .own-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; margin-top: 10px; }
+  .own label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; min-width: 0; }
+  .note { margin: 0; color: var(--ink-soft); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .grid :global(figure.pair) { margin: 0; display: grid; gap: 0; border: 2px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--white); transition: border-color 0.15s, box-shadow 0.15s; }
+  .grid :global(figure.pair.on) { border-color: var(--sky); box-shadow: 0 8px 28px rgba(5, 147, 198, 0.18); }
+  .grid :global(.mini) { cursor: pointer; display: grid; gap: 16px; padding: 18px 20px 20px; background: var(--bg); color: var(--ink); font-family: var(--bf); overflow-wrap: anywhere; }
+  .grid :global(.nav) { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+  .grid :global(.logo) { font-family: var(--hf); font-weight: var(--hw); font-size: 17px; }
+  .grid :global(.links) { color: var(--soft); white-space: pre; }
+  .grid :global(.hero) { display: grid; gap: 10px; }
+  .grid :global(.kicker) { justify-self: start; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--card); color: var(--accent); }
+  .grid :global(.title) { margin: 0; font-family: var(--hf); font-weight: var(--hw); font-size: 32px; line-height: 1.08; letter-spacing: -0.01em; color: var(--ink); }
+  .grid :global(.para) { margin: 0; font-size: 15px; line-height: 1.55; color: var(--soft); }
+  .grid :global(.btns) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .grid :global(.btn) { font-size: 14px; font-weight: 700; padding: 9px 16px; border-radius: 10px; background: var(--accent); color: var(--bg); }
+  .grid :global(.btn.alt) { background: transparent; color: var(--ink); border: 1px solid currentColor; }
+  .grid :global(.feats) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid :global(.feat) { padding: 12px; border-radius: 12px; background: var(--card); }
+  .grid :global(.feat h4) { margin: 0 0 4px; font-family: var(--hf); font-weight: var(--hw); font-size: 16px; color: var(--ink); }
+  .grid :global(.feat p) { margin: 0; font-size: 13px; line-height: 1.45; color: var(--soft); }
+  .grid :global(figcaption) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .grid :global(.names) { display: grid; flex: 1 1 160px; min-width: 0; font-size: 15px; }
+  .grid :global(.names span) { color: var(--ink-soft); font-size: 14px; }
+  .grid :global(.tags) { display: flex; gap: 6px; flex-wrap: wrap; }
+  .grid :global(.tag) { font: 600 11px/1 var(--mono); padding: 5px 8px; border-radius: 999px; background: var(--wash); color: var(--ink-soft); text-transform: capitalize; }
+  .grid :global(button.use) { font: 600 14px/1 var(--body); padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .grid :global(button.use:hover) { border-color: var(--sky); }
+  .grid :global(figure.on button.use) { background: var(--sky); border-color: var(--sky); color: #fff; }
+
+  .pick { display: grid; gap: 12px; padding: 22px; border-radius: 20px; background: var(--wash); scroll-margin-top: 20px; }
+  .eyebrow { margin: 0; font: 600 13px/1 var(--mono); color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pick h2 { margin: 0; font-size: 30px; line-height: 1.15; }
+  .why { margin: 0; color: var(--ink-soft); }
+  .copy { display: flex; flex-wrap: wrap; gap: 10px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--ink-soft); }
+  .code summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .tabs button { font: 600 13px/1 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  pre { margin: 0; padding: 16px; border-radius: 12px; background: #0B2230; color: #E6F1F6; overflow-x: auto; font: 13px/1.55 var(--mono); }
+  .finder { margin: 0; font-size: 15px; }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .own-fields { grid-template-columns: minmax(0, 1fr); }
+    .grid :global(.title) { font-size: 28px; }
+  }
+</style>

@@ -1,0 +1,155 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Type or paste a link or any text. The QR code at the top updates as you type.',
+  'Pick its colors and the dot style. Add your logo if you like: we raise the error correction to the highest level so it still scans.',
+  'Check the note on the preview. If it says the code may be hard to scan, use darker dots or a lighter background. Then download it as PNG or SVG.',
+];
+
+const faq = [
+  { q: 'Do these QR codes expire?', a: 'No. The link or text is stored inside the code itself, not on a server, so it works forever and there is nothing to renew. If the page it points to moves, you need a new code.' },
+  { q: 'Can I add my logo?', a: 'Yes. Upload a PNG, JPG or SVG and it goes in the middle. We switch error correction to H, which lets a scanner recover up to 30% of the code, so the part under the logo can be missing and it still reads.' },
+  { q: 'Why does it say my colors are hard to scan?', a: 'Phone cameras need a clear difference between the dots and the background. We measure the contrast ratio and warn below 4:1. Light dots on a dark background also fail on some older scanner apps, so we warn about that too.' },
+  { q: 'PNG or SVG?', a: 'PNG works everywhere: slides, docs, social posts. SVG stays sharp at any size, so use it for print, posters and stickers, or to drop into your website code.' },
+  { q: 'How big should I print it?', a: 'At least 2 cm (about 0.8 inch) across for a phone held close. A good rule is one tenth of the scanning distance: a poster read from 2 metres away needs a code about 20 cm wide. Leave the white border around it.' },
+  { q: 'Is anything uploaded?', a: 'No. The code and your logo are made in your browser and never leave your computer.' },
+];
+---
+<ToolPage
+  slug="qr-code-generator"
+  title="Free QR code generator with logo: PNG and SVG · Darnly"
+  description="Make a QR code for any link or text. Pick colors, rounded dots, add your logo, and download PNG or SVG. Free, no sign-up, never expires, and it warns you if it won't scan."
+  h1="QR code generator: free, with your logo"
+  lede="Paste a link or text and get a QR code you can download as PNG or SVG. Change the colors, round the dots, add your logo. It never expires and nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="qr">
+    <div class="stage">
+      <div class="preview" id="qr-preview" aria-label="Live preview of your QR code"></div>
+      <div class="side">
+        <div class="verdict" id="qr-verdict" data-state="ok">
+          <strong id="qr-verdict-title">Easy to scan</strong>
+          <span id="qr-verdict-text">Dark dots on a light background, strong contrast.</span>
+          <button id="qr-swap" type="button" class="ghost small" hidden>Swap the two colors</button>
+        </div>
+        <div class="downloads">
+          <button id="qr-png" type="button" class="primary">Download PNG</button>
+          <button id="qr-svg" type="button" class="ghost">Download SVG</button>
+          <button id="qr-copy" type="button" class="ghost">Copy image</button>
+        </div>
+        <p class="status" id="qr-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="field-block">
+      <label for="qr-text">Link or text</label>
+      <textarea id="qr-text" rows="2" spellcheck="false" autocomplete="off">https://darnly.dev</textarea>
+      <p class="bad" id="qr-error" role="alert" hidden></p>
+    </div>
+
+    <div class="options">
+      <div class="picker">
+        <label for="qr-fg-text">Dot color</label>
+        <div class="field">
+          <input id="qr-fg-swatch" type="color" value="#0b2230" aria-label="Pick dot color" />
+          <input id="qr-fg-text" type="text" value="#0B2230" spellcheck="false" autocomplete="off" />
+        </div>
+      </div>
+      <div class="picker">
+        <label for="qr-bg-text">Background color</label>
+        <div class="field">
+          <input id="qr-bg-swatch" type="color" value="#ffffff" aria-label="Pick background color" />
+          <input id="qr-bg-text" type="text" value="#FFFFFF" spellcheck="false" autocomplete="off" />
+        </div>
+      </div>
+      <fieldset class="style">
+        <legend>Dot style</legend>
+        <div class="seg">
+          <label><input type="radio" name="qr-style" value="square" checked /><span>Square</span></label>
+          <label><input type="radio" name="qr-style" value="rounded" /><span>Rounded dots</span></label>
+        </div>
+      </fieldset>
+      <div class="logo">
+        <span class="lbl">Logo in the middle</span>
+        <div class="logo-row">
+          <label class="ghost file" for="qr-logo">Add logo</label>
+          <input id="qr-logo" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif" class="sr" />
+          <button id="qr-logo-remove" type="button" class="ghost" hidden>Remove logo</button>
+        </div>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>Technical details</summary>
+      <ul id="qr-details">
+        <li>Error correction: <b id="qr-ecl">M</b></li>
+        <li>Size: <b id="qr-size">25 × 25</b> modules</li>
+        <li>Contrast ratio: <b id="qr-ratio">16:1</b></li>
+      </ul>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/qr-code-generator';
+</script>
+
+<style>
+  .qr { display: grid; gap: 24px; min-width: 0; }
+  .qr [hidden] { display: none !important; }
+  .stage { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 28px; align-items: center; padding: 28px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); }
+  .preview { width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 28px rgba(11, 34, 48, 0.14); background: #fff; }
+  .preview :global(svg) { display: block; width: 100%; height: 100%; }
+  .side { display: grid; gap: 18px; min-width: 0; }
+  .verdict { display: grid; gap: 4px; padding: 16px 18px; border-radius: 16px; background: var(--white); border-left: 6px solid #12A05C; }
+  .verdict strong { font: 800 24px/1.15 var(--display); letter-spacing: -0.02em; }
+  .verdict span { color: var(--ink-soft); font-size: 15px; }
+  .verdict[data-state='ok'] strong::before { content: '✓ '; color: #0B6B3A; }
+  .verdict[data-state='warn'] { border-left-color: #E0A100; }
+  .verdict[data-state='warn'] strong::before { content: '! '; color: #9A6B00; }
+  .verdict[data-state='bad'] { border-left-color: #C8284F; }
+  .verdict[data-state='bad'] strong::before { content: '✗ '; color: #9C1C44; }
+  .verdict .small { justify-self: start; margin-top: 6px; font-size: 14px; padding: 8px 12px; }
+  .downloads { display: flex; flex-wrap: wrap; gap: 10px; }
+  .field-block { display: grid; gap: 8px; }
+  .field-block label, .picker label, .style legend, .lbl { font-weight: 600; }
+  textarea { width: 100%; box-sizing: border-box; font: 500 17px/1.4 var(--mono); padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--sky); }
+  .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .picker { display: grid; gap: 8px; min-width: 0; }
+  .field { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .field:focus-within { border-color: var(--sky); }
+  .field input[type='color'] { flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+  .field input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .field input[type='color']::-webkit-color-swatch { border: 0; border-radius: 9px; }
+  .field input[type='text'] { flex: 1; min-width: 0; font: 500 17px/1.2 var(--mono); padding: 8px 6px; border: 0; background: none; color: var(--ink); }
+  .field input[type='text']:focus { outline: none; }
+  .style { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+  .style legend { padding: 0; margin-bottom: 8px; }
+  .seg { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); }
+  .seg label { flex: 1; position: relative; cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .seg span { display: block; text-align: center; padding: 11px 10px; border-radius: 999px; font-weight: 600; font-size: 15px; }
+  .seg input:checked + span { background: var(--ink); color: var(--white); }
+  .seg input:focus-visible + span { outline: 2px solid var(--sky); outline-offset: 2px; }
+  .logo { display: grid; gap: 8px; align-content: start; }
+  .logo-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .file { display: inline-block; }
+  .logo-row:focus-within .file { border-color: var(--sky); }
+  .bad { margin: 0; color: #B4234F; font-size: 14px; }
+  .more { padding: 4px 20px; border-radius: 16px; background: var(--wash); }
+  .more summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .more ul { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 6px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.4em; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 720px) {
+    .stage { grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 18px; }
+    .preview { max-width: 340px; justify-self: center; }
+    .options { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

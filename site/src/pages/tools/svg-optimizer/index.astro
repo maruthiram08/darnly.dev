@@ -1,0 +1,151 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in an SVG file, or paste its code. You can also paste SVG code you copied from Figma.',
+  'It is cleaned up straight away: editor leftovers, comments, hidden metadata and extra decimals go, and you see the size before and after with a preview of both.',
+  'Copy it the way you need it: a smaller SVG, a React component (JSX or TSX), a data URI, or a CSS background. Or copy a ready prompt for your AI agent to add it to your project.',
+];
+
+const faq = [
+  { q: 'Is my SVG uploaded anywhere?', a: 'No. The cleanup happens in your browser. Your file never leaves your computer.' },
+  { q: 'How do I turn an SVG into a React component?', a: 'Paste the SVG, then pick JSX or TSX. Attributes like <code>stroke-width</code> become <code>strokeWidth</code>, <code>class</code> becomes <code>className</code>, inline styles become style objects, and the component passes on any props you give it, like <code>className</code> or <code>width</code>.' },
+  { q: 'Will the optimized SVG look different?', a: 'It shouldn’t. Compare the two previews. If something looks off, raise the number of decimals: very small artwork sometimes needs 3 or 4.' },
+  { q: 'What does “Color follows text color” do?', a: 'It swaps the fills and strokes for <code>currentColor</code>, so the icon takes the color of the text around it. Then you can color it with CSS or a Tailwind class like <code>text-sky-600</code>. Best for one-color icons.' },
+  { q: 'Should I remove the width and height?', a: 'Turn it on for icons and logos you size with CSS. The SVG keeps its viewBox, so it scales to whatever box you put it in. Leave it off if you need the SVG to show at a fixed size on its own.' },
+  { q: 'Data URI or inline SVG?', a: 'Use a data URI or CSS background for small decorative images, like a pattern or a check mark in a list. Use inline SVG or a React component when you need to color it, animate it, or make it accessible with a title.' },
+];
+---
+<ToolPage
+  slug="svg-optimizer"
+  title="SVG optimizer and SVG to JSX converter, free · Darnly"
+  description="Shrink an SVG and copy it as clean SVG, a React JSX or TSX component, a data URI or a CSS background. Free, with a live preview, and your file never leaves your browser."
+  h1="SVG optimizer and SVG to JSX"
+  lede="Paste or drop an SVG to make it smaller, then copy it as clean SVG, a React component, a data URI or a CSS background. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="so">
+    <div class="inputs">
+      <label class="drop" id="so-drop">
+        <input id="so-file" type="file" accept=".svg,image/svg+xml" />
+        <strong>Drop your SVG here</strong>
+        <span>or click to choose a file</span>
+      </label>
+      <div class="paste">
+        <label for="so-input" class="lab">Or paste SVG code</label>
+        <textarea id="so-input" spellcheck="false" autocomplete="off" placeholder="<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; …"></textarea>
+        <button id="so-example" type="button" class="link">Try an example</button>
+      </div>
+    </div>
+    <p class="error" id="so-error" role="alert" hidden></p>
+
+    <div class="controls">
+      <label>Decimals
+        <select id="so-precision">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <label class="check"><input id="so-responsive" type="checkbox" /> Remove width and height (size it with CSS)</label>
+      <label class="check"><input id="so-current" type="checkbox" /> Color follows text color</label>
+    </div>
+
+    <div class="result" id="so-result" hidden>
+      <p class="stats" id="so-stats" aria-live="polite"></p>
+      <div class="previews">
+        <figure>
+          <div class="frame"><img id="so-before" alt="Your SVG before" /></div>
+          <figcaption>Before · <span id="so-before-size"></span></figcaption>
+        </figure>
+        <figure>
+          <div class="frame"><img id="so-after" alt="Your SVG after optimizing" /></div>
+          <figcaption>After · <span id="so-after-size"></span></figcaption>
+        </figure>
+      </div>
+
+      <fieldset class="tabs">
+        <legend>Copy as</legend>
+        <label><input type="radio" name="so-tab" value="svg" checked /> SVG</label>
+        <label><input type="radio" name="so-tab" value="jsx" /> React JSX</label>
+        <label><input type="radio" name="so-tab" value="tsx" /> React TSX</label>
+        <label><input type="radio" name="so-tab" value="uri" /> Data URI</label>
+        <label><input type="radio" name="so-tab" value="css" /> CSS background</label>
+      </fieldset>
+
+      <div class="code">
+        <div class="code-head">
+          <span id="so-code-label"></span>
+          <span class="btns">
+            <button id="so-download" type="button">Download</button>
+            <button id="so-copy" type="button">Copy</button>
+          </span>
+        </div>
+        <pre id="so-code"></pre>
+      </div>
+
+      <div class="actions">
+        <button id="so-prompt" type="button" class="primary">Copy prompt for your AI agent</button>
+        <button id="so-clear" type="button" class="ghost">Start over</button>
+      </div>
+      <p class="status" id="so-status" aria-live="polite"></p>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/svg-optimizer';
+</script>
+
+<style>
+  .so { display: grid; gap: 20px; min-width: 0; }
+  .so [hidden] { display: none !important; }
+  .inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
+  @media (max-width: 720px) { .inputs { grid-template-columns: minmax(0, 1fr); } }
+  .drop { position: relative; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; padding: 40px 24px; border: 2px dashed var(--line); border-radius: 20px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 22px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .paste { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-width: 0; }
+  .lab { font-weight: 600; }
+  .paste textarea { width: 100%; min-height: 160px; box-sizing: border-box; resize: vertical; font: 400 13px/1.5 var(--mono); padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); }
+  .paste textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  .link { justify-self: start; font: 600 15px/1 var(--body); padding: 0; border: 0; background: none; color: var(--sky); text-decoration: underline; cursor: pointer; }
+  .error { margin: 0; color: #B4234F; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+  .controls label { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .controls select { font: inherit; font-size: 15px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+  .controls input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--sky); }
+  .result { display: grid; gap: 16px; min-width: 0; }
+  .stats { margin: 0; font-size: 18px; }
+  .stats :global(strong) { font: 700 22px/1.2 var(--display); color: var(--sky); }
+  .previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+  .frame { display: grid; place-items: center; height: 200px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background-color: #fff; background-image: linear-gradient(45deg, #EEF3F6 25%, transparent 25%), linear-gradient(-45deg, #EEF3F6 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #EEF3F6 75%), linear-gradient(-45deg, transparent 75%, #EEF3F6 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; color: var(--ink); }
+  .frame img { max-width: 100%; max-height: 100%; width: 140px; height: 140px; object-fit: contain; }
+  figcaption { font: 500 14px/1.4 var(--mono); color: var(--ink-soft); }
+  .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .tabs legend { float: left; margin-right: 6px; font-weight: 600; }
+  .tabs label { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); cursor: pointer; font-weight: 600; font-size: 15px; }
+  .tabs label:has(input:checked) { border-color: var(--sky); background: var(--sky); color: var(--white); }
+  .tabs input { position: absolute; opacity: 0; pointer-events: none; }
+  .tabs label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .code { border-radius: 16px; background: var(--ink); color: #D9EEF6; overflow: hidden; min-width: 0; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; font: 500 13px/1.4 var(--mono); color: #8FB4C4; border-bottom: 1px solid rgba(217, 238, 246, 0.12); }
+  .code-head > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .code-head button { font: 600 13px/1 var(--body); padding: 7px 12px; border-radius: 8px; border: 0; background: rgba(252, 255, 255, 0.14); color: var(--white); cursor: pointer; }
+  .code-head button:hover { background: rgba(252, 255, 255, 0.24); }
+  .code pre { margin: 0; padding: 16px; max-height: 360px; overflow: auto; font: 400 13px/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .actions button.primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .actions button.primary:hover { background: #047FAB; }
+  .actions button.ghost { font: 600 16px/1 var(--body); padding: 15px 22px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .status { margin: 0; min-height: 1.4em; color: var(--ink-soft); }
+</style>

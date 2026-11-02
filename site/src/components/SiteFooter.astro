@@ -1,15 +1,30 @@
 ---
-// The footer on every page. Lists every tool and guide once there are any.
-import { TOOLS, GUIDES } from '../data/site';
+// The footer on every page: tool categories with their top tools, a link to all tools, and guides once there are any.
+import { TOOLS, GUIDES, toolsByCategory } from '../data/site';
+const PER_CATEGORY = 4;
+const groups = toolsByCategory();
 ---
 <footer>
   <div class="wrap">
     {(TOOLS.length > 0 || GUIDES.length > 0) && (
       <nav class="lists" aria-label="Free tools and guides">
         {TOOLS.length > 0 && (
-          <div>
-            <h2>Free tools</h2>
-            <ul>{TOOLS.map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}</ul>
+          <div class="tools">
+            <div class="tools-head">
+              <h2>Free tools</h2>
+              <a href="/tools/">See all {TOOLS.length} tools</a>
+            </div>
+            <div class="cats">
+              {groups.map((g) => (
+                <div>
+                  <h3>{g.name}</h3>
+                  <ul>
+                    {g.tools.slice(0, PER_CATEGORY).map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}
+                    {g.tools.length > PER_CATEGORY && <li><a class="more" href="/tools/">+{g.tools.length - PER_CATEGORY} more</a></li>}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {GUIDES.length > 0 && (

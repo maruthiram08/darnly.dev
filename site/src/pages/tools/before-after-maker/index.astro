@@ -1,0 +1,214 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop your “before” screenshot on the Before card and your “after” one on the After card. You can also drop both at once (the older file becomes Before), or paste with <code>Ctrl+V</code> (<code>⌘V</code> on a Mac). Until you do, the preview shows a sample bug fix.',
+  'Pick a layout: side by side, stacked, or an animated swipe that wipes from before to after. Then pick where you’ll post it (X, LinkedIn or square), a frame and a background.',
+  'Download it. Side by side and stacked give you a PNG (or “Copy image” to paste it straight into your post). Swipe gives you a GIF or a video.',
+];
+
+const faq = [
+  { q: 'Are my screenshots uploaded?', a: 'No. Everything is drawn in your browser, including the GIF and the video. Your screenshots never leave your computer.' },
+  { q: 'GIF or video: which should I post?', a: 'On X and LinkedIn, the video looks sharper and the file is smaller. Use the GIF for a GitHub README, a pull request, Slack or Notion, where GIFs play on their own.' },
+  { q: 'Why is my video a WebM file?', a: 'Chrome and Edge save MP4, which X and LinkedIn accept. Firefox can only record WebM. If your browser gives you WebM, use the GIF instead, or convert the WebM to MP4 before posting.' },
+  { q: 'My two screenshots are different sizes. Is that OK?', a: 'Yes. Both are fitted into the same box without cropping, so nothing gets cut off. For the cleanest swipe, take both screenshots of the same window at the same size.' },
+  { q: 'What sizes do the presets make?', a: 'X: 1600×900 (16:9). LinkedIn: 1200×627 (1.91:1). Square: 1080×1080. The GIF is made at about 960 pixels wide so it stays small enough to post; the video and PNG use the full size.' },
+];
+---
+<ToolPage
+  slug="before-after-maker"
+  title="Before and after image maker for bug fixes and redesigns · Darnly"
+  description="Drop two screenshots and get a before and after picture, side by side or stacked, or an animated swipe GIF or video. Sized for X, LinkedIn and square. Free, and nothing is uploaded."
+  h1="Before and after image maker"
+  lede="Drop a “before” and an “after” screenshot to get a post-ready comparison: side by side, stacked, or an animated swipe as a GIF or video. Made for “I fixed this bug” and “redesign” posts. Nothing is uploaded."
+  steps={steps}
+  faq={faq}
+  strip={{ lead: 'Capture the bug before you fix it.', text: 'Press one key on the broken page, click what’s wrong and say what you expected. Darnly saves the “before” for you and hands Claude Code, Codex or Cursor everything it needs to fix it.' }}
+>
+  <div class="ba">
+    <div class="stage" id="ba-stage">
+      <canvas id="ba-canvas" width="1600" height="900" role="img" aria-label="Preview of your before and after picture"></canvas>
+      <div class="drop-hint" id="ba-hint">
+        <strong>This is a sample.</strong>
+        <span class="long">Drop your two screenshots here, or use the Before and After cards below</span>
+        <span class="short">Sample: add yours below</span>
+      </div>
+      <div class="drop-over" id="ba-over" hidden>Drop one or two screenshots</div>
+    </div>
+
+    <div class="slots">
+      <div class="slot" id="ba-slot-before" data-slot="before">
+        <img alt="" id="ba-thumb-before" />
+        <div class="slot-text">
+          <strong>Before</strong>
+          <span id="ba-name-before">Sample</span>
+        </div>
+        <label class="pick">
+          <input type="file" accept="image/*" id="ba-file-before" />
+          <span>Choose</span>
+        </label>
+      </div>
+      <button type="button" class="swap" id="ba-swap" aria-label="Swap before and after" title="Swap before and after">⇄</button>
+      <div class="slot" id="ba-slot-after" data-slot="after">
+        <img alt="" id="ba-thumb-after" />
+        <div class="slot-text">
+          <strong>After</strong>
+          <span id="ba-name-after">Sample</span>
+        </div>
+        <label class="pick">
+          <input type="file" accept="image/*" id="ba-file-after" />
+          <span>Choose</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="top-actions" id="ba-actions">
+      <button id="ba-gif" type="button" class="primary anim">Download GIF</button>
+      <button id="ba-video" type="button" class="ghost anim">Download video</button>
+      <button id="ba-png" type="button" class="primary still">Download PNG</button>
+      <button id="ba-copy" type="button" class="ghost">Copy image</button>
+      <p class="status" id="ba-status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="error" id="ba-error" role="alert" hidden></p>
+
+    <div class="controls">
+      <div class="group wide">
+        <span class="label">Layout</span>
+        <div class="chips" id="ba-layout">
+          <button type="button" data-v="side" aria-pressed="true">Side by side</button>
+          <button type="button" data-v="stack" aria-pressed="false">Stacked</button>
+          <button type="button" data-v="swipe" aria-pressed="false">Swipe <small>GIF / video</small></button>
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Size</span>
+        <div class="chips" id="ba-size">
+          <button type="button" data-v="x" aria-pressed="true">X <small>16:9</small></button>
+          <button type="button" data-v="linkedin" aria-pressed="false">LinkedIn <small>1.91:1</small></button>
+          <button type="button" data-v="square" aria-pressed="false">Square <small>1:1</small></button>
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Frame</span>
+        <div class="chips" id="ba-frame">
+          <button type="button" data-v="browser" aria-pressed="true">Browser window</button>
+          <button type="button" data-v="card" aria-pressed="false">Rounded</button>
+          <button type="button" data-v="none" aria-pressed="false">No frame</button>
+        </div>
+        <div class="chips small" id="ba-mode">
+          <button type="button" data-v="light" aria-pressed="true">Light</button>
+          <button type="button" data-v="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Background</span>
+        <div class="bgs" id="ba-bgs"></div>
+        <div class="custom">
+          <label>From <input id="ba-c1" type="color" value="#38C6F4" /></label>
+          <label class="check"><input id="ba-grad" type="checkbox" checked /> Fade to</label>
+          <input id="ba-c2" type="color" value="#0593C6" aria-label="Second background color" />
+        </div>
+      </div>
+
+      <div class="group wide">
+        <span class="label">Labels</span>
+        <div class="chips" id="ba-labels">
+          <button type="button" data-v="color" aria-pressed="true">Red and green</button>
+          <button type="button" data-v="plain" aria-pressed="false">Plain</button>
+          <button type="button" data-v="off" aria-pressed="false">No labels</button>
+        </div>
+        <div class="pair">
+          <label>Left <input id="ba-lb" type="text" maxlength="24" value="Before" /></label>
+          <label>Right <input id="ba-la" type="text" maxlength="24" value="After" /></label>
+        </div>
+      </div>
+
+      <label class="group">
+        <span class="label">Space around <output id="ba-pad-v">7%</output></span>
+        <input id="ba-pad" type="range" min="2" max="16" value="7" />
+      </label>
+      <label class="group">
+        <span class="label">Address in the bar <span class="opt">optional</span></span>
+        <input id="ba-url" type="text" maxlength="60" value="yourapp.com" />
+      </label>
+      <label class="group wide">
+        <span class="label">Caption <span class="opt">optional</span></span>
+        <input id="ba-caption" type="text" maxlength="90" placeholder="Fixed the sign-up bug 🐛 → ✅" />
+      </label>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/before-after-maker';
+</script>
+
+<style>
+  .ba { display: grid; gap: 20px; min-width: 0; }
+  .ba [hidden] { display: none !important; }
+  .stage { position: relative; display: grid; place-items: center; padding: 16px; border-radius: 20px; border: 1px solid var(--line); min-height: 240px;
+    background: repeating-conic-gradient(#EEF3F5 0% 25%, #FFFFFF 0% 50%) 0 0 / 20px 20px; }
+  .stage canvas { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; border-radius: 6px; box-shadow: 0 10px 30px rgba(11, 34, 48, 0.12); }
+  .drop-hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: grid; gap: 2px; justify-items: center; text-align: center; max-width: calc(100% - 40px);
+    padding: 10px 16px; border-radius: 14px; background: rgba(11, 34, 48, 0.82); color: #FCFFFF; font-size: 14px; pointer-events: none; }
+  .drop-hint .short { display: none; }
+  .drop-over { position: absolute; inset: 8px; display: grid; place-items: center; border: 3px dashed var(--sky); border-radius: 16px; background: rgba(238, 248, 251, 0.9); font: 700 22px/1.2 var(--display); color: var(--ink); pointer-events: none; text-align: center; padding: 12px; }
+  .slots { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+  .slot { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px; border: 2px dashed var(--line); border-radius: 16px; background: var(--white); transition: border-color 0.15s, background 0.15s; }
+  .slot.over { border-color: var(--sky); background: var(--wash); }
+  .slot img { width: 72px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); flex: none; background: var(--wash); }
+  .slot-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .slot-text strong { font-size: 15px; }
+  .slot-text span { font-size: 13px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot .pick { flex: none; padding: 10px 16px; font-size: 14px; }
+  .swap { width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font-size: 20px; cursor: pointer; }
+  .swap:hover { border-color: var(--sky); }
+  .top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .pick { position: relative; padding: 13px 20px; border: 1px dashed var(--sky); border-radius: 999px; background: var(--wash); font-weight: 600; cursor: pointer; overflow: hidden; white-space: nowrap; }
+  .pick:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .primary { font: 600 16px/1 var(--body); padding: 15px 22px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; }
+  .primary:hover { background: #047FAB; }
+  .ghost { font: 600 16px/1 var(--body); padding: 14px 20px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  button:disabled { opacity: 0.55; cursor: progress; }
+  .status { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .error { margin: 0; color: #B4234F; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 20px 28px; padding: 20px; border-radius: 16px; background: var(--wash); }
+  .wide { grid-column: 1 / -1; }
+  .group { display: grid; gap: 8px; min-width: 0; }
+  .label { font-weight: 600; font-size: 15px; display: flex; gap: 8px; align-items: baseline; }
+  .label output { font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+  .opt { font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { font: 600 14px/1 var(--body); padding: 11px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .chips button small { font: 400 12px/1 var(--mono); color: var(--ink-soft); margin-left: 4px; }
+  .chips button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .chips button[aria-pressed='true'] small { color: #9CC3D4; }
+  .chips.small button { padding: 9px 12px; font-size: 13px; }
+  .bgs { display: flex; flex-wrap: wrap; gap: 10px; }
+  .bgs :global(button) { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--white); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .bgs :global(button[aria-pressed='true']) { box-shadow: 0 0 0 3px var(--ink); }
+  .custom { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 14px; }
+  .custom label { display: flex; align-items: center; gap: 8px; }
+  .custom input[type='color'] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--white); }
+  .custom input:disabled { opacity: 0.4; }
+  .pair { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+  .pair label { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; }
+  .pair input { flex: 1; min-width: 0; }
+  .group input[type='range'] { width: 100%; accent-color: var(--sky); }
+  .group input[type='text'] { font: 400 16px/1.4 var(--body); padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); width: 100%; }
+  .group input:disabled, .chips.small button:disabled { opacity: 0.45; }
+  @media (max-width: 620px) {
+    .stage { padding: 8px; }
+    .drop-hint { bottom: 14px; font-size: 13px; padding: 8px 12px; }
+    .drop-hint strong, .drop-hint .long { display: none; }
+    .drop-hint .short { display: inline; }
+    .slots { grid-template-columns: 1fr; }
+    .swap { justify-self: center; transform: rotate(90deg); }
+    .top-actions > * { flex: 1 1 auto; text-align: center; }
+  }
+</style>

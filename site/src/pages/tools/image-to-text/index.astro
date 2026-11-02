@@ -1,0 +1,162 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { storeUrl } from '../../../data/site';
+
+const steps = [
+  'Drop in a screenshot, or paste one straight from your clipboard with Ctrl+V (⌘V on a Mac). Until you do, we show a sample error screenshot.',
+  'Wait a few seconds. The first time, your browser downloads the text reader (about 7 MB); after that it starts right away. Every line we find gets a box on the picture.',
+  'Check the text on the right. Lines boxed in amber are ones we’re less sure of, so give them a quick look. Fix anything by typing in the text box.',
+  'Press <strong>Copy text</strong>, or <strong>Copy as a prompt for your AI agent</strong> to paste the error straight into Claude Code, Codex or Cursor.',
+];
+
+const faq = [
+  { q: 'Is my screenshot uploaded anywhere?', a: 'No. The text is read in your browser, on your computer. Your screenshot never leaves it.' },
+  { q: 'Why is the first one slow?', a: 'The first time, your browser downloads the text reader and the English language file, about 7 MB. Your browser keeps them, so the next screenshots start in a second or two.' },
+  { q: 'Which languages does it read?', a: 'English, and anything written in the Latin alphabet mostly works too. Accents can come out wrong. It doesn’t read handwriting.' },
+  { q: 'How do I get the best result?', a: 'Use a real screenshot, not a photo of your screen. Crop to the part you need: less clutter means fewer mistakes. Small text reads better when you zoom the page in before you take the screenshot.' },
+  { q: 'Why not just paste the screenshot into my AI agent?', a: 'You can. But text is easier for the agent to search the code with, and you can copy the exact error into a search engine or an issue. Long stack traces also fit better as text than as a picture.' },
+  { q: 'Can I copy text from a picture on my phone?', a: 'Yes. This page works in your phone’s browser too: choose a picture from your photos and the text appears below it.' },
+];
+---
+<ToolPage
+  slug="image-to-text"
+  title="Image to text: copy text from a screenshot · Darnly"
+  description="Drop or paste a screenshot and copy its text. See every line boxed on the picture, then copy the text or an error prompt for Claude Code, Codex or Cursor. Free, and nothing is uploaded."
+  h1="Image to text: copy text from a screenshot"
+  lede="Drop or paste a screenshot and get its text, with every line boxed on the picture so you can see what was read. Copy it, or copy it as a prompt for your AI agent. It runs in your browser, so nothing is uploaded."
+  steps={steps}
+  faq={faq}
+>
+  <div class="itt">
+    <label class="drop" id="itt-drop">
+      <input id="itt-file" type="file" accept="image/*" />
+      <strong>Drop a screenshot here</strong>
+      <span id="itt-drop-text">or click to choose one, or paste it with Ctrl+V / ⌘V. Below is a sample until you do.</span>
+    </label>
+    <p class="error" id="itt-error" role="alert" hidden></p>
+
+    <div class="work">
+      <figure class="stage-wrap">
+        <div class="stage" id="itt-stage">
+          <img id="itt-img" alt="The screenshot being read" src="/samples/image-to-text-error.png" width="1760" height="750" />
+          <svg id="itt-boxes" class="boxes" aria-hidden="true" preserveAspectRatio="none"></svg>
+          <div class="busy" id="itt-busy" hidden>
+            <div class="busy-card">
+              <strong id="itt-busy-title">Reading the text…</strong>
+              <div class="bar"><span id="itt-bar"></span></div>
+              <small id="itt-busy-note"></small>
+            </div>
+          </div>
+        </div>
+        <div class="verdict" id="itt-verdict" role="status"></div>
+        <figcaption id="itt-caption">Sample: a typical error screenshot. Drop or paste your own above.</figcaption>
+      </figure>
+
+      <div class="side">
+        <div class="text-col">
+        <div class="side-head">
+          <strong>Text</strong>
+          <span>Click a box on the picture to find its line here.</span>
+        </div>
+        <textarea id="itt-text" spellcheck="false" aria-label="Text found in the screenshot" rows="12"></textarea>
+        </div>
+        <div class="act-col">
+        <div class="buttons">
+          <button id="itt-copy" type="button" class="primary">Copy text</button>
+          <button id="itt-prompt" type="button" class="ghost">Copy as a prompt for your AI agent</button>
+        </div>
+        <details class="prompt-peek">
+          <summary>See the prompt</summary>
+          <pre id="itt-prompt-text"></pre>
+        </details>
+        <p class="darnly-note">
+          <strong>Screenshotting errors for your agent all day?</strong> Darnly grabs the error, the page and the broken part in one click, and hands it to Claude Code, Codex or Cursor.
+          <a href={storeUrl('tool-image-to-text-note')}>Add Darnly to Chrome, it’s free</a>
+        </p>
+        </div>
+      </div>
+    </div>
+
+    <details class="lines">
+      <summary>Line by line: how sure we are of each one</summary>
+      <table>
+        <thead><tr><th>#</th><th>Line</th><th>Sure</th></tr></thead>
+        <tbody id="itt-lines"></tbody>
+      </table>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/image-to-text';
+</script>
+
+<style>
+  .itt { display: grid; gap: 20px; }
+  .drop { position: relative; display: grid; place-items: center; gap: 6px; text-align: center; padding: 28px 24px; border: 2px dashed var(--line); border-radius: 20px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font: 700 22px/1.2 var(--display); }
+  .drop span { color: var(--ink-soft); }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .error { margin: 0; color: #B4234F; }
+  .error[hidden] { display: none; }
+
+  .work { display: grid; gap: 24px; }
+  .stage-wrap { margin: 0; display: grid; gap: 10px; min-width: 0; }
+  .stage { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: repeating-conic-gradient(#e6eef2 0 25%, #fff 0 50%) 0 0 / 16px 16px; line-height: 0; }
+  .stage img { display: block; max-width: 100%; width: auto; height: auto; max-height: 720px; }
+  .boxes { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .boxes :global(rect) { fill: rgba(5, 150, 199, 0.12); stroke: #0596C7; stroke-width: 2; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill 0.12s; }
+  .boxes :global(rect.unsure) { fill: rgba(245, 166, 35, 0.16); stroke: #E08E0B; stroke-dasharray: 5 3; }
+  .boxes :global(rect:hover), .boxes :global(rect.on) { fill: rgba(255, 79, 154, 0.22); stroke: #FF4F9A; }
+  .busy { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 37, 51, 0.55); line-height: 1.4; }
+  .busy[hidden] { display: none; }
+  .busy-card { display: grid; gap: 10px; width: min(320px, 80%); padding: 18px 20px; border-radius: 14px; background: var(--white); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); }
+  .busy-card strong { font-size: 17px; }
+  .busy-card small { color: var(--ink-soft); font-size: 13px; }
+  .bar { height: 8px; border-radius: 99px; background: var(--wash); overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--sky); transition: width 0.2s; }
+  .verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font: 700 20px/1.3 var(--display); }
+  .verdict :global(.pill) { font: 600 14px/1 var(--body); padding: 7px 12px; border-radius: 999px; background: #E3F6EE; color: #11795A; }
+  .verdict :global(.pill.warn) { background: #FFF4D6; color: #6B4E00; }
+  .verdict :global(.pill.bad) { background: #FCE4EC; color: #B4234F; }
+  figcaption { color: var(--ink-soft); font-size: 14px; }
+
+  .side { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px 24px; align-items: start; }
+  .text-col, .act-col { display: grid; gap: 12px; min-width: 0; }
+  .act-col { padding-top: 34px; }
+  .side-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+  .side-head strong { font: 700 18px/1.2 var(--display); }
+  .side-head span { color: var(--ink-soft); font-size: 13px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 280px; resize: vertical; font: 400 14px/1.55 var(--mono); padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; font-variant-ligatures: none; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  textarea::selection { background: #FFD1E5; }
+  .buttons { display: grid; gap: 10px; }
+  .buttons button { font: 600 16px/1.2 var(--body); padding: 14px 20px; border-radius: 999px; cursor: pointer; }
+  .buttons .primary { border: 0; background: var(--sky); color: var(--white); }
+  .buttons .primary:hover { background: #047FAB; }
+  .buttons .ghost { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+  .buttons .ghost:hover { border-color: var(--sky); }
+  .buttons button:disabled { opacity: 0.55; cursor: wait; }
+  .prompt-peek summary, .lines summary { cursor: pointer; color: var(--ink-soft); font-size: 14px; }
+  .prompt-peek pre { margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--wash); font: 400 13px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; }
+  .darnly-note { margin: 4px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--ink); color: #D9EEF6; font-size: 14px; line-height: 1.5; }
+  .darnly-note strong { color: var(--white); }
+  .darnly-note a { display: block; margin-top: 6px; color: #7FD3F2; font-weight: 600; }
+
+  .lines table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .lines th, .lines td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .lines td:nth-child(2) { font-family: var(--mono); overflow-wrap: anywhere; }
+  .lines td:first-child, .lines td:last-child { white-space: nowrap; color: var(--ink-soft); }
+  .lines :global(tr.unsure td:last-child) { color: #B06A00; font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .side { grid-template-columns: minmax(0, 1fr); }
+    .act-col { padding-top: 0; }
+    textarea { min-height: 200px; }
+  }
+  @media (max-width: 480px) {
+    .drop strong { font-size: 19px; }
+  }
+</style>

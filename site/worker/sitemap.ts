@@ -24,17 +24,19 @@ const TIME_BUDGET_MS = 25_000;
 
 const SKIP_EXT = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|pdf|zip|gz|tgz|rar|7z|dmg|exe|msi|apk|ipa|mp4|webm|mov|mp3|wav|ogg|m4a|css|js|mjs|map|json|xml|txt|rss|atom|woff2?|ttf|otf|eot|csv|xlsx?|docx?|pptx?|wasm)$/i;
 
-// Other tools reuse the crawl: the broken link checker reads every page's HTML (onPage) and the
-// answer for every address it opened (onFetch), with a smaller page limit.
+// Other tools reuse the crawl, with a smaller page limit. The llms.txt generator reads the HTML
+// of every page that gets listed (onListed). The broken link checker reads the HTML of every
+// page opened (onPage) and the answer for every address it opened (onFetch).
 export type CrawlOptions = {
   maxPages?: number;
   timeBudgetMs?: number;
+  onListed?: (url: string, html: string) => void;
   onPage?: (url: string, html: string, base: string) => void;
   onFetch?: (requested: string, status: number, final: string) => void;
 };
 
 export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: Headers, firstStatus: number, fetchPage: Fetcher, opts: CrawlOptions = {}) {
-  const maxPages = opts.maxPages ?? MAX_PAGES;
+  const maxPages = Math.min(opts.maxPages ?? MAX_PAGES, MAX_PAGES);
   const timeBudget = opts.timeBudgetMs ?? TIME_BUDGET_MS;
   const start = new URL(firstUrl);
   const origin = start.origin;
@@ -107,6 +109,7 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
       const c = new URL(head.canonical);
       canonicalOrigins.set(c.origin, (canonicalOrigins.get(c.origin) ?? 0) + 1);
       pages.push({ url: c.href, lastmod: head.modified ?? headerDate(r.lastModified) });
+      opts.onListed?.(c.href, r.html);
       return;
     }
     if (head.canonical && stripSlash(head.canonical) !== stripSlash(final.href)) {
@@ -115,6 +118,7 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
       return;
     }
     pages.push({ url: final.href, lastmod: head.modified ?? headerDate(r.lastModified) });
+    opts.onListed?.(final.href, r.html);
   }
 
   async function worker() {

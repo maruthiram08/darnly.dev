@@ -1,35 +1,97 @@
 ---
-// /tools/ hub. Lists every tool in TOOLS; hidden from search until the first tool ships.
+// /tools/ hub: every tool in TOOLS, grouped by category, with a live search. Hidden from search until the first tool ships.
 import Base from '../../layouts/Base.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
-import { TOOLS } from '../../data/site';
+import CategoryIcon from '../../components/CategoryIcon.astro';
+import { TOOLS, NEW_COUNT, toolsByCategory } from '../../data/site';
+
+const groups = toolsByCategory();
+const newest = new Set(TOOLS.slice(-NEW_COUNT).map((t) => t.slug));
+const id = (name: string) => 'cat-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const count = TOOLS.length;
 ---
-<Base title="Free tools for vibecoders · Darnly" description="Small free tools for people who build websites with AI coding agents. No sign-in, nothing to install." noindex={TOOLS.length === 0} image="/og/tools.jpg" imageAlt="Free tools for vibecoders from Darnly">
+<Base title="Free tools for vibecoders: design, images, SEO, launch · Darnly" description={`${count} free tools for vibecoders: favicons, fonts, colors, share previews, launch checks, API key leaks and more. Made for people who build with Cursor, Claude Code, Lovable and Bolt. No sign-in, nothing to install.`} noindex={count === 0} image="/og/tools.jpg" imageAlt="Free tools for vibecoders from Darnly">
   <SiteHeader source="tools-hub" />
   <main class="wrap hub">
-    <span class="eyebrow">Free tools</span>
+    <span class="eyebrow">{count} free tools</span>
     <h1>Free tools for vibecoders</h1>
-    <p class="intro">Quick jobs you do while building a site, done in seconds. No sign-in, nothing to install.</p>
-    {TOOLS.length === 0 ? (
+    <p class="intro">The quick jobs you hit while building with an AI agent, done in seconds. No sign-in, nothing to install.</p>
+    {count === 0 ? (
       <p class="empty">The first tools are on the way.</p>
     ) : (
-      <ul class="cards">
-        {TOOLS.map((t) => (
-          <li><a href={`/tools/${t.slug}/`}><strong>{t.name}</strong><span>{t.blurb}</span></a></li>
+      <>
+        <div class="finder">
+          <label class="search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+            <span class="sr">Search tools</span>
+            <input id="tool-search" type="search" placeholder="Search tools, like “favicon” or “colors”" autocomplete="off" spellcheck="false" />
+          </label>
+          <nav class="chips" aria-label="Tool categories">
+            {groups.map((g) => (
+              <a href={`#${id(g.name)}`} data-chip={id(g.name)}><CategoryIcon name={g.name} size={16} />{g.name}<span>{g.tools.length}</span></a>
+            ))}
+          </nav>
+        </div>
+        <p id="search-status" class="status" role="status" aria-live="polite"></p>
+        {groups.map((g) => (
+          <section class="group" id={id(g.name)} data-group aria-labelledby={`${id(g.name)}-h`}>
+            <h2 id={`${id(g.name)}-h`}><span class="badge-icon"><CategoryIcon name={g.name} /></span>{g.name}</h2>
+            <ul class="cards">
+              {g.tools.map((t) => (
+                <li data-tool data-search={`${t.name} ${t.blurb} ${g.name} ${t.slug.replace(/-/g, ' ')}`.toLowerCase()}>
+                  <a href={`/tools/${t.slug}/`}>
+                    <span class="card-top">
+                      <span class="card-icon"><CategoryIcon name={g.name} /></span>
+                      {newest.has(t.slug) && <span class="new">New</span>}
+                    </span>
+                    <strong>{t.name}</strong>
+                    <span class="blurb">{t.blurb}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
+        <p id="no-results" class="empty" hidden>No tool for that yet. Try another word, or <a href="mailto:hello@darnly.dev">tell us what you need</a>.</p>
+      </>
     )}
   </main>
   <SiteFooter />
 </Base>
+<script>
+  import '../../scripts/tools-hub';
+</script>
 <style>
   .hub { padding-block: 64px 96px; }
   h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.05; margin-top: 12px; }
   .intro { color: var(--ink-soft); max-width: 60ch; margin: 16px 0 0; }
   .empty { margin-top: 32px; color: var(--ink-soft); }
-  .cards { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-  .cards a { display: grid; gap: 6px; padding: 22px; border-radius: 16px; background: var(--wash); text-decoration: none; height: 100%; }
-  .cards a:hover { outline: 2px solid var(--sky); }
-  .cards span { color: var(--ink-soft); font-size: 15px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .finder { position: sticky; top: 0; z-index: 5; margin: 32px -20px 0; padding: 14px 20px; background: color-mix(in srgb, var(--white) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid transparent; }
+  .search { display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink-soft); max-width: 640px; }
+  .search:focus-within { border-color: var(--sky); }
+  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 18px/1 var(--body); color: var(--ink); padding: 14px 0; }
+  .chips { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips a { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 7px 12px; border-radius: 999px; background: var(--wash); text-decoration: none; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .chips a span { color: var(--ink-soft); font-weight: 500; }
+  .chips a:hover { outline: 2px solid var(--sky); }
+  .chips a[hidden] { display: none; }
+  .status { margin: 8px 0 0; min-height: 1.6em; color: var(--ink-soft); font-size: 15px; }
+
+  .group { margin-top: 36px; scroll-margin-top: 140px; }
+  .group h2 { display: flex; align-items: center; gap: 10px; font-size: 26px; line-height: 1.1; }
+  .badge-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--ink); color: var(--white); }
+  .cards { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .cards li[hidden] { display: none; }
+  .cards a { display: grid; align-content: start; gap: 6px; padding: 20px; border-radius: 16px; background: var(--wash); text-decoration: none; height: 100%; transition: transform .12s ease; }
+  .cards a:hover { outline: 2px solid var(--sky); transform: translateY(-2px); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .card-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--white); color: var(--sky); }
+  .new { font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--white); background: var(--pink); padding: 5px 8px; border-radius: 999px; }
+  .cards strong { font-size: 18px; }
+  .blurb { color: var(--ink-soft); font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { .cards a { transition: none; } .cards a:hover { transform: none; } }
 </style>

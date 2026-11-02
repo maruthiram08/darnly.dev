@@ -10,6 +10,23 @@
 //   Same guards. Reads the page and its stylesheets and returns the fonts it loads and where
 //   they are used, for the font finder at /tools/font-finder/.
 //
+// GET /api/frame?url=https://example.com
+//   Same guards. Reads the page's X-Frame-Options and CSP frame-ancestors headers and says whether
+//   other sites may show it in a frame, for the responsive checker at /tools/responsive-checker/.
+//
+// GET /api/shots?url=https://example.com
+//   Screenshots of the page at 390, 768 and 1280 px wide, for sites that block frames. Uses
+//   Browser Rendering, so it has stricter limits: 3 a minute per visitor and 20 a minute site-wide,
+//   a one hour cache, a 25 second budget, and every address the browser loads is checked.
+// GET /api/assets?url=https://example.com
+//   Same guards. Lists the pictures a page uses (images, SVGs, icons, CSS backgrounds, share
+//   image) for the asset extractor at /tools/asset-extractor/.
+//
+// GET /api/asset?url=https://example.com/logo.png
+//   Passes one picture through so the asset extractor can show its size and put it in a ZIP
+//   (browsers can't read other sites' files directly). Images only, 5 MB at most, cached a day,
+//   with its own per-visitor rate limit, and served so it can't run as a page on darnly.dev.
+//
 // GET /api/colors?url=https://example.com
 //   Same guards. Reads the page and its stylesheets and returns its color palette, for the
 //   website color finder at /tools/website-color-finder/.
@@ -26,6 +43,13 @@
 // GET /api/stack?url=https://example.com
 //   Same guards. Reads the page, its response headers and a few of its own files and returns
 //   what it was built with, for the tech stack finder at /tools/tech-stack-finder/.
+//
+// GET /api/speed?url=https://example.com
+//   Same address rules. Asks Google PageSpeed Insights to test the page on a phone and a laptop
+//   and returns the scores, the loading filmstrip, Core Web Vitals and the top fixes, for the
+//   page speed checker at /tools/page-speed-checker/. PSI takes 10 to 40 seconds, so this has
+//   its own rate limit (PSI_LIMIT), a 60 second timeout and a one hour cache. PSI_KEY is an
+//   optional Google API key secret; without it Google's shared free quota is used.
 //
 // GET /api/sitemap?url=https://example.com
 //   Same guards, plus its own limit of 2 crawls a minute per visitor. Follows links on the same
@@ -47,21 +71,97 @@
 //   Same address rules and rate limit. Reads a public key set (or an OpenID configuration that
 //   points to one) and returns only its public keys, for signature checks in the JWT decoder at
 //   /tools/jwt-decoder/. The token itself never comes here.
+//
+// GET /api/llms?url=https://example.com
+//   Same guards, plus its own limit of 2 a minute per visitor. Uses the sitemap crawler (up to
+//   50 pages) to read each page's title and description, checks robots.txt for AI crawlers and
+//   whether an llms.txt exists, for the llms.txt generator at /tools/llms-txt-generator/.
+// GET /api/headers?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Grades the page's
+//   security headers (HSTS, CSP, framing, nosniff, referrer, permissions, cookie flags, server
+//   version) from A to F, for the security headers checker at /tools/security-headers-checker/.
+//   Cookie values are never sent back, only their names and flags.
+// GET /api/csp?url=https://example.com
+//   Same guards. Reads the page, up to 6 stylesheets and up to 12 of its own JavaScript files, and
+//   returns every place it loads things from, grouped by CSP directive, plus its inline scripts
+//   (with hashes), for the CSP generator at /tools/csp-generator/.
+// GET /api/pwa?url=https://example.com
+//   Same guards. Reads the page, its web app manifest, its icons and up to 20 of its own
+//   JavaScript files (to find a service worker being registered) and grades each install
+//   requirement, for the PWA checker at /tools/pwa-checker/.
+// GET /api/domains?names=myapp.com,myapp.dev
+//   Up to 12 names. For each: free, taken (with dates), maybe (no DNS, registry didn't answer) or
+//   unknown. Asks each registry's RDAP server (from the IANA list, cached a day) and Cloudflare DNS.
+//   Own rate limit (DOMAIN_LIMIT). Used by the domain name finder at /tools/domain-name-finder/.
+// GET /api/a11y?url=https://example.com
+//   Same guards, but never cached, so a re-check after a fix is fresh. Reads the page's HTML and
+//   runs the automated accessibility checks, for the accessibility checker at
+//   /tools/accessibility-checker/.
+// POST /api/request  { method, url, headers, body }
+//   Sends one API request for the API tester at /tools/api-tester/ and returns its status, time,
+//   size, headers and body. Public addresses only (checked on every redirect), its own limit of
+//   20 a minute, a 10 second timeout, a 1 MB response limit, no Cookie header, never cached.
+//   See request.ts.
+// GET /api/ssl?domain=example.com
+//   Same rate limit. Reads the domain's certificates from the public Certificate Transparency logs
+//   (crt.sh, with Cert Spotter as a fallback, cached for an hour), looks up its DNS through
+//   Cloudflare's DNS-over-HTTPS, and opens https://, http:// and the www (or bare) name to confirm
+//   what visitors get, for the SSL checker at /tools/ssl-checker/. Results are cached 10 minutes.
+// GET /api/whoami
+//   Sends back the visitor's own IP address and country (from Cloudflare's request data), for the
+//   browser info tool at /tools/browser-info/. Fetches nothing, logs nothing, and is never cached.
+// GET /api/npm?name=zod
+//   Same rate limit and one hour cache. Reads one package from the npm registry (and its
+//   download counts) and grades it, for the npm package checker at /tools/npm-package-checker/.
+//   Only fixed npm addresses are fetched; the name is checked against npm's naming rules first.
+// GET /api/slop?url=https://example.com
+//   Same guards. Reads the page, its stylesheets and (for sites that render in the browser) its
+//   main script, and returns an "AI-made look" score with the tells it found, for the AI slop
+//   checker at /tools/ai-slop-checker/.
+// GET /api/domain?domain=example.com
+//   Reads the domain's DNS records over DNS-over-HTTPS, then opens https and http for the bare
+//   domain and www, following each redirect by hand and checking every hop's address. Same rate
+//   limit; a one minute cache, since people check again right after changing DNS. For the domain
+//   checker at /tools/domain-checker/.
 
 import { findFonts } from './fonts';
+import { findAssets } from './assets';
 import { findColors } from './colors';
 import { checkLaunch, type Probe } from './launch';
 import { findDesign } from './design';
 import { findStack } from './stack';
+import { summarize, field, psiError, type Psi } from './speed';
 import { crawl, type Fetched } from './sitemap';
+import { llmsSite } from './llms';
 import { findLeaks } from './secrets';
+import { checkHeaders } from './headers';
 import { checkLinks, type ProbeResult } from './links';
+import { buildCsp } from './csp';
+import { checkPwa } from './pwa';
+import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer, type RdapAnswer, type Result } from './domains';
+import { checkA11y } from './a11y';
+import { sendRequest } from './request';
+import { analyze, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
+import { checkPackage, cleanName as cleanPackageName, type GetJson } from './npm';
+import { takeShots } from './shots';
+import { checkSlop, mainScripts } from './slop';
+import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   FETCH_LIMIT?: RateLimit;
   CRAWL_LIMIT?: RateLimit; // the sitemap crawl reads up to 100 pages, so it has a tighter limit
+  LLMS_LIMIT?: RateLimit; // the llms.txt generator crawls up to 50 pages, with its own limit
   LINK_LIMIT?: RateLimit; // the broken link checker reads up to 50 pages and checks 150 links
+  DOMAIN_LIMIT?: RateLimit; // domain lookups, one request checks up to 12 names
+  API_LIMIT?: RateLimit; // the API tester sends requests of any method, so it has its own limit
+  PSI_LIMIT?: RateLimit;
+  PSI_KEY?: string; // optional Google API key for PageSpeed Insights (a Worker secret)
+  // Browser Rendering for /api/shots, with its own per-visitor and site-wide limits.
+  BROWSER?: unknown;
+  SHOT_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  SHOT_LIMIT_ALL?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  ASSET_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -75,14 +175,38 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
+    if (url.pathname === '/api/frame') return frameApi(req, url, env, ctx);
+    if (url.pathname === '/api/shots') return shotsApi(req, url, env, ctx);
+    if (url.pathname === '/api/assets') return assetsApi(req, url, env, ctx);
+    if (url.pathname === '/api/asset') return assetProxy(req, url, env, ctx);
     if (url.pathname === '/api/colors') return colorsApi(req, url, env, ctx);
     if (url.pathname === '/api/launch') return launchApi(req, url, env, ctx);
     if (url.pathname === '/api/design') return designApi(req, url, env, ctx);
     if (url.pathname === '/api/stack') return stackApi(req, url, env, ctx);
+    if (url.pathname === '/api/speed') return speedApi(req, url, env, ctx);
     if (url.pathname === '/api/sitemap') return sitemapApi(req, url, env, ctx);
     if (url.pathname === '/api/links') return linksApi(req, url, env, ctx);
     if (url.pathname === '/api/secrets') return secretsApi(req, url, env, ctx);
     if (url.pathname === '/api/jwks') return jwksApi(req, url, env, ctx);
+    if (url.pathname === '/api/llms') return llmsApi(req, url, env, ctx);
+    if (url.pathname === '/api/headers') return headersApi(req, url, env, ctx);
+    if (url.pathname === '/api/csp') return cspApi(req, url, env, ctx);
+    if (url.pathname === '/api/pwa') return pwaApi(req, url, env, ctx);
+    if (url.pathname === '/api/domains') return domainsApi(req, url, env, ctx);
+    if (url.pathname === '/api/a11y') return a11yApi(req, url, env, ctx);
+    if (url.pathname === '/api/request') {
+      return sendRequest(req, {
+        checkTarget: (raw) => checkTarget(raw, env.ALLOW_LOCAL === '1'),
+        isOwnHost: (t) => isOwnHost(t, url),
+        ownPage: (t) => ownPage(t, env),
+        limit: env.API_LIMIT,
+      });
+    }
+    if (url.pathname === '/api/ssl') return sslApi(req, url, env, ctx);
+    if (url.pathname === '/api/whoami') return whoami(req);
+    if (url.pathname === '/api/npm') return npmApi(req, url, env, ctx);
+    if (url.pathname === '/api/slop') return slopApi(req, url, env, ctx);
+    if (url.pathname === '/api/domain') return domainApi(req, url, env, ctx);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -105,6 +229,185 @@ function fontsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response>
     status: p.status,
     ...(await findFonts(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/frame: whether other sites may show this page inside a frame.
+function frameApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('frame', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    // An error page (often a bot check) doesn't carry the real page's headers, so we can't tell.
+    framing: p.status >= 400 ? 'unknown' : frameRule(p.headers),
+  }));
+}
+
+const SHOTS_UNAVAILABLE = 'Screenshots aren’t available right now. Use “Open at this width” to see the page.';
+
+// /api/shots: screenshots at the three widths.
+async function shotsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const local = env.ALLOW_LOCAL === '1';
+  const target = checkTarget(url.searchParams.get('url') ?? '', local);
+  if (typeof target === 'string') return json({ error: target }, 400);
+  if (!env.BROWSER) return json({ error: SHOTS_UNAVAILABLE }, 503);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/shots?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+  if (env.SHOT_LIMIT && !(await env.SHOT_LIMIT.limit({ key: who })).success) {
+    return json({ error: 'Too many screenshots in a minute. Wait a moment and try again.' }, 429);
+  }
+  if (env.SHOT_LIMIT_ALL && !(await env.SHOT_LIMIT_ALL.limit({ key: 'all' })).success) {
+    return json({ error: 'Lots of people are taking screenshots right now. Try again in a minute.' }, 429);
+  }
+
+  try {
+    const shots = await takeShots(env.BROWSER, target.href, (u) => typeof checkTarget(u, local) !== 'string' && /^https?:/i.test(u));
+    if (!shots.length) return json({ error: 'That page took too long to load.' }, 504);
+    const body = json({ url: target.href, shots }, 200, CACHE_SECONDS);
+    ctx.waitUntil(cache.put(cacheKey, body.clone()));
+    return body;
+  } catch (e) {
+    console.log('shots failed', target.href, String(e));
+    if (String(e).includes('site-blocked')) {
+      return json({ error: 'That site also blocks automated browsers, so we can’t take screenshots of it.' }, 422);
+    }
+    return json({ error: SHOTS_UNAVAILABLE }, 503);
+  }
+}
+
+// Browsers follow CSP frame-ancestors when a page sends it, and X-Frame-Options otherwise.
+export function frameRule(h: Headers): 'allowed' | 'blocked' {
+  const csp = h.get('content-security-policy');
+  if (csp) {
+    for (const policy of csp.split(',')) {
+      const d = policy.split(';').map((x) => x.trim()).find((x) => /^frame-ancestors(\s|$)/i.test(x));
+      if (!d) continue;
+      const sources = d.split(/\s+/).slice(1).map((x) => x.toLowerCase());
+      const ok = sources.some((x) => x === '*' || x === 'https:' || /^(https:\/\/)?(\*\.)?darnly\.dev\/?$/.test(x));
+      if (!ok) return 'blocked';
+    }
+    if (/frame-ancestors/i.test(csp)) return 'allowed';
+  }
+  const xfo = (h.get('x-frame-options') ?? '').toLowerCase();
+  return /deny|sameorigin/.test(xfo) ? 'blocked' : 'allowed';
+}
+
+// /api/assets: every picture a page uses.
+function assetsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('assets', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await findAssets(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,application/manifest+json,application/json,*/*;q=0.1'))),
+  }));
+}
+
+const ASSET_MAX = 5_000_000;
+const ASSET_CACHE_SECONDS = 86_400;
+
+// /api/asset: one picture from another site, passed through for the asset extractor.
+async function assetProxy(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/asset?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.ASSET_LIMIT) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await env.ASSET_LIMIT.limit({ key: who });
+    if (!success) return json({ error: 'Too many downloads in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  let res: Response;
+  try {
+    res = await get(target, url, env, 'image/avif,image/webp,image/svg+xml,image/*,*/*;q=0.5');
+  } catch {
+    return json({ error: 'We couldn’t reach that file.' }, 502);
+  }
+  if (typeof checkTarget(res.url || target.href, env.ALLOW_LOCAL === '1') === 'string') return json({ error: 'That file redirects somewhere we can’t fetch.' }, 400);
+  if (!res.ok) {
+    res.body?.cancel().catch(() => {});
+    return json({ error: `That site answered with error ${res.status}.` }, 422);
+  }
+  const declared = Number(res.headers.get('content-length') ?? '0');
+  if (declared > ASSET_MAX) {
+    res.body?.cancel().catch(() => {});
+    return json({ error: 'That file is bigger than 5 MB.' }, 413);
+  }
+
+  const bytes = await readBytes(res, ASSET_MAX + 1);
+  if (bytes.length > ASSET_MAX) return json({ error: 'That file is bigger than 5 MB.' }, 413);
+  const type = imageType(res.headers.get('content-type') ?? '', bytes);
+  if (!type) return json({ error: 'That address isn’t a picture.' }, 415);
+
+  const out = new Response(bytes, {
+    headers: {
+      'content-type': type,
+      'cache-control': `public, max-age=${ASSET_CACHE_SECONDS}`,
+      'x-content-type-options': 'nosniff',
+      // Pictures from other sites (SVGs above all) must never run as a page on darnly.dev,
+      // and other sites can't embed this as a free image proxy.
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      'content-disposition': 'attachment',
+      'cross-origin-resource-policy': 'same-origin',
+    },
+  });
+  ctx.waitUntil(cache.put(cacheKey, out.clone()));
+  return out;
+}
+
+// The picture's real type: trust an image/* header, otherwise look at the first bytes
+// (some servers send favicons as application/octet-stream).
+function imageType(header: string, b: Uint8Array): string | null {
+  const h = header.split(';')[0].trim().toLowerCase();
+  const sniffed =
+    b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? 'image/png' :
+    b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg' :
+    b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 ? 'image/gif' :
+    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'image/webp' :
+    b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 && b[8] === 0x61 && b[9] === 0x76 && b[10] === 0x69 ? 'image/avif' :
+    b[0] === 0 && b[1] === 0 && (b[2] === 1 || b[2] === 2) && b[3] === 0 ? 'image/x-icon' :
+    b[0] === 0x42 && b[1] === 0x4d ? 'image/bmp' :
+    /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(new TextDecoder().decode(b.subarray(0, 2048))) ? 'image/svg+xml' :
+    null;
+  if (h.startsWith('image/')) {
+    // An SVG claimed as an image must actually look like one, and a raster must not hide HTML.
+    if (h === 'image/svg+xml') return sniffed === 'image/svg+xml' ? h : null;
+    if (sniffed) return sniffed === 'image/svg+xml' ? null : sniffed;
+    const looksLikeText = /^\s*</.test(new TextDecoder().decode(b.subarray(0, 64)));
+    return !looksLikeText && /^image\/(png|jpeg|gif|webp|avif|x-icon|vnd\.microsoft\.icon|bmp|tiff|apng)$/.test(h) ? h : null;
+  }
+  return sniffed;
+}
+
+async function readBytes(res: Response, max: number): Promise<Uint8Array> {
+  if (!res.body) return new Uint8Array();
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (size < max) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.length;
+  }
+  reader.cancel().catch(() => {});
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.length;
+  }
+  return out;
 }
 
 // /api/stack: what a page was built with, hosted on and tracked by.
@@ -133,6 +436,38 @@ function secretsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     }),
     { cache: false, maxBytes: 2_000_000 },
   );
+}
+
+// /api/csp: everything a page loads, grouped by Content-Security-Policy directive.
+function cspApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('csp', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await buildCsp(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, 'text/css,application/javascript,*/*;q=0.1', 1_500_000))),
+  }));
+}
+
+// /api/a11y: automated accessibility checks on one page's HTML. Not cached, so a re-check after a fix is fresh.
+function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'a11y',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkA11y(p.html, p.finalUrl) }),
+    { cache: false },
+  );
+}
+
+// /api/whoami: the visitor's own IP address and country, read from the request. Nothing is stored.
+function whoami(req: Request): Response {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const cf = (req as Request & { cf?: { country?: string } }).cf;
+  const country = (cf?.country ?? req.headers.get('cf-ipcountry') ?? '').toUpperCase().slice(0, 2);
+  const ip = (req.headers.get('cf-connecting-ip') ?? '').slice(0, 64);
+  return json({ ip, country });
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.
@@ -180,6 +515,261 @@ async function jwksApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Resp
   return body;
 }
 
+// /api/headers: a page's security headers, graded. Not cached, so a re-check after a fix is fresh.
+function headersApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool(
+    'headers',
+    req,
+    url,
+    env,
+    ctx,
+    async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkHeaders(p.headers, p.finalUrl, p.html) }),
+    { cache: false },
+  );
+}
+
+// /api/domains: is each name registered? Each name is cached on its own, so ideas shared
+// between searches are only looked up once.
+const MAX_NAMES = 12;
+
+async function domainsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const raw = (url.searchParams.get('names') ?? '').split(',').filter((n) => n.trim());
+  if (!raw.length) return json({ error: 'Type a name to check, like myapp.com.' }, 400);
+  if (raw.length > MAX_NAMES) return json({ error: `Check up to ${MAX_NAMES} names at a time.` }, 400);
+  const names = raw.map(cleanName);
+  if (names.some((n) => !n)) return json({ error: 'Names can use letters, numbers and dashes, and end in .com, .dev, .app, .io, .ai, .co, .net, .org, .xyz, .sh, .so or .me.' }, 400);
+
+  const limit = env.DOMAIN_LIMIT ?? env.FETCH_LIMIT;
+  if (limit) {
+    const { success } = await limit.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'That’s a lot of lookups in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const servers = await rdapServers(url, env, ctx, cache);
+  const results = await Promise.all(
+    [...new Set(names as string[])].map(async (name): Promise<Result> => {
+      const key = new Request(`https://darnly.dev/api/domains/one?name=${encodeURIComponent(name)}`);
+      const hit = await cache.match(key);
+      if (hit) return (await hit.json()) as Result;
+      const [rdap, dns] = await Promise.all([rdapLookup(name, servers, url, env), dnsLookup(name, url, env)]);
+      const result = verdict(name, rdap, dns);
+      // Taken names rarely change; free ones can be bought any minute, and errors should retry soon.
+      const ttl = result.state === 'taken' ? 6 * 3600 : result.state === 'free' ? 600 : 60;
+      ctx.waitUntil(cache.put(key, json(result, 200, ttl)));
+      return result;
+    }),
+  );
+  return json({ results });
+}
+
+// The IANA list of RDAP servers per ending, kept for a day in memory and in the cache.
+const BOOTSTRAP_URL = 'https://data.iana.org/rdap/dns.json';
+let bootstrap: { at: number; map: Record<string, string> } | null = null;
+async function rdapServers(self: URL, env: Env, ctx: Ctx, cache: Cache): Promise<Record<string, string>> {
+  const DAY = 86_400;
+  if (bootstrap && Date.now() - bootstrap.at < DAY * 1000) return bootstrap.map;
+  const key = new Request('https://darnly.dev/api/domains/rdap-bootstrap');
+  const hit = await cache.match(key);
+  let text = hit ? await hit.text() : null;
+  if (!text) {
+    text = await fetchText(BOOTSTRAP_URL, self, env, 'application/json', 1_000_000);
+    if (text && Object.keys(parseBootstrap(text)).length) {
+      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${DAY}` } })));
+    }
+  }
+  const map = text ? parseBootstrap(text) : {};
+  // Without the list, try again on the next request rather than in a day.
+  if (Object.keys(map).length) bootstrap = { at: Date.now(), map };
+  return map;
+}
+
+// Endings missing from the IANA list (some country endings) go through rdap.org, which knows more servers.
+async function rdapLookup(name: string, servers: Record<string, string>, self: URL, env: Env): Promise<RdapAnswer> {
+  const tld = name.slice(name.lastIndexOf('.') + 1);
+  const base = servers[tld] ?? 'https://rdap.org/';
+  try {
+    const res = await get(new URL(`${base}domain/${name}`), self, env, 'application/rdap+json, application/json', 6_000);
+    if (res.status === 404) return { kind: 'none' };
+    if (!res.ok) return { kind: 'error' };
+    let record: unknown = null;
+    try {
+      record = JSON.parse(await readLimited(res, 300_000));
+    } catch {
+      /* found, but the details didn't parse */
+    }
+    return { kind: 'found', ...readRecord(record) };
+  } catch {
+    return { kind: 'error' };
+  }
+}
+
+async function dnsLookup(name: string, self: URL, env: Env): Promise<DnsAnswer> {
+  try {
+    const res = await get(new URL(`https://cloudflare-dns.com/dns-query?name=${name}&type=NS`), self, env, 'application/dns-json', 4_000);
+    if (!res.ok) return 'error';
+    return readDns(JSON.parse(await readLimited(res, 50_000)));
+  } catch {
+    return 'error';
+  }
+}
+
+// /api/ssl: a domain's certificate, from the public logs plus a live https request.
+async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const raw = (url.searchParams.get('domain') ?? url.searchParams.get('url') ?? '').trim();
+  if (!raw) return json({ error: 'Type a domain, like yoursite.com.' }, 400);
+  const target = checkTarget(raw, env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+  const host = target.hostname.toLowerCase().replace(/\.$/, '');
+  if (/^[\d.]+$/.test(host) || host.startsWith('[')) return json({ error: 'Paste a domain name rather than an IP address.' }, 400);
+  if (host.length > 253 || !/^[a-z0-9.-]+$/.test(host)) return json({ error: 'That doesn’t look like a domain name.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/ssl?domain=${encodeURIComponent(host)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const { success } = await env.FETCH_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const www = otherName(host);
+  const labels = host.split('.');
+  // A subdomain like app.example.com is often covered by a *.example.com certificate.
+  const wildcard = !host.startsWith('www.') && labels.length > 2 ? `*.${labels.slice(1).join('.')}` : null;
+  const ownHost = isOwnHost(new URL(`https://${host}/`), url);
+
+  const [ct, https, http, wwwProbe, dns, wwwDns] = await Promise.all([
+    certsFor([host, www, ...(wildcard ? [wildcard] : [])], url, env, ctx),
+    sslProbe(`https://${host}/`, url, env),
+    ownHost ? Promise.resolve(null) : sslProbe(`http://${host}/`, url, env),
+    sslProbe(`https://${www}/`, url, env),
+    ownHost ? Promise.resolve({ a: ['own'], cname: [] }) : lookup(host, url, env),
+    isOwnHost(new URL(`https://${www}/`), url) ? Promise.resolve({ a: ['own'], cname: [] }) : lookup(www, url, env),
+  ]);
+
+  const data = analyze({ host, now: new Date(), certs: ct.certs, source: ct.source, https, http, www: wwwProbe, dns, wwwDns });
+  const body = json(data, 200, 600);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
+}
+
+// Certificates for these names from crt.sh, falling back to Cert Spotter. Each answer is cached an hour.
+async function certsFor(names: string[], self: URL, env: Env, ctx: Ctx): Promise<{ certs: CtCert[]; source: 'crt.sh' | 'certspotter' | null }> {
+  const cache = (caches as unknown as { default: Cache }).default;
+  const read = async (api: string, accept: string, timeout: number, max: number): Promise<string | null> => {
+    const key = new Request(api);
+    const hit = await cache.match(key);
+    if (hit) return hit.text();
+    try {
+      const res = await get(new URL(api), self, env, accept, timeout);
+      if (!res.ok) {
+        res.body?.cancel().catch(() => {});
+        return null;
+      }
+      const text = await readLimited(res, max);
+      ctx.waitUntil(cache.put(key, new Response(text, { headers: { 'cache-control': `public, max-age=${CACHE_SECONDS}` } })));
+      return text;
+    } catch {
+      return null;
+    }
+  };
+
+  const crt = await Promise.all(
+    names.map((n) => read(`https://crt.sh/?q=${encodeURIComponent(n)}&output=json&deduplicate=Y`, 'application/json', 15_000, 3_000_000)),
+  );
+  if (crt.some((t) => t !== null)) return { certs: crt.flatMap((t) => (t ? parseCrtSh(t) : [])), source: 'crt.sh' };
+
+  const spot = await Promise.all(
+    names
+      .filter((n) => !n.startsWith('*.'))
+      .map((n) => read(`https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(n)}&expand=dns_names&expand=issuer`, 'application/json', 10_000, 1_000_000)),
+  );
+  if (spot.some((t) => t !== null)) return { certs: spot.flatMap((t) => (t ? parseCertSpotter(t) : [])), source: 'certspotter' };
+  return { certs: [], source: null };
+}
+
+// Opens one address and reports whether a secure connection worked. Only the status is read.
+async function sslProbe(raw: string, self: URL, env: Env): Promise<SslProbe | null> {
+  const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+  if (typeof t === 'string') return null;
+  try {
+    const res = await get(t, self, env, 'text/html,*/*;q=0.5', 7_000);
+    res.body?.cancel().catch(() => {});
+    const finalUrl = res.url || t.href;
+    // 525 and 526 are Cloudflare's "the site's own certificate is broken" answers.
+    const tlsFail = res.status === 525 || res.status === 526;
+    return { ok: !tlsFail, status: res.status, finalUrl, ...(tlsFail ? { error: 'tls' as const } : {}) };
+  } catch (err) {
+    const e = err as Error;
+    const error = e?.name === 'TimeoutError' ? 'timeout' : /ssl|tls|certificate|handshake|x509/i.test(e?.message ?? '') ? 'tls' : 'connect';
+    return { ok: false, status: 0, finalUrl: t.href, error };
+  }
+}
+
+// A and AAAA answers (and the CNAME chain) through Cloudflare's DNS-over-HTTPS. null if the lookup failed.
+async function lookup(name: string, self: URL, env: Env): Promise<Dns | null> {
+  const ask = async (type: string) => {
+    const text = await fetchText(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, self, env, 'application/dns-json', 50_000);
+    if (!text) return null;
+    try {
+      return (JSON.parse(text).Answer ?? []) as { type: number; data: string }[];
+    } catch {
+      return null;
+    }
+  };
+  const [a, aaaa] = await Promise.all([ask('A'), ask('AAAA')]);
+  if (!a && !aaaa) return null;
+  const all = [...(a ?? []), ...(aaaa ?? [])];
+  return {
+    a: [...new Set(all.filter((r) => r.type === 1 || r.type === 28).map((r) => r.data))],
+    cname: [...new Set(all.filter((r) => r.type === 5).map((r) => r.data.replace(/\.$/, '')))],
+  };
+}
+
+// /api/npm: one npm package, graded. Missing packages are cached for 10 minutes, found ones for an hour.
+async function npmApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const name = cleanPackageName(url.searchParams.get('name') ?? '');
+  if (!name) return json({ error: 'That isn’t a valid npm package name. Names look like zod or @tanstack/react-query.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/npm?name=${encodeURIComponent(name)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const { success } = await env.FETCH_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const getJson: GetJson = async (raw, max = 500_000) => {
+    const res = await get(new URL(raw), url, env, 'application/json', 6_000);
+    if (res.status === 404) {
+      res.body?.cancel().catch(() => {});
+      return { status: 404, data: null };
+    }
+    if (!res.ok) {
+      res.body?.cancel().catch(() => {});
+      throw new Error(`npm answered ${res.status}`);
+    }
+    return { status: res.status, data: JSON.parse(await readLimited(res, max)) };
+  };
+
+  let report;
+  try {
+    report = await checkPackage(name, getJson);
+  } catch {
+    return json({ error: 'We couldn’t reach npm just now. Try again in a minute.' }, 502);
+  }
+  const body = json(report, 200, report.found ? CACHE_SECONDS : 600);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
+}
+
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
 function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   const probe = async (raw: string, accept: string): Promise<Probe | null> => {
@@ -203,6 +793,28 @@ function launchApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
   }));
 }
 
+// /api/pwa: can this site be installed to a phone's home screen? Cached for 10 minutes, so a
+// re-check after a fix is fresh soon.
+function pwaApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const loadsImage = async (raw: string): Promise<boolean> => {
+    const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
+    if (typeof t === 'string') return false;
+    try {
+      const res = await get(t, url, env, 'image/*,*/*;q=0.1', 5_000);
+      res.body?.cancel().catch(() => {});
+      return res.ok && !/html/i.test(res.headers.get('content-type') ?? '') && typeof checkTarget(res.url || t.href, env.ALLOW_LOCAL === '1') !== 'string';
+    } catch {
+      return false;
+    }
+  };
+  return pageTool('pwa', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await checkPwa(p.html, p.finalUrl, (u, accept, max) => fetchText(u, url, env, accept, max), loadsImage)),
+  }), { cacheSeconds: 600 });
+}
+
 // /api/colors: a page's color palette from its CSS.
 function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   return pageTool('colors', req, url, env, ctx, async (p) => ({
@@ -213,9 +825,90 @@ function colorsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
   }));
 }
 
+// /api/speed: Google PageSpeed Insights on a phone and a laptop, boiled down for the page.
+// It doesn't read the page itself, so it skips pageTool() but keeps its address check,
+// cache and rate limit, and calls Google through get().
+const PSI = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+async function speedApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const target = checkTarget(url.searchParams.get('url') ?? '', env.ALLOW_LOCAL === '1');
+  if (typeof target === 'string') return json({ error: target }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/speed?url=${encodeURIComponent(target.href)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const limiter = env.PSI_LIMIT ?? env.FETCH_LIMIT;
+  if (limiter) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await limiter.limit({ key: who });
+    if (!success) return json({ error: 'Speed tests are slow for Google to run, so there’s a limit of 2 a minute. Wait a minute and try again.' }, 429);
+  }
+
+  const run = async (strategy: 'mobile' | 'desktop') => {
+    const q = new URL(PSI);
+    q.searchParams.set('url', target.href);
+    q.searchParams.set('strategy', strategy);
+    q.searchParams.set('category', 'performance');
+    q.searchParams.set('locale', 'en');
+    if (env.PSI_KEY) q.searchParams.set('key', env.PSI_KEY);
+    try {
+      const res = await get(q, url, env, 'application/json', 60_000);
+      const text = await readLimited(res, 8_000_000);
+      if (!res.ok) return { error: psiError(res.status, text) };
+      const psi = JSON.parse(text) as Psi;
+      const report = summarize(psi);
+      if (!report) return { error: psiError(500, text) };
+      return { report, field: field(psi), finalUrl: psi.lighthouseResult?.finalDisplayedUrl ?? psi.lighthouseResult?.finalUrl ?? target.href };
+    } catch (e) {
+      return { error: (e as Error)?.name === 'TimeoutError' ? 'That page took too long to load for Google to test it.' : psiError(0, '') };
+    }
+  };
+  const [mobile, desktop] = await Promise.all([run('mobile'), run('desktop')]);
+  if ('error' in mobile && 'error' in desktop) return json({ error: mobile.error }, 502);
+
+  const body = json(
+    {
+      url: target.href,
+      finalUrl: ('finalUrl' in mobile ? mobile.finalUrl : 'finalUrl' in desktop ? desktop.finalUrl : target.href),
+      mobile: 'report' in mobile ? mobile.report : { error: mobile.error },
+      desktop: 'report' in desktop ? desktop.report : { error: desktop.error },
+      field: 'field' in mobile ? mobile.field : null,
+      testedAt: new Date().toISOString(),
+    },
+    200,
+    'error' in mobile || 'error' in desktop ? 0 : CACHE_SECONDS,
+  );
+  if (!('error' in mobile) && !('error' in desktop)) ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
+}
+
 // /api/sitemap: crawl one site and list the pages for sitemap.xml. Every page goes through get().
 function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
-  const fetchPage = async (raw: string, accept: string): Promise<Fetched | null> => {
+  const fetchPage = crawlFetcher(url, env);
+  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
+// /api/llms: crawl one site (up to 50 pages) for the llms.txt generator, and check robots.txt for AI crawlers.
+function llmsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  const fetchPage = crawlFetcher(url, env);
+  return pageTool('llms', req, url, env, ctx, async (p) => ({
+    url: p.target.href,
+    finalUrl: p.finalUrl,
+    status: p.status,
+    ...(await llmsSite(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
+  }), { limit: env.LLMS_LIMIT, limitError: 'You can make 2 llms.txt files a minute. Wait a moment and try again.', cacheSeconds: 600 });
+}
+
+// The page reader the crawlers use: the same address rules as every tool, a 5 second timeout per page.
+function crawlFetcher(url: URL, env: Env) {
+  return async (raw: string, accept: string): Promise<Fetched | null> => {
     const t = checkTarget(raw, env.ALLOW_LOCAL === '1');
     if (typeof t === 'string') return null;
     try {
@@ -223,7 +916,7 @@ function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
       const final = res.url || t.href;
       if (typeof checkTarget(final, env.ALLOW_LOCAL === '1') === 'string') return null;
       const type = res.headers.get('content-type') ?? '';
-      const readable = /html|text\/plain/i.test(type) || !type;
+      const readable = /html|text\/plain|markdown/i.test(type) || !type;
       const text = readable && res.status < 400 ? await readLimited(res, 500_000) : '';
       if (!text) res.body?.cancel().catch(() => {});
       return { status: res.status, url: final, type, lastModified: res.headers.get('last-modified'), robotsHeader: res.headers.get('x-robots-tag'), text };
@@ -231,12 +924,6 @@ function sitemapApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
       return null;
     }
   };
-  return pageTool('sitemap', req, url, env, ctx, async (p) => ({
-    url: p.target.href,
-    finalUrl: p.finalUrl,
-    status: p.status,
-    ...(await crawl(p.html, p.finalUrl, p.headers, p.status, fetchPage)),
-  }), { limit: env.CRAWL_LIMIT, limitError: 'You can make 2 sitemaps a minute. Wait a moment and try again.', cacheSeconds: 600 });
 }
 
 // /api/links: crawl one site and check every link and image on it. Every request goes through get().
@@ -291,6 +978,100 @@ function designApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     status: p.status,
     ...(await findDesign(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
+// /api/slop: how AI-made a page looks, and what gives it away.
+function slopApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  return pageTool('slop', req, url, env, ctx, async (p) => {
+    const css: string[] = [...p.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    // findFonts already reads the stylesheets; keep a copy of each for the color and class checks.
+    const sheet = async (u: string) => {
+      const t = await fetchText(u, url, env, 'text/css,*/*;q=0.1');
+      if (t !== null && !/fonts\.googleapis\.com/.test(u)) css.push(t);
+      return t;
+    };
+    const origin = new URL(p.finalUrl).origin;
+    const [found, tags, js, favicon] = await Promise.all([
+      findFonts(p.html, p.finalUrl, sheet),
+      extract(p.html, p.finalUrl),
+      Promise.all(mainScripts(p.html, p.finalUrl).map((u) => fetchText(u, url, env, '*/*', 1_500_000))),
+      fetchText(`${origin}/favicon.ico`, url, env, 'image/*', 4_000),
+    ]);
+    const result = checkSlop({
+      html: p.html,
+      css,
+      js: js.filter((t): t is string => t !== null),
+      fonts: found.fonts,
+      title: tags.title,
+      icon: tags.icon,
+      // Sites that answer every address with their home page don't count as having a favicon.
+      faviconFile: favicon !== null && favicon.length > 0 && !/<html|<!doctype/i.test(favicon.slice(0, 200)),
+      shareImage: tags.og['og:image'] ?? tags.og['og:image:url'] ?? tags.twitter['twitter:image'] ?? null,
+      year: new Date().getUTCFullYear(),
+    });
+    return { url: p.target.href, finalUrl: p.finalUrl, status: p.status, title: tags.title, ...result };
+  });
+}
+
+// /api/domain: DNS, host, https and redirects for one domain. It doesn't read a page, so it has its
+// own front door, but every request still goes through checkTarget() and get().
+async function domainApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const local = env.ALLOW_LOCAL === '1';
+  const raw = (url.searchParams.get('domain') ?? '').trim();
+  if (!raw) return json({ error: 'Paste a domain, like yoursite.com.' }, 400);
+  const target = checkTarget(raw, local);
+  if (typeof target === 'string') return json({ error: target }, 400);
+  const host = target.hostname.toLowerCase().replace(/\.$/, '');
+  if (!local && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) return json({ error: 'That doesn’t look like a domain. Paste something like yoursite.com.' }, 400);
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return json({ error: 'Paste a domain name rather than an IP address.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/domain?domain=${encodeURIComponent(host)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const who = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    const { success } = await env.FETCH_LIMIT.limit({ key: who });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  // DNS-over-HTTPS from Cloudflare's public resolver (a public https address, so it goes through get()).
+  const dns = async (name: string, type: string): Promise<DnsResult> => {
+    const t = checkTarget(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`);
+    if (typeof t === 'string') return null;
+    try {
+      const res = await get(t, url, env, 'application/dns-json', 5_000);
+      if (!res.ok) return null;
+      const d = JSON.parse(await readLimited(res, 100_000)) as { Status: number; Answer?: { name: string; type: number; data: string }[] };
+      return { status: d.Status, answers: (d.Answer ?? []).map((a) => ({ name: a.name, type: a.type, data: String(a.data) })) };
+    } catch {
+      return null;
+    }
+  };
+
+  // One hop of a redirect chain. Redirects aren't followed here, so each next address is checked again.
+  const hop = async (raw: string): Promise<HopResult> => {
+    const t = checkTarget(raw, local);
+    if (typeof t === 'string') return { error: 'blocked' };
+    try {
+      const res = await get(t, url, env, 'text/html,*/*;q=0.1', 6_000, 'GET', 'manual');
+      res.body?.cancel().catch(() => {});
+      const headers: Record<string, string> = {};
+      for (const k of HOST_HEADERS) {
+        const v = res.headers.get(k);
+        if (v) headers[k] = v.slice(0, 200);
+      }
+      return { status: res.status, location: res.headers.get('location'), headers };
+    } catch (e) {
+      return { error: String((e as Error)?.message ?? e) };
+    }
+  };
+
+  const body = json(await checkDomain(host, dns, hop), 200, 60);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
 }
 
 // Shared by every tool that reads a page: address check, cache, rate limit, fetch, HTML check.
@@ -356,9 +1137,9 @@ async function pageTool(
 
 // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
 // so pages on darnly.dev are read straight from the site's own files.
-function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, method: 'GET' | 'HEAD' = 'GET'): Promise<Response> {
+function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, method: 'GET' | 'HEAD' = 'GET', redirect: 'follow' | 'manual' = 'follow'): Promise<Response> {
   if (isOwnHost(target, self)) return ownPage(target, env);
-  return fetch(target.href, { method, headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
+  return fetch(target.href, { method, headers: { 'user-agent': UA, accept }, redirect, signal: AbortSignal.timeout(timeout) });
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
