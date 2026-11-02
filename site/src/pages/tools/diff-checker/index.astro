@@ -1,0 +1,175 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const jsonTool = TOOLS.find((t) => t.slug === 'json-to-typescript');
+
+const steps = [
+  'Paste the old version in <strong>Before</strong> and the new one in <strong>After</strong>. You can also drop a file onto either box.',
+  'The comparison at the top updates as you type. Removed lines are red, added lines are green, and the exact words that changed are highlighted inside each line.',
+  'Turn on <strong>Ignore spaces</strong> or <strong>Ignore case</strong> to hide changes that don’t matter, or <strong>JSON</strong> to format both sides first. Then copy the result as a patch, or as a prompt for your AI agent.',
+];
+
+const before = `function getPrice(item) {
+  const tax = 0.18;
+  let total = item.price * (1 + tax);
+  if (item.coupon) {
+    total = total - 10;
+  }
+  return total;
+}`;
+
+const after = `function getPrice(item) {
+  const tax = 0.2;
+  let total = item.price * (1 + tax);
+  if (item.coupon && item.coupon.valid) {
+    total = total - item.coupon.amount;
+  }
+  return Math.round(total * 100) / 100;
+}`;
+
+const faq = [
+  { q: 'How do I compare two texts?', a: 'Paste one version in Before and the other in After. The differences show right away at the top: red for removed, green for added, with the changed words highlighted.' },
+  { q: 'Can I see what my AI agent changed in a file?', a: 'Yes. Paste the file from before the change and the file after it. Then click “Copy prompt for your AI agent” to ask it to explain the change and check for mistakes.' },
+  { q: 'What does “Ignore spaces” do?', a: 'It treats lines as the same when only spaces, tabs or indentation differ. Useful when code was reformatted.' },
+  { q: 'How does JSON mode work?', a: 'Both sides are formatted the same way and their keys are sorted before comparing. So only real changes in values show up, not changes in order or spacing. If a side isn’t valid JSON, it’s compared as plain text and you’ll see a note.' },
+  { q: 'What is a patch?', a: 'A patch is the standard way to write down a diff (the same format as <code>git diff</code>). Lines starting with <code>-</code> were removed and <code>+</code> were added. You can apply it with <code>git apply</code> or <code>patch</code>.' },
+  { q: 'Is my text uploaded?', a: 'No. The comparison runs in your browser, so nothing you paste leaves your computer.' },
+];
+---
+<ToolPage
+  slug="diff-checker"
+  title="Diff checker: compare two texts online · Darnly"
+  description="Compare two texts or files and see the differences side by side, with changed words highlighted. Ignore spaces or case, compare JSON, and copy the diff as a patch. Free, nothing uploaded."
+  h1="Diff checker: compare two texts"
+  lede="Paste two versions of anything, and see exactly what was added, removed and changed, down to the word."
+  steps={steps}
+  faq={faq}
+>
+  <div class="dc">
+    <section class="stage" aria-label="Differences">
+      <div class="top">
+        <div class="summary">
+          <p class="verdict" id="dc-verdict" role="status" aria-live="polite"></p>
+          <span class="count plus" id="dc-plus" hidden></span>
+          <span class="count minus" id="dc-minus" hidden></span>
+        </div>
+        <div class="mode" role="group" aria-label="View">
+          <button type="button" id="dc-mode-split" aria-pressed="true">Side by side</button>
+          <button type="button" id="dc-mode-unified" aria-pressed="false">Unified</button>
+        </div>
+      </div>
+      <div class="view" id="dc-view"></div>
+    </section>
+
+    <div class="inputs">
+      <div class="field">
+        <label for="dc-left"><span class="dot red" aria-hidden="true"></span>Before</label>
+        <textarea id="dc-left" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste the old version, or drop a file here">{before}</textarea>
+      </div>
+      <button type="button" class="swap" id="dc-swap" title="Swap Before and After" aria-label="Swap Before and After">⇄</button>
+      <div class="field">
+        <label for="dc-right"><span class="dot green" aria-hidden="true"></span>After</label>
+        <textarea id="dc-right" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste the new version, or drop a file here">{after}</textarea>
+      </div>
+    </div>
+
+    <div class="opts">
+      <label><input type="checkbox" id="dc-ws" /> Ignore spaces</label>
+      <label><input type="checkbox" id="dc-case" /> Ignore case</label>
+      <label><input type="checkbox" id="dc-json" /> JSON (format and sort keys)</label>
+    </div>
+    <p class="note" id="dc-json-note" role="alert" hidden></p>
+
+    <div class="actions">
+      <button id="dc-copy-patch" type="button" class="primary">Copy as patch</button>
+      <button id="dc-prompt" type="button" class="ghost">Copy prompt for your AI agent</button>
+      <button id="dc-clear" type="button" class="ghost">Clear</button>
+      <p class="status" id="dc-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <details class="fold">
+      <summary>See the patch (unified diff)</summary>
+      <pre id="dc-patch" tabindex="0" aria-label="Patch"></pre>
+      {jsonTool && <p class="hint">Comparing API responses? Turn them into types with the <a href={`/tools/${jsonTool.slug}/`}>{jsonTool.name}</a> tool.</p>}
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/diff-checker';
+</script>
+
+<style>
+  .dc { display: grid; gap: 20px; min-width: 0; }
+  .dc [hidden] { display: none !important; }
+  .stage { display: grid; gap: 16px; padding: 24px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .verdict { margin: 0; font: 800 30px/1.15 var(--display); letter-spacing: -0.02em; color: var(--ink); }
+  .verdict:global(.ok) { color: #12805C; }
+  .count { font: 700 18px/1 var(--mono); padding: 8px 12px; border-radius: 999px; }
+  .plus { background: #D5F5E3; color: #0E6B47; }
+  .minus { background: #FDE0E6; color: #A51D45; }
+  .mode { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); }
+  .mode button { font: 600 14px/1 var(--body); padding: 9px 14px; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
+  .mode button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+
+  .view { min-width: 0; max-height: 620px; overflow: auto; border-radius: 14px; border: 1px solid var(--line); background: var(--white); }
+  .view:empty { display: none; }
+  .view :global(table) { width: 100%; border-collapse: collapse; table-layout: fixed; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; }
+  .view :global(.c-num) { width: 3.6em; }
+  .view :global(th) { position: sticky; top: 0; z-index: 1; text-align: left; font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); padding: 10px 12px; background: var(--white); border-bottom: 1px solid var(--line); }
+  .view :global(td) { padding: 1px 8px; vertical-align: top; }
+  .view :global(.num) { text-align: right; color: #8AA2AE; user-select: none; padding-right: 10px; }
+  .view :global(.code) { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); tab-size: 4; }
+  .view :global(table.split .num:nth-child(3)) { border-left: 1px solid var(--line); }
+  .view :global(td.del) { background: #FFF0F3; }
+  .view :global(td.ins) { background: #EDFBF3; }
+  .view :global(td.empty) { background: repeating-linear-gradient(135deg, transparent 0 6px, #F1F6F8 6px 8px); }
+  .view :global(tr.del .num) { background: #FFF0F3; }
+  .view :global(tr.ins .num) { background: #EDFBF3; }
+  .view :global(mark.del) { background: #FBC2CF; color: inherit; border-radius: 3px; }
+  .view :global(mark.ins) { background: #A9E9C5; color: inherit; border-radius: 3px; }
+  .view :global(.sign) { display: inline-block; width: 1.4em; color: var(--ink-soft); user-select: none; }
+  .view :global(.fold-row td) { padding: 0; background: var(--wash); }
+  .view :global(.unfold) { width: 100%; padding: 6px 12px; border: 0; background: none; text-align: left; font: 500 13px/1.4 var(--mono); color: var(--sky); cursor: pointer; }
+  .view :global(.unfold:hover) { background: #DDF2FA; }
+  .view :global(.same) { margin: 0; padding: 20px; font-size: 16px; color: #12805C; }
+
+  .inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
+  .field { display: grid; gap: 8px; min-width: 0; }
+  .field label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .red { background: #E0466F; }
+  .green { background: #1FA971; }
+  textarea { box-sizing: border-box; width: 100%; height: 240px; margin: 0; font: 400 13px/1.6 var(--mono); font-variant-ligatures: none; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink); resize: vertical; tab-size: 4; }
+  textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+  textarea:global(.drop) { border-color: var(--sky); background: var(--wash); }
+  .swap { margin-top: 28px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--white); color: var(--ink); font-size: 18px; cursor: pointer; }
+  .swap:hover { border-color: var(--sky); }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 15px; }
+  .opts label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .note { margin: -8px 0 0; font-size: 14px; color: #A45A00; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .ghost:hover { border-color: var(--sky); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .fold pre { margin: 0; max-height: 360px; overflow: auto; padding: 14px; border-radius: 12px; background: var(--ink); color: #E6F6FB; font: 400 13px/1.6 var(--mono); white-space: pre; }
+  .hint { margin: 12px 0 0; font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 720px) {
+    .inputs { grid-template-columns: minmax(0, 1fr); }
+    .swap { margin: 0 auto; transform: rotate(90deg); }
+    textarea { height: 180px; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 16px; }
+    .verdict { font-size: 24px; }
+    .view :global(.c-num) { width: 2.8em; }
+    .view :global(td) { padding: 1px 4px; }
+  }
+</style>

@@ -1,0 +1,202 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Pick your stack, your computer and your editor. The .gitignore updates as you click, with the lines that keep your keys out of git highlighted.',
+  'Copy it, download it, or copy a prompt that asks Claude Code, Cursor or Codex to add it and untrack anything that’s already committed.',
+  'Already have a .gitignore? Open “Check mine”, paste it with your git status, and see in red every secret file that would leak, with a prompt to fix each one.',
+];
+
+const faq = [
+  { q: 'What is a .gitignore?', a: 'A plain text file in the top folder of your project. Each line names files or folders that git should leave out, like node_modules or your .env file. Files it matches are never added when you or your AI agent run “git add .”, so they never reach GitHub.' },
+  { q: 'Why does it matter so much for .env files?', a: 'Your .env file holds your API keys and database passwords. If it gets committed and pushed, anyone who can see the repo can copy them, and bots scan public GitHub for new keys within minutes. One line, .env*, keeps every .env file out, while the !.env.example line keeps the example file in so others know which keys to set.' },
+  { q: 'I added .env to my .gitignore, but it still shows up. Why?', a: 'A .gitignore only stops new files from being added. If .env was committed before, git keeps tracking it. Run git rm --cached .env (it stays on your disk), commit, and then rotate every key in it, because the old version is still in your git history. “Check mine” gives you a prompt that asks your AI agent to do all of this.' },
+  { q: 'Is “Check mine” safe to use with my real files?', a: 'Yes. Everything runs in your browser and nothing is uploaded or saved. It only needs file names, never what’s inside them, so don’t paste the contents of your .env file.' },
+  { q: 'How do I get my git status?', a: 'Open a terminal in your project folder (in Cursor or VS Code: Terminal, then New Terminal), type git status and press Enter, then copy everything it prints. You can also ask your AI agent: “run git status and show me the output”. A plain list of file names works too.' },
+  { q: 'Should I ignore the .cursor or .claude folder?', a: 'No, keep them: .cursor/rules and CLAUDE.md are instructions your whole team (and your agent) should share. Only ignore the personal or secret files inside them: .cursor/mcp.json, which often holds API keys for your MCP tools, and .claude/settings.local.json.' },
+];
+---
+<ToolPage
+  slug="gitignore-generator"
+  title=".gitignore generator: keep your .env and keys out of git · Darnly"
+  description="Free .gitignore generator for Next.js, Vite, Astro, Expo, Python and Supabase, with macOS, Windows, VS Code, Cursor and Claude Code. Your .env and key files are covered by default, and “Check mine” shows which secret files would leak."
+  h1="A .gitignore that keeps your secrets safe"
+  lede="Pick your stack and get a .gitignore that keeps your .env files, private keys and service accounts out of git. Already have one? Check it and see in red anything that would leak. Nothing leaves your browser."
+  steps={steps}
+  faq={faq}
+>
+  <div class="gi">
+    <div class="modes" id="gi-modes" role="tablist" aria-label="What do you want to do?">
+      <button type="button" role="tab" data-mode="make" aria-selected="true">Make a .gitignore</button>
+      <button type="button" role="tab" data-mode="check" aria-selected="false">Check mine</button>
+    </div>
+
+    <section class="pane" id="gi-make" aria-label="Make a .gitignore">
+      <div class="stacks" id="gi-stacks"></div>
+
+      <div class="window">
+        <div class="bar">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="fname">.gitignore</span>
+          <span class="count" id="gi-count"></span>
+        </div>
+        <p class="safe"><span class="lock" aria-hidden="true">🔒</span> <span><b>Your keys stay out of git.</b> <span id="gi-secret-count">15</span> highlighted lines cover .env files, private keys and service accounts.</span></p>
+        <ol class="code" id="gi-code" aria-label="Your .gitignore" tabindex="0"></ol>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="gi-copy">Copy .gitignore</button>
+        <button type="button" class="ghost" id="gi-download">Download</button>
+        <button type="button" class="ghost" id="gi-prompt">Copy prompt for your AI agent</button>
+      </div>
+      <p class="status" id="gi-status" role="status"></p>
+      <p class="hint">Already committed a .env file? A .gitignore won’t take it back out. <a href="#check">Check yours</a> to see what’s exposed, and run the <a href="/tools/api-key-leak-checker/">API key leak checker</a> on your live site.</p>
+    </section>
+
+    <section class="pane" id="gi-check" aria-label="Check my .gitignore" hidden>
+      <div class="card" id="gi-card" role="status" aria-live="polite">
+        <p class="verdict" id="gi-verdict"></p>
+        <p class="sub" id="gi-sub"></p>
+        <div class="cover">
+          <span class="clabel">Does your .gitignore cover these?</span>
+          <ul id="gi-cover"></ul>
+          <button type="button" class="ghost small" id="gi-cover-copy" hidden>Copy the missing lines</button>
+        </div>
+        <button type="button" class="primary" id="gi-fixall" hidden>Copy one prompt that fixes everything</button>
+      </div>
+      <ul class="list" id="gi-list"></ul>
+      <p class="fine" id="gi-fine" hidden></p>
+
+      <div class="inputs">
+        <label>
+          <span class="ilabel">Your .gitignore</span>
+          <textarea id="gi-ignore" rows="9" spellcheck="false" autocomplete="off">node_modules
+.env
+dist
+</textarea>
+        </label>
+        <label>
+          <span class="ilabel">Your git status or file list</span>
+          <textarea id="gi-files" rows="9" spellcheck="false" autocomplete="off">On branch main
+Changes not staged for commit:
+	modified:   src/app/page.tsx
+	modified:   .env.production
+
+Untracked files:
+	.env.local
+	.DS_Store
+	firebase/service-account.json
+	README.md
+</textarea>
+        </label>
+      </div>
+      <p class="hint">This is an example. Replace it with yours: run <code>git status</code> in your project folder and paste what it prints, or ask your AI agent to run it. Only file names are needed, never what’s inside them. <button type="button" class="link" id="gi-clear">Clear both boxes</button></p>
+    </section>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/gitignore-generator';
+</script>
+
+<style>
+  [hidden] { display: none !important; }
+  .gi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+
+  .modes { display: flex; gap: 6px; padding: 4px; background: var(--wash); border-radius: 999px; justify-self: start; max-width: 100%; }
+  .modes button { font: 600 16px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .modes button[aria-selected='true'] { background: var(--ink); color: var(--white); }
+
+  .stacks { display: grid; gap: 8px; }
+  .stacks :global(.group) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .stacks :global(.glabel) { font: 600 13px/1 var(--body); color: var(--ink-soft); min-width: 104px; }
+  .stacks :global(.pill) { position: relative; display: inline-flex; cursor: pointer; }
+  .stacks :global(.pill input) { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .stacks :global(.pill span) { font: 500 14px/1.2 var(--body); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); }
+  .stacks :global(.pill input:checked + span) { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .stacks :global(.pill input:checked + span::before) { content: '✓ '; }
+  .stacks :global(.pill input:focus-visible + span) { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+  .window { border-radius: 16px; overflow: hidden; background: #0E1B24; color: #DCE7EE; box-shadow: 0 18px 40px -24px rgba(11, 34, 48, 0.6); }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #15262F; font: 500 14px/1 var(--mono); }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 11px; height: 11px; border-radius: 50%; background: #3A4C57; }
+  .dots i:first-child { background: #FF5F57; }
+  .dots i:nth-child(2) { background: #FEBC2E; }
+  .dots i:nth-child(3) { background: #28C840; }
+  .fname { color: #fff; }
+  .count { margin-left: auto; color: #8DA3B0; }
+  .safe { margin: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; background: #133A2A; color: #CFF5DE; font-size: 15px; line-height: 1.45; border-bottom: 1px solid #1F5A40; }
+  .safe b { color: #fff; }
+  .code { list-style: none; counter-reset: ln; margin: 0; padding: 10px 0 14px; max-height: 470px; overflow: auto; font: 14px/1.65 var(--mono); }
+  .code :global(li) { counter-increment: ln; display: flex; align-items: baseline; gap: 10px; padding: 0 16px 0 0; white-space: pre; }
+  .code :global(li)::before { content: counter(ln); flex: 0 0 44px; text-align: right; color: #4F6573; user-select: none; }
+  .code :global(.comment) { color: #7F96A3; }
+  .code :global(.secret) { background: rgba(255, 196, 61, 0.16); box-shadow: inset 3px 0 0 #FFC43D; color: #FFE3A3; }
+  .code :global(.keep) { color: #9FE3B9; }
+  .code :global(.badge) { margin-left: auto; font: 600 11px/1 var(--body); letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 6px; border-radius: 5px; background: rgba(255, 196, 61, 0.22); color: #FFD772; }
+  .code :global(.keep .badge) { background: rgba(40, 200, 64, 0.18); color: #9FE3B9; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; justify-self: start; }
+  .ghost { font: 600 15px/1 var(--body); padding: 11px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .ghost.small { font-size: 14px; padding: 8px 12px; }
+  .status { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .status:empty { display: none; }
+  .hint { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .hint a, .link { color: var(--sky); }
+  .link { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+  .hint code { font: 14px var(--mono); background: var(--wash); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+
+  .card { display: grid; gap: 10px; border-radius: 16px; padding: 20px 22px; border: 1px solid var(--line); border-left-width: 8px; background: var(--white); }
+  .card.leak { border-left-color: #D2344F; background: #FFF5F6; }
+  .card.warn { border-left-color: #E0A100; background: #FFFBEF; }
+  .card.ok { border-left-color: #1F9D55; background: #F2FBF5; }
+  .verdict { margin: 0; font: 700 28px/1.2 var(--display); }
+  .card.leak .verdict { color: #A3122F; }
+  .card.leak .verdict::before { content: '⚠ '; }
+  .card.ok .verdict::before { content: '✓ '; color: #1F9D55; }
+  .sub { margin: 0; color: var(--ink-soft); }
+  .cover { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .clabel { font: 600 14px/1.3 var(--body); color: var(--ink-soft); }
+  .cover ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .cover :global(li) { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font: 13px/1.2 var(--mono); border: 1px solid; }
+  .cover :global(li.yes) { background: #E3F6EA; border-color: #A9DDBC; color: #155A2E; }
+  .cover :global(li.no) { background: #FDE8EC; border-color: #F2B5C1; color: #A3122F; }
+  .cover :global(.mark) { font: 700 13px/1 var(--body); }
+
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .list :global(.f) { border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 14px 16px; background: var(--white); display: grid; gap: 6px; min-width: 0; }
+  .list :global(.f.secret:not(.safe)) { border-left-color: #D2344F; }
+  .list :global(.f.junk:not(.safe)) { border-left-color: #E0A100; }
+  .list :global(.f.safe) { border-left-color: #1F9D55; }
+  .list :global(.head) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .list :global(.tag) { font: 700 12px/1 var(--body); text-transform: uppercase; letter-spacing: 0.04em; padding: 5px 8px; border-radius: 6px; color: var(--white); background: #1F9D55; }
+  .list :global(.secret:not(.safe) .tag) { background: #D2344F; }
+  .list :global(.junk:not(.safe) .tag) { background: #B98300; }
+  .list :global(.path) { font: 600 16px/1.3 var(--mono); overflow-wrap: anywhere; }
+  .list :global(.what), .list :global(.why) { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .list :global(.why) { color: var(--ink); }
+  .list :global(.acts) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .list :global(.act) { font: 600 14px/1.2 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; text-align: left; }
+  .list :global(.act.primary) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .list :global(.act:hover) { border-color: var(--sky); }
+  .fine { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+  .inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; margin-top: 6px; }
+  .inputs label { display: grid; gap: 6px; min-width: 0; }
+  .ilabel { font: 600 14px/1 var(--body); color: var(--ink-soft); }
+  textarea { font: 14px/1.5 var(--mono); padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); resize: vertical; tab-size: 4; width: 100%; box-sizing: border-box; }
+  textarea:focus { outline: none; border-color: var(--sky); }
+
+  @media (max-width: 640px) {
+    .inputs { grid-template-columns: minmax(0, 1fr); }
+    .stacks :global(.glabel) { min-width: 100%; }
+    .verdict { font-size: 23px; }
+    .code { max-height: 380px; font-size: 13px; }
+    .code :global(li)::before { flex-basis: 30px; }
+    .modes button { padding: 11px 14px; font-size: 15px; }
+  }
+</style>
