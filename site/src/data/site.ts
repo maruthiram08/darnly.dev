@@ -300,6 +300,12 @@ export const TOOLS: Item[] = [
     name: 'CSS animations and keyframes',
     blurb: 'Pick fade, slide, bounce, shimmer or typing, tune the timing on a visual curve, copy CSS or Tailwind.',
   },
+  {
+    slug: 'image-watermark',
+    category: 'Images',
+    name: 'Image watermark',
+    blurb: 'Add your name or logo to one picture or a whole batch: corners or tiled, any opacity, color and angle. Download as a ZIP.',
+  },
 ];
 
 // Same for guides.

@@ -1,0 +1,217 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Drop in one picture or a whole batch, or paste one. Two samples show what it does until you do.',
+  'Type your watermark text or add your logo, then pick where it goes: a corner, the middle, or tiled across the whole picture. Change the size, see-through amount, color, font and angle, and the big preview updates as you go.',
+  'Download the picture you are looking at, or all of them at once as a ZIP. Every picture gets the same watermark, scaled to its size.',
+];
+
+const faq = [
+  { q: 'Are my pictures uploaded anywhere?', a: 'No. The watermark is drawn in your browser with a canvas. Your pictures and your logo never leave your computer.' },
+  { q: 'Which watermark is hardest to remove?', a: 'A tiled watermark across the whole picture, at an angle. A small logo in a corner looks neater, but anyone can crop it off in a few seconds. For screenshots of unreleased work or client previews, use tiled.' },
+  { q: 'How see-through should a watermark be?', a: 'Between 20% and 40% works for most pictures: people can still see the work, and the mark is still clear. Go higher for a corner logo, lower for a tiled pattern.' },
+  { q: 'Can I add my logo instead of text?', a: 'Yes. Pick “Logo” and add a PNG or SVG, ideally with a see-through background. Switch on “Paint it in the color” to make a dark logo white, so it shows on dark pictures.' },
+  { q: 'Does the watermark stay the same size on small and big pictures?', a: 'It scales with each picture, so it looks the same on a phone screenshot and on a 4K photo.' },
+  { q: 'Does it keep the photo’s location and camera details?', a: 'No. The new file is made from the pixels only, so location, camera and date details are left out.' },
+  { q: 'Which file type do I get?', a: 'The same type you dropped in (JPG stays JPG, PNG stays PNG), unless you pick JPG or PNG under “File type”. JPG is smaller for photos; PNG keeps sharp edges on screenshots and text.' },
+];
+---
+<ToolPage
+  slug="image-watermark"
+  title="Free image watermark tool: add text or a logo to photos · Darnly"
+  description="Add a text or logo watermark to one picture or many at once. Corners, center or tiled, with opacity, size, color, font and angle. Free, nothing is uploaded."
+  h1="Image watermark: add text or a logo to your pictures"
+  lede="Drop in one picture or a batch, type your name or add your logo, and see it on the picture right away. Download one, or all of them as a ZIP."
+  steps={steps}
+  faq={faq}
+>
+  <div class="wm" id="wm">
+    <label class="drop" id="wm-drop">
+      <input id="wm-file" type="file" accept="image/*" multiple />
+      <span class="drop-icon" aria-hidden="true">＋</span>
+      <span class="drop-text"><strong id="wm-drop-title">Drop your pictures here</strong>
+      <span id="wm-drop-text">or click to choose one or many. You can also paste. Two samples show until you do.</span></span>
+    </label>
+    <p class="error" id="wm-error" role="alert" hidden></p>
+
+    <div class="layout">
+      <div class="stage">
+        <div class="preview" id="wm-preview">
+          <canvas id="wm-canvas" role="img" aria-label="Preview of the picture with your watermark"></canvas>
+          <span class="badge" id="wm-badge">Preview</span>
+        </div>
+        <ul class="thumbs" id="wm-thumbs" aria-label="Your pictures"></ul>
+        <div class="actions">
+          <button id="wm-one" type="button" class="primary">Download this picture</button>
+          <button id="wm-zip" type="button" class="ghost">Download all as ZIP</button>
+        </div>
+      </div>
+
+      <div class="panel" aria-label="Watermark style">
+        <fieldset class="seg" aria-label="Watermark kind">
+          <label><input type="radio" name="wm-kind" value="text" checked /> Text</label>
+          <label><input type="radio" name="wm-kind" value="logo" /> Logo</label>
+        </fieldset>
+
+        <div class="group" id="wm-text-group">
+          <label class="field">Text
+            <input id="wm-text" type="text" maxlength="80" value="© Your name · Preview only" />
+          </label>
+          <div class="field">Font
+            <div class="fonts" id="wm-fonts" role="radiogroup" aria-label="Font">
+              <button type="button" role="radio" aria-checked="true" data-font="sans" style="font-family: Figtree, system-ui, sans-serif; font-weight: 600">Clean</button>
+              <button type="button" role="radio" aria-checked="false" data-font="display" style="font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800">Bold</button>
+              <button type="button" role="radio" aria-checked="false" data-font="serif" style="font-family: Georgia, 'Times New Roman', serif; font-style: italic">Classic</button>
+              <button type="button" role="radio" aria-checked="false" data-font="mono" style="font-family: 'JetBrains Mono', ui-monospace, monospace">Code</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="group" id="wm-logo-group" hidden>
+          <label class="logo-pick">
+            <input id="wm-logo" type="file" accept="image/*" />
+            <span class="logo-thumb"><canvas id="wm-logo-thumb" width="88" height="88" aria-hidden="true"></canvas></span>
+            <span><strong id="wm-logo-title">Add your logo</strong><br /><span class="hint" id="wm-logo-hint">A PNG or SVG with a see-through background works best.</span></span>
+          </label>
+          <label class="toggle"><input id="wm-tint" type="checkbox" /> Paint it in the color</label>
+        </div>
+
+        <div class="field">Where
+          <div class="pos" id="wm-pos" role="radiogroup" aria-label="Where the watermark goes">
+            {['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'].map((p) => (
+              <button type="button" role="radio" aria-checked="false" data-pos={p} aria-label={{ tl: 'Top left', tc: 'Top', tr: 'Top right', ml: 'Left', mc: 'Center', mr: 'Right', bl: 'Bottom left', bc: 'Bottom', br: 'Bottom right' }[p]}><span></span></button>
+            ))}
+            <button type="button" role="radio" aria-checked="true" data-pos="tile" class="tile">Tiled<br />all over</button>
+          </div>
+        </div>
+
+        <div class="field">Color
+          <div class="swatches" id="wm-colors" role="radiogroup" aria-label="Watermark color">
+            {['#0B2230', '#FFFFFF', '#D83995', '#0593C6', '#F5B700'].map((c, i) => (
+              <button type="button" role="radio" aria-checked={i === 0 ? 'true' : 'false'} class="sw" data-color={c} style={`background: ${c}`} aria-label={`Color ${c}`}></button>
+            ))}
+            <label class="sw sw-custom" title="Pick any color"><input id="wm-color" type="color" value="#ff5a5f" aria-label="Pick any color" /></label>
+          </div>
+          <label class="toggle"><input id="wm-shadow" type="checkbox" checked /> Soft shadow, so it shows on light and dark</label>
+        </div>
+
+        <label class="slider">See-through <span><input id="wm-opacity" type="range" min="5" max="100" value="30" /><output id="wm-opacity-out">30%</output></span></label>
+        <label class="slider">Size <span><input id="wm-size" type="range" min="1" max="100" value="40" /><output id="wm-size-out">40</output></span></label>
+        <label class="slider">Angle <span><input id="wm-angle" type="range" min="-90" max="90" value="-30" /><output id="wm-angle-out">-30°</output></span></label>
+        <label class="slider" id="wm-gap-row">Space between <span><input id="wm-gap" type="range" min="0" max="100" value="45" /><output id="wm-gap-out">45</output></span></label>
+
+        <fieldset class="seg small" aria-label="File type">
+          <label><input type="radio" name="wm-type" value="same" checked /> Same type</label>
+          <label><input type="radio" name="wm-type" value="image/jpeg" /> JPG</label>
+          <label><input type="radio" name="wm-type" value="image/png" /> PNG</label>
+        </fieldset>
+      </div>
+    </div>
+
+    <details class="details">
+      <summary>How the watermark is made</summary>
+      <p>Each picture is drawn on a canvas at its full size, and the watermark is drawn on top. Its size and the space around it are measured from the picture’s shorter side, so the mark looks the same on every picture in a batch. The edge margin is 4% of that side.</p>
+      <p>“See-through” is the watermark’s opacity. The soft shadow is a dark glow behind light colors and a light glow behind dark ones, which keeps the mark readable on busy pictures. A tiled pattern is turned by the angle and repeated across the whole picture, so cropping can’t remove it.</p>
+      <p>Files are saved at 92% quality for JPG and WebP. The new file holds only the pixels: location, camera and date details are not copied. Very large pictures (over 8192 pixels on a side) are shrunk to 8192 so every browser can draw them.</p>
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/image-watermark';
+</script>
+
+<style>
+  .wm { display: grid; gap: 18px; min-width: 0; }
+  .wm [hidden] { display: none !important; }
+  .drop { position: relative; display: flex; align-items: center; gap: 16px; padding: 18px 22px; border: 2px dashed var(--line); border-radius: 18px; background: var(--wash); cursor: pointer; }
+  .drop:hover, .drop:global(.over) { border-color: var(--sky); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop:focus-within { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .drop-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--sky); color: var(--white); font: 700 24px/1 var(--body); }
+  .drop-text { display: grid; gap: 2px; min-width: 0; }
+  .drop strong { font: 700 20px/1.2 var(--display); overflow-wrap: anywhere; }
+  .drop-text span { color: var(--ink-soft); font-size: 15px; }
+  .error { margin: 0; color: #B4234F; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+  .stage { display: grid; gap: 14px; min-width: 0; }
+  .preview { position: relative; display: grid; place-items: center; min-height: 260px; padding: 46px 14px 14px; border: 1px solid var(--line); border-radius: 18px; background: repeating-conic-gradient(#eef1f4 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .preview canvas { display: block; max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 10px 30px rgba(11, 34, 48, 0.16); }
+  .badge { position: absolute; top: 12px; left: 14px; padding: 5px 10px; border-radius: 999px; background: rgba(11, 34, 48, 0.78); color: #fff; font: 500 12px/1 var(--mono); max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .thumbs { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .thumbs:empty { display: none; }
+  .thumbs :global(li) { position: relative; flex: none; }
+  .thumbs :global(.th) { display: block; padding: 0; border: 2px solid transparent; border-radius: 10px; background: var(--wash); cursor: pointer; overflow: hidden; }
+  .thumbs :global(.th[aria-current='true']) { border-color: var(--sky); }
+  .thumbs :global(.th canvas) { display: block; height: 72px; width: auto; }
+  .thumbs :global(.rm) { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: rgba(11, 34, 48, 0.75); color: #fff; font: 700 14px/22px var(--body); cursor: pointer; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .actions button { font: 600 16px/1 var(--body); padding: 15px 22px; border-radius: 999px; cursor: pointer; }
+  .actions .primary { border: 0; background: var(--sky); color: var(--white); }
+  .actions .primary:hover { background: #047FAB; }
+  .actions .ghost { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+  .actions button:disabled { opacity: 0.6; cursor: wait; }
+
+  .panel { display: grid; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); min-width: 0; }
+  .group { display: grid; gap: 12px; }
+  .field { display: grid; gap: 6px; font-weight: 600; font-size: 15px; }
+  .field input[type='text'] { font: 500 16px/1.3 var(--body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); min-width: 0; }
+  .field input[type='text']:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+
+  .seg { display: inline-flex; justify-self: start; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); }
+  .seg label { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 15px; }
+  .seg.small label { padding: 6px 12px; font-size: 14px; }
+  .seg label:has(input:checked) { background: var(--sky); color: var(--white); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+  .fonts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .fonts button { padding: 9px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); font-size: 15px; cursor: pointer; }
+  .fonts button[aria-checked='true'] { border-color: var(--sky); background: var(--wash); box-shadow: inset 0 0 0 1px var(--sky); }
+
+  .logo-pick { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px dashed var(--line); border-radius: 12px; cursor: pointer; font-size: 15px; }
+  .logo-pick:hover { border-color: var(--sky); }
+  .logo-pick:focus-within { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .logo-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .logo-thumb { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 10px; background: repeating-conic-gradient(#e3e8ec 0 25%, #fff 0 50%) 0 0 / 10px 10px; }
+  .logo-thumb canvas { width: 44px; height: 44px; }
+  .hint { color: var(--ink-soft); font-size: 13px; font-weight: 400; }
+
+  .pos { display: grid; grid-template-columns: repeat(3, 38px) 1fr; grid-template-rows: repeat(3, 38px); gap: 6px; }
+  .pos button { display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--white); cursor: pointer; }
+  .pos button span { width: 10px; height: 10px; border-radius: 3px; background: var(--line); }
+  .pos button[aria-checked='true'] { border-color: var(--sky); background: var(--wash); box-shadow: inset 0 0 0 1px var(--sky); }
+  .pos button[aria-checked='true'] span { background: var(--sky); }
+  .pos .tile { grid-column: 4; grid-row: 1 / 4; margin-left: 6px; font: 600 14px/1.25 var(--body); color: var(--ink); background-image: repeating-linear-gradient(-30deg, transparent 0 12px, rgba(5, 147, 198, 0.12) 12px 20px); }
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { position: relative; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1px solid rgba(15, 23, 42, 0.22); cursor: pointer; overflow: hidden; }
+  .sw[aria-checked='true'] { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .sw:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .sw-custom { background: conic-gradient(#f43f5e, #f59e0b, #84cc16, #06b6d4, #6366f1, #d946ef, #f43f5e); }
+  .sw-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  .sw-custom:has(input:focus-visible) { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--sky); flex: none; }
+
+  .slider { display: grid; gap: 4px; font-weight: 600; font-size: 15px; }
+  .slider span { display: flex; align-items: center; gap: 10px; }
+  .slider input { flex: 1; min-width: 0; accent-color: var(--sky); }
+  .slider output { width: 44px; text-align: right; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+
+  .details { border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; background: var(--white); min-width: 0; }
+  .details summary { cursor: pointer; font-weight: 600; }
+  .details p { color: var(--ink-soft); font-size: 14px; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .drop { padding: 14px 16px; }
+    .preview { padding: 8px; min-height: 200px; }
+  }
+</style>
