@@ -16,8 +16,10 @@ Made for people who build apps with AI coding agents, developer or not.
 
 Where the report goes:
 
-- **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and Darnly adds a short note to `AGENTS.md`. Then tell your agent "fix my bugs".
-- **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent ([how, for each agent](https://darnly.dev/setup/)) (tools: `list_bugs`, `get_bug`, `mark_fixed`), or copy the picture and the details into your agent's chat.
+- **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and **Set up this project** adds a short note to `AGENTS.md`, a `/darnly` command for Claude Code and Cursor, and a Claude Code hook that tells the agent when bugs are waiting. Then type `/darnly` (in Codex, say "fix my bugs").
+- **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent ([how, for each agent](https://darnly.dev/setup/)) (tools: `list_bugs`, `get_bug`, `ask_user`, `mark_fixed`), or copy the picture and the details into your agent's chat.
+
+When the agent fixes a bug, the Darnly panel says "1 bug fixed. Take a look." with one line on what changed. If the agent has a question, the panel tells you to go back to its chat.
 
 Bugs from all your projects stay in one list. Console errors are recorded on localhost automatically; for a live site, click **Record errors on this site** once. Passwords, tokens and API keys are hidden before anything is saved. See [PRIVACY.md](PRIVACY.md).
 

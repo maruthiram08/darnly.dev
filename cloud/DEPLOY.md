@@ -50,7 +50,7 @@ To try sign-in before the store approves 0.2.0, build an unpacked copy with the 
 
 1. In the panel: "In the cloud", then Sign in with Google.
 2. In Claude: Settings → Connectors → Add custom connector → `https://api.darnly.dev/mcp`. Approve on the Darnly page.
-3. Capture a bug, then tell Claude "fix my Darnly bugs".
+3. Capture a bug, then type `/darnly` in Claude Code (or tell it "fix my Darnly bugs").
 
 ## 5. Spending limits (keep the month under $100)
 

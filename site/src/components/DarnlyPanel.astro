@@ -7,12 +7,13 @@ const { source } = Astro.props;
 ---
 <aside class="darnly-panel" aria-label="About Darnly">
   <span class="eyebrow">Made by Darnly</span>
-  <img src="/darnly-panel.jpg" alt="Darnly picking a broken button on a page" width="520" height="293" loading="lazy" />
+  <img src="/darnly-panel.jpg" alt="Darnly: spot a bug, point at it, your agent fixes it" width="520" height="293" loading="lazy" />
   <p class="lead">Spot a bug? Point at it.</p>
   <ul>
     <li>Press one key, click the broken part</li>
     <li>Say what you expected</li>
     <li>Claude Code, Codex or Cursor gets the screenshot, element and errors</li>
+    <li>Type /darnly, and Darnly tells you when it's fixed</li>
   </ul>
   <a class="add" href={storeUrl(`${source}-panel`)}>Add to Chrome, it's free</a>
   <a class="more" href="/">See how it works</a>
