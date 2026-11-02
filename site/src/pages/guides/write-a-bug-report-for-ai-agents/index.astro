@@ -1,0 +1,74 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'write-a-bug-report-for-ai-agents';
+const faq = [
+  { q: 'What is the most important part of a bug report for an AI agent?', a: 'The "Expected" line. Without it the agent has to guess what "fixed" means. With it, the agent has a clear goal it can check its change against.' },
+  { q: 'How long should a bug report be?', a: 'Short. Five to eight lines is plenty for most UI bugs. Long reports bury the important part. Add logs as a separate block, not in the middle of your sentences.' },
+  { q: 'Should I tell the agent which file to change?', a: 'Only if you know. A wrong guess sends it to the wrong place. The page address, the visible text and the element name are safer clues.' },
+  { q: 'Is there a template I can copy?', a: 'Yes, the one on this page: page, steps, what happened, expected, scope, errors, extras. Save it in a note and fill it in each time.' },
+  { q: 'Can a tool write the report for me?', a: 'Darnly, a free Chrome extension, writes most of it: you click the broken part and type the Expected line, and it adds the screenshot, element, page address and recent errors.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to write a bug report for an AI coding agent"
+  description="A bug report an AI coding agent can fix says where, what you did, what happened, what you expected and the scope. Copy the template and see examples."
+  h1="How to write a bug report for an AI coding agent"
+  lede="A bug report for an AI coding agent says where the bug is, what you did, what happened, what you expected, and whether the fix is for this spot or everywhere, with a marked screenshot and any error text."
+  faq={faq}
+>
+  <p>AI coding agents like Claude Code, Codex and Cursor are fast at changing code. They are slow at guessing. Every gap in your report turns into a search through files, a wrong fix, or a question back to you. A good report closes the gaps before they open.</p>
+
+  <h2>The template</h2>
+  <p>Copy this into a note and fill it in each time:</p>
+  <pre><code>Page: (address, like localhost:3000/settings)
+Steps: (what you clicked or typed, in order)
+What happened: (what you saw)
+Expected: (what should have happened)
+Scope: (only here / everywhere this appears)
+Errors: (red lines from the browser console, as text)
+Extras: (screenshot with the broken part marked, browser, phone or laptop)</code></pre>
+
+  <h2>Each line, and why the agent needs it</h2>
+  <h3>Page</h3>
+  <p>The address is the cheapest clue there is. Routes usually match file or folder names, so <code>/settings</code> points the agent at a settings page file before it searches anything.</p>
+  <h3>Steps</h3>
+  <p>Write them like a recipe. "Add two items, open the cart, change the first to 3." Agents can't click around your app, so the steps are how they picture the state the page was in.</p>
+  <h3>What happened</h3>
+  <p>Describe, don't diagnose. "The total stayed at $20" is better than "the state is broken". Your guess at the cause can send the agent the wrong way.</p>
+  <h3>Expected</h3>
+  <p>This is the line that matters most. "Total should be $60" gives the agent a target it can test against. If it should look like something else in the app, say so: "like the cards on the home page".</p>
+  <h3>Scope</h3>
+  <p>"Only on this page" or "every button like this". Without it, agents either ask, or pick one and sometimes pick wrong. See <a href="/guides/local-or-global-change/">why your agent asks if a change is local or global</a>.</p>
+  <h3>Errors</h3>
+  <p>Paste error text, not a picture of it. Text is exact and the agent can search for it. Here is <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</p>
+  <h3>Extras</h3>
+  <p>A screenshot with the broken part boxed or circled. Your browser and screen size if it might matter. <a href="/tools/browser-info/">What browser am I using?</a> copies all of that in one click.</p>
+
+  <h2>A bad report and a good one</h2>
+  <p><strong>Bad:</strong></p>
+  <pre><code>the settings page is broken pls fix</code></pre>
+  <p><strong>Good:</strong></p>
+  <pre><code>Page: localhost:3000/settings
+Steps: change Display name to "Sam", click Save
+What happened: nothing. After reload the old name is back.
+Expected: name saves and a "Saved" message shows
+Scope: only this form
+Errors: TypeError: Cannot read properties of undefined (reading 'id')
+Extras: screenshot attached, Save button circled</code></pre>
+  <p>The second one takes a minute to write and usually saves several rounds of back and forth.</p>
+
+  <h2>Common mistakes</h2>
+  <ul>
+    <li><strong>Several bugs in one message.</strong> Send one at a time, or number them clearly.</li>
+    <li><strong>"It doesn't work."</strong> Doesn't work how? Nothing happens, wrong result, error, or looks wrong?</li>
+    <li><strong>Leaving out what you already tried.</strong> If you reloaded or cleared the cache, say so.</li>
+    <li><strong>Pasting secrets.</strong> Logs and screenshots can hold API keys and tokens. Remove them before you paste.</li>
+  </ul>
+
+  <h2>Let Darnly write most of it</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that fills in most of this template for you. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, and type the Expected line. Darnly adds the page address, a screenshot with the element boxed in red, the element's selector, text, HTML and styles, and console errors and failed requests from the last 60 seconds. Secrets are replaced with <code>[hidden]</code>.</p>
+  <p>The report is saved as markdown and a PNG in <code>.darnly/inbox/</code> in your project, with a short note in AGENTS.md so Claude Code, Codex or Cursor knows to look there. You still write the two lines only you know: what you expected, and the scope. Put both in the note box.</p>
+</GuidePage>

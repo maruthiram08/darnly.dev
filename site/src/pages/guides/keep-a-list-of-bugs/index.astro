@@ -1,0 +1,59 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'keep-a-list-of-bugs';
+const faq = [
+  { q: 'What\'s the simplest way to track bugs as a solo builder?', a: 'A BUGS.md file in each project, with one line per bug and a checkbox. Your AI agent can read it, fix the items and tick them off.' },
+  { q: 'Should I use Jira or Linear for a side project?', a: 'Only if you like them. For one person with a few projects, a file or a single note is usually enough. Bigger tools pay off when several people share the work.' },
+  { q: 'How do I stop my agent fixing bugs from the wrong project?', a: 'Keep each project\'s bugs inside that project, or put the project name or address on each item, and tell the agent to only fix the ones for the code it\'s working on.' },
+  { q: 'Where does Darnly keep my bugs?', a: 'In each project\'s .darnly/inbox/ folder, with fixed ones moved to .darnly/done/. If you use the optional cloud inbox, your bugs from every project are in one private list.' },
+  { q: 'Are Darnly\'s bug files committed to git?', a: 'No. Darnly adds .darnly/ to .gitignore, because screenshots can hold private data.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to keep a list of bugs across vibe-coded projects"
+  description="Keep a list of bugs across your vibe-coded projects with one file per project your AI agent can read and tick off, or an inbox that fills as you capture."
+  h1="How to keep a list of bugs across vibe-coded projects"
+  lede="The easiest way to keep a list of bugs across vibe-coded projects is one plain file or folder inside each project that your AI agent can read, with each bug written so the agent can fix it without asking you."
+  faq={faq}
+>
+  <p>When you build several things with AI, bugs pile up in odd places: a note on your phone, a message to yourself, a screenshot on the Desktop called <code>Screenshot 2026-11-02 at 09.14.png</code>. A week later you can't remember which app it was for, or what was wrong. A list fixes that, and the right kind of list lets your agent work through it for you.</p>
+
+  <h2>Option 1: a BUGS.md file in each project</h2>
+  <p>Make a file called <code>BUGS.md</code> at the top of each project. One bug per line, with a checkbox:</p>
+  <pre><code># Bugs
+
+- [ ] /settings: Save does nothing. Expected: saves and shows "Saved".
+- [ ] /pricing: Subscribe button grey. Expected: blue like Start trial. Only this page.
+- [x] Home: logo too big on phones. Fixed: max width 160px in Header.</code></pre>
+  <p>Why this works well with AI agents:</p>
+  <ul>
+    <li>It lives with the code, so the agent can read it. Say "fix the open bugs in BUGS.md and tick them off".</li>
+    <li>Each line already has the page and the Expected part, which is what agents need most.</li>
+    <li>Ticked lines show what was done, so you can check the fixes later.</li>
+  </ul>
+  <p>Keep screenshots in a <code>bugs/</code> folder next to it and mention the file name on the line. If the screenshots show private data, add that folder to <code>.gitignore</code>. The <a href="/tools/gitignore-generator/">.gitignore generator</a> can help, and the <a href="/tools/markdown-preview/">Markdown preview</a> shows how the file looks.</p>
+
+  <h2>Option 2: one note for everything</h2>
+  <p>If you'd rather have one place, use a single note with a heading per project. Put the project name and address on every bug. When you sit down to fix, copy that project's section into your agent's chat. This is easier to add to from your phone, but the agent can't read it on its own.</p>
+
+  <h2>Option 3: a tracker</h2>
+  <p>GitHub Issues, Linear or Trello are worth it when other people report bugs or share the work. For one person, they add steps between "I saw a bug" and "my agent fixed it". If you already use one, keep using it.</p>
+
+  <h2>Habits that keep the list useful</h2>
+  <ul>
+    <li><strong>Write it down when you see it.</strong> Not later. The details fade fast.</li>
+    <li><strong>One bug, one line.</strong> Split "the checkout is weird" into the actual things.</li>
+    <li><strong>Always include Expected.</strong> See <a href="/guides/write-a-bug-report-for-ai-agents/">how to write a bug report an AI agent can fix</a>.</li>
+    <li><strong>Fix in batches.</strong> Five small bugs in one sitting is faster than five sessions.</li>
+    <li><strong>Check what was fixed.</strong> Look at the page yourself before ticking it off.</li>
+  </ul>
+
+  <h2>Let the list fill itself with Darnly</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that turns "write it down when you see it" into one key. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, say what you expected. Each bug becomes a markdown file and a PNG screenshot in that project's <code>.darnly/inbox/</code> folder, with the page address, the element and recent errors.</p>
+  <p>That folder is your list. The Darnly panel shows how many are waiting and how many are fixed. When you tell your agent "fix my bugs", it works through the inbox, adds a <strong>Fixed:</strong> line to each report saying what it changed, and moves it to <code>.darnly/done/</code>. Darnly shows you "1 bug fixed. Take a look." with that line, so checking is quick.</p>
+  <p>Working on projects in the cloud, or on more than one machine? The optional cloud inbox is an MCP server for bug reports: it keeps bugs from all your projects in one private list. Your agent reads it through Darnly's connector at <code>https://api.darnly.dev/mcp</code>, and is told to only fix the bugs whose page belongs to the code it's working on. You sign in with Google to use it, and fixed bugs are deleted 30 days after they were fixed.</p>
+  <p>For Mac apps, the iOS Simulator and the Android Emulator, the Darnly Mac app saves to the same <code>.darnly/inbox/</code> folder, so one list covers web and app bugs. It's in early access: write to hello@darnly.dev for the download.</p>
+</GuidePage>

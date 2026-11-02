@@ -1,0 +1,76 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-marker-io';
+const faq = [
+  { q: 'Is Marker.io free?', a: 'Marker.io\'s pricing page lists a 15-day free trial with no credit card and paid plans from $39 a month billed yearly. It doesn\'t list a free plan. People who only send feedback (reporters) don\'t need a paid seat.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension is free. The Mac app is in early access.' },
+  { q: 'Does Marker.io work with AI coding agents?', a: 'Yes. Marker.io has an MCP server at connect.marker.io/mcp, and its help center has setup guides for Claude Code, Cursor, Codex and others. Its page says agents can read screenshots, console logs and network requests from reports.' },
+  { q: 'Can my clients report bugs with Darnly without installing anything?', a: 'No. Darnly is a browser extension, so whoever reports a bug installs it. Marker.io\'s widget lets anyone send feedback without an account, which is better for clients.' },
+  { q: 'Can I use both?', a: 'Yes. Some people use a team tool for client feedback and Darnly for their own bugs while they build, since Darnly saves straight into the project folder.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Marker.io alternative for AI agents: Darnly vs Marker.io"
+  description="Darnly is a free, local bug capture for solo builders and their AI agent. Marker.io is a paid team feedback tool with a client widget. When each one fits."
+  h1="Darnly vs Marker.io"
+  lede="Darnly is a free Chrome extension and Mac app for capturing your own bugs straight into your project for an AI coding agent, while Marker.io is a paid feedback tool for teams and clients, with a website widget, integrations like Jira and Linear, and its own MCP server."
+  faq={faq}
+  sources={[
+    { name: 'Marker.io home page', url: 'https://marker.io/' },
+    { name: 'Marker.io pricing', url: 'https://marker.io/pricing' },
+    { name: 'Marker.io MCP', url: 'https://marker.io/marker-mcp' },
+    { name: 'Marker.io help: MCP Integration (Model Context Protocol)', url: 'https://help.marker.io/en/articles/14034657' },
+    { name: 'Marker.io help: MCP setup guides', url: 'https://help.marker.io/en/articles/14121093' },
+  ]}
+>
+  <p>If you're looking for a Marker.io alternative, or a Jam.dev alternative, because you work alone with an AI coding agent, this page is for you. Both tools turn "something looks wrong on this page" into a report with a screenshot and technical details. They're built for different people. Here's an honest look, with Marker.io's facts taken from its own pages on 2 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick Marker.io</strong> if clients or a team send you feedback, you want a widget on your site that anyone can use without an account, or you track work in Jira, Linear, Trello, GitHub or similar.</li>
+    <li><strong>Pick Darnly</strong> if you're building alone or in a tiny team with Claude Code, Codex or Cursor, you want bugs saved as files in your project with no account, and you'd like it free.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Marker.io</th></tr></thead>
+    <tbody>
+      <tr><td>Made for</td><td>People building with AI coding agents, reporting their own bugs</td><td>Teams collecting website feedback from colleagues, clients and users</td></tr>
+      <tr><td>Price</td><td>Free</td><td>From $39/month billed yearly ($59 monthly), 15-day free trial. No free plan listed.</td></tr>
+      <tr><td>How you capture</td><td>Chrome extension (one key, click, note), plus a Mac app in early access</td><td>Widget on your site, a browser extension and a WordPress plugin</td></tr>
+      <tr><td>Who can report</td><td>Anyone who installs the extension</td><td>Anyone using the widget, without an account</td></tr>
+      <tr><td>Console logs and network requests</td><td>Yes, last 60 seconds, on localhost and on sites you switch on</td><td>Listed on the Team plan and up</td></tr>
+      <tr><td>Session replay</td><td>No</td><td>Yes, on the Team plan and up</td></tr>
+      <tr><td>Where reports go</td><td>Files in your project's <code>.darnly/inbox/</code>, your clipboard, or an optional private cloud inbox</td><td>Marker.io, and integrations like Jira, Trello, Asana, GitHub, Linear, GitLab, ClickUp, Notion and Slack</td></tr>
+      <tr><td>AI coding agents</td><td>Adds AGENTS.md and a skill so Claude Code, Codex or Cursor read the inbox. Optional MCP connector at <code>api.darnly.dev/mcp</code></td><td>MCP server at <code>connect.marker.io/mcp</code>, with guides for Claude Code, Cursor, Codex and more</td></tr>
+      <tr><td>Account needed</td><td>No, unless you use the cloud inbox</td><td>Yes, for the team that receives feedback</td></tr>
+      <tr><td>Mac apps and simulators</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Websites</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where Marker.io is the better pick</h2>
+  <p>Marker.io is a full feedback system, and for teams that's a real advantage.</p>
+  <ul>
+    <li><strong>Clients who won't install anything.</strong> Its widget lets anyone send feedback and comments without an account. Darnly can't do that.</li>
+    <li><strong>Project tools.</strong> If your work lives in Jira, Linear or GitHub Issues, Marker.io sends reports there. Darnly doesn't integrate with trackers.</li>
+    <li><strong>Session replay.</strong> Seeing what a user did before the bug is very useful for hard-to-reproduce problems. Darnly keeps errors and requests from the last 60 seconds, not a recording.</li>
+    <li><strong>Team workflow.</strong> Statuses, assignees and comments. Marker.io's MCP lets agents update status, priority and assignee, and post comments.</li>
+    <li><strong>Extras.</strong> Its pricing page also lists website monitoring and, on higher plans, things like SSO and audit logs.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>It's free.</strong> For a solo builder or side project, a paid team seat is often more than you need.</li>
+    <li><strong>Bugs go straight into your code folder.</strong> Each one is a markdown file and a PNG in <code>.darnly/inbox/</code>, next to your code, and kept out of git. Your agent reads them with no connector or account. Say "fix my bugs" and it works through them.</li>
+    <li><strong>Nothing to add to your site.</strong> There's no widget or script to install, so it works the same on localhost, previews and your live site.</li>
+    <li><strong>Private by default.</strong> No account, and nothing is sent to Darnly unless you turn on the cloud inbox. Passwords, card numbers, tokens and keys are hidden before saving.</li>
+    <li><strong>Beyond the browser.</strong> The Mac app captures bugs in Mac apps, the iOS Simulator and the Android Emulator into the same inbox.</li>
+  </ul>
+
+  <h2>Using them together</h2>
+  <p>They don't really compete for the same moment. A common split: Marker.io (or another team tool) for client feedback, and Darnly for the bugs you find yourself while building and testing. If clients send you bugs by email or chat instead, the guide on <a href="/guides/send-bugs-from-testers-to-ai/">sending bugs from a tester or client to your AI agent</a> shows a free way to do it.</p>
+  <p>Want to try Darnly on your next bug? <a href={storeUrl(`guide-${slug}`)}>Add it to Chrome</a>. It takes a minute to set up.</p>
+</GuidePage>

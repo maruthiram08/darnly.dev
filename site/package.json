@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node scripts/copy-ocr.mjs && astro dev",
     "build": "node scripts/copy-ocr.mjs && astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",

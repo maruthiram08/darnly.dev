@@ -37,3 +37,5 @@ footer .tools-head h2 { margin-bottom: 0; }
 footer .tools-head a, footer .lists a.more { color: var(--sky); font-weight: 600; text-decoration: none; }
 footer .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px 28px; }
 footer .cats h3 { font: 600 12px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+footer .cats h3 a { color: inherit; text-decoration: none; }
+footer .cats h3 a:hover { color: var(--sky); }

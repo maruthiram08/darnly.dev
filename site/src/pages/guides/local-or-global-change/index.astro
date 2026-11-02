@@ -1,0 +1,58 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'local-or-global-change';
+const faq = [
+  { q: 'What does "local or global" mean in a bug fix?', a: 'Local means change only the spot you pointed at. Global means change the shared style or component, so every place that uses it changes too.' },
+  { q: 'Which should I pick?', a: 'If the same problem shows up in more than one place, pick global. If only this one spot looks wrong and the rest look right, pick local.' },
+  { q: 'How do I know if a style is shared?', a: 'Look at other pages. If other buttons, cards or headings have the same problem, it\'s probably shared. If they look fine, it isn\'t, or the fix needs to stay local.' },
+  { q: 'What happens if the agent guesses wrong?', a: 'A local fix to a global problem leaves the bug everywhere else. A global fix to a local problem can change pages you didn\'t look at. Check a couple of other pages after any style fix.' },
+  { q: 'Does Darnly answer the question for me?', a: 'No, only you know what you want. Darnly gives you a note box to say it in, and its report includes the element\'s classes and styles, which help the agent find the shared code if there is one.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Why your AI agent asks: is this change local or global?"
+  description="Your AI agent asks if a change is local or global because one style can be shared by many pages. Say the scope in your bug report and skip the question."
+  h1="Why your AI agent asks if a change is local or global"
+  lede="Your AI agent asks whether a change is local or global because the thing you pointed at is often drawn by shared code, so it needs to know if you want just this spot changed or every place that uses it."
+  faq={faq}
+>
+  <p>You ask for the Subscribe button to be blue. The agent comes back with: "Should I change just this button, or the shared button style used across the app?" It feels like a silly question. It isn't. It's the agent being careful, and you can answer it before it's asked.</p>
+
+  <h2>Why it happens</h2>
+  <p>Apps built with AI tools usually reuse pieces. One <code>Button</code> component draws every button. One theme file sets the main color, the corner radius and the font sizes. That's good: change it once, it changes everywhere.</p>
+  <p>But it means a small visual fix has two possible homes:</p>
+  <ul>
+    <li><strong>Local:</strong> change only this button, on this page. Nothing else moves.</li>
+    <li><strong>Global:</strong> change the shared component or theme. Every button like it changes too.</li>
+  </ul>
+  <p>From one screenshot the agent can't tell which you want. Both are reasonable. If it picks wrong, you either still have the bug on five other pages, or you now have a new bug on pages you didn't look at. So a careful agent asks.</p>
+
+  <h2>How to answer it up front</h2>
+  <ol>
+    <li><strong>Look at one or two other pages first.</strong> Does the same problem show up there? If yes, it's likely global. If the other places look right, it's local.</li>
+    <li><strong>Say it in one line.</strong> Add a Scope line to your report: "Only on the pricing page" or "Every primary button in the app".</li>
+    <li><strong>Point at a good example.</strong> "Should match the Start trial button" tells the agent which style is correct, and often answers the question by itself.</li>
+    <li><strong>Name the places you checked.</strong> "Also wrong on /settings and /checkout" helps the agent find the shared piece.</li>
+    <li><strong>Say what must not change.</strong> "Don't change the header buttons" protects the places you like as they are.</li>
+  </ol>
+
+  <h3>Phrases you can copy</h3>
+  <pre><code>Scope: only this spot. Don't change shared styles.
+Scope: everywhere. Fix the shared component, not just this page.
+Scope: all buttons like this one, but not the ones in the header.
+Should match: the cards on the home page.</code></pre>
+
+  <h2>After the fix</h2>
+  <p>Open two or three other pages and look. For style changes, a quick look at phone width helps too. The free <a href="/tools/responsive-checker/">responsive checker</a> shows a page at phone, tablet and desktop widths side by side. If a color changed, check it's still readable with the <a href="/tools/contrast-checker/">color contrast checker</a>.</p>
+
+  <h2>What we saw when we tested this</h2>
+  <p>We built a test for exactly this question: 8 planted bugs in Excalidraw, a real open source app, where 4 needed a shared fix and 4 needed a local one. With a screenshot and one sentence, Claude Code picked the right scope every time and never asked. Excalidraw is well organized, with one theme file and clear names, which made it easy.</p>
+  <p>So you won't always get the question. It comes up more in messy codebases, where the same style is copied in several places, or when your note is vague. Writing the scope line costs five seconds and removes the guess either way.</p>
+
+  <h2>Where Darnly fits</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension for capturing bugs. It can't decide the scope for you. What it does is give you one place to say it: press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, and type something like "should be blue like Start trial, everywhere". Darnly's report also includes the element's selector, classes and styles, which are the clues an agent uses to find a shared component. And the instructions it gives your agent say: if the note is vague, ask one short question first.</p>
+  <p>Got a picture of how it should look? Paste it into the note box too. It's saved next to the report, which settles "which style is right" without words.</p>
+</GuidePage>

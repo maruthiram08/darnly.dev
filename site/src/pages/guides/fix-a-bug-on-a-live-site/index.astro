@@ -1,0 +1,58 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'fix-a-bug-on-a-live-site';
+const faq = [
+  { q: 'Can I fix a live site directly?', a: 'You fix the code in your project, then deploy again. Most hosts used for AI-built sites, like Vercel, Netlify or Cloudflare, redeploy when you push to your main branch.' },
+  { q: 'Why does the bug only happen on the live site?', a: 'Common reasons: a missing environment variable on the host, a different database, an API address that still points at localhost, caching, or a build step that behaves differently from the dev server.' },
+  { q: 'Why are errors on my live site hard to read?', a: 'Live sites ship squashed (minified) code, so file and function names in errors are short and unclear. The error message itself is still useful to your agent.' },
+  { q: 'Do I need to fix it on localhost first?', a: 'It\'s the safest way. Try to make the bug happen on localhost, fix it there, check it, then deploy. If it only happens live, tell your agent that, because it points to settings rather than code.' },
+  { q: 'Does Darnly work on live sites?', a: 'Yes. Capturing works on any page. To include console errors from a live site, click Record errors on this site once for that site.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to fix a bug on a live site you built with AI · Darnly"
+  description="Fix a bug on your live AI-built site: capture it with the address and errors, try it on localhost, have your agent fix the code, then redeploy and check."
+  h1="How to fix a bug on a live site you built with AI"
+  lede="To fix a bug on a live site you built with AI, capture what you see with the page address and any console errors, try to make it happen on localhost, have your agent fix the code there, then redeploy and check the live page."
+  faq={faq}
+>
+  <p>Your site is up, someone sends you a message, and something's wrong. Don't panic and don't start editing on the host's dashboard. Vibe coding debugging on a live site works best in a calm order. The fix happens in your project, the same way you built it. Here it is.</p>
+
+  <h2>1. Capture the bug while you can see it</h2>
+  <p>Write down the address, what you clicked, and what you expected. Take a screenshot and mark the broken part. Open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows), redo the action and copy any red errors. The guide on <a href="/guides/copy-console-errors-for-ai/">copying console errors</a> walks through it.</p>
+  <p>Also note the device. A bug on a phone may not show on a laptop. <a href="/tools/browser-info/">What browser am I using?</a> copies your browser, screen size and settings in one go.</p>
+
+  <h2>2. Check it's not the host</h2>
+  <p>Some live-only bugs aren't in your code at all:</p>
+  <ul>
+    <li><strong>The whole site is down or shows an error page?</strong> Look up the status code in the <a href="/tools/http-status-explainer/">HTTP status code explainer</a>.</li>
+    <li><strong>Domain not loading?</strong> The <a href="/tools/domain-checker/">domain checker</a> looks at DNS, https and redirects.</li>
+    <li><strong>Security warning in the browser?</strong> Check the certificate with the <a href="/tools/ssl-checker/">SSL checker</a>.</li>
+    <li><strong>Images or links broken?</strong> The <a href="/tools/broken-link-checker/">broken link checker</a> finds every dead link and missing image.</li>
+  </ul>
+
+  <h2>3. Try it on localhost</h2>
+  <p>Start your app on your computer and repeat the steps. Two outcomes:</p>
+  <ul>
+    <li><strong>It happens on localhost too.</strong> Good news. That's a normal code bug. Give your agent the report and let it fix it there.</li>
+    <li><strong>It only happens live.</strong> Tell your agent exactly that. It points at things like a missing environment variable on the host, an API address that still says localhost, a different database, or caching. Ask the agent to check those, and compare your host's environment variables with your <code>.env</code> file.</li>
+  </ul>
+
+  <h2>4. Fix, check, deploy</h2>
+  <ol>
+    <li>Have the agent fix the code. Ask it to say in one line what it changed.</li>
+    <li>Check it on localhost yourself, with the same steps.</li>
+    <li>Commit and push, or deploy the way your host expects.</li>
+    <li>Open the live page in a fresh window and try again. A hard reload (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) skips the old cached files.</li>
+  </ol>
+  <p>If the fix made things worse, git can take you back. The <a href="/tools/git-undo-helper/">Git undo helper</a> shows the right command for what went wrong.</p>
+
+  <h2>Capture it in one key with Darnly</h2>
+  <p>Step 1 is the bit that's easy to skip when you're in a hurry. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that does it in one move on any page, live or local. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected.</p>
+  <p>On a live site, click <strong>Record errors on this site</strong> once. From then on Darnly keeps that site's console errors and failed requests from the last 60 seconds, ready for the next capture. Without that, it still includes failed requests the browser already lists for the page.</p>
+  <p>The report goes into <code>.darnly/inbox/</code> in your local project, with the live address in it, so your agent works on the code on your computer. If your project lives in the cloud, copy the picture and details into your agent's chat instead, or use Darnly's optional cloud inbox.</p>
+  <p>One limit to know: on localhost Darnly can sometimes name the component and file that drew an element. On a live, built site it can't, because that information is gone after the build. The selector, text, styles and errors still help the agent find it.</p>
+</GuidePage>

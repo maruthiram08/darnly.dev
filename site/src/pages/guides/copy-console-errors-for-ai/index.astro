@@ -1,0 +1,61 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'copy-console-errors-for-ai';
+const faq = [
+  { q: 'How do I open the browser console?', a: 'In Chrome, press Cmd+Option+J on a Mac or Ctrl+Shift+J on Windows. You can also right-click the page, choose Inspect, then click the Console tab.' },
+  { q: 'Which errors should I copy?', a: 'The red ones that appeared right when the bug happened. Clear the console first, do the thing that breaks, then copy what shows up.' },
+  { q: 'What about failed requests?', a: 'Open the Network tab, redo the action, and look for rows in red or with a status of 400 or more. Click one to see the address and the response, and copy those.' },
+  { q: 'Is it safe to paste console logs into an AI chat?', a: 'Check them first. Logs and requests can hold tokens, API keys, emails or cookies. Replace anything secret before you paste.' },
+  { q: 'Can Darnly record errors on my live site?', a: 'Yes, after you click Record errors on this site once for that site. On localhost it records straight away. On other sites it only sees failed requests the browser already lists.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to copy console errors in Chrome for your AI agent"
+  description="Copy console errors for your AI agent: open the console, clear it, redo the bug, copy the red lines as text and remove secrets. Or let Darnly keep them."
+  h1="How to copy console errors in Chrome for your AI agent"
+  lede="To copy console errors in Chrome for your AI agent, open the console, clear it, do the thing that breaks, then copy the red error lines as text and paste them into your agent's chat."
+  faq={faq}
+>
+  <p>Many bugs leave no mark on screen. You click Save and nothing happens. The page looks fine, but behind it something threw an error. Your agent can't see that unless you hand it over, and the error text is often the single best clue to the cause.</p>
+
+  <h2>Step by step in Chrome</h2>
+  <ol>
+    <li><strong>Open the console.</strong> <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows. Or right-click the page, choose <strong>Inspect</strong>, and click <strong>Console</strong>.</li>
+    <li><strong>Clear the old messages.</strong> Click the clear icon (a circle with a line through it) at the top left of the console, so you only see what's new.</li>
+    <li><strong>Make the bug happen.</strong> Click the button, submit the form, whatever breaks.</li>
+    <li><strong>Find the red lines.</strong> Errors are red. Yellow ones are warnings and are usually less important.</li>
+    <li><strong>Copy as text.</strong> Select the error text with your mouse and copy it, or right-click the error and use the copy option in the menu. Click the small arrow next to an error first if you want the full stack, the list of files it went through.</li>
+    <li><strong>Remove secrets.</strong> Scan for tokens, keys and emails, and replace them with something like <code>[hidden]</code>.</li>
+    <li><strong>Paste it with your note.</strong> Put it in its own block under what you expected.</li>
+  </ol>
+
+  <pre><code>Clicking Save on /settings does nothing. Expected: it saves.
+Console:
+TypeError: Cannot read properties of undefined (reading 'id')
+    at saveProfile (settings.tsx:42)</code></pre>
+
+  <h2>Don't forget failed requests</h2>
+  <p>Some bugs are a request to your server or database that came back with an error. These show in the <strong>Network</strong> tab, next to Console.</p>
+  <ol>
+    <li>Open the Network tab, then redo the action.</li>
+    <li>Look for rows in red, or with a status of 400 or higher.</li>
+    <li>Click the row. Copy the address, the status, and the <strong>Response</strong> text.</li>
+  </ol>
+  <p>Not sure what a status means? The <a href="/tools/http-status-explainer/">HTTP status code explainer</a> says what 401, 404, 500 or 502 means in plain words and why it happens in common stacks.</p>
+
+  <h2>Tips</h2>
+  <ul>
+    <li><strong>Text beats pictures.</strong> A screenshot of an error can't be searched. If all you have is a picture, <a href="/tools/image-to-text/">Image to text</a> copies the words out of it.</li>
+    <li><strong>The first error matters most.</strong> Later errors are often caused by the first one.</li>
+    <li><strong>On a live site, errors may be short and cryptic.</strong> Built sites squash file names. Paste them anyway, and also say what you did, so the agent can match it to your code.</li>
+    <li><strong>Check your logs don't leak keys.</strong> If you see a secret key in the console or a request on your live site, that's a bigger problem. The <a href="/tools/api-key-leak-checker/">API key leak checker</a> looks for keys in your site's JavaScript.</li>
+  </ul>
+
+  <h2>Let Darnly keep the errors for you</h2>
+  <p>The annoying part of all this is timing. You have to open the console before the bug happens, or do it again. <a href={storeUrl(`guide-${slug}`)}>Darnly</a>, a free Chrome extension, keeps the last 60 seconds of console errors and failed requests on localhost all the time, so they're ready when you capture. On a live site, click <strong>Record errors on this site</strong> once and it does the same there.</p>
+  <p>When you see the bug, press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part and say what you expected. The report has the errors and failed requests in it, next to a screenshot with the broken part boxed in red. Auth headers, cookies, tokens, API keys and secret-looking query parameters are replaced with <code>[hidden]</code> before anything is saved.</p>
+  <p>The error buffer stays in the page's memory and never leaves it unless you capture. The report goes into <code>.darnly/inbox/</code> in your project for Claude Code, Codex or Cursor, or onto your clipboard if your project is in the cloud.</p>
+</GuidePage>

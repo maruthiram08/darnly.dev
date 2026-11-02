@@ -1,6 +1,7 @@
 ---
 // Every page's <head>: title, description, social preview, canonical URL and fonts.
 import '../styles/base.css';
+import { CF_ANALYTICS_TOKEN } from '../data/analytics';
 
 interface Props {
   title: string;
@@ -23,6 +24,8 @@ const {
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
+// Cloudflare Web Analytics beacon, only once a token is set in src/data/analytics.ts.
+const cfBeacon = CF_ANALYTICS_TOKEN ? JSON.stringify({ token: CF_ANALYTICS_TOKEN }) : '';
 ---
 <!doctype html>
 <html lang="en">
@@ -50,6 +53,7 @@ const imageUrl = new URL(image, Astro.site);
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <slot name="head" />
+{cfBeacon && <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={cfBeacon}></script>}
 </head>
 <body>
 <slot />
