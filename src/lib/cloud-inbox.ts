@@ -24,6 +24,7 @@ export interface CloudBug {
   fixedAt: number | null;
   /** What the agent asked the user and is waiting on (older servers leave it out). */
   question?: string | null;
+  project?: string | null;
 }
 
 export class CloudError extends Error {
@@ -154,11 +155,13 @@ export interface Upload {
   logs?: string;
   /** Made once per capture, so pressing Save twice doesn't create two bugs. */
   clientId?: string;
+  /** Which project the bug belongs to, so an agent can list only its own. */
+  project?: string;
 }
 
 export async function uploadBug(s: CloudSession, u: Upload): Promise<CloudBug> {
   const form = new FormData();
-  form.set('meta', JSON.stringify({ title: u.title, pageUrl: u.pageUrl, clientId: u.clientId }));
+  form.set('meta', JSON.stringify({ title: u.title, pageUrl: u.pageUrl, clientId: u.clientId, project: u.project }));
   form.set('report', new File([u.report], 'report.md', { type: 'text/markdown' }));
   if (u.picture) form.set('picture', new File([u.picture], 'picture.png', { type: 'image/png' }));
   if (u.reference) form.set('reference', new File([u.reference], 'reference.png', { type: 'image/png' }));

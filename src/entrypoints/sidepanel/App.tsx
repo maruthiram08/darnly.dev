@@ -7,6 +7,7 @@ import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
+import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
@@ -72,6 +73,9 @@ export function App() {
   folderRef.current = folder;
   // Several projects and a site Darnly hasn't seen yet: the panel asks which project it belongs to.
   const [askRecent, setAskRecent] = useState<FileSystemDirectoryHandle[] | null>(null);
+  // The project name this site's cloud bugs go under, so each agent can ask for only its own.
+  const [cloudName, setCloudName] = useState('');
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [recent, setRecent] = useState<FileSystemDirectoryHandle[]>([]);
   const [access, setAccess] = useState<string>('none');
   const [message, setMessage] = useState('');
@@ -220,7 +224,7 @@ export function App() {
     setCaptures(list);
     const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', '.claude/settings.json', CURSOR_COMMAND_PATH, `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
     const existing = Object.fromEntries(await Promise.all(paths.map(async (p) => [p, await readProjectFile(f, p)] as const)));
-    const next = planSetup(existing);
+    const next = planSetup(existing, f.name);
     setPlan(next);
     setSetupNeeded(next.length > 0);
     setHooksOn(!!existing['.claude/settings.json']?.includes(HOOK_MARK));
@@ -230,6 +234,7 @@ export function App() {
   const refreshFolder = useCallback(async () => {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
     const t = await targetFor(originOf(tab?.url), !!sessionRef.current);
+    if (t.kind === 'cloud') setCloudName(await cloudProjectName(originOf(tab?.url), tab?.url, tab?.title));
     setRecent(await recentFolders());
     const f = t.kind === 'folder' ? t.handle : null;
     setAskRecent(t.kind === 'ask' ? t.recent : null);
@@ -465,7 +470,11 @@ export function App() {
     if (!folder && session) {
       try {
         if (uploadKey.current?.for !== capture) uploadKey.current = { for: capture, key: crypto.randomUUID() };
+        const origin = originOf(capture.page.url);
+        const project = await saveCloudProjectName(origin, await cloudProjectName(origin, capture.page.url, capture.page.title));
+        setCloudName(project);
         await uploadBug(session, {
+          project,
           clientId: uploadKey.current.key,
           title: headingFrom(note, capture.element),
           pageUrl: capture.page.url,
@@ -546,6 +555,25 @@ export function App() {
             <p className="min-w-0 flex-1 text-xs text-ink-soft">
               <span className="block font-medium text-ink">Sending bugs to your Darnly inbox</span>
               <span className="block truncate">{session.email}</span>
+              {renaming != null ? (
+                <form
+                  className="mt-1 flex items-center gap-1.5"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const name = await saveCloudProjectName(await activeOrigin(), renaming);
+                    if (name) setCloudName(name);
+                    setRenaming(null);
+                  }}
+                >
+                  <input aria-label="Project name" className="w-32 rounded border border-line px-1.5 py-0.5 text-ink" value={renaming} onChange={(e) => setRenaming(e.target.value)} autoFocus />
+                  <button className={linkCls}>Save</button>
+                </form>
+              ) : (
+                <span className="block truncate">
+                  Project <strong className="text-ink">{cloudName}</strong> ·{' '}
+                  <button className={linkCls} onClick={() => setRenaming(cloudName)} title="Your agent asks Darnly for this project's bugs only">rename</button>
+                </span>
+              )}
             </p>
             <button className={linkCls + ' text-xs'} onClick={linkFolder}>link a folder instead</button>
           </div>
