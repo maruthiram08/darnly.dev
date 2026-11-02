@@ -1,0 +1,215 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import { TOOLS } from '../../../data/site';
+
+const tsTool = TOOLS.find((t) => t.slug === 'json-to-typescript');
+const diffTool = TOOLS.find((t) => t.slug === 'diff-checker');
+
+const steps = [
+  'Paste YAML on the left or JSON on the right, or drop a <code>.yml</code> or <code>.json</code> file onto either box. The other side updates as you type.',
+  'The big badge says whether it’s valid. If it isn’t, it tells you the line and what to change in plain words, and that line turns red. Click the message to jump to it.',
+  'Check the yellow notes: they catch values YAML quietly changes, like <code>3.10</code> becoming <code>3.1</code>. Then copy or download the result, or copy a prompt that asks your AI agent to fix the error.',
+];
+
+const faq = [
+  { q: 'How do I convert YAML to JSON?', a: 'Paste your YAML in the left box. The JSON appears on the right straight away, ready to copy or download.' },
+  { q: 'Can it convert JSON back to YAML?', a: 'Yes. Type or paste in the JSON box instead, and the YAML side is rewritten from it. Whichever side you edit last is the one that’s converted.' },
+  { q: 'Why does my YAML say it’s invalid?', a: 'Almost always it’s spaces. YAML uses the spaces at the start of each line to know what belongs to what, so one line with a space too many or too few breaks the file. Tabs aren’t allowed at all. The badge names the line and says how many spaces it needs.' },
+  { q: 'Why did 3.10 turn into 3.1?', a: 'YAML reads <code>3.10</code> as a number, and the number 3.10 is the same as 3.1. This is a classic GitHub Actions bug: <code>python-version: 3.10</code> installs Python 3.1. Put it in quotes, <code>"3.10"</code>, and it stays as written. The tool flags these for you.' },
+  { q: 'Can I validate a GitHub Actions workflow or docker-compose file?', a: 'It checks that the YAML itself is valid and flags values that change meaning, which catches most broken workflow and compose files. It doesn’t check the GitHub or Docker specific keys.' },
+  { q: 'What happens to comments and anchors?', a: 'JSON has no comments, so they’re dropped when converting to JSON. Anchors and aliases (<code>&amp;name</code> and <code>*name</code>) are expanded into full copies.' },
+  { q: 'Is my file uploaded?', a: 'No. The conversion runs in your browser, so nothing you paste leaves your computer. That matters for config files with keys in them.' },
+];
+---
+<ToolPage
+  slug="yaml-json-converter"
+  title="YAML to JSON converter and validator, both ways · Darnly"
+  description="Convert YAML to JSON and JSON to YAML as you type. Errors are explained in plain words with the bad line highlighted, and values YAML quietly changes are flagged. Free, nothing uploaded."
+  h1="YAML to JSON and back"
+  lede="Paste YAML or JSON and get the other one live. If it’s broken, you’ll see the line and exactly what to change."
+  steps={steps}
+  faq={faq}
+>
+  <div class="yj">
+    <section class="stage" aria-label="Converter">
+      <div class="top">
+        <div class="badge empty" id="yj-badge" role="status" aria-live="polite">
+          <span class="icon" aria-hidden="true"></span>
+          <span id="yj-badge-text">Paste YAML or JSON</span>
+        </div>
+        <ul class="chips" id="yj-chips" aria-label="What’s inside"></ul>
+      </div>
+      <button type="button" class="why" id="yj-why" hidden></button>
+
+      <div class="presets" role="group" aria-label="Examples">
+        <span>Try:</span>
+        <button type="button" data-preset="actions" aria-pressed="true">GitHub Actions</button>
+        <button type="button" data-preset="compose" aria-pressed="false">docker-compose</button>
+        <button type="button" data-preset="vercel" aria-pressed="false">vercel.json</button>
+        <button type="button" data-preset="openapi" aria-pressed="false">OpenAPI</button>
+        <button type="button" data-preset="broken" aria-pressed="false" class="broken">A broken one</button>
+      </div>
+
+      <div class="panes">
+        <div class="pane" id="yj-yaml-pane">
+          <div class="head">
+            <label for="yj-yaml">YAML <span class="stale-note">· out of date until the JSON is fixed</span></label>
+            <span class="tools">
+              <button type="button" id="yj-yaml-copy">Copy</button>
+              <button type="button" id="yj-yaml-download">Download</button>
+            </span>
+          </div>
+          <div class="ed">
+            <pre class="gutter" id="yj-yaml-gutter" aria-hidden="true"></pre>
+            <div class="code">
+              <div class="hl" id="yj-yaml-hl" hidden></div>
+              <textarea id="yj-yaml" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste YAML here, or drop a .yml file"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <span class="arrow" id="yj-arrow" data-dir="right" role="img" aria-label="Converting YAML to JSON"></span>
+
+        <div class="pane" id="yj-json-pane">
+          <div class="head">
+            <label for="yj-json">JSON <span class="stale-note">· out of date until the YAML is fixed</span></label>
+            <span class="tools">
+              <button type="button" id="yj-json-copy">Copy</button>
+              <button type="button" id="yj-json-download">Download</button>
+            </span>
+          </div>
+          <div class="ed">
+            <pre class="gutter" id="yj-json-gutter" aria-hidden="true"></pre>
+            <div class="code">
+              <div class="hl" id="yj-json-hl" hidden></div>
+              <textarea id="yj-json" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Or paste JSON here, or drop a .json file"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="warns" id="yj-warns" aria-label="Watch out"></ul>
+    </section>
+
+    <div class="opts">
+      <span class="seg" role="radiogroup" aria-label="Indent">
+        <span>Indent</span>
+        <label><input type="radio" name="yj-indent" id="yj-indent2" checked /> 2 spaces</label>
+        <label><input type="radio" name="yj-indent" id="yj-indent4" /> 4 spaces</label>
+      </span>
+      <label><input type="checkbox" id="yj-minify" /> JSON on one line</label>
+      <label><input type="checkbox" id="yj-sort" /> Sort keys A–Z</label>
+    </div>
+
+    <div class="actions">
+      <button id="yj-prompt" type="button" class="primary" hidden>Copy fix prompt for your AI agent</button>
+      <button id="yj-clear" type="button" class="ghost">Clear</button>
+      <p class="status" id="yj-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <details class="fold">
+      <summary>YAML rules that break files most often</summary>
+      <ul class="rules">
+        <li><strong>Spaces, not tabs.</strong> The start of each line must be spaces. Use the same number for every level (2 is usual).</li>
+        <li><strong>Children go further right.</strong> Everything that belongs under <code>steps:</code> starts more to the right than <code>steps</code> itself.</li>
+        <li><strong>A list item starts with “- ”.</strong> The keys of that item line up with the first key after the dash.</li>
+        <li><strong>Quote things that look like numbers or words.</strong> <code>"3.10"</code>, <code>"0123"</code>, <code>"22:22"</code>, <code>"yes"</code> and <code>"on"</code> are safest in quotes.</li>
+        <li><strong>A colon followed by a space starts a new key.</strong> If a value has <code>: </code> in it (like a URL with a port or a sentence), put it in quotes.</li>
+      </ul>
+      {(tsTool || diffTool) && (
+        <p class="hint">
+          {tsTool && <>Need types for this JSON? Use the <a href={`/tools/${tsTool.slug}/`}>{tsTool.name}</a> tool. </>}
+          {diffTool && <>Comparing two configs? Try the <a href={`/tools/${diffTool.slug}/`}>{diffTool.name}</a>.</>}
+        </p>
+      )}
+    </details>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/yaml-json-converter';
+</script>
+
+<style>
+  .yj { display: grid; gap: 20px; min-width: 0; }
+  .yj [hidden] { display: none !important; }
+  .stage { display: grid; gap: 16px; padding: 24px; border-radius: 24px; border: 1px solid var(--line); background: var(--wash); min-width: 0; }
+  .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 12px; padding: 12px 22px 12px 14px; border-radius: 999px; font: 800 28px/1.1 var(--display); letter-spacing: -0.02em; background: var(--white); color: var(--ink-soft); border: 1px solid var(--line); }
+  .badge .icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font: 800 20px/1 var(--body); background: var(--line); color: var(--white); }
+  .badge.empty .icon::before { content: '…'; }
+  .badge:global(.ok) { background: #D5F5E3; border-color: #A9E9C5; color: #0E6B47; }
+  .badge:global(.ok) .icon { background: #12805C; }
+  .badge:global(.ok) .icon::before { content: '✓'; }
+  .badge:global(.bad) { background: #FDE0E6; border-color: #FBC2CF; color: #A51D45; }
+  .badge:global(.bad) .icon { background: #D3305A; }
+  .badge:global(.bad) .icon::before { content: '!'; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .chips :global(li) { font: 600 14px/1 var(--body); padding: 8px 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); color: var(--ink-soft); }
+
+  .why { text-align: left; font: 600 18px/1.45 var(--body); color: #8A1538; background: var(--white); border: 1px solid #FBC2CF; border-left: 5px solid #D3305A; border-radius: 14px; padding: 14px 18px; cursor: pointer; }
+  .why::after { content: '  Show me →'; font-weight: 500; font-size: 15px; color: var(--sky); white-space: nowrap; }
+
+  .presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); }
+  .presets button { font: 600 14px/1 var(--body); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .presets button:hover { border-color: var(--sky); }
+  .presets button[aria-pressed='true'] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .presets .broken { border-style: dashed; }
+
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: start; min-width: 0; }
+  .pane { display: grid; gap: 8px; min-width: 0; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .head label { font: 700 13px/1 var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .tools { display: flex; gap: 6px; }
+  .tools button { font: 600 13px/1 var(--body); padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tools button:hover { border-color: var(--sky); }
+
+  .ed { display: grid; grid-template-columns: auto minmax(0, 1fr); height: 440px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); overflow: hidden; }
+  .pane:global(.bad) .ed { border-color: #E0466F; box-shadow: 0 0 0 3px #FDE0E6; }
+  .gutter { margin: 0; padding: 14px 8px 14px 12px; min-width: 2.2em; overflow: hidden; text-align: right; font: 400 13px/20px var(--mono); color: #8AA2AE; background: #F6FAFB; border-right: 1px solid var(--line); user-select: none; }
+  .code { position: relative; min-width: 0; }
+  .hl { position: absolute; top: 14px; left: 0; right: 0; height: 20px; background: #FDE0E6; border-left: 3px solid #D3305A; pointer-events: none; }
+  textarea { position: relative; box-sizing: border-box; display: block; width: 100%; height: 100%; margin: 0; padding: 14px; border: 0; background: transparent; color: var(--ink); font: 400 13px/20px var(--mono); font-variant-ligatures: none; white-space: pre; overflow: auto; resize: none; tab-size: 2; }
+  textarea:focus { outline: none; }
+  .ed:focus-within { outline: 3px solid var(--pink); outline-offset: 1px; }
+  textarea:global(.drop) { background: var(--wash); }
+  .stale-note { display: none; font: 600 12px/1 var(--body); text-transform: none; letter-spacing: 0; color: #A45A00; }
+  .pane:global(.stale) textarea { opacity: 0.45; }
+  .pane:global(.stale) .stale-note { display: inline; }
+
+  .arrow { display: grid; place-items: center; width: 40px; height: 40px; margin-top: 230px; border-radius: 50%; background: var(--ink); color: var(--white); font: 700 18px/1 var(--body); }
+  .arrow::before { content: '→'; }
+  .arrow[data-dir='left']::before { content: '←'; }
+
+  .warns { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .warns:empty { display: none; }
+  .warns :global(button) { width: 100%; text-align: left; font: 500 15px/1.45 var(--body); color: #6B3D00; background: #FFF4D6; border: 1px solid #F5D98A; border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+  .warns :global(button)::before { content: 'Watch out · '; font-weight: 700; }
+
+  .opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; font-size: 15px; }
+  .opts label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .seg > span { font-weight: 600; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .primary { font: 600 15px/1 var(--body); padding: 12px 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--white); cursor: pointer; }
+  .ghost { font: 600 15px/1 var(--body); padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); cursor: pointer; }
+  .ghost:hover { border-color: var(--sky); }
+  .status { margin: 0; min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+  .fold { padding: 4px 20px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--white); min-width: 0; }
+  .fold summary { cursor: pointer; font-weight: 600; padding: 12px 0 8px; }
+  .rules { margin: 0; padding-left: 20px; display: grid; gap: 8px; line-height: 1.5; }
+  .hint { margin: 14px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 760px) {
+    .panes { grid-template-columns: minmax(0, 1fr); }
+    .arrow { margin: 0 auto; transform: rotate(90deg); }
+    .ed { height: 300px; }
+  }
+  @media (max-width: 640px) {
+    .stage { padding: 16px; }
+    .badge { font-size: 22px; }
+    .why { font-size: 16px; }
+  }
+</style>
