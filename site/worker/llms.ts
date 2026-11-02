@@ -24,7 +24,7 @@ export async function llmsSite(firstHtml: string, firstUrl: string, firstHeaders
   const info = new Map<string, { title: string; description: string }>();
   const result = await crawl(firstHtml, firstUrl, firstHeaders, firstStatus, fetchPage, {
     maxPages: LLMS_MAX_PAGES,
-    onPage: (url, html) => {
+    onListed: (url, html) => {
       const key = pathKey(url);
       if (!info.has(key)) info.set(key, pageText(html));
     },

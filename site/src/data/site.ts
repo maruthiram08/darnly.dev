@@ -88,6 +88,7 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'asset-extractor',
+    category: 'Images',
     name: 'Asset extractor',
     blurb: 'Every image, SVG and icon on a website, with sizes. Download one or all as a ZIP.',
   },
@@ -224,11 +225,8 @@ export const TOOLS: Item[] = [
     blurb: 'Test a pattern live, see each part explained in plain English, and copy it as JS, Python or Zod.',
   },
   {
-    slug: 'color-blindness-simulator',
-    category: 'Design',
-    name: 'Color blindness simulator',
-    blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
     slug: 'page-speed-checker',
+    category: 'Launch & domains',
     name: 'Page speed checker',
     blurb: 'Why is my site slow? Phone and laptop scores, a load filmstrip and the top 3 fixes as prompts.',
   },
@@ -246,9 +244,11 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'utm-builder',
+    category: 'SEO & sharing',
     name: 'UTM link builder',
     blurb: 'Tag your links for X, LinkedIn, Reddit or Product Hunt and see which post sent your visitors. With a QR code.',
-  },  {
+  },
+  {
     slug: 'sql-formatter',
     category: 'Code helpers',
     name: 'SQL formatter',
@@ -256,9 +256,9 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'markdown-preview',
+    category: 'Code helpers',
     name: 'Markdown preview',
     blurb: 'Write Markdown and see it like GitHub shows it, with tables, checklists and code colors. Copy into Notion or Docs.',
-    category: 'Code helpers',
   },
   {
     slug: 'aspect-ratio-calculator',
@@ -274,9 +274,9 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'color-converter',
+    category: 'Design',
     name: 'Color converter',
     blurb: 'Any color as HEX, RGB, HSL, OKLCH, LAB, CSS name and Tailwind, with how it looks on white and black.',
-    category: 'Design',
   },
   {
     slug: 'accessibility-checker',
@@ -292,9 +292,9 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'markdown-table-generator',
+    category: 'Code helpers',
     name: 'Markdown table generator',
     blurb: 'Edit a table like a spreadsheet or paste from Excel, and copy it as Markdown, HTML or CSV.',
-    category: 'Code helpers',
   },
   {
     slug: 'exif-remover',
@@ -316,8 +316,8 @@ export const TOOLS: Item[] = [
   },
   {
     slug: 'ssl-checker',
-    name: 'SSL checker',
     category: 'Launch & domains',
+    name: 'SSL checker',
     blurb: 'Is your certificate valid? Days left, who issued it, whether www is covered, and its history.',
   },
   {
@@ -367,6 +367,198 @@ export const TOOLS: Item[] = [
     category: 'Code helpers',
     name: 'Tailwind class cleaner',
     blurb: 'Sort Tailwind classes the way Prettier does, remove duplicates, and see which classes cancel each other out.',
+  },
+  {
+    slug: 'color-blindness-simulator',
+    category: 'Design',
+    name: 'Color blindness simulator',
+    blurb: 'See your screenshot the way color-blind users do, and which colors turn into the same color.',
+  },
+  {
+    slug: 'video-to-gif',
+    category: 'Images',
+    name: 'Video to GIF',
+    blurb: 'Turn a screen recording into a GIF for your README or bug report. Trim it and see the size live.',
+  },
+  {
+    slug: 'llms-txt-generator',
+    category: 'SEO & sharing',
+    name: 'llms.txt generator',
+    blurb: 'An llms.txt for ChatGPT, Claude and Perplexity from your pages, plus which AI crawlers you let in.',
+  },
+  {
+    slug: 'background-generator',
+    category: 'Design',
+    name: 'Background generator',
+    blurb: 'Waves, blobs, mesh gradients and patterns for your hero. Shuffle, then download SVG or PNG or copy CSS.',
+  },
+  {
+    slug: 'security-headers-checker',
+    category: 'Security',
+    name: 'Security headers checker',
+    blurb: 'Is my site’s security set up right? Grade your headers A to F and get a ready file for your host.',
+  },
+  {
+    slug: 'font-pairing',
+    category: 'Design',
+    name: 'Font pairing ideas',
+    blurb: 'Hand-picked Google Fonts pairs shown on a real-looking landing page. Copy the link tag, CSS, Tailwind or a prompt.',
+  },
+  {
+    slug: 'broken-link-checker',
+    category: 'Launch & domains',
+    name: 'Broken link checker',
+    blurb: 'Find every dead link and missing image on your site, with the page it’s on, and fix them with one prompt.',
+  },
+  {
+    slug: 'base64-encoder',
+    category: 'Code helpers',
+    name: 'Base64 encoder',
+    blurb: 'Encode and decode Base64 as you type, or turn a picture into a data URI to paste into your code.',
+  },
+  {
+    slug: 'env-example-generator',
+    category: 'Security',
+    name: '.env.example generator',
+    blurb: 'Paste your .env and get a safe .env.example, with secrets that would leak to the browser flagged in red.',
+  },
+  {
+    slug: 'icon-finder',
+    category: 'Design',
+    name: 'Icon finder',
+    blurb: 'Search 10,000+ free icons from Lucide, Heroicons, Tabler and Phosphor, then copy as SVG, JSX or React.',
+  },
+  {
+    slug: 'schema-generator',
+    category: 'SEO & sharing',
+    name: 'Schema markup generator',
+    blurb: 'JSON-LD for your company, app, product, article, FAQ, event or shop, with a Google result preview.',
+  },
+  {
+    slug: 'csp-generator',
+    category: 'Security',
+    name: 'CSP generator',
+    blurb: 'Paste your site and get a Content Security Policy that allows exactly what it loads, for any host.',
+  },
+  {
+    slug: 'css-to-tailwind',
+    category: 'Code helpers',
+    name: 'CSS to Tailwind',
+    blurb: 'Paste CSS and get Tailwind classes for each element, with a side-by-side preview that shows they match.',
+  },
+  {
+    slug: 'fluid-type-generator',
+    category: 'Design',
+    name: 'Fluid type scale generator',
+    blurb: 'Font sizes that grow smoothly from phone to desktop. Drag the screen width, then copy clamp() CSS or a Tailwind config.',
+  },
+  {
+    slug: 'yaml-json-converter',
+    category: 'Code helpers',
+    name: 'YAML to JSON converter',
+    blurb: 'Convert YAML to JSON and back as you type. Errors point at the line and say how many spaces it needs.',
+  },
+  {
+    slug: 'image-to-text',
+    category: 'Images',
+    name: 'Image to text',
+    blurb: 'Copy the text out of a screenshot, with every line boxed on the picture. Or copy an error as a prompt for your AI agent.',
+  },
+  {
+    slug: 'social-post-previewer',
+    category: 'SEO & sharing',
+    name: 'X and LinkedIn post preview',
+    blurb: 'See where LinkedIn cuts your post with “…see more”, how X splits it into a thread, and how pictures crop.',
+  },
+  {
+    slug: 'redirect-rules-generator',
+    category: 'Launch & domains',
+    name: 'Redirect generator',
+    blurb: 'Old and new URLs in, redirect rules out for Vercel, Netlify, Cloudflare, Next.js, nginx and .htaccess. Loops and chains in red.',
+  },
+  {
+    slug: 'pwa-checker',
+    category: 'Launch & domains',
+    name: 'PWA checker',
+    blurb: 'See the “Install app” sheet and home-screen icon your site would get, what’s missing, and a ready manifest to fix it.',
+  },
+  {
+    slug: 'glass-effect-generator',
+    category: 'Design',
+    name: 'Glassmorphism generator',
+    blurb: 'Make a frosted glass card over colorful backgrounds or your own screenshot, check the text stays readable, copy CSS or Tailwind.',
+  },
+  {
+    slug: 'blur-placeholder-generator',
+    category: 'Images',
+    name: 'Blur placeholder generator',
+    blurb: 'A tiny blurred placeholder for any image: Next.js blurDataURL, CSS, BlurHash or ThumbHash. Watch the fade-in.',
+  },
+  {
+    slug: 'secret-generator',
+    category: 'Security',
+    name: 'Secret generator',
+    blurb: 'One click for an AUTH_SECRET, JWT secret, webhook secret, API key, UUID or strong password, ready for your .env.',
+  },
+  {
+    slug: 'domain-name-finder',
+    category: 'Launch & domains',
+    name: 'Domain name finder',
+    blurb: 'Type a project name, see if it’s free on .com, .dev, .app, .io, .ai and .co, and get name ideas checked live.',
+  },
+  {
+    slug: 'http-status-explainer',
+    category: 'Code helpers',
+    name: 'HTTP status code explainer',
+    blurb: 'What 404, 500, 502 or a Vercel or Cloudflare error means in plain English, why it happens in your stack, and how to fix it.',
+  },
+  {
+    slug: 'before-after-maker',
+    category: 'Images',
+    name: 'Before and after image maker',
+    blurb: 'Drop two screenshots and get a side-by-side picture or an animated swipe GIF or video for your “I fixed it” post.',
+  },
+  {
+    slug: 'responsive-checker',
+    category: 'Launch & domains',
+    name: 'Responsive checker',
+    blurb: 'See any page at phone, tablet and desktop widths side by side.',
+  },
+  {
+    slug: 'ai-slop-checker',
+    category: 'Design',
+    name: 'AI slop checker',
+    blurb: 'Does your site look AI-made? Get a score, the tells that give it away, and a prompt to fix them.',
+  },
+  {
+    slug: 'svg-optimizer',
+    category: 'Images',
+    name: 'SVG optimizer and SVG to JSX',
+    blurb: 'Shrink an SVG and copy it as SVG, a React component, a data URI or CSS.',
+  },
+  {
+    slug: 'domain-checker',
+    category: 'Launch & domains',
+    name: 'Domain checker',
+    blurb: 'Why isn’t my domain working? DNS records, host, https and redirects, with a plain fix for each.',
+  },
+  {
+    slug: 'qr-code-generator',
+    category: 'SEO & sharing',
+    name: 'QR code generator',
+    blurb: 'A QR code for any link, with your colors and logo. PNG or SVG, and a warning if it won’t scan.',
+  },
+  {
+    slug: 'readme-generator',
+    category: 'Code helpers',
+    name: 'README generator',
+    blurb: 'A clean README.md with badges, screenshot, setup steps and an env var table, in a minute.',
+  },
+  {
+    slug: 'html-to-jsx',
+    category: 'Code helpers',
+    name: 'HTML to JSX',
+    blurb: 'Paste HTML and get JSX for React, with a live preview and every fix listed.',
   },
 ];
 

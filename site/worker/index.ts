@@ -114,6 +114,10 @@
 //   Same rate limit and one hour cache. Reads one package from the npm registry (and its
 //   download counts) and grades it, for the npm package checker at /tools/npm-package-checker/.
 //   Only fixed npm addresses are fetched; the name is checked against npm's naming rules first.
+// GET /api/slop?url=https://example.com
+//   Same guards. Reads the page, its stylesheets and (for sites that render in the browser) its
+//   main script, and returns an "AI-made look" score with the tells it found, for the AI slop
+//   checker at /tools/ai-slop-checker/.
 // GET /api/domain?domain=example.com
 //   Reads the domain's DNS records over DNS-over-HTTPS, then opens https and http for the bare
 //   domain and www, following each redirect by hand and checking every hop's address. Same rate
@@ -138,7 +142,10 @@ import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer
 import { checkA11y } from './a11y';
 import { sendRequest } from './request';
 import { analyze, otherName, parseCrtSh, parseCertSpotter, type CtCert, type Dns, type SslProbe } from './ssl';
-import { checkPackage, cleanName, type GetJson } from './npm';
+import { checkPackage, cleanName as cleanPackageName, type GetJson } from './npm';
+import { takeShots } from './shots';
+import { checkSlop, mainScripts } from './slop';
+import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -150,19 +157,6 @@ interface Env {
   API_LIMIT?: RateLimit; // the API tester sends requests of any method, so it has its own limit
   PSI_LIMIT?: RateLimit;
   PSI_KEY?: string; // optional Google API key for PageSpeed Insights (a Worker secret)
-import { takeShots } from './shots';
-// GET /api/slop?url=https://example.com
-//   Same guards. Reads the page, its stylesheets and (for sites that render in the browser) its
-//   main script, and returns an "AI-made look" score with the tells it found, for the AI slop
-//   checker at /tools/ai-slop-checker/.
-
-import { findFonts } from './fonts';
-import { checkSlop, mainScripts } from './slop';
-import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
-
-interface Env {
-  ASSETS: { fetch(req: Request): Promise<Response> };
-  FETCH_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   // Browser Rendering for /api/shots, with its own per-visitor and site-wide limits.
   BROWSER?: unknown;
   SHOT_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
@@ -301,6 +295,8 @@ export function frameRule(h: Headers): 'allowed' | 'blocked' {
   }
   const xfo = (h.get('x-frame-options') ?? '').toLowerCase();
   return /deny|sameorigin/.test(xfo) ? 'blocked' : 'allowed';
+}
+
 // /api/assets: every picture a page uses.
 function assetsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   return pageTool('assets', req, url, env, ctx, async (p) => ({
@@ -450,6 +446,8 @@ function cspApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
     status: p.status,
     ...(await buildCsp(p.html, p.finalUrl, p.headers, (u) => fetchText(u, url, env, 'text/css,application/javascript,*/*;q=0.1', 1_500_000))),
   }));
+}
+
 // /api/a11y: automated accessibility checks on one page's HTML. Not cached, so a re-check after a fix is fresh.
 function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   return pageTool(
@@ -461,6 +459,8 @@ function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> 
     async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkA11y(p.html, p.finalUrl) }),
     { cache: false },
   );
+}
+
 // /api/whoami: the visitor's own IP address and country, read from the request. Nothing is stored.
 function whoami(req: Request): Response {
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
@@ -526,9 +526,12 @@ function headersApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respons
     async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkHeaders(p.headers, p.finalUrl, p.html) }),
     { cache: false },
   );
+}
+
 // /api/domains: is each name registered? Each name is cached on its own, so ideas shared
 // between searches are only looked up once.
 const MAX_NAMES = 12;
+
 async function domainsApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
   const raw = (url.searchParams.get('names') ?? '').split(',').filter((n) => n.trim());
@@ -625,14 +628,6 @@ async function sslApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
 
   const cache = (caches as unknown as { default: Cache }).default;
   const cacheKey = new Request(`https://darnly.dev/api/ssl?domain=${encodeURIComponent(host)}`);
-// /api/npm: one npm package, graded. Missing packages are cached for 10 minutes, found ones for an hour.
-async function npmApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
-  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
-  const name = cleanName(url.searchParams.get('name') ?? '');
-  if (!name) return json({ error: 'That isn’t a valid npm package name. Names look like zod or @tanstack/react-query.' }, 400);
-
-  const cache = (caches as unknown as { default: Cache }).default;
-  const cacheKey = new Request(`https://darnly.dev/api/npm?name=${encodeURIComponent(name)}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
@@ -658,26 +653,6 @@ async function npmApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Respo
 
   const data = analyze({ host, now: new Date(), certs: ct.certs, source: ct.source, https, http, www: wwwProbe, dns, wwwDns });
   const body = json(data, 200, 600);
-  const getJson: GetJson = async (raw, max = 500_000) => {
-    const res = await get(new URL(raw), url, env, 'application/json', 6_000);
-    if (res.status === 404) {
-      res.body?.cancel().catch(() => {});
-      return { status: 404, data: null };
-    }
-    if (!res.ok) {
-      res.body?.cancel().catch(() => {});
-      throw new Error(`npm answered ${res.status}`);
-    }
-    return { status: res.status, data: JSON.parse(await readLimited(res, max)) };
-  };
-
-  let report;
-  try {
-    report = await checkPackage(name, getJson);
-  } catch {
-    return json({ error: 'We couldn’t reach npm just now. Try again in a minute.' }, 502);
-  }
-  const body = json(report, 200, report.found ? CACHE_SECONDS : 600);
   ctx.waitUntil(cache.put(cacheKey, body.clone()));
   return body;
 }
@@ -753,6 +728,46 @@ async function lookup(name: string, self: URL, env: Env): Promise<Dns | null> {
     a: [...new Set(all.filter((r) => r.type === 1 || r.type === 28).map((r) => r.data))],
     cname: [...new Set(all.filter((r) => r.type === 5).map((r) => r.data.replace(/\.$/, '')))],
   };
+}
+
+// /api/npm: one npm package, graded. Missing packages are cached for 10 minutes, found ones for an hour.
+async function npmApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const name = cleanPackageName(url.searchParams.get('name') ?? '');
+  if (!name) return json({ error: 'That isn’t a valid npm package name. Names look like zod or @tanstack/react-query.' }, 400);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheKey = new Request(`https://darnly.dev/api/npm?name=${encodeURIComponent(name)}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  if (env.FETCH_LIMIT) {
+    const { success } = await env.FETCH_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return json({ error: 'Too many checks in a minute. Wait a moment and try again.' }, 429);
+  }
+
+  const getJson: GetJson = async (raw, max = 500_000) => {
+    const res = await get(new URL(raw), url, env, 'application/json', 6_000);
+    if (res.status === 404) {
+      res.body?.cancel().catch(() => {});
+      return { status: 404, data: null };
+    }
+    if (!res.ok) {
+      res.body?.cancel().catch(() => {});
+      throw new Error(`npm answered ${res.status}`);
+    }
+    return { status: res.status, data: JSON.parse(await readLimited(res, max)) };
+  };
+
+  let report;
+  try {
+    report = await checkPackage(name, getJson);
+  } catch {
+    return json({ error: 'We couldn’t reach npm just now. Try again in a minute.' }, 502);
+  }
+  const body = json(report, 200, report.found ? CACHE_SECONDS : 600);
+  ctx.waitUntil(cache.put(cacheKey, body.clone()));
+  return body;
 }
 
 // /api/launch: is this site ready to launch? Extra files are read with the same address rules.
@@ -963,6 +978,8 @@ function designApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response
     status: p.status,
     ...(await findDesign(p.html, p.finalUrl, (u) => fetchText(u, url, env, 'text/css,*/*;q=0.1'))),
   }));
+}
+
 // /api/slop: how AI-made a page looks, and what gives it away.
 function slopApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> {
   return pageTool('slop', req, url, env, ctx, async (p) => {
@@ -1039,7 +1056,7 @@ async function domainApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Re
     const t = checkTarget(raw, local);
     if (typeof t === 'string') return { error: 'blocked' };
     try {
-      const res = await get(t, url, env, 'text/html,*/*;q=0.1', 6_000, 'manual');
+      const res = await get(t, url, env, 'text/html,*/*;q=0.1', 6_000, 'GET', 'manual');
       res.body?.cancel().catch(() => {});
       const headers: Record<string, string> = {};
       for (const k of HOST_HEADERS) {
@@ -1120,12 +1137,9 @@ async function pageTool(
 
 // Cloudflare won't let this Worker fetch its own domain (it answers "error code: 1042"),
 // so pages on darnly.dev are read straight from the site's own files.
-function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, method: 'GET' | 'HEAD' = 'GET'): Promise<Response> {
+function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, method: 'GET' | 'HEAD' = 'GET', redirect: 'follow' | 'manual' = 'follow'): Promise<Response> {
   if (isOwnHost(target, self)) return ownPage(target, env);
-  return fetch(target.href, { method, headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
-function get(target: URL, self: URL, env: Env, accept: string, timeout = TIMEOUT_MS, redirect: 'follow' | 'manual' = 'follow'): Promise<Response> {
-  if (isOwnHost(target, self)) return ownPage(target, env);
-  return fetch(target.href, { headers: { 'user-agent': UA, accept }, redirect, signal: AbortSignal.timeout(timeout) });
+  return fetch(target.href, { method, headers: { 'user-agent': UA, accept }, redirect, signal: AbortSignal.timeout(timeout) });
 }
 
 // A stylesheet or other text file linked from the page, with the same address rules and smaller limits.
