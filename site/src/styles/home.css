@@ -50,6 +50,7 @@ nav { display: flex; align-items: center; justify-content: space-between; gap: 1
 .btn-primary:hover { background: #fff; box-shadow: 0 6px 24px rgba(11, 34, 48, 0.25); }
 .btn-ghost { color: var(--white); border: 1px solid rgba(252, 255, 255, 0.5); }
 .btn-ghost:hover { background: rgba(252, 255, 255, 0.12); }
+.x-logo { flex: none; opacity: 0.9; }
 .soon { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(252, 255, 255, 0.8); }
 .shot { border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(11, 34, 48, 0.35); border: 1px solid rgba(252, 255, 255, 0.4); transform: rotate(1.2deg); }
 .agents { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 40px; font-size: 15px; color: rgba(252, 255, 255, 0.85); }

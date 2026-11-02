@@ -49,7 +49,7 @@ const faq = [
   <p>For those, write the steps out and paste the error text. A screenshot alone will make Codex guess.</p>
 
   <h2>The one-key way with Darnly</h2>
-  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that builds the screenshot and the note together. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected and press Enter.</p>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that builds the screenshot and the note together. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected and press Enter.</p>
   <p>You get a PNG with the broken part boxed in red, plus a markdown report with the page address, the element's selector, text, HTML and styles, and console errors and failed requests from the last 60 seconds. Passwords, card numbers, tokens and keys are replaced with <code>[hidden]</code> before anything is saved.</p>
   <p>If the project is on your computer, link its folder once and click <strong>Set up this project</strong>. Darnly adds a note to AGENTS.md, which Codex reads, and a skill file. The bug lands in <code>.darnly/inbox/</code>, and you tell Codex "fix my bugs". It fixes them, adds a <strong>Fixed:</strong> line, and moves each report to <code>.darnly/done/</code>. The Darnly panel then says "1 bug fixed. Take a look."</p>
   <p>Using Codex in the cloud? Click <strong>1. Copy picture</strong> and paste, then <strong>2. Copy details</strong> and paste. Or connect Codex to the Darnly cloud inbox over MCP once, and it fetches your bugs itself: <a href="/setup/#codex">set up Darnly in Codex</a>.</p>

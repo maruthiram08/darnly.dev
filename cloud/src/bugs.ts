@@ -334,6 +334,12 @@ async function deleteRows(env: Env, rows: { id: string; files_prefix: string }[]
   }
 }
 
+/** Deletes one of the user's bugs and its files. Someone else's bug looks missing. */
+export async function deleteBug(env: Env, userId: string, bugId: string): Promise<void> {
+  const row = await ownBug(env, userId, bugId);
+  await deleteRows(env, [row]);
+}
+
 export async function deleteAllBugs(env: Env, userId: string): Promise<number> {
   const { results } = await env.DB.prepare('SELECT id, files_prefix FROM bugs WHERE user_id = ?').bind(userId).all<{ id: string; files_prefix: string }>();
   await deleteRows(env, results);

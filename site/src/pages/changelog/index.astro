@@ -19,7 +19,7 @@ const faq = [
   h1="What's new in Darnly"
   lede={`Darnly 0.3.0 closes the loop: type /darnly to fix every waiting bug, see when your agent has a question for you, and get a "Take a look" card when a bug is fixed.`}
   faq={faq}
-  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Alt+Shift+B on Windows) on any page, click the broken part, and say what you expected.' }}
+  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
   <h2 id="v0-3-0">0.3.0: close the loop</h2>
   <p>Capturing a bug was already quick. This release covers what happens after: starting the fix, answering your agent's questions, and checking the result.</p>
@@ -28,6 +28,8 @@ const faq = [
     <li><strong>Claude Code offers to fix new bugs.</strong> <strong>Set up this project</strong> adds a hook, so when you start a session or send a message after capturing, Claude Code tells you how many bugs are waiting and offers to fix them.</li>
     <li><strong>"Your agent is waiting for your input."</strong> If a note is unclear, your agent asks you in its own chat, and the panel shows this on the bug, so it never just looks stuck. In the cloud inbox this uses the new <code>ask_user</code> MCP tool.</li>
     <li><strong>"1 bug fixed. Take a look."</strong> The panel now remembers what it last saw, so you get this card even if it was closed while the agent worked, with one line on what changed. For bugs on localhost, <strong>Reload the page</strong> shows the fix straight away; for a live site, it reminds you to deploy.</li>
+    <li><strong>Several projects, no re-linking.</strong> Each site remembers its own project, a folder or the cloud. On a new site, Darnly offers your recent projects to pick from. <strong>change</strong> now lets you pick another recent project, another folder, or the cloud. <a href="/setup/#projects">How it works</a>.</li>
+    <li><strong>Delete one bug.</strong> Each bug in the list has a <strong>×</strong>. In a project folder it deletes that bug's files; in the cloud, the bug and its picture.</li>
     <li><strong>Two agents don't fix the same bug.</strong> An agent marks the bug it's working on for 20 minutes, so another agent in the same project skips it.</li>
   </ul>
   <p><strong>To get it:</strong> after Chrome updates Darnly, open the panel and click <strong>Set up this project</strong> once more, then restart your agent.</p>

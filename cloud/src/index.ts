@@ -3,7 +3,7 @@ import type { Env } from './env';
 import { agentFrom, mcpFetch } from './mcp';
 import { exchangeAppCode, oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
-import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
+import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
 import { HttpError, json, readJson } from './util';
 import { isPaused, rateLimit } from './limits';
 import { checkSpend } from './spend';
@@ -83,6 +83,10 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (m) {
     const [, id, sub] = m as unknown as [string, string, string | undefined];
     if (!sub && method === 'GET') return json(await getBug(env, user.id, id));
+    if (!sub && method === 'DELETE') {
+      await deleteBug(env, user.id, id);
+      return json({ deleted: 1 });
+    }
     if (sub === '/picture' && method === 'GET') {
       return new Response(await getPicture(env, user.id, id), { headers: { 'content-type': 'image/png', 'cache-control': 'private, max-age=300' } });
     }

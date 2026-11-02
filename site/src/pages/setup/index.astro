@@ -15,6 +15,8 @@ const faq = [
   { q: 'Can Claude Code, Cursor and Codex share one inbox on the same project?', a: 'Yes. In folder mode they all read the same <code>.darnly/inbox/</code> (Codex and Cursor through AGENTS.md, Claude Code through CLAUDE.md and its skill). In cloud mode, connect each agent with the same Google account and they all see the same list. Each agent marks the bug it\'s working on, so the others skip it for 20 minutes: in the cloud inbox Darnly does this when the agent opens the bug, and in the folder the agent writes a Working on it line into the bug file. If an agent stalls, the mark runs out and the bug is free again.' },
   { q: 'Can my agent see bugs from my other projects?', a: 'The cloud inbox holds bugs from all your projects in one private list. Darnly tells the agent to only fix the bugs whose page belongs to the code it\'s working on.' },
   { q: 'Can I use it in the Claude app or claude.ai?', a: `Yes, where your plan lets you add custom connectors: add a custom connector with the address ${MCP}, then sign in with Google when asked.` },
+  { q: 'Can I use Darnly on several projects?', a: 'Yes. Darnly remembers the project for each site, a folder or the cloud. The first time you capture on a new site, it asks which project it belongs to and offers your recent ones. To switch later, click change next to Saving to.' },
+  { q: 'How do I delete a bug?', a: 'Click the × next to it in Captured bugs, then Yes. In a project folder this deletes the bug\'s files from .darnly/; in the cloud it deletes the bug and its picture. In cloud mode, Delete all my cloud bugs clears the whole inbox.' },
   { q: 'How do I disconnect an agent?', a: 'In the Darnly panel, choose to sign out on every computer. That disconnects every coding agent too. Add the connector again to reconnect one.' },
 ];
 const sources = [
@@ -33,7 +35,7 @@ const sources = [
   lede="There are two ways to get bugs from Darnly to your coding agent: without MCP, Darnly saves each bug as a file in your project (or you paste it into the chat), and with MCP, your agent reads your private Darnly cloud inbox at api.darnly.dev/mcp by itself."
   faq={faq}
   sources={sources}
-  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Add it, press Option+Shift+B (Alt+Shift+B on Windows) on any page, click the broken part, and say what you expected.' }}
+  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Add it, press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
   <p class="jump">Jump to: <a href="#prompt">Setup prompt</a> · <a href="#loop">After you capture</a> · <a href="#pick">Which way?</a> · <a href="#without-mcp">Without MCP</a> · <a href="#with-mcp">With MCP</a> · <a href="#claude-code">Claude Code</a> · <a href="#cursor">Cursor</a> · <a href="#codex">Codex</a></p>
 
@@ -68,6 +70,10 @@ const sources = [
   </div>
   <p>First, <a href={storeUrl('setup')}>add Darnly to Chrome</a>, then click the Darnly icon in the toolbar to open its panel. (Pin it from the puzzle-piece menu so it's always one click away.)</p>
 
+  <h3 id="projects">Working on more than one project</h3>
+  <p>Darnly remembers the project for each site, either a folder or the cloud inbox. With one project, nothing changes. With several, the first time you capture on a site Darnly hasn't seen, it asks <em>Which project is &lt;site&gt;?</em> and shows your recent projects, <strong>In the cloud</strong> and <strong>Another folder…</strong>. Pick one and it remembers.</p>
+  <p>To switch a site later, click <strong>change</strong> next to <em>Saving to</em>. You'll see your other recent projects, then <strong>another folder</strong>, <strong>use the cloud instead</strong> and <strong>cancel</strong>. Switching to the cloud only unlinks the folder; your files stay where they are. To delete a bug you no longer need, click the <strong>×</strong> next to it under <em>Captured bugs</em>, then <strong>Yes</strong>.</p>
+
   <h2 id="without-mcp">Without MCP</h2>
 
   <h3>If your code is on your computer: the project folder</h3>
@@ -75,7 +81,7 @@ const sources = [
   <ol>
     <li>In the Darnly panel, click <strong>On this computer: link the folder</strong> and pick your project's top folder (the one with <code>package.json</code> in it). Chrome asks to let Darnly edit files there. Click <strong>Allow</strong>.</li>
     <li>Click <strong>Set up this project</strong>. Darnly shows you every file it will write, then adds a short note to <code>AGENTS.md</code> (and points <code>CLAUDE.md</code> at it, if you have one), a <code>darnly</code> skill for Claude Code and Codex, a <code>/darnly</code> command for Cursor (<code>.cursor/commands/darnly.md</code>), Claude Code hooks in <code>.claude/settings.json</code> that tell the agent when new bugs are waiting, and <code>.darnly/</code> to <code>.gitignore</code>, so screenshots never get committed.</li>
-    <li>Capture a bug: press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected, press <kbd>Enter</kbd>.</li>
+    <li>Capture a bug: press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected, press <kbd>Enter</kbd>.</li>
     <li>In Claude Code or Cursor, in the same project, type <code>/darnly</code>. In Codex, type <code>fix my bugs</code>. (Claude Code may offer first: just say yes.)</li>
   </ol>
   <p><strong>It worked if</strong> you see a new <code>.md</code> file and <code>.png</code> in <code>.darnly/inbox/</code> after you capture, and the agent moves each one to <code>.darnly/done/</code> with a <strong>Fixed:</strong> line once it's done. The Darnly panel then shows "1 bug fixed. Take a look." <strong>If <code>/darnly</code> isn't listed</strong>, click <strong>Set up this project</strong> again and restart your agent so it picks up the new command.</p>

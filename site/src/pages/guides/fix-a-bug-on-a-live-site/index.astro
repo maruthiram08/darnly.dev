@@ -51,7 +51,7 @@ const faq = [
   <p>If the fix made things worse, git can take you back. The <a href="/tools/git-undo-helper/">Git undo helper</a> shows the right command for what went wrong.</p>
 
   <h2>Capture it in one key with Darnly</h2>
-  <p>Step 1 is the bit that's easy to skip when you're in a hurry. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that does it in one move on any page, live or local. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, type what you expected.</p>
+  <p>Step 1 is the bit that's easy to skip when you're in a hurry. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that does it in one move on any page, live or local. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected.</p>
   <p>On a live site, click <strong>Record errors on this site</strong> once. From then on Darnly keeps that site's console errors and failed requests from the last 60 seconds, ready for the next capture. Without that, it still includes failed requests the browser already lists for the page.</p>
   <p>The report goes into <code>.darnly/inbox/</code> in your local project, with the live address in it, so your agent works on the code on your computer. If your project lives in the cloud, copy the picture and details into your agent's chat instead, or use Darnly's optional cloud inbox.</p>
   <p>One limit to know: on localhost Darnly can sometimes name the component and file that drew an element. On a live, built site it can't, because that information is gone after the build. The selector, text, styles and errors still help the agent find it.</p>

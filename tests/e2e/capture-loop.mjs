@@ -223,6 +223,63 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   if (await page.evaluate(() => !!document.querySelector('darnly-picker'))) fail('Esc did not cancel the picker');
+  // Switching from a linked folder to the cloud inbox: "change" offers the cloud, and choosing it unlinks the folder.
+  await panel.getByRole('button', { name: 'change' }).click();
+  await panel.getByRole('button', { name: 'use the cloud instead' }).click().catch(() => fail('no way to switch from a folder to the cloud'));
+  await panel.getByRole('button', { name: 'Sign in with Google' }).waitFor({ timeout: 3000 }).catch(() => fail('cloud sign-in not shown after switching'));
+  if (await panel.getByText('Saving to').count()) fail('folder still linked after switching to the cloud');
+  await panel.reload();
+  await panel.getByRole('button', { name: 'Sign in with Google' }).waitFor({ timeout: 3000 }).catch(() => fail('switch to the cloud not remembered'));
+  // Several projects: a site Darnly hasn't seen asks which project it is, then remembers the answer.
+  await panel.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const a = await root.getDirectoryHandle('project-a', { create: true });
+    const b = await root.getDirectoryHandle('project-b', { create: true });
+    await chrome.storage.local.set({ siteCloud: {}, cloudProject: false });
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.open('darnly-folders', 1);
+      req.onsuccess = () => {
+        const tx = req.result.transaction('handles', 'readwrite');
+        const store = tx.objectStore('handles');
+        store.clear();
+        store.put([a, b], 'recent');
+        store.put(a, 'project');
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+  });
+  await page.bringToFront();
+  await panel.reload();
+  await panel.getByText('Which project is').waitFor({ timeout: 5000 }).catch(() => fail('no project chooser for a new site with several projects'));
+  await panel.getByRole('button', { name: 'project-b' }).click().catch(() => fail('recent project not offered'));
+  await panel.getByText('Saving to project-b').waitFor({ timeout: 5000 }).catch(() => fail('picked project not used'));
+  await panel.reload();
+  await panel.getByText('Saving to project-b').waitFor({ timeout: 5000 }).catch(() => fail('site did not remember its project'));
+  await panel.getByRole('button', { name: 'change' }).click();
+  await panel.getByRole('button', { name: 'project-a' }).click().catch(() => fail('other recent project not offered under change'));
+  await panel.getByText('Saving to project-a').waitFor({ timeout: 5000 }).catch(() => fail('switching to another recent project failed'));
+  // Deleting one bug: × then Yes removes all of its files, and nothing else.
+  await panel.evaluate(async () => {
+    const a = await (await navigator.storage.getDirectory()).getDirectoryHandle('project-a');
+    const inbox = await (await a.getDirectoryHandle('.darnly', { create: true })).getDirectoryHandle('inbox', { create: true });
+    for (const [name, text] of [['bug-one.md', '**Expected:** delete me\n'], ['bug-one.png', 'x'], ['bug-two.md', '**Expected:** keep me\n']]) {
+      const w = await (await inbox.getFileHandle(name, { create: true })).createWritable();
+      await w.write(text);
+      await w.close();
+    }
+  });
+  await panel.getByText('2 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('bugs to delete not listed'));
+  await panel.getByRole('button', { name: 'Delete delete me' }).click();
+  await panel.getByRole('button', { name: 'Yes' }).click();
+  await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 5000 }).catch(() => fail('deleted bug still listed'));
+  const leftover = await panel.evaluate(async () => {
+    const inbox = await (await (await (await navigator.storage.getDirectory()).getDirectoryHandle('project-a')).getDirectoryHandle('.darnly')).getDirectoryHandle('inbox');
+    const names = [];
+    for await (const [name] of inbox.entries()) names.push(name);
+    return names.sort().join(',');
+  });
+  if (leftover !== 'bug-two.md') fail('delete removed the wrong files: ' + leftover);
   if (errors.length) fail('panel errors: ' + errors.join('; '));
   if (process.exitCode) console.log("FAILED"); else console.log('PASS: capture loop works end to end');
 } finally {
