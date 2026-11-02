@@ -83,6 +83,9 @@
 //   (crt.sh, with Cert Spotter as a fallback, cached for an hour), looks up its DNS through
 //   Cloudflare's DNS-over-HTTPS, and opens https://, http:// and the www (or bare) name to confirm
 //   what visitors get, for the SSL checker at /tools/ssl-checker/. Results are cached 10 minutes.
+// GET /api/whoami
+//   Sends back the visitor's own IP address and country (from Cloudflare's request data), for the
+//   browser info tool at /tools/browser-info/. Fetches nothing, logs nothing, and is never cached.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -145,6 +148,7 @@ export default {
       });
     }
     if (url.pathname === '/api/ssl') return sslApi(req, url, env, ctx);
+    if (url.pathname === '/api/whoami') return whoami(req);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },
@@ -216,6 +220,13 @@ function a11yApi(req: Request, url: URL, env: Env, ctx: Ctx): Promise<Response> 
     async (p) => ({ url: p.target.href, finalUrl: p.finalUrl, status: p.status, ...checkA11y(p.html, p.finalUrl) }),
     { cache: false },
   );
+// /api/whoami: the visitor's own IP address and country, read from the request. Nothing is stored.
+function whoami(req: Request): Response {
+  if (req.method !== 'GET') return json({ error: 'Use GET' }, 405);
+  const cf = (req as Request & { cf?: { country?: string } }).cf;
+  const country = (cf?.country ?? req.headers.get('cf-ipcountry') ?? '').toUpperCase().slice(0, 2);
+  const ip = (req.headers.get('cf-connecting-ip') ?? '').slice(0, 64);
+  return json({ ip, country });
 }
 
 // /api/jwks: the public keys a JWT can be checked against. Only key fields are passed back.

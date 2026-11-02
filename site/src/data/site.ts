@@ -312,6 +312,12 @@ export const TOOLS: Item[] = [
     category: 'Launch & domains',
     blurb: 'Is your certificate valid? Days left, who issued it, whether www is covered, and its history.',
   },
+  {
+    slug: 'browser-info',
+    category: 'Code helpers',
+    name: 'What browser am I using?',
+    blurb: 'Your browser, OS, viewport, screen, dark mode and time zone in one look. Copy it all for a bug report.',
+  },
 ];
 
 // Same for guides.
