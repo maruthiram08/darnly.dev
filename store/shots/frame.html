@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:1280px;height:800px;overflow:hidden}
+body{font-family:Figtree,Inter,system-ui,sans-serif;color:#0B2230;
+  background:radial-gradient(700px 500px at 0% 100%,rgba(216,57,149,.10),transparent 70%),radial-gradient(800px 600px at 100% 0%,rgba(5,147,198,.16),transparent 70%),#F3FAFC;}
+.copy{position:absolute;left:60px;top:0;bottom:0;width:380px;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font:700 20px/1 "Bricolage Grotesque","Inter Display",sans-serif}
+.brand img{width:30px;height:30px;border-radius:8px}
+.eyebrow{font:500 13px/1 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#0593C6}
+h1{margin:0;font:800 46px/1.05 "Bricolage Grotesque","Inter Display",sans-serif;letter-spacing:-.02em;text-wrap:balance}
+p{margin:0;font-size:19px;line-height:1.5;color:#4A6472;text-wrap:pretty}
+kbd{font:600 16px/1 Figtree,Inter,sans-serif;border:1px solid #D7E9F0;border-bottom-width:3px;border-radius:7px;background:#fff;padding:3px 7px;color:#0B2230}
+.win{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:766px;border-radius:14px;overflow:hidden;background:#fff;
+  box-shadow:0 30px 60px -20px rgba(11,34,48,.30),0 0 0 1px rgba(11,34,48,.08)}
+.bar{height:34px;display:flex;align-items:center;gap:7px;padding:0 14px;background:#EEF3F5;border-bottom:1px solid #DCE6EA}
+.bar i{width:11px;height:11px;border-radius:50%;background:#D5DEE2}
+.bar .url{margin-left:16px;flex:0 0 300px;height:20px;border-radius:6px;background:#fff;font:12px/20px Figtree,Inter,sans-serif;color:#4A6472;padding:0 10px}
+.shots{display:flex;height:624px}
+.shots img{display:block;height:624px}
+.shots .panel{border-left:1px solid #DCE6EA}
+</style></head><body>
+<div class="copy">
+  <div class="brand"><img src="ICON" alt="">Darnly</div>
+  <div class="eyebrow">EYEBROW</div>
+  <h1>HEADLINE</h1>
+  <p>SUB</p>
+</div>
+<div class="win">
+  <div class="bar"><i></i><i></i><i></i><span class="url">localhost:3000/plan</span></div>
+  <div class="shots"><img src="PAGE" alt=""><img class="panel" src="PANEL" alt=""></div>
+</div>
+</body></html>
