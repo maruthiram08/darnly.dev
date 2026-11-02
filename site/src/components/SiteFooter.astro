@@ -2,8 +2,14 @@
 // The footer on every page: tool categories with their top tools, a link to all tools, and guides once there are any.
 import { TOOLS, GUIDES, toolsByCategory, categoryHref } from '../data/site';
 import CategoryIcon from './CategoryIcon.astro';
-const PER_CATEGORY = 4;
 const groups = toolsByCategory();
+// One pair of rules per tab: show its panel and highlight its label when its radio is checked.
+const TAB_CSS = groups.map((_, i) =>
+  `#fcat-${i}:checked ~ .panel[data-i="${i}"]{display:block}` +
+  `#fcat-${i}:checked ~ .tab-row .tab[data-i="${i}"]{background:var(--ink);color:var(--white)}` +
+  `#fcat-${i}:checked ~ .tab-row .tab[data-i="${i}"] .count{color:rgba(255,255,255,.7)}` +
+  `#fcat-${i}:focus-visible ~ .tab-row .tab[data-i="${i}"]{outline:3px solid var(--pink);outline-offset:2px}`
+).join('');
 // Launch-site badges. Add new ones at the end; w/h are the image's own size (only the ratio matters, the CSS sets the height).
 const BADGES = [
   // LaunchIgniter asks for this badge on the site before it gives a free launch slot.
@@ -24,23 +30,23 @@ const BADGES = [
               <h2>Free tools</h2>
               <a href="/tools/">See all {TOOLS.length} tools</a>
             </div>
-            <div class="cats">
-              {groups.map((g) => (
-                <div class="cat">
-                  <h3><a href={categoryHref(g.name) ?? '/tools/'}><span class="cat-badge"><CategoryIcon name={g.name} size={16} /></span>{g.name}<span class="count">{g.tools.length}</span></a></h3>
-                  <ul>
-                    {g.tools.slice(0, PER_CATEGORY).map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}
-                  </ul>
-                  {/* The rest open right here in the card (no page change); long lists scroll inside the card. */}
-                  {g.tools.length > PER_CATEGORY && (
-                    <details class="rest">
-                      <summary><span class="open-label">+{g.tools.length - PER_CATEGORY} more</span><span class="close-label">Show less</span></summary>
-                      <ul>{g.tools.slice(PER_CATEGORY).map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}</ul>
-                      <a class="more" href={categoryHref(g.name) ?? '/tools/'}>Open the {g.name} page →</a>
-                    </details>
-                  )}
+            {/* Category tabs (pure CSS radio tabs, no JS): pick a category and every tool in it shows below in columns.
+                All links stay in the HTML. Rules that show the picked panel are generated in TAB_CSS. */}
+            <div class="cat-tabs">
+              {groups.map((g, i) => <input type="radio" name="footer-cat" id={`fcat-${i}`} class="sr-radio" checked={i === 0} />)}
+              <div class="tab-row" role="presentation">
+                {groups.map((g, i) => (
+                  <label for={`fcat-${i}`} class="tab" data-i={i}><CategoryIcon name={g.name} size={16} />{g.name}<span class="count">{g.tools.length}</span></label>
+                ))}
+              </div>
+              {groups.map((g, i) => (
+                <div class="panel" data-i={i}>
+                  <h3 class="sr">{g.name}</h3>
+                  <ul>{g.tools.map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}</ul>
+                  <a class="more" href={categoryHref(g.name) ?? '/tools/'}>Open the {g.name} page →</a>
                 </div>
               ))}
+              <style is:inline set:html={TAB_CSS}></style>
             </div>
           </div>
         )}

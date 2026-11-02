@@ -45,29 +45,19 @@ footer .lists .guides li { break-inside: avoid; margin-bottom: 4px; }
 footer .tools-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
 footer .tools-head h2 { margin-bottom: 0; }
 footer .tools-head a, footer .lists a.more { color: var(--sky); font-weight: 600; text-decoration: none; }
-/* Tool categories: one card per category. Wider screens: a 3 x 2 grid, so every category is visible and none is left
-   alone on a second row. Phones: a sideways-swipe strip (scroll-snap) with the next card peeking in, instead of six tall stacked cards. */
-footer .cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 720px) {
-  footer .cats { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -20px; padding-inline: 20px; scroll-padding-inline: 20px; }
-  footer .cats::-webkit-scrollbar { display: none; }
-}
-footer .cat { scroll-snap-align: start; background: var(--wash); border-radius: 14px; padding: 14px 16px 16px; }
-footer .cats h3 { font: 600 15px/1.3 var(--body); color: var(--ink); margin-bottom: 10px; }
-footer .cats h3 a { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; }
-footer .cats h3 a:hover { color: var(--sky); }
-footer .cat-badge { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--white); color: var(--sky); }
-footer .cats .count { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--ink-soft); }
-footer .cats ul { gap: 6px; }
-footer .cats li a { text-decoration: none; color: var(--ink); }
-footer .cats li a:hover { color: var(--sky); text-decoration: underline; text-underline-offset: 3px; }
-footer .cats { align-items: start; }
-footer .rest { margin-top: 6px; }
-footer .rest summary { list-style: none; cursor: pointer; color: var(--sky); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-footer .rest summary::-webkit-details-marker { display: none; }
-footer .rest summary::after { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s ease; }
-footer .rest[open] summary::after { transform: translateY(2px) rotate(-135deg); }
-footer .rest .close-label, footer .rest[open] .open-label { display: none; }
-footer .rest[open] .close-label { display: inline; }
-footer .rest ul { margin-top: 8px; max-height: 232px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-footer .rest a.more { display: inline-block; margin-top: 10px; }
+/* Tool categories as tabs: a row of category pills, and one panel below that lists every tool in the picked
+   category in columns. No collapsing, no uneven cards. The panel keeps a minimum height so switching tabs doesn't jump. */
+footer .cat-tabs { background: var(--wash); border-radius: 16px; padding: 14px; }
+footer .sr-radio { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+footer .tab-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+footer .tab-row::-webkit-scrollbar { display: none; }
+footer .tab { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 8px 12px; border-radius: 999px; background: var(--white); color: var(--ink); font-weight: 600; cursor: pointer; transition: background .15s ease, color .15s ease; }
+footer .tab:hover { color: var(--sky); }
+footer .tab .count { font: 500 12px/1 var(--mono); color: var(--ink-soft); }
+footer .panel { display: none; padding: 16px 6px 4px; min-height: 206px; }
+footer .panel ul { display: block; columns: 4 190px; column-gap: 24px; }
+footer .panel li { break-inside: avoid; margin-bottom: 8px; }
+footer .panel li a { color: var(--ink); text-decoration: none; }
+footer .panel li a:hover { color: var(--sky); text-decoration: underline; text-underline-offset: 3px; }
+footer .panel a.more { display: inline-block; margin-top: 8px; }
+footer .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
