@@ -25,6 +25,7 @@ const LINKS = `## Darnly
 - [Privacy policy](${SITE}/privacy): what is captured, hidden and stored
 - [Set up Darnly with Claude Code, Cursor or Codex](${SITE}/setup/): with or without MCP; a copy-paste prompt that makes the agent add the Darnly MCP server (https://api.darnly.dev/mcp) and the project note
 - [What is Darnly](${SITE}/what-is-darnly/): short answers about what Darnly is, who it is for, price, agents and privacy
+- [What's new in Darnly](${SITE}/changelog/): release notes, newest first (0.3.0: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed)
 - [All free tools](${SITE}/tools/): every tool, grouped by category`;
 
 const OPTIONAL = `## Optional

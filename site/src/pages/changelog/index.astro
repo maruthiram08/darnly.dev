@@ -1,0 +1,51 @@
+---
+// What's new in each Darnly release. Newest first. Add a release at the TOP of the page body.
+import GuidePage from '../../layouts/GuidePage.astro';
+import { storeUrl } from '../../data/site';
+
+const slug = 'changelog';
+const faq = [
+  { q: 'What is the latest version of Darnly?', a: 'Darnly 0.3.0. It adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
+  { q: 'How do I update Darnly?', a: 'Chrome updates extensions by itself, usually within a few hours of a release. To update now, open chrome://extensions, switch on Developer mode, and click Update.' },
+  { q: 'Do I need to set up my project again after an update?', a: 'To get the new /darnly command and the Claude Code hook, click Set up this project in the Darnly panel once more. Darnly only adds its own lines and keeps the rest of your files as they are.' },
+];
+---
+<GuidePage
+  slug={slug}
+  path="/changelog/"
+  crumb={null}
+  title="What's new in Darnly: release notes"
+  description="Release notes for the Darnly Chrome extension: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed, the cloud inbox and MCP server."
+  h1="What's new in Darnly"
+  lede={`Darnly 0.3.0 closes the loop: type /darnly to fix every waiting bug, see when your agent has a question for you, and get a "Take a look" card when a bug is fixed.`}
+  faq={faq}
+  strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Alt+Shift+B on Windows) on any page, click the broken part, and say what you expected.' }}
+>
+  <h2 id="v0-3-0">0.3.0: close the loop</h2>
+  <p>Capturing a bug was already quick. This release covers what happens after: starting the fix, answering your agent's questions, and checking the result.</p>
+  <ul>
+    <li><strong><code>/darnly</code> fixes every waiting bug.</strong> In Claude Code and Cursor, one command fixes the bugs in your project folder and your cloud inbox. In Codex, say "fix my bugs". <a href="/setup/#loop">How the loop works</a>.</li>
+    <li><strong>Claude Code offers to fix new bugs.</strong> <strong>Set up this project</strong> adds a hook, so when you start a session or send a message after capturing, Claude Code tells you how many bugs are waiting and offers to fix them.</li>
+    <li><strong>"Your agent is waiting for your input."</strong> If a note is unclear, your agent asks you in its own chat, and the panel shows this on the bug, so it never just looks stuck. In the cloud inbox this uses the new <code>ask_user</code> MCP tool.</li>
+    <li><strong>"1 bug fixed. Take a look."</strong> The panel now remembers what it last saw, so you get this card even if it was closed while the agent worked, with one line on what changed. For bugs on localhost, <strong>Reload the page</strong> shows the fix straight away; for a live site, it reminds you to deploy.</li>
+    <li><strong>Two agents don't fix the same bug.</strong> An agent marks the bug it's working on for 20 minutes, so another agent in the same project skips it.</li>
+  </ul>
+  <p><strong>To get it:</strong> after Chrome updates Darnly, open the panel and click <strong>Set up this project</strong> once more, then restart your agent.</p>
+
+  <h2 id="v0-2-0">0.2.0: the cloud inbox</h2>
+  <ul>
+    <li><strong>An optional private inbox</strong> for projects whose code isn't on your computer. Sign in with Google, and each bug goes to your Darnly inbox instead of a folder.</li>
+    <li><strong>A remote MCP server</strong> at <code>https://api.darnly.dev/mcp</code>, so Claude Code, Cursor, Codex and the Claude app fetch your bugs themselves with <code>list_bugs</code>, <code>get_bug</code> and <code>mark_fixed</code>. <a href="/setup/#with-mcp">Setup for each agent</a>.</li>
+    <li><strong>One list for all your projects.</strong> Agents only fix the bugs whose page belongs to the code they're working on.</li>
+  </ul>
+
+  <h2 id="v0-1">0.1: first release</h2>
+  <ul>
+    <li><strong>One key, one click, one sentence.</strong> Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, click the broken part, type what you expected.</li>
+    <li><strong>A report your agent can read:</strong> the screenshot with the element boxed in red, its selector, text, HTML and styles, the file and component that drew it on localhost, and console errors and failed requests from the last 60 seconds.</li>
+    <li><strong>Saved into your project</strong> as files in <code>.darnly/inbox/</code>, with <strong>Set up this project</strong> adding a note to AGENTS.md and a skill. Code in the cloud? <strong>Copy picture</strong> and <strong>Copy details</strong> paste into your agent's chat.</li>
+    <li><strong>Private by default:</strong> passwords, tokens and API keys are hidden before anything is saved, and <code>.darnly/</code> is kept out of git.</li>
+  </ul>
+
+  <p><a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, or read the <a href="/setup/">setup guide</a>.</p>
+</GuidePage>
