@@ -142,12 +142,30 @@ try {
       for (const p of parts) d = await d.getDirectoryHandle(p);
       return (await (await d.getFileHandle(name)).getFile()).text();
     };
-    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md') };
+    return { agents: await read('AGENTS.md'), skill: await read('.agents/skills/darnly/SKILL.md'), claudeSkill: await read('.claude/skills/darnly/SKILL.md'), claudeSettings: await read('.claude/settings.json') };
   });
   if (!setup.agents.includes('.darnly/inbox/')) fail('AGENTS.md block missing');
   if (!setup.skill.startsWith('---\nname: darnly') || setup.skill !== setup.claudeSkill) fail('skill files wrong');
   if (await panel.getByText('Set up this project').count()) fail('setup card still showing after setup');
-  // Pretend the agent fixed the bug: move it to done/, and the list should notice within 5 seconds.
+  if (!setup.claudeSettings.includes('darnly-inbox-check')) fail('Claude Code hooks missing');
+  await panel.getByText('Claude Code will offer to fix').first().waitFor({ timeout: 3000 }).catch(() => fail('panel still says to tell the agent after hooks are set up'));
+  // The agent needs the user: it writes a **Question:** line, and the panel sends the user back to the agent.
+  await panel.evaluate(async () => {
+    const inbox = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly')).getDirectoryHandle('inbox');
+    for await (const [name, h] of inbox.entries()) {
+      if (!name.endsWith('.md')) continue;
+      const text = await (await h.getFile()).text();
+      const w = await h.createWritable();
+      await w.write(text.replace(/^(\*\*Expected:\*\*.*)$/m, '$1\n**Question:** Should Pay now also save the card?'));
+      await w.close();
+    }
+  });
+  await panel.getByText('Your agent is waiting for your input. Return to your agent.').waitFor({ timeout: 7000 }).catch(() => fail('waiting-for-input notice missing'));
+  await panel.getByText('Should Pay now also save the card?').waitFor({ timeout: 3000 }).catch(() => fail('agent question missing'));
+  // Pretend the agent fixed the bug while the panel was closed: leave the panel, move the bug to done/,
+  // then open the panel again. It should still say the bug was fixed since it last looked.
+  await panel.waitForTimeout(500);
+  await panel.goto(`chrome-extension://${id}/keepalive.html`);
   await panel.evaluate(async () => {
     const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly');
     const inbox = await root.getDirectoryHandle('inbox');
@@ -156,15 +174,19 @@ try {
       const f = await h.getFile();
       const w = await (await done.getFileHandle(name, { create: true })).createWritable();
       // Like the skill asks: one **Fixed:** line under **Expected**.
-      if (name.endsWith('.md')) await w.write((await f.text()).replace(/^(\*\*Expected:\*\*.*)$/m, '$1\n**Fixed:** made Pay now clickable in src/components/PayButton.tsx'));
+      if (name.endsWith('.md')) await w.write((await f.text()).replace(/^\*\*Question:\*\*.*\n/m, '').replace(/^(\*\*Expected:\*\*.*)$/m, '$1\n**Fixed:** made Pay now clickable in src/components/PayButton.tsx'));
       else await w.write(f);
       await w.close();
       await inbox.removeEntry(name);
     }
   });
+  await panel.goto(`chrome-extension://${id}/sidepanel.html`);
   await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
   await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 3000 }).catch(() => fail('fixed nudge missing'));
   await panel.getByText('made Pay now clickable in src/components/PayButton.tsx').waitFor({ timeout: 3000 }).catch(() => fail('agent fix note missing'));
+  // The bug was on localhost, so reloading shows the fix (a live site would say to deploy instead).
+  if (!(await panel.getByRole('button', { name: 'Reload the page' }).count())) fail('reload button missing for a localhost bug');
+  if (await panel.getByText('Deploy it to see it').count()) fail('deploy hint shown for a localhost bug');
   // Sprint 4: picking a big container still records the card under the cursor.
   const framesUrl = url.replace('/checkout', '/frames');
   await page.goto(framesUrl);

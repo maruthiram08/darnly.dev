@@ -9,6 +9,7 @@ export const LIMITS = {
   perHour: 120,
   waiting: 500,
   fixedNote: 500,
+  question: 500,
   keepFixedDays: 30,
 };
 
@@ -26,6 +27,8 @@ export interface BugSummary {
   claimedBy: string | null;
   claimedName: string | null;
   claimedAt: number | null;
+  /** What the agent asked the user and is waiting on (questions go stale after QUESTION_TTL). */
+  question: string | null;
 }
 
 interface BugRow {
@@ -42,14 +45,19 @@ interface BugRow {
   claimed_by: string | null;
   claimed_name: string | null;
   claimed_at: number | null;
+  question: string | null;
+  question_at: number | null;
 }
 
-const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at';
+const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at';
 
 const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at';
 
 /** How long an agent's claim on a bug lasts without being renewed. */
 export const CLAIM_TTL = 20 * 60 * 1000;
+
+/** After this long an unanswered question stops showing in the panel (the agent's chat has likely moved on). */
+export const QUESTION_TTL = 24 * 60 * 60 * 1000;
 
 /** A claim that still counts: on a waiting bug and not expired. */
 function liveClaim(row: BugRow, now = Date.now()): boolean {
@@ -70,6 +78,7 @@ function summary(row: BugRow): BugSummary {
     claimedBy: liveClaim(row) ? row.claimed_by : null,
     claimedName: liveClaim(row) ? row.claimed_name : null,
     claimedAt: liveClaim(row) ? row.claimed_at : null,
+    question: row.status === 'waiting' && row.question && row.question_at && Date.now() - row.question_at < QUESTION_TTL ? row.question : null,
   };
 }
 
@@ -212,6 +221,8 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     claimed_by: null,
     claimed_name: null,
     claimed_at: null,
+    question: null,
+    question_at: null,
   };
   try {
     await env.DB.prepare(
@@ -295,10 +306,22 @@ export async function markFixed(env: Env, userId: string, bugId: string, note: u
   const row = await ownBug(env, userId, bugId);
   const fixedNote = clip(note, LIMITS.fixedNote) || null;
   const now = Date.now();
-  await env.DB.prepare("UPDATE bugs SET status = 'fixed', fixed_note = ?, fixed_at = ?, claimed_by = NULL, claimed_name = NULL, claimed_at = NULL WHERE id = ? AND user_id = ?")
+  await env.DB.prepare("UPDATE bugs SET status = 'fixed', fixed_note = ?, fixed_at = ?, claimed_by = NULL, claimed_name = NULL, claimed_at = NULL, question = NULL, question_at = NULL WHERE id = ? AND user_id = ?")
     .bind(fixedNote, now, bugId, userId)
     .run();
-  return summary({ ...row, status: 'fixed', fixed_note: fixedNote, fixed_at: now, claimed_by: null, claimed_name: null, claimed_at: null });
+  return summary({ ...row, status: 'fixed', fixed_note: fixedNote, fixed_at: now, claimed_by: null, claimed_name: null, claimed_at: null, question: null, question_at: null });
+}
+
+/**
+ * Records that the agent asked the user something about this bug and is waiting for an answer,
+ * so the panel can send the user back to the agent's chat. An empty question clears it.
+ */
+export async function setQuestion(env: Env, userId: string, bugId: string, question: unknown): Promise<BugSummary> {
+  const row = await ownBug(env, userId, bugId);
+  const q = clip(question, LIMITS.question) || null;
+  const at = q ? Date.now() : null;
+  await env.DB.prepare('UPDATE bugs SET question = ?, question_at = ? WHERE id = ? AND user_id = ?').bind(q, at, bugId, userId).run();
+  return summary({ ...row, question: q, question_at: at });
 }
 
 async function deleteRows(env: Env, rows: { id: string; files_prefix: string }[]): Promise<void> {

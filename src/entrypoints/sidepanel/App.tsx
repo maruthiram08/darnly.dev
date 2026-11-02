@@ -6,7 +6,8 @@ import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { ensureAccess, folderAccess, listCaptures, loadFolder, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
-import { planSetup, type PlannedChange } from '@/lib/agent-setup';
+import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
+import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { CloudError, deleteAllCloudBugs, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
@@ -78,9 +79,18 @@ export function App() {
   const [lastFiles, setLastFiles] = useState<File[]>([]);
   const [site, setSite] = useState<SiteStatus>({ recordable: false });
   const [captures, setCaptures] = useState<CaptureSummary[]>([]);
-  // Bugs the agent fixed since the panel last looked, for the "take a look" nudge.
-  const [justFixed, setJustFixed] = useState<CaptureSummary[]>([]);
-  const seenStatus = useRef<Map<string, string> | null>(null);
+  // Bugs the agent fixed since the panel last looked (even with the panel closed), for the "take a look" nudge.
+  const [justFixed, setJustFixedState] = useState<CaptureSummary[]>([]);
+  const setJustFixed = useCallback((next: (prev: CaptureSummary[]) => CaptureSummary[]) => {
+    setJustFixedState((prev) => {
+      const v = next(prev);
+      saveJustFixed(v);
+      return v;
+    });
+  }, []);
+  useEffect(() => {
+    loadJustFixed().then((saved) => saved.length && setJustFixedState((prev) => mergeFixed(saved, prev)));
+  }, []);
   // Capture times (shortcut to saved), kept on this computer, for the MVP success check.
   const [stats, setStats] = useState<{ ms: number }[]>([]);
   useEffect(() => {
@@ -88,6 +98,8 @@ export function App() {
   }, []);
   const [plan, setPlan] = useState<PlannedChange[] | null>(null);
   const [setupNeeded, setSetupNeeded] = useState(false);
+  // Our Claude Code hooks are in this project, so Claude Code brings up new bugs by itself.
+  const [hooksOn, setHooksOn] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
   // Chrome leaves the shortcut empty when another extension already uses the same keys.
   const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
@@ -103,7 +115,6 @@ export function App() {
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const cloudSeen = useRef<Map<string, string> | null>(null);
   useEffect(() => {
     loadSession().then(setSession, () => {});
     mcpUrl().then(setMcp, () => {});
@@ -112,17 +123,13 @@ export function App() {
     if (!s) return;
     try {
       const list = (await listCloudBugs(s)).map(toSummary);
-      const before = cloudSeen.current;
-      if (before) {
-        const fixedNow = list.filter((c) => c.status === 'fixed' && before.get(c.id) === 'waiting');
-        if (fixedNow.length) setJustFixed((prev) => [...fixedNow, ...prev.filter((p) => !fixedNow.some((n) => n.id === p.id))]);
-      }
-      cloudSeen.current = new Map(list.map((c) => [c.id, c.status]));
+      const fixedNow = await checkFixes(`cloud:${s.email}`, list);
+      if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
       setCloudBugs(list);
     } catch (e) {
       if (e instanceof CloudError && e.status === 401) setSession(null);
     }
-  }, []);
+  }, [setJustFixed]);
   useEffect(() => {
     if (!session) return;
     refreshCloud(session);
@@ -148,7 +155,6 @@ export function App() {
     if (session) await signOut(session);
     setSession(null);
     setCloudBugs([]);
-    cloudSeen.current = null;
   };
   const cloudSignOutEverywhere = async () => {
     if (!session) return;
@@ -160,7 +166,6 @@ export function App() {
     }
     setSession(null);
     setCloudBugs([]);
-    cloudSeen.current = null;
     setMessage('Signed out on every computer, and every coding agent is disconnected. Add the connector again to reconnect one.');
   };
   const cloudDeleteAll = async () => {
@@ -169,7 +174,6 @@ export function App() {
       const n = await deleteAllCloudBugs(session);
       setMessage(`Deleted ${n} ${n === 1 ? 'bug' : 'bugs'} from your Darnly inbox.`);
       setCloudBugs([]);
-      cloudSeen.current = new Map();
     } catch (e) {
       setMessage(`Couldn't delete: ${(e as Error).message}`);
     }
@@ -199,19 +203,16 @@ export function App() {
   const refreshProject = useCallback(async (f: FileSystemDirectoryHandle | null) => {
     if (!f || (await folderAccess(f)) !== 'granted') return;
     const list = await listCaptures(f);
-    const before = seenStatus.current;
-    if (before) {
-      const fixedNow = list.filter((c) => c.status === 'fixed' && before.get(c.id) === 'waiting');
-      if (fixedNow.length) setJustFixed((prev) => [...fixedNow, ...prev.filter((p) => !fixedNow.some((n) => n.id === p.id))]);
-    }
-    seenStatus.current = new Map(list.map((c) => [c.id, c.status]));
+    const fixedNow = await checkFixes(`folder:${f.name}`, list);
+    if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     setCaptures(list);
-    const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
+    const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', '.claude/settings.json', CURSOR_COMMAND_PATH, `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
     const existing = Object.fromEntries(await Promise.all(paths.map(async (p) => [p, await readProjectFile(f, p)] as const)));
     const next = planSetup(existing);
     setPlan(next);
     setSetupNeeded(next.length > 0);
-  }, []);
+    setHooksOn(!!existing['.claude/settings.json']?.includes(HOOK_MARK));
+  }, [setJustFixed]);
 
   const refreshFolder = useCallback(async () => {
     const f = await loadFolder();
@@ -583,7 +584,11 @@ export function App() {
           ) : lastFile ? (
             <>
               <p className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Saved to <code>{lastFile}</code></p>
-              <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+              {hooksOn ? (
+                <p className="text-gray-600">Claude Code will offer to fix it on your next message. In other agents, type <em>/darnly</em>.</p>
+              ) : (
+                <p className="text-gray-600">Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></p>
+              )}
             </>
           ) : (
             <p className="text-gray-600">Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</p>
@@ -605,7 +610,7 @@ export function App() {
       {folder && access === 'granted' && setupNeeded && plan && (
         <section className="rounded-lg border border-gray-200 p-3">
           <p className="font-medium">Set up this project</p>
-          <p className="mt-1 text-gray-600">Adds a short note so Claude Code, Codex and Cursor know where your bug reports are.</p>
+          <p className="mt-1 text-gray-600">Adds a short note so Claude Code, Codex and Cursor know where your bug reports are, and tells Claude Code when new bugs come in.</p>
           {!showPlan ? (
             <button className="mt-2 w-full rounded-lg border border-gray-300 py-1.5" onClick={() => setShowPlan(true)}>See what it adds</button>
           ) : (
@@ -625,6 +630,20 @@ export function App() {
         </section>
       )}
 
+      {shown.some((c) => c.question) && (
+        <section className="rounded-lg bg-amber-50 p-3 text-amber-900" role="status">
+          <p className="font-medium">Your agent is waiting for your input. Return to your agent.</p>
+          <ul className="mt-1 space-y-1">
+            {shown.filter((c) => c.question).slice(0, 3).map((c) => (
+              <li key={c.id} className="text-xs">
+                <span className="font-medium">{c.title}</span>
+                <span className="block text-amber-800">{c.question}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {justFixed.length > 0 && (
         <section className="rounded-lg bg-emerald-50 p-3 text-emerald-900">
           <p className="font-medium">{justFixed.length === 1 ? '1 bug fixed' : `${justFixed.length} bugs fixed`}. Take a look.</p>
@@ -636,9 +655,19 @@ export function App() {
               </li>
             ))}
           </ul>
+          {/* Reloading only shows the fix on a dev server; a live site changes once the user deploys. */}
+          {justFixed.some((c) => !isLocalPage(c.pageUrl)) && (
+            <p className="mt-2 text-xs text-emerald-800">
+              {justFixed.every((c) => !isLocalPage(c.pageUrl)) ? 'The fix is in your code. Deploy it to see it on your live site, or check it on your local copy.' : 'Fixes for live sites show there after you deploy.'}
+            </p>
+          )}
           <div className="mt-2 flex gap-2">
-            <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
-            <button className="rounded-lg px-3 text-emerald-800" onClick={() => setJustFixed([])}>Done</button>
+            {justFixed.some((c) => isLocalPage(c.pageUrl)) ? (
+              <button className="flex-1 rounded-lg border border-emerald-300 bg-white py-1.5" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
+            ) : (
+              <span className="flex-1" />
+            )}
+            <button className="rounded-lg px-3 text-emerald-800" onClick={() => setJustFixed(() => [])}>Done</button>
           </div>
         </section>
       )}
@@ -651,13 +680,13 @@ export function App() {
           <ul className="mt-2 divide-y divide-gray-100">
             {shown.slice(0, 20).map((c) => (
               <li key={c.status + c.id} className="flex items-center gap-2 py-1.5">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed' : 'Waiting for your agent'} />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : c.question ? 'bg-rose-500' : 'bg-amber-400'}`} title={c.status === 'fixed' ? 'Fixed' : c.question ? 'Your agent is waiting for your input' : 'Waiting for your agent'} />
                 <span className={`truncate ${c.status === 'fixed' ? 'text-gray-400 line-through' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
               </li>
             ))}
           </ul>
           {shown.some((c) => c.status === 'waiting') && (
-            <p className="mt-2 text-xs text-gray-500">Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></p>
+            <p className="mt-2 text-xs text-gray-500">{folder && hooksOn ? <>Claude Code will offer to fix these on your next message. In other agents, type <em>/darnly</em>.</> : <>Tell your agent: <em>{folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}</em></>}</p>
           )}
         </section>
       )}
@@ -701,7 +730,7 @@ export function App() {
 }
 
 function toSummary(b: CloudBug): CaptureSummary {
-  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined };
+  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined, pageUrl: b.pageUrl || undefined };
 }
 
 function Welcome({ onLink, onCloud }: { onLink: () => void; onCloud: () => void }) {

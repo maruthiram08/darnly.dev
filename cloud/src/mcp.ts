@@ -1,7 +1,7 @@
 // The MCP endpoint (/mcp): how a coding agent reads the cloud inbox.
 // Stateless Streamable HTTP: each POST carries one JSON-RPC message (or a batch) and gets a JSON reply.
 import type { Env } from './env';
-import { claimBug, getBug, getPicture, getReference, listBugs, markFixed, type Agent } from './bugs';
+import { claimBug, getBug, getPicture, getReference, listBugs, markFixed, setQuestion, type Agent } from './bugs';
 import { HttpError } from './util';
 
 const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
@@ -13,7 +13,7 @@ const LOCAL_HINT = 'Bugs saved straight into a project folder (the Mac app, or t
 
 const INSTRUCTIONS = `Darnly holds bugs the user captured on screen: a screenshot with the broken part boxed in red, what they expected, the element, and recent errors.
 To fix them: call list_bugs, then get_bug for each one, fix the code, then mark_fixed with one line on what you changed.
-Start at the "code:" line when there is one. If the expected note is vague or compares to another part of the app, look at that code first; if it is still unclear, ask the user one short question.
+Start at the "code:" line when there is one. If the expected note is vague or compares to another part of the app, look at that code first; if it is still unclear, call ask_user with your question (so Darnly tells the user you are waiting for them), then ask the user that one short question in your chat.
 This server only holds bugs sent to the Darnly cloud. Bugs saved straight into a project (the Mac app, or the Chrome extension in folder mode) are files in .darnly/inbox/ in that project: if that folder exists, fix those too and move each fixed file and its PNG to .darnly/done/.
 When you open a bug with get_bug, Darnly marks it as yours for 20 minutes, so other agents skip it. If list_bugs or get_bug says another agent is already working on a bug, skip it unless the user asks you to take it over.
 Bugs from all the user's projects are listed here: only fix the ones whose page or app belongs to the code you are working on.
@@ -62,6 +62,22 @@ const TOOLS = [
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
+  {
+    name: 'ask_user',
+    title: 'Tell Darnly you are waiting for the user',
+    description:
+      'Call this when you need the user to clarify a bug before you can fix it, then ask them the question in your chat. Darnly shows "Your agent is waiting for your input. Return to your agent." so they come back. Once they answer, call it again with an empty question to clear it (mark_fixed clears it too).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'The bug id.' },
+        question: { type: 'string', description: 'The one short question you are asking, e.g. "Should Save plan also close the dialog?". Empty once the user has answered.' },
+      },
+      required: ['id', 'question'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
 ];
 
 interface RpcRequest {
@@ -98,7 +114,7 @@ async function callTool(env: Env, userId: string, agent: Agent, name: string, ar
       const bugs = await listBugs(env, userId, status, 50);
       if (!bugs.length) return text(status === 'waiting' ? `No bugs waiting in the Darnly cloud inbox. ${LOCAL_HINT}` : `No bugs found. ${LOCAL_HINT}`);
       const lines = bugs.map(
-        (b) => `- ${b.id} [${b.status}${b.claimedBy ? (b.claimedBy === agent.key ? ', being fixed by you' : `, being fixed by ${b.claimedName || 'another agent'} (started ${ago(b.claimedAt!)}): skip it`) : ''}] ${b.title}\n  page: ${b.pageUrl || b.site} · captured ${when(b.createdAt)}${b.fixedNote ? `\n  fixed: ${b.fixedNote}` : ''}`,
+        (b) => `- ${b.id} [${b.status}${b.claimedBy ? (b.claimedBy === agent.key ? ', being fixed by you' : `, being fixed by ${b.claimedName || 'another agent'} (started ${ago(b.claimedAt!)}): skip it`) : ''}] ${b.title}\n  page: ${b.pageUrl || b.site} · captured ${when(b.createdAt)}${b.fixedNote ? `\n  fixed: ${b.fixedNote}` : ''}${b.question ? `\n  waiting for the user's answer to: ${b.question}` : ''}`,
       );
       // Page addresses come from the web page, so the list sits inside the page-data markers.
       const safe = (t: string) => t.replace(/<!--\s*darnly:page-data:(start|end)\s*-->/gi, '[marker removed]');
@@ -133,6 +149,14 @@ async function callTool(env: Env, userId: string, agent: Agent, name: string, ar
       const bug = await markFixed(env, userId, id, args.note);
       return text(`Marked ${bug.id} fixed. The user will see: "${bug.fixedNote ?? ''}"`);
     }
+    if (name === 'ask_user') {
+      const bug = await setQuestion(env, userId, id, args.question);
+      return text(
+        bug.question
+          ? `Darnly now tells the user you are waiting for their input on ${bug.id}. Ask them in your chat: "${bug.question}". When they answer, call ask_user again with an empty question, or just fix it and call mark_fixed.`
+          : `Cleared the question on ${bug.id}.`,
+      );
+    }
     return { ...text(`Unknown tool: ${name}`), isError: true };
   } catch (e) {
     if (e instanceof HttpError && e.status === 404) return { ...text(`No bug with id "${id}". Call list_bugs to see the ids.`), isError: true };
@@ -152,7 +176,7 @@ async function handle(env: Env, userId: string, agent: Agent, msg: RpcRequest): 
       return reply({
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'darnly', title: 'Darnly', version: '0.2.0' },
+        serverInfo: { name: 'darnly', title: 'Darnly', version: '0.3.0' },
         instructions: INSTRUCTIONS,
       });
     }
