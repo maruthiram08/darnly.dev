@@ -73,15 +73,18 @@ const count = TOOLS.length;
   .search { display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--white); color: var(--ink-soft); max-width: 640px; }
   .search:focus-within { border-color: var(--sky); }
   .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 18px/1 var(--body); color: var(--ink); padding: 14px 0; }
-  .chips { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  /* Padding on the scroll box so the hover/focus ring isn't clipped by overflow-x. */
+  .chips { display: flex; gap: 8px; margin: 8px -4px 0; padding: 4px; overflow-x: auto; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
   .chips a { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 7px 12px; border-radius: 999px; background: var(--wash); text-decoration: none; font-size: 14px; font-weight: 600; color: var(--ink); }
   .chips a span { color: var(--ink-soft); font-weight: 500; }
-  .chips a:hover { outline: 2px solid var(--sky); }
+  .chips a:hover, .chips a:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--sky); }
   .chips a[hidden] { display: none; }
-  .status { margin: 8px 0 0; min-height: 1.6em; color: var(--ink-soft); font-size: 15px; }
+  .status { margin: 8px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .status:empty { display: none; }
 
   .group { margin-top: 36px; scroll-margin-top: 140px; }
+  .finder + .status:empty + .group { margin-top: 20px; }
   .group h2 { display: flex; align-items: center; gap: 10px; font-size: 26px; line-height: 1.1; }
   .group h2 .cat-link { color: inherit; text-decoration: none; }
   .group h2 .cat-link:hover { color: var(--sky); text-decoration: underline; text-underline-offset: 4px; }
