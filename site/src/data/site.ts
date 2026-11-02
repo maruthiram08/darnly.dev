@@ -348,6 +348,12 @@ export const TOOLS: Item[] = [
     name: 'CSS button generator',
     blurb: 'Design a button with hover and press, see it on light and dark pages, copy CSS, Tailwind, React or shadcn.',
   },
+  {
+    slug: 'loader-generator',
+    category: 'Design',
+    name: 'CSS loading spinners',
+    blurb: '20 pure-CSS spinners, dots and bars plus a skeleton card builder. Copy HTML and CSS, Tailwind or React.',
+  },
 ];
 
 // Same for guides.
