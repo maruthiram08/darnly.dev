@@ -1,32 +1,43 @@
-# Darnly
+# Darnly: bug reports for AI coding agents
 
-A Chrome extension that turns a bug you see on screen into a ready-to-fix note for your AI coding agent.
-Captures land as plain files in `.darnly/inbox/` inside your project, so Claude Code, Codex and Cursor can all read them.
+See something broken on a page? Press one key, click it, and say what you expected. Claude Code, Codex or Cursor gets a report it can work from: a screenshot with the broken part boxed, the element, the page address, and the console errors and failed requests from the last 60 seconds.
 
-## Install (before the Chrome Web Store listing is live)
+Made for people who build apps with AI coding agents, developer or not.
 
-1. Download the latest zip and unzip it.
-2. Open `chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick the unzipped folder.
-3. Pin Darnly, open it, and answer the first question: is your code on this computer (link the project folder) or in the cloud?
-4. Check the shortcut at `chrome://extensions/shortcuts` (default Option+Shift+B on Mac, Alt+Shift+B elsewhere).
+**[Add Darnly to Chrome (free)](https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj)** · [darnly.dev](https://darnly.dev) · [89 free tools for vibecoders](https://darnly.dev/tools/) · [@darnlyhq](https://x.com/darnlyhq)
 
-## Use
+![Picking a broken "Save plan" button with Darnly](docs/screenshot.png)
 
-1. On any page, press the shortcut and click the broken part (↑ ↓ for a bigger or smaller box, W for the whole page, Esc to cancel).
-2. Type what you expected and press Enter.
-3. Project on this computer: click **Set up this project** once, then tell your agent "fix my bugs".
-   Cloud project: click **1. Copy picture**, paste into your agent, then **2. Copy details** and paste.
+## How it works
 
-Console errors are recorded on localhost automatically. For a live site, click **Record errors on this site** once.
-See [PRIVACY.md](PRIVACY.md) for what is captured and hidden.
+1. Press **Option+Shift+B** (Mac) or **Alt+Shift+B** (Windows) on any page, on localhost or your live site.
+2. Click the broken part. Arrow keys make the box bigger or smaller, W picks the whole page, Esc cancels.
+3. Type what you expected and press Enter.
 
-## Renaming the product
+Where the report goes:
+
+- **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and Darnly adds a short note to `AGENTS.md`. Then tell your agent "fix my bugs".
+- **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent (tools: `list_bugs`, `get_bug`, `mark_fixed`), or copy the picture and the details into your agent's chat.
+
+Bugs from all your projects stay in one list. Console errors are recorded on localhost automatically; for a live site, click **Record errors on this site** once. Passwords, tokens and API keys are hidden before anything is saved. See [PRIVACY.md](PRIVACY.md).
+
+Works in Chrome, Edge, Brave and Arc. There is also a Mac app for the iOS Simulator, the Android Emulator and Mac apps: see [mac/README.md](mac/README.md).
+
+## Developing
+
+### Load an unpacked build
+
+1. `npm install`, then `npm run build`.
+2. Open `chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick `.output/chrome-mv3/`.
+3. Check the shortcut at `chrome://extensions/shortcuts`.
+
+### Renaming the product
 
 The name lives in one file: `src/config/product.ts`. Change `NAME` and `SLUG` there.
 The extension name, the `.<slug>/` folder, the AGENTS.md markers and the skill paths all follow.
 (`spike/folder-test/` is a throwaway test and has its own copy.)
 
-## Commands
+### Commands
 
 - `npm install` once
 - `npm run dev` opens Chrome with the extension, reloading on save
@@ -35,7 +46,7 @@ The extension name, the `.<slug>/` folder, the AGENTS.md markers and the skill p
 - `npm run zip` makes the store zip in `.output/`
 - Store listing text: `store/listing.md`
 
-## Folders
+### Folders
 
 - `src/config/product.ts`: product name
 - `src/entrypoints/`: background (hotkey, screenshot), picker (content script), side panel (note box, saving), keepalive (holds folder access)
