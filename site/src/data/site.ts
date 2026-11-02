@@ -258,6 +258,12 @@ export const TOOLS: Item[] = [
     name: 'Aspect ratio calculator',
     blurb: 'Get the missing side for 16:9, 4:3 or 9:16, see it in a YouTube player, phone or Instagram post, and copy the CSS.',
   },
+  {
+    slug: 'curl-converter',
+    category: 'Code helpers',
+    name: 'curl converter',
+    blurb: 'Paste a curl command from API docs and get fetch, axios, Node.js, Python or a Next.js route, with keys moved to .env.',
+  },
 ];
 
 // Same for guides.
