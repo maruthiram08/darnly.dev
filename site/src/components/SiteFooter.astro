@@ -30,8 +30,15 @@ const BADGES = [
                   <h3><a href={categoryHref(g.name) ?? '/tools/'}><span class="cat-badge"><CategoryIcon name={g.name} size={16} /></span>{g.name}<span class="count">{g.tools.length}</span></a></h3>
                   <ul>
                     {g.tools.slice(0, PER_CATEGORY).map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}
-                    {g.tools.length > PER_CATEGORY && <li><a class="more" href={categoryHref(g.name) ?? '/tools/'}>+{g.tools.length - PER_CATEGORY} more →</a></li>}
                   </ul>
+                  {/* The rest open right here in the card (no page change); long lists scroll inside the card. */}
+                  {g.tools.length > PER_CATEGORY && (
+                    <details class="rest">
+                      <summary><span class="open-label">+{g.tools.length - PER_CATEGORY} more</span><span class="close-label">Show less</span></summary>
+                      <ul>{g.tools.slice(PER_CATEGORY).map((t) => <li><a href={`/tools/${t.slug}/`}>{t.name}</a></li>)}</ul>
+                      <a class="more" href={categoryHref(g.name) ?? '/tools/'}>Open the {g.name} page →</a>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>

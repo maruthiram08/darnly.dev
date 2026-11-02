@@ -61,3 +61,13 @@ footer .cats .count { margin-left: auto; font: 500 12px/1 var(--mono); color: va
 footer .cats ul { gap: 6px; }
 footer .cats li a { text-decoration: none; color: var(--ink); }
 footer .cats li a:hover { color: var(--sky); text-decoration: underline; text-underline-offset: 3px; }
+footer .cats { align-items: start; }
+footer .rest { margin-top: 6px; }
+footer .rest summary { list-style: none; cursor: pointer; color: var(--sky); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+footer .rest summary::-webkit-details-marker { display: none; }
+footer .rest summary::after { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s ease; }
+footer .rest[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+footer .rest .close-label, footer .rest[open] .open-label { display: none; }
+footer .rest[open] .close-label { display: inline; }
+footer .rest ul { margin-top: 8px; max-height: 232px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+footer .rest a.more { display: inline-block; margin-top: 10px; }
