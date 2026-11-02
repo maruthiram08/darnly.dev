@@ -11,7 +11,7 @@ const newest = new Set(TOOLS.slice(-NEW_COUNT).map((t) => t.slug));
 const id = (name: string) => 'cat-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const count = TOOLS.length;
 ---
-<Base title="Free tools for vibecoders: design, images, SEO, launch · Darnly" description={`${count} free tools for vibecoders: favicons, fonts, colors, share previews, launch checks, API key leaks and more. Made for people who build with Cursor, Claude Code, Lovable and Bolt. No sign-in, nothing to install.`} noindex={count === 0} image="/og/tools.jpg" imageAlt="Free tools for vibecoders from Darnly">
+<Base title="Free tools for vibecoders: design, SEO, launch · Darnly" description={`${count} free tools for vibecoders: favicons, fonts, colors, share previews, launch checks and more. For Cursor, Claude Code, Lovable and Bolt. No sign-in.`} noindex={count === 0} image="/og/tools.jpg" imageAlt="Free tools for vibecoders from Darnly">
   <SiteHeader source="tools-hub" />
   <main class="wrap hub">
     <span class="eyebrow">{count} free tools</span>
