@@ -10,11 +10,11 @@ function b64url(bytes: Uint8Array): string {
 }
 
 /** Runs the whole connector sign-in the way Claude or Cursor would, and returns an access token. */
-async function connectAgent(email: string): Promise<string> {
+async function connectAgent(email: string, name = 'Test Agent'): Promise<string> {
   const reg = await SELF.fetch(`${BASE}/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ redirect_uris: [REDIRECT], client_name: 'Test Agent', token_endpoint_auth_method: 'none' }),
+    body: JSON.stringify({ redirect_uris: [REDIRECT], client_name: name, token_endpoint_auth_method: 'none' }),
   });
   expect(reg.status).toBe(201);
   const { client_id } = (await reg.json()) as { client_id: string };
@@ -27,7 +27,7 @@ async function connectAgent(email: string): Promise<string> {
   const consent = await SELF.fetch(authorize.toString());
   expect(consent.status).toBe(200);
   const html = await consent.text();
-  expect(html).toContain('Connect Test Agent to Darnly?');
+  expect(html).toContain(`Connect ${name} to Darnly?`);
   expect(html).toContain('127.0.0.1:7777');
   const tx = /name="tx" value="([^"]+)"/.exec(html)![1]!;
   const cookie = consent.headers.get('set-cookie')!.split(';')[0]!;
@@ -170,5 +170,35 @@ describe('MCP for coding agents', () => {
     });
     expect(((await res.json()) as { error: { code: number } }).error.code).toBe(-32601);
     expect((await SELF.fetch(`${BASE}/mcp`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(405);
+  });
+
+  it('stops two agents fixing the same bug', async () => {
+    const email = 'claims@example.com';
+    const codex = await connectAgent(email, 'Codex');
+    const cursor = await connectAgent(email, 'Cursor');
+    const id = await uploadAs(email, 'Pay now should be clickable');
+    const call = (token: string, name: string, args: object) => rpc(token, 'tools/call', { name, arguments: args });
+
+    const first = await call(codex, 'get_bug', { id });
+    expect(first.content[0].text).toContain('You are now marked as fixing this bug');
+
+    const list = await call(cursor, 'list_bugs', {});
+    expect(list.content[0].text).toContain('being fixed by Codex');
+    const second = await call(cursor, 'get_bug', { id });
+    expect(second.content[0].text).toContain('STOP: Codex started fixing this bug');
+
+    // Codex opening it again keeps its claim; its own list says so.
+    expect((await call(codex, 'get_bug', { id })).content[0].text).toContain('You are now marked as fixing this bug');
+    expect((await call(codex, 'list_bugs', {})).content[0].text).toContain('being fixed by you');
+
+    // The user asks Cursor to take over.
+    const taken = await call(cursor, 'get_bug', { id, take_over: true });
+    expect(taken.content[0].text).toContain('You are now marked as fixing this bug');
+    expect((await call(codex, 'get_bug', { id })).content[0].text).toContain('STOP: Cursor started fixing this bug');
+
+    await call(cursor, 'mark_fixed', { id, note: 'Made Pay now clickable' });
+    const after = await call(codex, 'list_bugs', { status: 'all' });
+    expect(after.content[0].text).toContain('[fixed]');
+    expect(after.content[0].text).not.toContain('being fixed');
   });
 });

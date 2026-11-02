@@ -1,6 +1,6 @@
 import { OAuthProvider, type OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
-import { mcpFetch } from './mcp';
+import { agentFrom, mcpFetch } from './mcp';
 import { exchangeAppCode, oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
 import { cleanup, deleteAccount, deleteAllBugs, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
@@ -125,10 +125,10 @@ const appHandler = {
 
 /** /mcp, reached only with a valid agent token. The OAuth library puts the signed-in user in ctx.props. */
 const mcpHandler = {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext & { props?: { userId?: string } }): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext & { props?: { userId?: string; clientId?: string; clientName?: string } }): Promise<Response> {
     const userId = ctx.props?.userId;
     if (!userId) return new Response('signed out', { status: 401 });
-    const res = await mcpFetch(req, env, userId);
+    const res = await mcpFetch(req, env, userId, agentFrom(req, ctx.props));
     res.headers.set('x-content-type-options', 'nosniff');
     return res;
   },

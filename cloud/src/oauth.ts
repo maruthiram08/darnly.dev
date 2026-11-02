@@ -171,7 +171,8 @@ async function finish(env: OAuthEnv, txId: string, tx: Transaction, who: { sub: 
     userId: user.id,
     metadata: { email: user.email },
     scope: tx.authRequest.scope,
-    props: { userId: user.id, email: user.email },
+    // The client lets the inbox tell connected agents apart, so two of them don't fix the same bug.
+    props: { userId: user.id, email: user.email, clientId: tx.authRequest.clientId, clientName: (await env.OAUTH_PROVIDER.lookupClient(tx.authRequest.clientId))?.clientName?.slice(0, 80) },
   });
   return redirect(redirectTo);
 }
