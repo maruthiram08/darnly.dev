@@ -127,7 +127,7 @@ const sources = [
       <pre><code>codex mcp add darnly --url {MCP}</code></pre></li>
     <li>Then sign in:
       <pre><code>codex mcp login darnly</code></pre>
-      Your browser opens. Continue with Google.</li>
+      Your browser opens. Continue with Google. Keep the terminal open until the browser says you're signed in.</li>
     <li>Start Codex with <code>codex</code> and type: <code>fix my Darnly bugs</code></li>
   </ol>
   <p>Prefer a config file? The <code>add</code> command writes this to <code>~/.codex/config.toml</code>, and you can add it by hand instead:</p>
@@ -139,6 +139,7 @@ url = "${MCP}"`}</code></pre>
   <h2 id="trouble">If something doesn't work</h2>
   <ul>
     <li><strong>The shortcut does nothing.</strong> Chrome doesn't let extensions run on its own pages (<code>chrome://</code> pages and the Chrome Web Store). Try it on your app. If another extension uses the same keys, change Darnly's at <code>chrome://extensions/shortcuts</code>.</li>
+    <li><strong>After signing in, the browser says "127.0.0.1 refused to connect".</strong> Your Darnly sign-in worked, but the agent stopped listening for it. This happens when the agent ran the sign-in command itself and that command ended before you clicked. Sign in again yourself: in Codex, run <code>codex mcp login darnly</code> in your own terminal and keep it open (or use <strong>Settings</strong>, <strong>MCP servers</strong>, <strong>Authenticate</strong> in the Codex app). In Claude Code, use <code>/mcp</code>. In Cursor, click the log-in button in the MCP list.</li>
     <li><strong>The agent says there are no bugs.</strong> Check where the bug went. In folder mode, look in <code>.darnly/inbox/</code> of the project the agent is open in. In cloud mode, check the Darnly panel says <em>Sending bugs to your Darnly inbox</em>, and that you signed in to the agent with the same Google account.</li>
     <li><strong>The agent doesn't know what Darnly is.</strong> Paste the <a href="#prompt">setup prompt</a> above, or click <strong>Set up this project</strong> in the Darnly panel.</li>
     <li><strong>Still stuck?</strong> Write to hello@darnly.dev with your agent's name and what you see.</li>

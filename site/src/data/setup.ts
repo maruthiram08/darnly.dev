@@ -18,8 +18,8 @@ export const SETUP_PROMPT = `Set up Darnly for me. Darnly is a Chrome extension 
 
 4. Add ".darnly/" to .gitignore (create it if missing), because screenshots can hold private data.
 
-5. Tell me how to sign in to Darnly, which I must do myself in the browser with the same Google account I use in the Darnly extension:
+5. Don't start the sign-in yourself: it only works while its command keeps running, and yours will stop before I click. Instead, tell me how to sign in to Darnly, which I must do myself in the browser with the same Google account I use in the Darnly extension:
    - Claude Code: type /mcp, pick darnly, choose Authenticate
    - Cursor: open Cursor Settings, find darnly in the MCP list, click its log-in button
-   - Codex: run  codex mcp login darnly  in a terminal
+   - Codex app: Settings, then MCP servers, then Authenticate next to darnly. Codex CLI: run  codex mcp login darnly  in my own terminal and leave it open until the browser says I'm signed in
    Then I can say "fix my Darnly bugs".`;
