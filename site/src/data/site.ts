@@ -336,6 +336,12 @@ export const TOOLS: Item[] = [
     name: 'Case converter',
     blurb: 'See any name in camelCase, snake_case, kebab-case and eight more cases at once. Rename JSON keys and .env names too.',
   },
+  {
+    slug: 'git-undo-helper',
+    category: 'Code helpers',
+    name: 'Git undo helper',
+    blurb: 'Pick what went wrong in git and see the fix on a picture of your commits, with the exact commands or a prompt for your agent.',
+  },
 ];
 
 // Same for guides.
