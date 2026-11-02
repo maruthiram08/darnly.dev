@@ -1,0 +1,242 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+
+const steps = [
+  'Paste your site’s address, or try one of the examples.',
+  'We read the page, its web app manifest, its icons and its own JavaScript, the way a phone does before it offers “Install app”.',
+  'See the install sheet and home-screen icon your visitors would get. Anything missing comes back as a ready <code>manifest.webmanifest</code> to download and one prompt for Claude Code, Cursor or Codex.',
+];
+
+const faq = [
+  { q: 'What makes a site installable?', a: 'Chrome on Android and desktop offers “Install app” when the site is on https and has a web app manifest with a name, a 192×192 and a 512×512 icon, a <code>start_url</code>, and a <code>display</code> of <code>standalone</code>, <code>fullscreen</code> or <code>minimal-ui</code>. This checker tests each of those.' },
+  { q: 'Do I still need a service worker?', a: 'Chrome no longer requires one before offering to install, but without it your app shows the browser’s offline error when there’s no signal. Tools that wrap a site into a Play Store app, like PWABuilder, also expect one. We look for a <code>navigator.serviceWorker.register</code> call in the page and its own scripts.' },
+  { q: 'Why does my iPhone show a screenshot instead of my icon?', a: 'Safari on iPhone ignores the manifest’s icons for the home screen. It uses <code>&lt;link rel="apple-touch-icon"&gt;</code>, a 180×180 PNG. Without it, iOS shrinks a screenshot of the page. The favicon generator makes one.' },
+  { q: 'What is a maskable icon?', a: 'Android crops app icons into a circle, a squircle or a rounded square depending on the phone. A maskable icon has extra padding around the logo so nothing important is cut off. Without one, Android shrinks your icon onto a white circle.' },
+  { q: 'Where do I put the manifest file?', a: 'In the folder your framework serves as-is: <code>public/</code> for Vite, Next.js, Astro and most others. Then add <code>&lt;link rel="manifest" href="/manifest.webmanifest"&gt;</code> to the page head. The agent prompt tells your coding agent to do both the way your project is set up.' },
+  { q: 'Can I check a site on localhost?', a: 'No. We check from the internet, so the site needs a public address. Deploy a preview (Vercel, Netlify and Cloudflare all make one per branch), then paste that.' },
+];
+---
+<ToolPage
+  slug="pwa-checker"
+  title="PWA checker: make my site installable · Darnly"
+  description="Check if your site can be installed as an app. See the phone's install sheet and home-screen icon with your real icon and name, find what's missing, and download a ready manifest.webmanifest."
+  h1="PWA checker: make my site installable"
+  lede="Paste your site and see the “Install app” sheet and home-screen icon your visitors would get, what’s stopping it, and a ready manifest to fix it."
+  steps={steps}
+  faq={faq}
+>
+  <div class="pw">
+    <form id="pw-form" class="ask">
+      <label class="sr" for="pw-url">Website address</label>
+      <input id="pw-url" type="text" inputmode="url" autocomplete="url" placeholder="yoursite.com" required />
+      <button id="pw-go" type="submit">Check my site</button>
+    </form>
+    <p class="tries">Try: <button type="button" data-try="squoosh.app">squoosh.app</button> <button type="button" data-try="excalidraw.com">excalidraw.com</button> <button type="button" data-try="darnly.dev">darnly.dev</button></p>
+    <p class="error" id="pw-error" role="alert" hidden></p>
+
+    <section class="stage" aria-label="Preview on a phone">
+      <div class="banner" id="pw-banner">
+        <span class="badge" id="pw-badge">Example</span>
+        <p class="verdict" id="pw-verdict"></p>
+        <p class="sub" id="pw-sub"></p>
+      </div>
+
+      <div class="phones">
+        <figure class="phone-wrap">
+          <div class="phone android" id="pw-sheet-phone">
+            <div class="statusbar" id="pw-status"><span>9:41</span><span class="sys">▾ ▴ ▮</span></div>
+            <div class="screen">
+              <div class="urlbar"><span class="lock" id="pw-lock">🔒</span><span id="pw-host">pocketnotes.app</span></div>
+              <div class="fakepage" id="pw-page">
+                <i></i><i></i><i class="short"></i><i></i><i class="short"></i>
+              </div>
+              <div class="sheet" id="pw-sheet">
+                <div class="grab"></div>
+                <p class="sheet-title">Install app</p>
+                <div class="sheet-app">
+                  <span class="icon round" id="pw-sheet-icon"></span>
+                  <span class="sheet-text">
+                    <b id="pw-sheet-name">Pocket Notes</b>
+                    <small id="pw-sheet-host">pocketnotes.app</small>
+                  </span>
+                </div>
+                <div class="sheet-btns"><span>Cancel</span><span class="install" id="pw-install">Install</span></div>
+              </div>
+              <div class="blocked" id="pw-blocked" hidden>
+                <b>No “Install app” yet</b>
+                <span id="pw-blocked-why"></span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Install sheet in Chrome on Android</figcaption>
+        </figure>
+
+        <figure class="phone-wrap">
+          <div class="phone home" id="pw-home-phone">
+            <div class="statusbar"><span>9:41</span><span class="sys">▾ ▴ ▮</span></div>
+            <div class="screen wall">
+              <div class="grid" id="pw-grid"></div>
+            </div>
+          </div>
+          <figcaption>
+            <span class="seg" role="group" aria-label="Home screen">
+              <button type="button" class="on" data-os="android" aria-pressed="true">Android</button>
+              <button type="button" data-os="ios" aria-pressed="false">iPhone</button>
+            </span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="actions" id="pw-actions">
+        <button id="pw-download" type="button" class="primary">Download manifest.webmanifest</button>
+        <button id="pw-prompt" type="button" class="ghost">Copy fixes for your AI agent</button>
+      </div>
+      <p class="added" id="pw-added"></p>
+    </section>
+
+    <div id="pw-out" hidden>
+      <p class="counts" id="pw-counts"></p>
+      <ul class="list" id="pw-list"></ul>
+      <p class="note" id="pw-note" hidden></p>
+
+      <details class="fold">
+        <summary>The manifest we made for you</summary>
+        <p class="hint">Save it as <code>public/manifest.webmanifest</code>, then add these lines to your page’s <code>&lt;head&gt;</code>:</p>
+        <pre class="code" id="pw-tags"></pre>
+        <pre class="code" id="pw-manifest"></pre>
+        <p class="hint" id="pw-icon-hint" hidden>The new icon paths don’t exist yet. Make them with the <a href="/tools/app-icon-generator/">app icon generator</a> and the <a href="/tools/favicon-generator/">favicon generator</a>, or let your agent make them from your logo.</p>
+      </details>
+      <details class="fold">
+        <summary>What we found</summary>
+        <dl class="facts" id="pw-facts"></dl>
+      </details>
+    </div>
+  </div>
+</ToolPage>
+
+<script>
+  import '../../../scripts/pwa-checker';
+</script>
+
+<style>
+  .pw [hidden] { display: none !important; }
+  .pw { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 14px 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); }
+  .ask input:focus { outline: none; border-color: var(--sky); }
+  .ask button { font: 600 16px/1 var(--body); padding: 0 26px; border: 0; border-radius: 999px; background: var(--sky); color: var(--white); cursor: pointer; white-space: nowrap; }
+  .ask button:disabled { opacity: 0.6; cursor: wait; }
+  .tries { margin: -6px 0 0; color: var(--ink-soft); font-size: 15px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tries button { font: 500 14px/1 var(--body); padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; }
+  .tries button:hover { border-color: var(--sky); }
+  .error { margin: 0; color: #B4234F; }
+
+  .stage { border-radius: 24px; background: var(--wash); padding: 22px; display: grid; gap: 20px; }
+  .banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center; background: var(--white); border-radius: 16px; padding: 14px 18px; border-left: 6px solid var(--line); }
+  .banner.pass { border-left-color: #1F9D55; }
+  .banner.warn { border-left-color: #E0A100; }
+  .banner.fail { border-left-color: #D2344F; }
+  .badge { grid-row: span 2; font: 700 13px/1 var(--body); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 10px; border-radius: 999px; background: var(--line); color: var(--ink); }
+  .banner.pass .badge { background: #1F9D55; color: #fff; }
+  .banner.warn .badge { background: #E0A100; color: #fff; }
+  .banner.fail .badge { background: #D2344F; color: #fff; }
+  .verdict { margin: 0; font: 700 22px/1.2 var(--display); }
+  .sub { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  .phones { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; }
+  .phone-wrap { margin: 0; display: grid; justify-items: center; gap: 12px; }
+  .phone-wrap figcaption { font-size: 14px; color: var(--ink-soft); min-height: 34px; display: flex; align-items: center; }
+  .phone { width: 260px; height: 520px; border-radius: 38px; background: #10181d; padding: 10px; box-shadow: 0 18px 40px rgba(11, 34, 48, 0.18); display: flex; flex-direction: column; overflow: hidden; }
+  .statusbar { display: flex; justify-content: space-between; padding: 6px 16px 4px; font: 600 12px/1 var(--body); color: #fff; border-radius: 28px 28px 0 0; background: #333; transition: background 0.2s; }
+  .statusbar .sys { letter-spacing: 2px; font-size: 10px; }
+  .screen { position: relative; flex: 1; background: #fff; border-radius: 0 0 28px 28px; overflow: hidden; }
+  .urlbar { margin: 8px 10px; padding: 7px 12px; border-radius: 999px; background: #EEF1F3; font: 13px/1.2 var(--body); color: #333; display: flex; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .urlbar .lock { font-size: 11px; }
+  .urlbar.insecure .lock { color: #D2344F; }
+  .fakepage { padding: 8px 14px; display: grid; gap: 10px; }
+  .fakepage i { display: block; height: 14px; border-radius: 6px; background: #E9EEF1; }
+  .fakepage i:first-child { height: 90px; border-radius: 12px; }
+  .fakepage i.short { width: 60%; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 22px 22px 0 0; padding: 10px 18px 20px; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18); }
+  .screen::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.28); pointer-events: none; }
+  .screen.wall::after { display: none; }
+  .sheet, .blocked { z-index: 1; }
+  .grab { width: 36px; height: 4px; border-radius: 4px; background: #CCD3D8; margin: 0 auto 12px; }
+  .sheet-title { margin: 0 0 14px; font: 600 17px/1.2 var(--body); color: #111; }
+  .sheet-app { display: flex; align-items: center; gap: 12px; }
+  .sheet-text { display: grid; gap: 2px; min-width: 0; }
+  .sheet-text b { font: 600 15px/1.25 var(--body); color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-text small { font-size: 12px; color: #666; }
+  .sheet-btns { display: flex; justify-content: flex-end; gap: 18px; margin-top: 22px; font: 600 14px/1 var(--body); color: #1A73E8; align-items: center; }
+  .sheet-btns .install { background: #1A73E8; color: #fff; padding: 9px 18px; border-radius: 999px; }
+  .sheet.off { filter: grayscale(1); opacity: 0.45; }
+  .blocked { position: absolute; left: 14px; right: 14px; top: 42%; transform: translateY(-50%); background: #fff; border: 2px solid #D2344F; border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; font-size: 13px; color: #333; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
+  .blocked b { color: #B4234F; font: 700 15px/1.2 var(--body); }
+
+  .pw :global(.icon) { width: 48px; height: 48px; flex: none; display: grid; place-items: center; overflow: hidden; background: #fff; }
+  .pw :global(.icon img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pw :global(.icon.round) { border-radius: 50%; }
+  .pw :global(.icon.round.padded img) { width: 72%; height: 72%; object-fit: contain; }
+  .pw :global(.icon.round.padded) { box-shadow: inset 0 0 0 1px #E3E8EB; }
+  .pw :global(.icon.squircle) { border-radius: 26%; }
+  .pw :global(.icon.shot) { background: #F2F4F6; border-radius: 26%; display: grid; gap: 3px; padding: 7px; align-content: start; }
+  .pw :global(.icon.shot i) { display: block; height: 5px; border-radius: 2px; background: #D4DBE0; }
+  .pw :global(.icon.shot i:first-child) { height: 14px; }
+  .pw :global(.icon .letter) { font: 700 22px/1 var(--display); color: #fff; }
+
+  .wall { background: linear-gradient(160deg, #3B6E8F 0%, #7A4F8E 55%, #C0567F 100%); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 6px; padding: 26px 10px; }
+  .grid :global(.app) { display: grid; justify-items: center; gap: 5px; min-width: 0; }
+  .grid :global(.app .icon) { width: 46px; height: 46px; }
+  .grid :global(.app .ph) { width: 46px; height: 46px; border-radius: 50%; background: rgba(255, 255, 255, 0.28); }
+  .grid :global(.ios .app .ph) { border-radius: 26%; }
+  .grid :global(.app small) { font: 500 11px/1.2 var(--body); color: #fff; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+  .grid :global(.app.mine .icon) { outline: 3px solid rgba(255, 255, 255, 0.9); outline-offset: 3px; }
+  .grid :global(.app.mine small) { font-weight: 700; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--white); }
+  .seg button { font: 600 13px/1 var(--body); border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; cursor: pointer; color: var(--ink-soft); }
+  .seg button.on { background: var(--ink); color: var(--white); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .primary, .ghost { font: 600 15px/1 var(--body); padding: 13px 20px; border-radius: 999px; cursor: pointer; }
+  .primary { border: 0; background: var(--ink); color: var(--white); }
+  .ghost { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+  .ghost:hover { border-color: var(--sky); }
+  .added { margin: -8px 0 0; text-align: center; color: var(--ink-soft); font-size: 14px; }
+  .added:empty { display: none; }
+
+  .counts { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .list :global(.item) { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 14px; border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; padding: 14px 18px; background: var(--white); }
+  .list :global(.item.pass) { border-left-color: #1F9D55; }
+  .list :global(.item.warn) { border-left-color: #E0A100; }
+  .list :global(.item.fail) { border-left-color: #D2344F; }
+  .list :global(.dot) { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--body); color: var(--white); }
+  .list :global(.pass .dot) { background: #1F9D55; }
+  .list :global(.warn .dot) { background: #E0A100; }
+  .list :global(.fail .dot) { background: #D2344F; }
+  .list :global(.label) { margin: 2px 0 0; font: 600 17px/1.3 var(--body); }
+  .list :global(.detail) { margin: 0; color: var(--ink-soft); font-size: 15px; overflow-wrap: anywhere; }
+  .list :global(.fix) { margin: 4px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .list :global(.fix b) { font-weight: 600; }
+  .list :global(.tool-link) { grid-column: 2; justify-self: start; margin-top: 6px; font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+  .list :global(.tool-link:hover) { border-color: var(--sky); }
+  .note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  .fold { border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; background: var(--white); }
+  .fold summary { cursor: pointer; font-weight: 600; }
+  .hint { margin: 12px 0 0; color: var(--ink-soft); font-size: 15px; }
+  .code { margin: 10px 0 0; padding: 14px; border-radius: 10px; background: #0F2230; color: #E6F3F8; font: 13px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
+  .facts { margin: 12px 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; font-size: 14px; }
+  .facts :global(dt) { color: var(--ink-soft); }
+  .facts :global(dd) { margin: 0; overflow-wrap: anywhere; font-family: var(--mono); font-size: 13px; }
+
+  @media (max-width: 560px) {
+    .ask { flex-direction: column; }
+    .ask button { padding: 14px; }
+    .stage { padding: 14px; }
+    .phone { width: 236px; height: 480px; }
+  }
+</style>
