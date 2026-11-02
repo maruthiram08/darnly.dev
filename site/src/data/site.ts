@@ -330,6 +330,12 @@ export const TOOLS: Item[] = [
     name: 'npm package checker',
     blurb: 'Is this npm package safe to use? Downloads, last release, license, size and types, with a verdict. Compare up to 3.',
   },
+  {
+    slug: 'text-case-converter',
+    category: 'Code helpers',
+    name: 'Case converter',
+    blurb: 'See any name in camelCase, snake_case, kebab-case and eight more cases at once. Rename JSON keys and .env names too.',
+  },
 ];
 
 // Same for guides.
