@@ -45,6 +45,7 @@ const jsonLd = JSON.stringify([
     publisher: { '@id': 'https://darnly.dev/#org' },
   },
 ]);
+import FixLoopVideo from '../components/FixLoopVideo.astro';
 ---
 <Base
   title="Darnly: Turn on-screen bugs into context for AI agents"
@@ -182,6 +183,7 @@ const jsonLd = JSON.stringify([
           <p>The panel says "2 bugs fixed. Take a look." with one line on what changed in each, even if it was closed while the agent worked.</p>
         </div>
       </div>
+      <FixLoopVideo />
     </div>
   </section>
 

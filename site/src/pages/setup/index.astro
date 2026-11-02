@@ -24,6 +24,7 @@ const sources = [
   { name: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/mcp' },
   { name: 'OpenAI Codex docs: MCP', url: 'https://developers.openai.com/codex/mcp' },
 ];
+import FixLoopVideo from '../../components/FixLoopVideo.astro';
 ---
 <GuidePage
   slug={slug}
@@ -53,6 +54,7 @@ const sources = [
     <li><strong>Take a look.</strong> When the agent is done, the panel says <em>1 bug fixed. Take a look.</em> with one line on what changed. For a bug on localhost it has a button to reload the page. A fix for your live site shows there after you deploy it. It stays until you click <strong>Done</strong>. It remembers what it last saw, so this shows up even if the panel was closed while the agent worked.</li>
   </ol>
   <p>The one thing Darnly can't do is start your agent for you. A browser can't wake a coding agent, so the loop starts when you type <code>/darnly</code>, or say yes when Claude Code offers.</p>
+  <FixLoopVideo caption="Watch it once: a bug captured on localhost, fixed by Claude Code after one /darnly, and checked in the panel." />
 
   <h2 id="pick">Which way is right for you?</h2>
   <p>It depends on one thing: where your project's code lives. The Darnly panel asks you this the first time you open it.</p>

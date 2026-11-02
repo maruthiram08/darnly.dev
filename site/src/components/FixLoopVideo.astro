@@ -1,0 +1,18 @@
+---
+// The 60-second fix-loop demo (capture, Claude Code offers to fix, /darnly, "Take a look").
+// Files live in site/public/video/. Loads nothing until the visitor presses play.
+interface Props { caption?: string }
+const { caption = 'The whole fix loop in one minute: capture a bug, say yes or type /darnly in Claude Code, then take a look.' } = Astro.props;
+---
+<figure class="fix-loop-video">
+  <video controls playsinline preload="none" poster="/video/fix-loop-poster.jpg" width="1280" height="720" aria-label="Demo: Darnly captures a bug, Claude Code fixes it, and the Darnly panel says 1 bug fixed. Take a look.">
+    <source src="/video/fix-loop.webm" type="video/webm" />
+    <source src="/video/fix-loop.mp4" type="video/mp4" />
+  </video>
+  <figcaption>{caption}</figcaption>
+</figure>
+<style>
+  .fix-loop-video { margin: 28px 0; }
+  .fix-loop-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 14px; background: #0593C6; border: 1px solid rgba(11, 34, 48, 0.1); }
+  .fix-loop-video figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft, #4A6472); }
+</style>
