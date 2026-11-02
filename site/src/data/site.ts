@@ -202,6 +202,12 @@ export const TOOLS: Item[] = [
     name: 'Video to GIF',
     blurb: 'Turn a screen recording into a GIF for your README or bug report. Trim it and see the size live.',
   },
+  {
+    slug: 'tailwind-class-cleaner',
+    category: 'Code helpers',
+    name: 'Tailwind class cleaner',
+    blurb: 'Sort Tailwind classes the way Prettier does, remove duplicates, and see which classes cancel each other out.',
+  },
 ];
 
 // Same for guides.
