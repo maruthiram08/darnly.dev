@@ -24,7 +24,12 @@ const TIME_BUDGET_MS = 25_000;
 
 const SKIP_EXT = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|pdf|zip|gz|tgz|rar|7z|dmg|exe|msi|apk|ipa|mp4|webm|mov|mp3|wav|ogg|m4a|css|js|mjs|map|json|xml|txt|rss|atom|woff2?|ttf|otf|eot|csv|xlsx?|docx?|pptx?|wasm)$/i;
 
-export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: Headers, firstStatus: number, fetchPage: Fetcher) {
+// Options for other tools that reuse this crawler: a smaller page limit, and a callback that
+// sees the HTML of every page that gets listed (the llms.txt generator reads titles from it).
+export type CrawlOptions = { maxPages?: number; onPage?: (url: string, html: string) => void };
+
+export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: Headers, firstStatus: number, fetchPage: Fetcher, opts: CrawlOptions = {}) {
+  const maxPages = Math.min(opts.maxPages ?? MAX_PAGES, MAX_PAGES);
   const start = new URL(firstUrl);
   const origin = start.origin;
   const started = Date.now();
@@ -94,6 +99,7 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
       const c = new URL(head.canonical);
       canonicalOrigins.set(c.origin, (canonicalOrigins.get(c.origin) ?? 0) + 1);
       pages.push({ url: c.href, lastmod: head.modified ?? headerDate(r.lastModified) });
+      opts.onPage?.(c.href, r.html);
       return;
     }
     if (head.canonical && stripSlash(head.canonical) !== stripSlash(final.href)) {
@@ -102,11 +108,12 @@ export async function crawl(firstHtml: string, firstUrl: string, firstHeaders: H
       return;
     }
     pages.push({ url: final.href, lastmod: head.modified ?? headerDate(r.lastModified) });
+    opts.onPage?.(final.href, r.html);
   }
 
   async function worker() {
     while (queue.length) {
-      if (fetched + 1 >= MAX_PAGES) {
+      if (fetched + 1 >= maxPages) {
         stopped = 'limit';
         return;
       }
