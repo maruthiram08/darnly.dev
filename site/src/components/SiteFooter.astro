@@ -28,7 +28,7 @@ const groups = toolsByCategory();
           </div>
         )}
         {GUIDES.length > 0 && (
-          <div>
+          <div class="guides">
             <h2>Guides</h2>
             <ul>{GUIDES.map((g) => <li><a href={`/guides/${g.slug}/`}>{g.name}</a></li>)}</ul>
           </div>
