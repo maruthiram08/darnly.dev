@@ -593,4 +593,5 @@ export const GUIDES: Item[] = [
   { slug: 'darnly-vs-screenshot', name: 'Darnly vs a plain screenshot', blurb: 'Our benchmark: both fixed 16 of 16 bugs, Darnly cost more. When each is the better pick.' },
   { slug: 'darnly-vs-marker-io', name: 'Darnly vs Marker.io', blurb: 'A free, local bug capture for solo builders, or a paid team feedback tool with a client widget.' },
   { slug: 'darnly-vs-chrome-devtools-mcp', name: 'Darnly vs Chrome DevTools MCP', blurb: 'You point at the bug you saw, or the agent drives its own browser. Often both.' },
+  { slug: 'darnly-vs-tracebug', name: 'Darnly vs TraceBug', blurb: 'A full bug recording for developers and QA, or a quick capture that lands in your project.' },
 ];
