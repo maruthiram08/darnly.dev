@@ -8,26 +8,28 @@
   "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   // Free tools that fetch other sites: at most 20 checks a minute per visitor.
   // The sitemap generator also gets 2 crawls a minute, since one crawl reads up to 100 pages.
-  // The broken link checker gets 1 a minute: it reads up to 50 pages and checks up to 150 links.
+  // Every limit needs its own namespace_id; when adding one, pick a number nobody uses yet.
   "ratelimits": [
     { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
     { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
     // The llms.txt generator crawls up to 50 pages: 2 a minute, separate from the sitemap's limit.
     { "name": "LLMS_LIMIT", "namespace_id": "4810", "simple": { "limit": 2, "period": 60 } },
+    // The page speed checker waits on Google for up to a minute per test: at most 2 a minute per visitor.
+    { "name": "PSI_LIMIT", "namespace_id": "4820", "simple": { "limit": 2, "period": 60 } },
+    // The broken link checker gets 1 a minute: it reads up to 50 pages and checks up to 150 links.
     { "name": "LINK_LIMIT", "namespace_id": "4830", "simple": { "limit": 1, "period": 60 } },
+    // Screenshots (Browser Rendering) cost money per use: 3 a minute per visitor, 20 a minute for the whole site.
+    { "name": "SHOT_LIMIT", "namespace_id": "4840", "simple": { "limit": 3, "period": 60 } },
+    { "name": "SHOT_LIMIT_ALL", "namespace_id": "4841", "simple": { "limit": 20, "period": 60 } },
     // Domain name finder: each request checks up to 12 names, so 20 requests is 240 names a minute.
     { "name": "DOMAIN_LIMIT", "namespace_id": "4850", "simple": { "limit": 20, "period": 60 } },
-  // The API tester has its own limit of 20 requests a minute.
-  "ratelimits": [
-    { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
-    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
-    { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } },
-  // The page speed checker waits on Google for up to a minute per test: at most 2 a minute per visitor.
-  "ratelimits": [
-    { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
-    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
-    { "name": "PSI_LIMIT", "namespace_id": "4820", "simple": { "limit": 2, "period": 60 } }
+    // The asset extractor passes each picture through /api/asset, so it gets its own, larger budget.
+    { "name": "ASSET_LIMIT", "namespace_id": "4860", "simple": { "limit": 240, "period": 60 } },
+    // The API tester has its own limit of 20 requests a minute.
+    { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } }
   ],
+  // Cloudflare's headless browser, used only by /api/shots for the responsive checker.
+  "browser": { "binding": "BROWSER" },
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
   "previews": {}

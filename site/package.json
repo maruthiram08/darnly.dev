@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
+    "@cloudflare/puppeteer": "1.4.0",
     "@tesseract.js-data/eng": "1.0.0",
     "astro": "7.4.4",
     "gifenc": "1.0.3",
