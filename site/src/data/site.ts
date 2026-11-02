@@ -294,6 +294,12 @@ export const TOOLS: Item[] = [
     name: 'EXIF remover',
     blurb: 'See if your photos show where you live, then remove the location, date and camera info in one click.',
   },
+  {
+    slug: 'css-animation-generator',
+    category: 'Design',
+    name: 'CSS animations and keyframes',
+    blurb: 'Pick fade, slide, bounce, shimmer or typing, tune the timing on a visual curve, copy CSS or Tailwind.',
+  },
 ];
 
 // Same for guides.
