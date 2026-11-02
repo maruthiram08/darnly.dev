@@ -1,0 +1,94 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'screenshot-wont-paste-into-claude-code';
+const faq = [
+  { q: 'Why does Cmd+V not paste an image into Claude Code on my Mac?', a: 'In the Claude Code terminal app, the image paste key is Ctrl+V. Cmd+V only pastes images in iTerm2. In the macOS Terminal app, Cmd+V pastes text, so try Ctrl+V.' },
+  { q: 'What is the image paste key for Claude Code on Windows?', a: 'Alt+V. Windows Terminal uses Ctrl+V for its own text paste, so Claude Code binds image paste to Alt+V on Windows. On WSL both Ctrl+V and Alt+V are bound.' },
+  { q: 'Claude Code says "No image found in clipboard". What now?', a: 'Save the screenshot as a PNG file and type its path in your message, or drag the file into the window. Several open GitHub issues show this message even when an image is on the clipboard, so the file route is the reliable one.' },
+  { q: 'Can I paste images into Claude Code in VS Code?', a: 'In the Claude Code extension panel, yes: paste the image into the prompt box. In the VS Code integrated terminal, image paste is less reliable, so save the screenshot to a file and give Claude Code the path.' },
+  { q: 'Cursor took the image but the agent ignores it. Why?', a: 'Check the model. Cursor staff confirmed a case where a text-only model got no picture at all. Switch to a model that reads images, such as Claude, GPT or Gemini.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Screenshot won't paste into Claude Code or Cursor? Fixes"
+  description="Screenshot won't paste into Claude Code or Cursor? The right key for Mac, Windows, WSL and VS Code, and the file path fallback that always works."
+  h1="Screenshot won't paste into Claude Code or Cursor? Fixes that work"
+  lede="If a screenshot won't paste into Claude Code, you are probably using the wrong key for your terminal (Ctrl+V on macOS, Alt+V on Windows), and if the right key still fails, save the screenshot as a file and type its path in your message, which works everywhere."
+  faq={faq}
+  sources={[
+    { name: 'Claude Code docs: Work with images (common workflows)', url: 'https://code.claude.com/docs/en/common-workflows' },
+    { name: 'Claude Code docs: Interactive mode, keyboard shortcuts', url: 'https://code.claude.com/docs/en/interactive-mode' },
+    { name: 'Claude Code docs: Customize keyboard shortcuts (chat:imagePaste)', url: 'https://code.claude.com/docs/en/keybindings' },
+    { name: 'Claude Code docs: VS Code extension, attach images and files', url: 'https://code.claude.com/docs/en/vs-code' },
+    { name: 'anthropics/claude-code #1361: Can\'t paste image from clipboard', url: 'https://github.com/anthropics/claude-code/issues/1361' },
+    { name: 'anthropics/claude-code #13738: Clipboard image paste not working in WSL', url: 'https://github.com/anthropics/claude-code/issues/13738' },
+    { name: 'anthropics/claude-code #61609: Image paste does not work in native WSL2 terminal', url: 'https://github.com/anthropics/claude-code/issues/61609' },
+    { name: 'anthropics/claude-code #22377: VS Code, cannot paste screenshot images with Ctrl+V', url: 'https://github.com/anthropics/claude-code/issues/22377' },
+    { name: 'anthropics/claude-code #57316: Image paste still broken on Windows', url: 'https://github.com/anthropics/claude-code/issues/57316' },
+    { name: 'anthropics/claude-code #68021: Windows, "No image found in clipboard"', url: 'https://github.com/anthropics/claude-code/issues/68021' },
+    { name: 'anthropics/claude-code #29776: macOS, Ctrl+V image paste fails silently', url: 'https://github.com/anthropics/claude-code/issues/29776' },
+    { name: 'Cursor docs: Prompting, image input', url: 'https://cursor.com/docs/agent/prompting' },
+    { name: 'Cursor forum: clipboard image paste does not work, drag and drop works', url: 'https://forum.cursor.com/t/agent-chat-clipboard-image-paste-ctrl-v-context-menu-does-not-work-drag-and-drop-file-works/156818' },
+    { name: 'Cursor forum: image copy/paste in Cursor Chat stopped working', url: 'https://forum.cursor.com/t/subject-image-copy-paste-in-cursor-chat-stopped-working/167990' },
+    { name: 'Cursor forum: Cursor CLI doesn\'t support image paste on Windows', url: 'https://forum.cursor.com/t/cursor-cli-doesnt-support-image-paste-on-windows/162099' },
+  ]}
+  strip={{ lead: 'Tired of the paste step?', text: 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix. It saves the screenshot into your project, so there is nothing to paste.' }}
+>
+  <p>Claude Code's docs list three ways to add an image: drag it into the window, paste it from the clipboard, or give it the path to the image file. Paste is the one that breaks most. The key is different on each system, and some terminals keep the key for themselves. Below is the fix for each setup, checked against the official docs and real bug reports.</p>
+
+  <h2>The fix that works everywhere: use a file</h2>
+  <p>Start here if you just want it to work.</p>
+  <ol>
+    <li>Save the screenshot as a PNG. On a Mac, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> saves a file. On Windows, take it with <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> and save it from the Snipping Tool.</li>
+    <li>Put it in your project folder, so the path is short.</li>
+    <li>Type the path in your message: <code>Look at screenshots/save-button.png. The Save button is grey. It should be blue.</code></li>
+  </ol>
+  <p>Claude Code reads the image from the file. No clipboard is involved, so none of the clipboard bugs below can stop it. In bug reports on GitHub and the Cursor forum, saving to a file is the workaround people fall back to again and again.</p>
+
+  <h2>macOS: Terminal, iTerm2 and others</h2>
+  <ul>
+    <li><strong>Use <kbd>Ctrl</kbd>+<kbd>V</kbd>, not <kbd>Cmd</kbd>+<kbd>V</kbd>.</strong> Claude Code's shortcut list says image paste is <kbd>Ctrl</kbd>+<kbd>V</kbd>, and <kbd>Cmd</kbd>+<kbd>V</kbd> only in iTerm2. In the built-in Terminal app, <kbd>Cmd</kbd>+<kbd>V</kbd> is the normal text paste, so the image doesn't come through.</li>
+    <li><strong>Copy, don't save, if you want to paste.</strong> <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> saves a file to your desktop. Add <kbd>Ctrl</kbd> (<kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd>) to copy it to the clipboard instead.</li>
+    <li><strong>Look for the chip.</strong> When paste works, Claude Code puts an <code>[Image #1]</code> chip in your prompt. No chip means no image was sent.</li>
+    <li><strong>Still "No image found in clipboard"?</strong> An open issue reports this on macOS with a real image on the clipboard. The reporter confirmed that dragging the file into Claude Code worked. Do that, or use the file path.</li>
+  </ul>
+
+  <h2>Windows (native)</h2>
+  <ul>
+    <li><strong>Use <kbd>Alt</kbd>+<kbd>V</kbd>.</strong> On Windows the image paste key is <kbd>Alt</kbd>+<kbd>V</kbd>, because Windows Terminal takes <kbd>Ctrl</kbd>+<kbd>V</kbd> for its own text paste.</li>
+    <li><strong>If <kbd>Alt</kbd>+<kbd>V</kbd> also fails,</strong> you are not alone. Open GitHub issues report "No image found in clipboard" on Windows even when the image is there. The suggested workaround in those reports is the file path.</li>
+    <li><strong>Drag and drop</strong> works in some terminal hosts and not others. Try it once. If it does nothing, use the path.</li>
+  </ul>
+
+  <h2>WSL</h2>
+  <p>WSL is the setup with the most reports. Claude Code now binds both <kbd>Ctrl</kbd>+<kbd>V</kbd> and <kbd>Alt</kbd>+<kbd>V</kbd> on WSL. The docs say to use <kbd>Alt</kbd>+<kbd>V</kbd> if your terminal grabs <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
+  <ul>
+    <li><strong>Update Claude Code first.</strong> Older versions only bound <kbd>Ctrl</kbd>+<kbd>V</kbd> on WSL, which Windows Terminal intercepts.</li>
+    <li><strong>Bind the key yourself if needed.</strong> Run <code>/keybindings</code> and map a key to <code>chat:imagePaste</code> in the <code>Chat</code> context.</li>
+    <li><strong>Know why it can still fail.</strong> Commenters on the WSL issues traced it to the image format: Windows hands the image to Linux as BMP, and Claude Code's check or conversion can drop it without a clear error.</li>
+    <li><strong>Use a Linux path.</strong> Your Windows files are under <code>/mnt/c/</code>. A screenshot at <code>C:\Users\sam\Pictures\shot.png</code> is <code>/mnt/c/Users/sam/Pictures/shot.png</code> inside WSL. Easier still: save the screenshot into the project folder.</li>
+  </ul>
+
+  <h2>VS Code</h2>
+  <ul>
+    <li><strong>The Claude Code extension panel:</strong> paste the image into the prompt box. The docs say that's how you attach an image there. To attach files, hold <kbd>Shift</kbd> while you drag them in.</li>
+    <li><strong>The integrated terminal:</strong> an open issue reports that <kbd>Ctrl</kbd>+<kbd>V</kbd> only pastes text in the VS Code terminal on Windows with WSL. The reporter's workaround is saving to a file and using the path or drag and drop. If you have the choice, use the extension panel for images.</li>
+  </ul>
+
+  <h2>Cursor</h2>
+  <p>Cursor's docs give two ways to add an image to the agent chat: drag the image file into the chat box, or paste it with <kbd>Cmd</kbd>+<kbd>V</kbd> (<kbd>Ctrl</kbd>+<kbd>V</kbd> on Windows). When paste fails:</p>
+  <ul>
+    <li><strong>Drag the file in.</strong> Cursor staff called clipboard paste on Windows a known issue and named drag and drop as the workaround.</li>
+    <li><strong>Check for an extension that steals <kbd>Ctrl</kbd>+<kbd>V</kbd>.</strong> One user found that the Office Viewer extension had bound <kbd>Ctrl</kbd>+<kbd>V</kbd> to its own paste. Turning that shortcut off brought image paste back.</li>
+    <li><strong>Check the model.</strong> In another thread, the agent never saw images because the chosen model was text only. Staff suggested switching to a model that reads images, like Claude, GPT or Gemini.</li>
+    <li><strong>Use <code>@</code> and a file.</strong> Save the screenshot into the project and mention it with <code>@</code>. This also works in the Cursor CLI, where people report that pasting on Windows does not work.</li>
+  </ul>
+
+  <h2>Skip the paste step with Darnly</h2>
+  <p>Every fix above ends in the same place: a file in your project that the agent can read. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> does that part for you. It's a free Chrome extension, and a free Mac app for things outside the browser.</p>
+  <p>Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows), click the broken part, and type what you expected. Once you've linked your project folder, Darnly saves a PNG with the broken part boxed in red into <code>.darnly/inbox/</code> in your project, next to a short report with the element, the page address and recent console errors. Then you tell Claude Code, Codex or Cursor "fix my bugs", and it reads the files from the folder. No clipboard, no key to remember, no path to type.</p>
+  <p>If you'd rather keep doing it by hand, <a href="/guides/show-claude-code-a-bug/">how to show Claude Code a bug</a> covers what to write next to the picture, and <a href="/guides/report-a-bug-to-cursor/">how to report a bug to Cursor</a> does the same for Cursor.</p>
+</GuidePage>
