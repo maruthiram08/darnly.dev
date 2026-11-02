@@ -4,7 +4,7 @@ See something broken on a page? Press one key, click it, and say what you expect
 
 Made for people who build apps with AI coding agents, developer or not.
 
-**[Add Darnly to Chrome (free)](https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj)** · [darnly.dev](https://darnly.dev) · [89 free tools for vibecoders](https://darnly.dev/tools/) · [@darnlyhq](https://x.com/darnlyhq)
+**[Add Darnly to Chrome (free)](https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj)** · [darnly.dev](https://darnly.dev) · [Setup guide](https://darnly.dev/setup/) · [Free tools for vibecoders](https://darnly.dev/tools/) · [@darnlyhq](https://x.com/darnlyhq)
 
 ![Picking a broken "Save plan" button with Darnly](docs/screenshot.png)
 
@@ -17,7 +17,7 @@ Made for people who build apps with AI coding agents, developer or not.
 Where the report goes:
 
 - **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and Darnly adds a short note to `AGENTS.md`. Then tell your agent "fix my bugs".
-- **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent (tools: `list_bugs`, `get_bug`, `mark_fixed`), or copy the picture and the details into your agent's chat.
+- **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent ([how, for each agent](https://darnly.dev/setup/)) (tools: `list_bugs`, `get_bug`, `mark_fixed`), or copy the picture and the details into your agent's chat.
 
 Bugs from all your projects stay in one list. Console errors are recorded on localhost automatically; for a live site, click **Record errors on this site** once. Passwords, tokens and API keys are hidden before anything is saved. See [PRIVACY.md](PRIVACY.md).
 
