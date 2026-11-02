@@ -13,6 +13,9 @@ const buildDate = new Date().toISOString();
 export default defineConfig({
   site: 'https://darnly.dev',
   trailingSlash: 'ignore',
+  // Put each page's CSS inside its HTML, so the first paint doesn't wait for separate stylesheet downloads.
+  // The CSP already allows inline styles ('unsafe-inline' in style-src, public/_headers).
+  build: { inlineStylesheets: 'always' },
   // Point Vite at this folder's tsconfig so it doesn't pick up the extension's one at the repo root.
   // assetsInlineLimit 0: never inline small scripts, because the site's CSP blocks inline scripts.
   vite: { tsconfig: './tsconfig.json', build: { assetsInlineLimit: 0 } },

@@ -1,5 +1,7 @@
 ---
 // Every page's <head>: title, description, social preview, canonical URL and fonts.
+// fonts.css first: it only declares the fonts, and every page's own styles come after it.
+import '../styles/fonts.css';
 import '../styles/base.css';
 import { CF_ANALYTICS_TOKEN } from '../data/analytics';
 
@@ -49,9 +51,9 @@ const cfBeacon = CF_ANALYTICS_TOKEN ? JSON.stringify({ token: CF_ANALYTICS_TOKEN
 {noindex && <meta name="robots" content="noindex">}
 <link rel="icon" href="/icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<!-- Fonts are served from this site (src/styles/fonts.css). Fetch the two that draw the top of every page right away. -->
+<link rel="preload" href="/fonts/google/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/google/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
 <slot name="head" />
 {cfBeacon && <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={cfBeacon}></script>}
 </head>
