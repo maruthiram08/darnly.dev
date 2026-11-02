@@ -2,14 +2,55 @@
 // Home page: sells Darnly's bug capture. Markup and styles are unchanged from the old hand-written page.
 import Base from '../layouts/Base.astro';
 import SiteFooter from '../components/SiteFooter.astro';
-import { storeUrl } from '../data/site';
+import { STORE_URL, TOOLS, storeUrl } from '../data/site';
 import '../styles/home.css';
+
+// A few popular free tools for the strip above the footer; any slug that's gone is skipped.
+const popular = ['favicon-generator', 'open-graph-checker', 'font-finder', 'image-compressor', 'llms-txt-generator', 'responsive-checker']
+  .map((slug) => TOOLS.find((t) => t.slug === slug))
+  .filter((t) => t !== undefined);
+
+// Tells search engines and AI assistants what Darnly is, who makes it, and where to get it.
+const jsonLd = JSON.stringify([
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Darnly',
+    description: 'A free Chrome extension and Mac app that turns a bug you see on screen into context for AI coding agents such as Claude Code, Codex and Cursor.',
+    url: 'https://darnly.dev/',
+    downloadUrl: STORE_URL,
+    installUrl: STORE_URL,
+    image: 'https://darnly.dev/og/default.jpg',
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Chrome, macOS',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@id': 'https://darnly.dev/#org' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': 'https://darnly.dev/#org',
+    name: 'Darnly',
+    url: 'https://darnly.dev/',
+    logo: 'https://darnly.dev/icon.png',
+    email: 'hello@darnly.dev',
+    sameAs: [STORE_URL, 'https://x.com/darnlyhq', 'https://github.com/maruthiram08/darnly.dev'],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Darnly',
+    url: 'https://darnly.dev/',
+    publisher: { '@id': 'https://darnly.dev/#org' },
+  },
+]);
 ---
 <Base
   title="Darnly: Turn on-screen bugs into context for AI agents"
   description="Spot a bug, press a key, click it. Darnly hands your AI coding agent everything it needs to fix it on the first try."
   ogDescription="Spot a bug, press a key, click it. Your AI coding agent gets everything it needs to fix it."
 >
+<script slot="head" type="application/ld+json" set:html={jsonLd} />
 
 <header class="hero">
   <div class="stripes" aria-hidden="true"></div>
@@ -21,6 +62,7 @@ import '../styles/home.css';
         <a href="#report">The report</a>
         <a href="#mac">Mac app</a>
         <a href="#privacy">Privacy</a>
+        <a href="/tools/">Free tools</a>
       </div>
     </nav>
     <div class="hero-grid" id="top">
@@ -183,6 +225,20 @@ No errors in the app's log in the last 60 seconds.</pre>
       <p><strong>"Darn it"</strong> is what you say when you spot the bug. <strong>Darning</strong> is how you mend the hole. Darnly sits between the two.</p>
     </div>
   </section>
+
+  {popular.length > 0 && (
+    <section class="band tools-strip" id="tools" aria-labelledby="tools-h">
+      <div class="wrap">
+        <span class="eyebrow">Free tools</span>
+        <h2 id="tools-h">{TOOLS.length} free tools for building with AI.</h2>
+        <p class="intro">Favicons, share previews, fonts, colors, launch checks and more. No sign-up, and most run right in your browser.</p>
+        <ul class="tool-links">
+          {popular.map((t) => <li><a href={`/tools/${t.slug}/`}><strong>{t.name}</strong><span>{t.blurb}</span></a></li>)}
+        </ul>
+        <a class="all-tools" href="/tools/">See all {TOOLS.length} free tools →</a>
+      </div>
+    </section>
+  )}
 
   <section class="final" id="install">
     <div class="wrap">

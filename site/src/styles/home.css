@@ -85,6 +85,16 @@ kbd { font: 500 14px/1 var(--mono); padding: 4px 8px; border-radius: 6px; backgr
 .name p { margin: 0; color: var(--ink-soft); max-width: 58ch; }
 .name p strong { color: var(--ink); }
 
+/* Free tools strip: a few popular tools and a link to /tools/. */
+section.tools-strip { padding-bottom: 0; }
+.tool-links { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.tool-links a { display: grid; gap: 6px; height: 100%; box-sizing: border-box; padding: 22px; border-radius: 18px; background: var(--wash); text-decoration: none; }
+.tool-links a:hover strong { color: var(--sky); }
+.tool-links strong { font: 700 19px/1.2 var(--display); }
+.tool-links span { color: var(--ink-soft); font-size: 15px; }
+.all-tools { display: inline-block; margin-top: 24px; color: var(--sky); font-weight: 600; text-decoration: none; }
+.all-tools:hover { text-decoration: underline; }
+
 .final { text-align: left; padding-block: 96px 120px; }
 .final .box { position: relative; overflow: hidden; border-radius: 28px; background: var(--sky); color: var(--white); padding: 56px clamp(24px, 5vw, 64px); isolation: isolate; }
 .final .box::after { content: ""; position: absolute; z-index: -1; width: 420px; height: 420px; right: -100px; bottom: -160px; border-radius: 50%; background: radial-gradient(circle, var(--pink), rgba(216, 57, 149, 0) 70%); filter: blur(50px); }

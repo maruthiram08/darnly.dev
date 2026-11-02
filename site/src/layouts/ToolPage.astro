@@ -48,6 +48,15 @@ const jsonLd = JSON.stringify([
     '@type': 'FAQPage',
     mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://darnly.dev/' },
+      { '@type': 'ListItem', position: 2, name: 'Free tools', item: 'https://darnly.dev/tools/' },
+      { '@type': 'ListItem', position: 3, name: self?.name ?? h1.split(':')[0], item: canonical },
+    ],
+  },
 ]);
 ---
 <Base title={title} description={description} image={image} imageAlt={`${h1.split(":")[0]}, a free tool from Darnly`}>
