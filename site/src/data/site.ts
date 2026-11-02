@@ -276,6 +276,12 @@ export const TOOLS: Item[] = [
     name: 'Accessibility checker',
     blurb: 'An accessibility score for your site, with the HTML behind each problem, a one-line fix and one prompt for your AI agent.',
   },
+  {
+    slug: 'api-tester',
+    category: 'Code helpers',
+    name: 'API tester',
+    blurb: 'Send GET or POST with headers, JSON and a token. See the status in plain words, time, size and CORS, and copy it as curl.',
+  },
 ];
 
 // Same for guides.

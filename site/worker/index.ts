@@ -73,6 +73,11 @@
 //   Same guards, but never cached, so a re-check after a fix is fresh. Reads the page's HTML and
 //   runs the automated accessibility checks, for the accessibility checker at
 //   /tools/accessibility-checker/.
+// POST /api/request  { method, url, headers, body }
+//   Sends one API request for the API tester at /tools/api-tester/ and returns its status, time,
+//   size, headers and body. Public addresses only (checked on every redirect), its own limit of
+//   20 a minute, a 10 second timeout, a 1 MB response limit, no Cookie header, never cached.
+//   See request.ts.
 
 import { findFonts } from './fonts';
 import { findColors } from './colors';
@@ -88,6 +93,7 @@ import { buildCsp } from './csp';
 import { checkPwa } from './pwa';
 import { cleanName, parseBootstrap, readDns, readRecord, verdict, type DnsAnswer, type RdapAnswer, type Result } from './domains';
 import { checkA11y } from './a11y';
+import { sendRequest } from './request';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -96,6 +102,7 @@ interface Env {
   LLMS_LIMIT?: RateLimit; // the llms.txt generator crawls up to 50 pages, with its own limit
   LINK_LIMIT?: RateLimit; // the broken link checker reads up to 50 pages and checks 150 links
   DOMAIN_LIMIT?: RateLimit; // domain lookups, one request checks up to 12 names
+  API_LIMIT?: RateLimit; // the API tester sends requests of any method, so it has its own limit
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
 }
 
@@ -123,6 +130,14 @@ export default {
     if (url.pathname === '/api/pwa') return pwaApi(req, url, env, ctx);
     if (url.pathname === '/api/domains') return domainsApi(req, url, env, ctx);
     if (url.pathname === '/api/a11y') return a11yApi(req, url, env, ctx);
+    if (url.pathname === '/api/request') {
+      return sendRequest(req, {
+        checkTarget: (raw) => checkTarget(raw, env.ALLOW_LOCAL === '1'),
+        isOwnHost: (t) => isOwnHost(t, url),
+        ownPage: (t) => ownPage(t, env),
+        limit: env.API_LIMIT,
+      });
+    }
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(req);
   },

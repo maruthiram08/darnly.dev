@@ -16,7 +16,12 @@
     { "name": "LLMS_LIMIT", "namespace_id": "4810", "simple": { "limit": 2, "period": 60 } },
     { "name": "LINK_LIMIT", "namespace_id": "4830", "simple": { "limit": 1, "period": 60 } },
     // Domain name finder: each request checks up to 12 names, so 20 requests is 240 names a minute.
-    { "name": "DOMAIN_LIMIT", "namespace_id": "4850", "simple": { "limit": 20, "period": 60 } }
+    { "name": "DOMAIN_LIMIT", "namespace_id": "4850", "simple": { "limit": 20, "period": 60 } },
+  // The API tester has its own limit of 20 requests a minute.
+  "ratelimits": [
+    { "name": "FETCH_LIMIT", "namespace_id": "4801", "simple": { "limit": 20, "period": 60 } },
+    { "name": "CRAWL_LIMIT", "namespace_id": "4802", "simple": { "limit": 2, "period": 60 } },
+    { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } }
   ],
   "observability": { "enabled": true },
   // Lets Cloudflare build a preview for each pull request (`wrangler preview` needs this block).
