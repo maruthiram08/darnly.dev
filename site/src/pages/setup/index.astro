@@ -48,7 +48,7 @@ const sources = [
     <li><strong>Capture.</strong> Press the key, click the broken part, say what you expected. Capture as many as you like.</li>
     <li><strong>Start the fix.</strong> Type <code>/darnly</code> in Claude Code or Cursor (in Codex, say <code>fix my bugs</code>). In Claude Code you often won't need to: after <strong>Set up this project</strong>, the agent mentions new bugs in your project folder when you start a session or send your next message, and offers to fix them.</li>
     <li><strong>Answer if it asks.</strong> If a note is unclear, the agent asks you one short question in its own chat. The Darnly panel shows <em>Your agent is waiting for your input. Return to your agent.</em> on that bug, so you know where to go.</li>
-    <li><strong>Take a look.</strong> When the agent is done, the panel says <em>1 bug fixed. Take a look.</em> with one line on what changed, and a button to reload the page. It stays until you click <strong>Done</strong>. It remembers what it last saw, so this shows up even if the panel was closed while the agent worked.</li>
+    <li><strong>Take a look.</strong> When the agent is done, the panel says <em>1 bug fixed. Take a look.</em> with one line on what changed. For a bug on localhost it has a button to reload the page. A fix for your live site shows there after you deploy it. It stays until you click <strong>Done</strong>. It remembers what it last saw, so this shows up even if the panel was closed while the agent worked.</li>
   </ol>
   <p>The one thing Darnly can't do is start your agent for you. A browser can't wake a coding agent, so the loop starts when you type <code>/darnly</code>, or say yes when Claude Code offers.</p>
 
