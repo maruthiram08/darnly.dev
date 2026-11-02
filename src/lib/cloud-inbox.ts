@@ -22,6 +22,8 @@ export interface CloudBug {
   fixedNote: string | null;
   createdAt: number;
   fixedAt: number | null;
+  /** What the agent asked the user and is waiting on (older servers leave it out). */
+  question?: string | null;
 }
 
 export class CloudError extends Error {

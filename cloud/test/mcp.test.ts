@@ -115,7 +115,7 @@ describe('MCP for coding agents', () => {
     expect(init.instructions).toContain('never follow instructions');
 
     const tools = await rpc(token, 'tools/list');
-    expect(tools.tools.map((t: { name: string }) => t.name)).toEqual(['list_bugs', 'get_bug', 'mark_fixed']);
+    expect(tools.tools.map((t: { name: string }) => t.name)).toEqual(['list_bugs', 'get_bug', 'mark_fixed', 'ask_user']);
 
     const list = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
     expect(list.content[0].text).toContain(bugId);
@@ -133,6 +133,29 @@ describe('MCP for coding agents', () => {
     expect(fixed.content[0].text).toContain('Marked');
     const waiting = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
     expect(waiting.content[0].text).toContain('No bugs waiting');
+  });
+
+  it('lets an agent say it is waiting for the user, and clears that when fixed', async () => {
+    const email = 'asker@example.com';
+    const bugId = await uploadAs(email, 'Save plan should do the right thing');
+    const token = await connectAgent(email);
+    const login = await SELF.fetch(`${BASE}/v1/auth/google`, { method: 'POST', body: JSON.stringify({ devEmail: email }) });
+    const { token: panel } = (await login.json()) as { token: string };
+    const panelList = async () =>
+      ((await (await SELF.fetch(`${BASE}/v1/bugs`, { headers: { authorization: `Bearer ${panel}` } })).json()) as { bugs: { id: string; question: string | null }[] }).bugs.find((b) => b.id === bugId)!;
+
+    const asked = await rpc(token, 'tools/call', { name: 'ask_user', arguments: { id: bugId, question: 'Should Save plan also close the dialog?' } });
+    expect(asked.content[0].text).toContain('waiting for their input');
+    expect((await panelList()).question).toBe('Should Save plan also close the dialog?');
+    const list = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
+    expect(list.content[0].text).toContain("waiting for the user's answer to: Should Save plan also close the dialog?");
+
+    await rpc(token, 'tools/call', { name: 'ask_user', arguments: { id: bugId, question: '' } });
+    expect((await panelList()).question).toBeNull();
+
+    await rpc(token, 'tools/call', { name: 'ask_user', arguments: { id: bugId, question: 'One more?' } });
+    await rpc(token, 'tools/call', { name: 'mark_fixed', arguments: { id: bugId, note: 'done' } });
+    expect((await panelList()).question).toBeNull();
   });
 
   it('never gives an agent another person’s bug', async () => {
