@@ -1,6 +1,6 @@
 ---
 // Side panel next to each free tool on wide screens: a short Darnly pitch that stays in view while the tool is used.
-// Hidden below 1280px; the Darnly strip under the tool covers phones and laptops.
+// Hidden below 1100px; the Darnly strip under the tool covers phones and laptops.
 import { storeUrl } from '../data/site';
 interface Props { source: string }
 const { source } = Astro.props;
@@ -19,7 +19,7 @@ const { source } = Astro.props;
 </aside>
 <style>
   .darnly-panel { display: none; }
-  @media (min-width: 1280px) {
+  @media (min-width: 1100px) {
     .darnly-panel { display: grid; gap: 14px; position: sticky; top: 24px; padding: 20px; border-radius: 20px; background: var(--ink); color: var(--white); }
   }
   .eyebrow { font: 600 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #8FD3EA; }
