@@ -3,7 +3,7 @@
 # For each release, set version and sha256 to what make-dmg.sh prints.
 cask "darnly" do
   version "0.3.1"
-  sha256 "REPLACE_WITH_SHA256_FROM_MAKE_DMG"
+  sha256 "ba5b1527b18b9bb13ca73bd67d864d1f44a22b21e36c35a602e0dc023d4efe89"
 
   url "https://github.com/maruthiram08/darnly.dev/releases/download/mac-v#{version}/Darnly.dmg",
       verified: "github.com/maruthiram08/darnly.dev/"
