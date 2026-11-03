@@ -225,13 +225,14 @@ public enum Report {
     static func verify(_ c: NativeCapture) -> [String] {
         let wrote = c.forCloud ? "your `mark_fixed` note" : "your **Fixed:** line"
         var out = ["## How to check it's fixed"]
+        let before = c.noScreenshotReason == nil ? " The screenshot in this report shows how it looked before." : ""
         if let u = webURL(c) {
             let local = URL(string: u)?.host.map { ["localhost", "127.0.0.1", "0.0.0.0"].contains($0) } ?? false
             out += [
                 "After fixing, check it yourself if you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright or similar):",
                 "1. Open `\(u)`\(local ? " (start the dev server first if it isn't running)" : "") in a window about \(Int(c.windowSize.width))x\(Int(c.windowSize.height)).",
                 c.element != nil ? "2. Find the element by its HTML id, classes or text under \"Element\" above." : "2. Look at the whole visible page.",
-                "3. Check that the **Expected** line is now true. The screenshot shows how it looked before.",
+                "3. Check that the **Expected** line is now true." + before,
             ]
         } else {
             let shot: String
@@ -244,7 +245,7 @@ public enum Report {
                 "After fixing, check it yourself if you can run the app:",
                 "1. Rebuild and run it, and open the same screen\(c.device.map { " on \(oneLine($0, max: 60))" } ?? "").",
                 "2. Take a screenshot with \(shot) and look at it.",
-                c.element != nil ? "3. Find the element (its accessibility id or text under \"Element\" above) and check that the **Expected** line is now true. The screenshot in this report shows how it looked before." : "3. Check that the **Expected** line is now true. The screenshot in this report shows how it looked before.",
+                (c.element != nil ? "3. Find the element (its accessibility id or text under \"Element\" above) and check that the **Expected** line is now true." : "3. Check that the **Expected** line is now true.") + before,
             ]
         }
         out += ["If it still looks wrong, fix it again. If you can't run it, say so instead of guessing. End \(wrote) with \"(checked)\" when you did.", ""]

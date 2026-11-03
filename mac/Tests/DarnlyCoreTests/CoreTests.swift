@@ -119,7 +119,8 @@ final class ReportTests: XCTestCase {
         c.noScreenshotReason = "ContextShot hides this window from screenshots."
         let md = Report.markdown(c)
         XCTAssertTrue(md.contains("**Screenshot:** none. ContextShot hides this window from screenshots."))
-        XCTAssertFalse(md.contains(".png"))
+        XCTAssertFalse(md.contains(".darnly/inbox/2026-11-01-1322-save-plan-cut-off.png"))
+        XCTAssertFalse(md.contains("The screenshot in this report shows"))
     }
 
     func testReferencePictureIsNamedBeforeThePageData() {
