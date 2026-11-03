@@ -32,3 +32,31 @@ extension Color {
     static let wash = Color(nsColor: Brand.wash)
     static let page = Color(nsColor: Brand.page)
 }
+
+/// The filled sky-blue button, like the extension's primary buttons.
+struct BrandButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 8).fill(configuration.isPressed ? Color.skyDeep : Color.sky))
+    }
+}
+
+extension NSButton {
+    /// A filled sky-blue AppKit button with white text.
+    static func brand(_ title: String, target: AnyObject?, action: Selector) -> NSButton {
+        let b = NSButton(title: title, target: target, action: action)
+        b.isBordered = false
+        b.wantsLayer = true
+        b.layer?.backgroundColor = Brand.sky.cgColor
+        b.layer?.cornerRadius = 7
+        b.attributedTitle = NSAttributedString(string: title, attributes: [.foregroundColor: NSColor.white, .font: NSFont.systemFont(ofSize: 13, weight: .semibold)])
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        b.widthAnchor.constraint(equalToConstant: b.intrinsicContentSize.width + 28).isActive = true
+        return b
+    }
+}

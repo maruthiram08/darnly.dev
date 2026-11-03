@@ -151,7 +151,7 @@ struct WelcomeView: View {
                             .foregroundStyle(Color.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
                             Spacer()
-                            if model.cloudEmail == nil { Button("Sign in with Google…") { model.signIn() }.buttonStyle(.borderedProminent) }
+                            if model.cloudEmail == nil { Button("Sign in with Google…") { model.signIn() }.buttonStyle(BrandButtonStyle()) }
                         }
                     }
                 }
@@ -205,8 +205,7 @@ struct WelcomeView: View {
                 Spacer()
                 Button("Start using Darnly", action: done)
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(BrandButtonStyle())
             }
             .padding(.top, 4)
         }

@@ -87,6 +87,8 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 18, left: 18, bottom: 18, right: 18)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.widthAnchor.constraint(equalToConstant: width + 36).isActive = true
         stack.wantsLayer = true
         stack.layer?.backgroundColor = Brand.page.cgColor
 
@@ -123,15 +125,20 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         scroll.borderType = .noBorder
-        scroll.drawsBackground = true
-        scroll.backgroundColor = .white
-        scroll.wantsLayer = true
-        scroll.layer?.cornerRadius = 8
-        scroll.layer?.borderWidth = 1
-        scroll.layer?.borderColor = Brand.sky.cgColor
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.widthAnchor.constraint(equalToConstant: width).isActive = true
-        scroll.heightAnchor.constraint(equalToConstant: 72).isActive = true
+        scroll.drawsBackground = false
+        // The note box: white, rounded, a sky-blue edge.
+        let box = NSBox()
+        box.boxType = .custom
+        box.titlePosition = .noTitle
+        box.borderColor = Brand.sky
+        box.borderWidth = 1
+        box.cornerRadius = 8
+        box.fillColor = .white
+        box.contentViewMargins = NSSize(width: 2, height: 2)
+        box.contentView = scroll
+        box.translatesAutoresizingMaskIntoConstraints = false
+        box.widthAnchor.constraint(equalToConstant: width).isActive = true
+        box.heightAnchor.constraint(equalToConstant: 76).isActive = true
         let tv = NoteTextView(frame: CGRect(x: 0, y: 0, width: width, height: 72))
         tv.autoresizingMask = [.width]
         tv.isVerticallyResizable = true
@@ -147,7 +154,7 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         tv.isRichText = false
         tv.onImage = { [weak self] in self?.setReference($0) }
         scroll.documentView = tv
-        stack.addArrangedSubview(scroll)
+        stack.addArrangedSubview(box)
         let ref = label("")
         stack.addArrangedSubview(ref)
 
@@ -158,7 +165,8 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
             field.textColor = Brand.ink
             field.placeholderString = "project name"
             field.widthAnchor.constraint(equalToConstant: 180).isActive = true
-            let row = NSStackView(views: [label("Project", size: 12, weight: .semibold, color: Brand.ink), field, label("your agent lists this project's bugs")])
+            field.toolTip = "Your agent lists the cloud bugs of its project. Darnly remembers this name for the app."
+            let row = NSStackView(views: [label("Project", size: 12, weight: .semibold, color: Brand.ink), field])
             row.spacing = 8
             stack.addArrangedSubview(row)
             projectField = field
@@ -166,13 +174,10 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
             projectField = nil
         }
 
-        let hint = label("Enter to save · Shift+Enter for a new line · Esc to cancel", color: Brand.inkSoft.withAlphaComponent(0.75))
+        let hint = label("Enter saves · Shift+Enter new line · Esc cancels", color: Brand.inkSoft.withAlphaComponent(0.75))
         let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
         cancel.bezelStyle = .rounded
-        let save = NSButton(title: "Save bug", target: self, action: #selector(saveClicked))
-        save.bezelStyle = .rounded
-        save.bezelColor = Brand.sky
-        save.contentTintColor = .white
+        let save = NSButton.brand("Save bug", target: self, action: #selector(saveClicked))
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let footer = NSStackView(views: [hint, spacer, cancel, save])
