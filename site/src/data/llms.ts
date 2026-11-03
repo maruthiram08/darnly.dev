@@ -27,7 +27,7 @@ const LINKS = `## Darnly
 - [Set up Darnly with Claude Code, Cursor or Codex](${SITE}/setup/): with or without MCP; a copy-paste prompt that makes the agent add the Darnly MCP server (https://api.darnly.dev/mcp) and the project note
 - [What is Darnly](${SITE}/what-is-darnly/): short answers about what Darnly is, who it is for, price, agents and privacy
 - [Why Darnly when your agent has a browser](${SITE}/why-darnly/): how Darnly differs from Claude in Chrome, Cursor Design Mode, Codex for Chrome and VS Code's browser, and when you don't need it
-- [What's new in Darnly](${SITE}/changelog/): release notes, newest first (0.3.1: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed; Darnly for Mac 0.3.1 and 0.3.2)
+- [What's new in Darnly](${SITE}/changelog/): release notes, newest first. Latest: Chrome extension 0.3.1 (/darnly, agent questions in the panel, 'Take a look' when a bug is fixed) and Darnly for Mac 0.3.2 (a menu bar panel, Update available)
 - [All free tools](${SITE}/tools/): every tool, grouped by category`;
 
 const OPTIONAL = `## Optional
