@@ -1,0 +1,43 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'report-a-bug-to-v0';
+const faq = [
+  { q: 'Can I paste a screenshot into v0?', a: 'Yes. v0\'s docs say you can paste an image with Cmd+V or Ctrl+V, drag it onto the chat, or click the plus icon and choose Upload from computer.' },
+  { q: 'How big can a screenshot be in v0?', a: 'v0\'s docs list 5 MB per chat attachment on the free tier and 20 MB on paid plans. PNG, JPG, WebP and GIF all work.' },
+  { q: 'What should a bug report to v0 include?', a: 'A screenshot with the broken part marked, the page it is on, what you did, what happened, what you expected, and any red console errors.' },
+  { q: 'Does Darnly work on a site deployed to Vercel?', a: 'Yes. Darnly works on any page open in Chrome, including your live site and localhost.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Chrome extension is free, and capturing and copying a bug needs no account.' },
+];
+const sources = [
+  { name: 'v0 docs: images and videos', url: 'https://v0.app/docs/images-and-videos' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to report a bug to v0 with a screenshot · Darnly"
+  description="Give v0 a marked screenshot, the page, what you expected and any console errors, so it fixes the right component. The manual way and a one-key way."
+  h1="How to report a bug to v0 (with a screenshot)"
+  lede="To report a bug to v0, paste a screenshot with the broken part marked into the v0 chat, say which page it is on and what you expected, and paste any red console errors."
+  faq={faq}
+  sources={sources}
+>
+  <p>v0 is good at changing one component when it knows which one. A marked picture and a clear sentence point it there, so it doesn't rewrite the whole page.</p>
+
+  <h2>Step by step, by hand</h2>
+  <ol>
+    <li><strong>Make the bug happen once more.</strong> Note what you clicked, in order.</li>
+    <li><strong>Take a screenshot and mark the broken part.</strong> A red box tells v0 which of the things on screen you mean.</li>
+    <li><strong>Add it to the chat.</strong> Paste it with <kbd>Cmd</kbd>+<kbd>V</kbd> (<kbd>Ctrl</kbd>+<kbd>V</kbd> on Windows), drag it in, or click the plus icon and choose <strong>Upload from computer</strong>.</li>
+    <li><strong>Say what you expected.</strong> One sentence. "The menu should close when I tap a link, like it does on desktop."</li>
+    <li><strong>Say how far the fix should go.</strong> "Only this component" or "everywhere it's used".</li>
+    <li><strong>Add the clues a picture can't show.</strong> If nothing visible happens, open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows) and paste the red lines. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
+  </ol>
+
+  <h2>The one-key way with Darnly</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that makes the screenshot and the note together, on the v0 preview, localhost or your live site. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected and press Enter.</p>
+  <p>Then click <strong>1. Copy picture</strong> and paste it into v0, and <strong>2. Copy details</strong> and paste that too. The picture has the broken part boxed in red with your note on it. The details hold the page address, the element's text and styles, and failed requests from the last 60 seconds, plus console errors if you switched on <strong>Record errors on this site</strong>. Passwords, card numbers, tokens and keys are hidden before anything is copied.</p>
+  <p>If you pulled the v0 code into your own project and work on it in Claude Code, Cursor or Codex, Darnly can save bugs straight into the project instead: <a href="/setup/">set up Darnly</a>.</p>
+  <p>Darnly doesn't make v0 smarter. A good screenshot and sentence often get the same fix. What it saves is the hand-over. See <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a>.</p>
+</GuidePage>

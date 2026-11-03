@@ -599,4 +599,7 @@ export const GUIDES: Item[] = [
   { slug: 'darnly-vs-tracebug', name: 'Darnly vs TraceBug', blurb: 'A full bug recording for developers and QA, or a quick capture that lands in your project.' },
   { slug: 'screenshot-wont-paste-into-claude-code', name: 'Screenshot won’t paste into Claude Code or Cursor?', blurb: 'The right paste key for Mac, Windows, WSL and VS Code, and the file path fallback that always works.' },
   { slug: 'stuck-in-an-ai-error-loop', name: 'Stuck in an AI error loop? How to get out', blurb: 'Stop, revert to the last working commit, give the exact error and what you expected, one change at a time.' },
+  { slug: 'report-a-bug-to-lovable', name: 'How to report a bug to Lovable', blurb: 'A marked screenshot, the page and what you expected, pasted into Lovable\u2019s chat.' },
+  { slug: 'report-a-bug-to-bolt', name: 'How to report a bug to Bolt', blurb: 'Attach a marked screenshot within Bolt\u2019s limits, plus the page, what you expected and the errors.' },
+  { slug: 'report-a-bug-to-v0', name: 'How to report a bug to v0', blurb: 'Paste a marked screenshot into v0 and point it at the one component to fix.' },
 ];
