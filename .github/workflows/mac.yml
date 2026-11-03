@@ -20,7 +20,13 @@ jobs:
         run: swift test
       - name: Build Darnly.app
         run: ./scripts/make-app.sh
+      - name: Pictures of the UI (welcome screen, note box)
+        run: build/Darnly.app/Contents/MacOS/Darnly --snapshot "$PWD/build/ui"
       - uses: actions/upload-artifact@v4
         with:
           name: Darnly-mac
           path: mac/build/Darnly-mac-*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Darnly-mac-ui
+          path: mac/build/ui/*.png

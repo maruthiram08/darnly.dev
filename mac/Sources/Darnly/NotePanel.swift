@@ -53,13 +53,23 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
     func show(image: NSImage?, summary: String, completion: @escaping (NoteResult?) -> Void) {
         self.completion = completion
         reference = nil
-        let width: CGFloat = 420
-        let previewHeight: CGFloat = image.map { min(260, width * $0.size.height / max($0.size.width, 1)) } ?? 0
-        let height = previewHeight + 230
-        let panel = NSPanel(contentRect: CGRect(x: 0, y: 0, width: width + 32, height: height), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let content = makeContent(image: image, summary: summary)
+        let panel = NSPanel(contentRect: CGRect(origin: .zero, size: content.fittingSize), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = "Darnly"
         panel.level = .floating
         panel.delegate = self
+        panel.contentView = content
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+        if let tv = textView { panel.makeFirstResponder(tv) }
+        NSApp.activate(ignoringOtherApps: true)
+        window = panel
+    }
+
+    /// The panel's contents: the marked screenshot, what was picked, the note box. Also drawn by `--snapshot`.
+    func makeContent(image: NSImage?, summary: String) -> NSView {
+        let width: CGFloat = 420
+        let previewHeight: CGFloat = image.map { min(260, width * $0.size.height / max($0.size.width, 1)) } ?? 0
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -106,15 +116,10 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         hint.textColor = .tertiaryLabelColor
         hint.font = .systemFont(ofSize: 11)
         stack.addArrangedSubview(hint)
-        panel.contentView = stack
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        panel.makeFirstResponder(tv)
-        NSApp.activate(ignoringOtherApps: true)
-        window = panel
         textView = tv
         referenceLabel = ref
         showReferenceState()
+        return stack
     }
 
     private func setReference(_ image: NSImage) {

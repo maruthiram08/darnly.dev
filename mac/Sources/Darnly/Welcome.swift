@@ -15,11 +15,16 @@ final class WelcomeModel: ObservableObject {
     private var timer: Timer?
     private let project: () -> URL?
 
-    init(project: @escaping () -> URL?, chooseProject: @escaping () -> Void, signIn: @escaping () -> Void, changed: @escaping () -> Void) {
+    /// False for `--snapshot` pictures: a fixed state, nothing read from this Mac.
+    private let live: Bool
+
+    init(project: @escaping () -> URL?, chooseProject: @escaping () -> Void, signIn: @escaping () -> Void, changed: @escaping () -> Void, live: Bool = true) {
         self.project = project
         self.chooseProject = chooseProject
         self.signIn = signIn
         self.changed = changed
+        self.live = live
+        guard live else { return }
         refresh()
         // Permissions change in System Settings, outside the app: keep the ticks current while the window is open.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.refresh() }
@@ -27,7 +32,19 @@ final class WelcomeModel: ObservableObject {
 
     func stop() { timer?.invalidate(); timer = nil }
 
+    /// The welcome screen half set up, for `--snapshot`: folder chosen (or signed in), Accessibility allowed, Screen Recording not yet.
+    static func sample(cloud: Bool) -> WelcomeModel {
+        let m = WelcomeModel(project: { nil }, chooseProject: {}, signIn: {}, changed: {}, live: false)
+        m.projectName = "my-app"
+        m.accessibility = true
+        m.screenRecording = false
+        m.destination = cloud ? .cloud : .folder
+        m.cloudEmail = cloud ? "you@example.com" : nil
+        return m
+    }
+
     func refresh() {
+        guard live else { return }
         projectName = project()?.lastPathComponent
         accessibility = Probe.isTrusted(prompt: false)
         screenRecording = CGPreflightScreenCaptureAccess()
