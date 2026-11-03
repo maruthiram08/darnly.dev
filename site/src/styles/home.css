@@ -55,9 +55,10 @@ nav { display: flex; align-items: center; justify-content: space-between; gap: 1
 .btn-shimmer::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 30%, rgba(5, 147, 198, 0.28) 45%, rgba(216, 57, 149, 0.22) 55%, transparent 70%); transform: translateX(-120%); animation: shimmer 3.2s ease-in-out 1s infinite; }
 @keyframes shimmer { 0% { transform: translateX(-120%); } 45%, 100% { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .btn-shimmer::after { animation: none; display: none; } }
-/* Hero Mac button only: a second line that says it is for native apps. */
+/* Hero buttons only: a second line that says what each is for (web apps, native apps). */
 .btn-native { flex-direction: column; align-items: flex-start; gap: 4px; padding: 9px 22px; }
 .btn-native small { font: 500 12px/1 var(--body); color: rgba(252, 255, 255, 0.82); }
+.btn-primary.btn-native small { color: var(--ink-soft); }
 .x-logo { flex: none; opacity: 0.9; }
 .soon { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(252, 255, 255, 0.8); }
 .shot { border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(11, 34, 48, 0.35); border: 1px solid rgba(252, 255, 255, 0.4); transform: rotate(1.2deg); }
