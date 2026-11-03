@@ -34,7 +34,7 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   <h2 id="v0-3-1">0.3.1: close the loop</h2>
   <p>Capturing a bug was already quick. This release covers what happens after: starting the fix, answering your agent's questions, and checking the result.</p>
   <ul>
-    <li><strong><code>/darnly</code> fixes every waiting bug.</strong> In Claude Code and Cursor, one command fixes the bugs in your project folder and your cloud inbox. In Codex, say "fix my bugs". <a href="/setup/#loop">How the loop works</a>.</li>
+    <li><strong><code>/darnly</code> fixes every waiting bug.</strong> In Claude Code and Cursor, one command fixes the bugs in your project folder and your cloud inbox. In Codex, say "fix my Darnly bugs". <a href="/setup/#loop">How the loop works</a>.</li>
     <li><strong>Claude Code offers to fix new bugs.</strong> <strong>Set up this project</strong> adds a hook, so when you start a session or send a message after capturing, Claude Code tells you how many bugs are waiting and offers to fix them.</li>
     <li><strong>"Your agent is waiting for your input."</strong> If a note is unclear, your agent asks you in its own chat, and the panel shows this on the bug, so it never just looks stuck. In the cloud inbox this uses the new <code>ask_user</code> MCP tool.</li>
     <li><strong>"1 bug fixed. Take a look."</strong> The panel now remembers what it last saw, so you get this card even if it was closed while the agent worked, with one line on what changed. For bugs on localhost, <strong>Reload the page</strong> shows the fix straight away; for a live site, it reminds you to deploy.</li>

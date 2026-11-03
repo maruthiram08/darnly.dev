@@ -10,7 +10,7 @@ const faq = [
   { q: 'How much does Darnly cost?', a: 'The Chrome extension is free. The Mac app is a download for macOS from darnly.dev.' },
   { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp. <a href="/setup/">Setup steps for each agent</a>.' },
   { q: 'Does Darnly send my data anywhere?', a: 'Not by default. Reports stay on your computer as files in your project or text you choose to paste. Only the optional cloud inbox sends bugs to your private Darnly inbox.' },
-  { q: 'How do I tell my agent to fix my Darnly bugs?', a: 'Type /darnly in Claude Code or Cursor, or say "fix my bugs" in Codex. One command fixes the bugs in your project folder and your cloud inbox, and the Darnly panel then says what got fixed.' },
+  { q: 'How do I tell my agent to fix my Darnly bugs?', a: 'Type /darnly in Claude Code or Cursor, or say "fix my Darnly bugs" in Codex. One command fixes the bugs in your project folder and your cloud inbox, and the Darnly panel then says what got fixed.' },
   { q: 'Does Darnly save tokens?', a: 'No. In our own benchmark, Darnly reports cost about 1.6 times as much per bug as a pasted screenshot, and both fixed every bug. Darnly saves you effort, not tokens.' },
 ];
 ---
@@ -33,7 +33,7 @@ const faq = [
   <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the page address, your note, and console errors and failed requests from the last 60 seconds.</p>
 
   <h2>Where do the reports go?</h2>
-  <p>Into <code>.darnly/inbox/</code> in your project as a markdown file and a PNG, with an AGENTS.md note and a skill that tell your agent to look there, so you just type <code>/darnly</code> in Claude Code or Cursor (or say "fix my bugs" in Codex).</p>
+  <p>Into <code>.darnly/inbox/</code> in your project as a markdown file and a PNG, with an AGENTS.md note and a skill that tell your agent to look there, so you just type <code>/darnly</code> in Claude Code or Cursor (or say "fix my Darnly bugs" in Codex).</p>
 
   <h2>How do I know when a bug is fixed?</h2>
   <p>The Darnly panel tells you: "1 bug fixed. Take a look.", with the agent's one line on what it changed, even if the panel was closed while the agent worked.</p>
