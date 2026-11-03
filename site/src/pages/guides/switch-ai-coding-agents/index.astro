@@ -6,7 +6,7 @@ const slug = 'switch-ai-coding-agents';
 const faq = [
   { q: 'Can I use Claude Code, Codex and Cursor on the same project?', a: 'Yes. They all work on the same files. Keep the instructions they share in AGENTS.md, which Codex and Cursor read, and add a line <code>@AGENTS.md</code> to CLAUDE.md so Claude Code reads it too.' },
   { q: 'What do I lose when I switch agents?', a: 'Anything that lives only inside the old tool: chat history, its own rules files, and habits tied to its browser or editor. Anything in your project folder comes with you.' },
-  { q: 'Does Darnly work the same in every agent?', a: 'Yes. You capture bugs the same way, and they land in the same <code>.darnly/inbox/</code> folder. You type <code>/darnly</code> in Claude Code or Cursor, or say "fix my bugs" in Codex. The cloud inbox works in any agent that can add an MCP server.' },
+  { q: 'Does Darnly work the same in every agent?', a: 'Yes. You capture bugs the same way, and they land in the same <code>.darnly/inbox/</code> folder. You type <code>/darnly</code> in Claude Code or Cursor, or say "fix my Darnly bugs" in Codex. The cloud inbox works in any agent that can add an MCP server.' },
 ];
 ---
 <GuidePage
@@ -28,7 +28,7 @@ const faq = [
 
   <h2>3. Use tools that don't belong to one agent</h2>
   <p>Each agent now has its own browser: Claude in Chrome, Cursor's Design Mode, Codex for Chrome. They're useful, but the way you report bugs with each one stays behind when you switch. A bug capture that saves to your project works with all of them.</p>
-  <p><a href="/">Darnly</a> is built for that. You press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, click the broken part and say what you expected. The report lands in <code>.darnly/inbox/</code> in your project. Setup writes the AGENTS.md note, a <code>/darnly</code> command for Claude Code and Cursor, and in Codex you just say "fix my bugs". Change agents whenever you like. Your bug list comes with you.</p>
+  <p><a href="/">Darnly</a> is built for that. You press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, click the broken part and say what you expected. The report lands in <code>.darnly/inbox/</code> in your project. Setup writes the AGENTS.md note, a <code>/darnly</code> command for Claude Code and Cursor, and in Codex you just say "fix my Darnly bugs". Change agents whenever you like. Your bug list comes with you.</p>
 
   <h2>4. If your code isn't on your computer</h2>
   <p>For apps built in the cloud, Darnly's optional cloud inbox holds your bugs, and any agent that can add an MCP server reads them at <code>https://api.darnly.dev/mcp</code>. <a href="/setup/">Setup for Claude Code, Cursor and Codex</a>.</p>

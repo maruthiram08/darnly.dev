@@ -11,9 +11,10 @@ const INTRO = `# Darnly
 
 - Chrome extension: press Option+Shift+B on a Mac on any page (Windows is coming soon), localhost or live, click the broken element and type one sentence. Works in Chrome, Edge, Brave and Arc.
 - What the agent gets: a screenshot with the element boxed in red, the element's selector, text, HTML and styles, the source file and component on a local project, and console errors and failed requests from the last 60 seconds.
-- Where reports go: plain Markdown files in \`.darnly/inbox/\` inside the project, so any agent that reads files can fix them. Setup adds a /darnly command (Claude Code skill, Cursor command; in Codex say "fix my bugs") that fixes the folder and cloud inbox in one go, and a Claude Code hook that tells the agent when bugs are waiting. Cloud projects can copy the picture and details instead, or use the optional cloud inbox, which agents read through Darnly's remote MCP server at https://api.darnly.dev/mcp (OAuth with Google sign-in; tools list_bugs, get_bug, ask_user, mark_fixed). Setup for Claude Code, Cursor and Codex: https://darnly.dev/setup/
+- Where reports go: plain Markdown files in \`.darnly/inbox/\` inside the project, so any agent that reads files can fix them. Setup adds a /darnly command (Claude Code skill, Cursor command; in Codex say "fix my Darnly bugs") that fixes the folder and cloud inbox in one go, and a Claude Code hook that tells the agent when bugs are waiting. Cloud projects can copy the picture and details instead, or use the optional cloud inbox, which agents read through Darnly's remote MCP server at https://api.darnly.dev/mcp (OAuth with Google sign-in; tools list_bugs, get_bug, ask_user, mark_fixed). Setup for Claude Code, Cursor and Codex: https://darnly.dev/setup/
 - Closing the loop: when the agent fixes a bug it writes one line on what changed, and the Darnly panel shows "N bugs fixed. Take a look." even if it was closed meanwhile. If the agent needs to ask something, the panel shows "Your agent is waiting for your input. Return to your agent."
-- Darnly for Mac: a menu bar app for Mac apps, the iOS Simulator and the Android Emulator, using macOS accessibility to find the element. Download (macOS 14 or later): https://github.com/maruthiram08/darnly.dev/releases/latest/download/Darnly.dmg
+- Darnly for Mac: a menu bar app for Mac apps, the iOS Simulator and the Android Emulator (Option+Shift+D), using macOS accessibility to find the element. It saves to the same project folder or cloud inbox and offers the same agent setup (/darnly and the Claude Code hook). Download (macOS 14 or later): https://github.com/maruthiram08/darnly.dev/releases/latest/download/Darnly.dmg, or with Homebrew: brew install --cask maruthiram08/darnly/darnly
+- Several projects: each site remembers its project (a folder or the cloud). In the cloud inbox every bug carries a project name, and agents call list_bugs with project set to the "Darnly project:" name in AGENTS.md, so they only fetch their own project's bugs.
 - Privacy: no account needed, nothing is sent to Darnly unless the optional cloud inbox is switched on, and passwords, tokens, API keys and cookies are replaced with [hidden] before anything is saved.
 - Free tools: ${TOOLS.length} free, no-signup tools for people building websites with AI agents, most running entirely in the browser.`;
 
@@ -26,7 +27,7 @@ const LINKS = `## Darnly
 - [Set up Darnly with Claude Code, Cursor or Codex](${SITE}/setup/): with or without MCP; a copy-paste prompt that makes the agent add the Darnly MCP server (https://api.darnly.dev/mcp) and the project note
 - [What is Darnly](${SITE}/what-is-darnly/): short answers about what Darnly is, who it is for, price, agents and privacy
 - [Why Darnly when your agent has a browser](${SITE}/why-darnly/): how Darnly differs from Claude in Chrome, Cursor Design Mode, Codex for Chrome and VS Code's browser, and when you don't need it
-- [What's new in Darnly](${SITE}/changelog/): release notes, newest first (0.3.1: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed)
+- [What's new in Darnly](${SITE}/changelog/): release notes, newest first (0.3.1: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed; Darnly for Mac 0.3.1 and 0.3.2)
 - [All free tools](${SITE}/tools/): every tool, grouped by category`;
 
 const OPTIONAL = `## Optional
