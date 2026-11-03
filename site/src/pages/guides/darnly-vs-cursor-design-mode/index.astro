@@ -1,0 +1,64 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-cursor-design-mode';
+const faq = [
+  { q: 'What is Cursor Design Mode?', a: 'A mode in Cursor 3\'s built-in browser where you select or annotate parts of your running app and ask the agent to change them. It came after Cursor\'s visual editor (Cursor 2.2, December 2025), which lets you click an element and adjust its styles with sliders and colour pickers.' },
+  { q: 'Does Cursor Design Mode work on my live site?', a: 'It works on pages open in Cursor\'s browser, and it\'s built around your app running with its code open in Cursor. The change is made by Cursor\'s agent in that codebase.' },
+  { q: 'Can I use Darnly with Cursor?', a: 'Yes. Darnly\'s setup adds a <code>/darnly</code> command to Cursor that fixes every bug in your project\'s <code>.darnly/inbox/</code> folder and your cloud inbox.' },
+  { q: 'Which should I use for design tweaks?', a: 'Design Mode, when you\'re in Cursor making a change you can see right away. Darnly, when you spot it later while using your app and want it on a list.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-03"
+  title="Darnly vs Cursor Design Mode: when to use each"
+  description="Cursor's Design Mode and visual editor let you point at elements inside Cursor. Darnly lets you point at bugs in your normal browser and fix them later in any agent."
+  h1="Darnly vs Cursor Design Mode"
+  lede="Cursor's Design Mode and visual editor let you point at an element inside Cursor's own browser and have its agent change it right away, while Darnly lets you point at bugs in your normal browser as you test and keeps them for later in any agent, so Design Mode is better for live tweaks while you build and Darnly is better for collecting what you find."
+  faq={faq}
+  sources={[
+    { name: 'Cursor: a visual editor for the Cursor Browser (December 2025)', url: 'https://cursor.com/blog/browser-visual-editor' },
+    { name: 'Cursor Design Mode explained (Cursor 3, April 2026)', url: 'https://pasqualepillitteri.it/en/news/3794/cursor-design-mode-what-it-is-how-it-works-cursor-3' },
+  ]}
+>
+  <p>Both let you point instead of describe, which is why people ask how they differ. The difference is where you are when you point, and what happens next. Facts about Cursor below come from Cursor's blog and a Design Mode write-up, checked on 3 November 2026.</p>
+
+  <h2>What each one is</h2>
+  <p><strong>Cursor's visual editor</strong> (Cursor 2.2) lives in the Cursor Browser. You click an element and describe a change, drag elements around, or use sliders and colour pickers, and Cursor's agent applies it to your code. <strong>Design Mode</strong> (Cursor 3) works in the browser in Cursor's Agents Window: you select or annotate parts of your running app, preview the change, and press Apply.</p>
+  <p><strong>Darnly</strong> is a free Chrome extension and Mac app. In your everyday Chrome, Edge, Brave or Arc, you press one key, click the broken part and type what you expected. The report (screenshot with a red box, the element, the page and recent errors) waits in <code>.darnly/inbox/</code> or the cloud inbox until an agent fixes it.</p>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Cursor Design Mode</th></tr></thead>
+    <tbody>
+      <tr><td>Where you point</td><td>Your normal browser, any page</td><td>Cursor's built-in browser</td></tr>
+      <tr><td>What it needs</td><td>The extension</td><td>Cursor open, with your app running</td></tr>
+      <tr><td>When the fix happens</td><td>Later, in one go, when you type <code>/darnly</code></td><td>Right away</td></tr>
+      <tr><td>Keeps a list for later</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Saves errors and failed requests</td><td>Yes, from the last 60 seconds</td><td>Sends the element's HTML and styles</td></tr>
+      <tr><td>Works with other agents</td><td>Claude Code, Codex, Cursor, any MCP agent</td><td>Cursor only</td></tr>
+      <tr><td>Outside the browser</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Web pages</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>When Cursor Design Mode is the better pick</h2>
+  <ul>
+    <li><strong>You're building and want to see it change now.</strong> Pick the element, try a colour, apply. Nothing beats that for live design tweaks.</li>
+    <li><strong>You're trying layouts.</strong> Dragging elements around and tuning flexbox and grid with sliders is something Darnly doesn't do.</li>
+    <li><strong>You only use Cursor.</strong> It's already there.</li>
+  </ul>
+
+  <h2>When Darnly is the better pick</h2>
+  <ul>
+    <li><strong>You find bugs while using your app, not while coding.</strong> On your live site, while showing it to someone, or on a last check before launch. Capture in a few seconds and carry on.</li>
+    <li><strong>You have a list, not one tweak.</strong> Collect every bug from a test run, then fix them all at once.</li>
+    <li><strong>The bug comes with errors.</strong> A button that does nothing usually has a console error or a failed request behind it. Darnly saves those with the report.</li>
+    <li><strong>You switch agents.</strong> Try Claude Code or Codex next month, and your bug list and habits come with you. <a href="/guides/switch-ai-coding-agents/">How to switch agents without losing your bugs</a>.</li>
+  </ul>
+
+  <h2>Using both</h2>
+  <p>Use Design Mode while you build. Use Darnly when you step back and test your app like a user. When you're ready to fix, open Cursor and type <code>/darnly</code>, then use Design Mode for any last tweak you want to see live. More on this in <a href="/why-darnly/">why Darnly when your agent has a browser</a>.</p>
+  <p>Want to try it? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, it's free.</p>
+</GuidePage>

@@ -72,10 +72,10 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
       <div>
         <a class="news" href="/changelog/"><b>New in 0.3.1</b> Type /darnly, then "Take a look" when it's fixed →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
-        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor the screenshot, the exact element and the recent errors, without breaking your flow.</p>
-        <div class="cta">
-          <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
-          <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
+        <p class="lede">Darnly hands it the screenshot, the exact element and the recent errors. You never leave the page.</p>
+        <div class="cta cta-labelled">
+          <div class="cta-item"><a class="btn btn-primary btn-shimmer" href={storeUrl('home')}>Add to Chrome</a><small>For web apps: localhost or live</small></div>
+          <div class="cta-item"><a class="btn btn-ghost" href="#mac">Get the Mac app</a><small>For native apps: Mac, iOS, Android</small></div>
         </div>
         <div class="agents" aria-label="Works with">
           <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
@@ -187,6 +187,32 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
     </div>
   </section>
 
+  <section class="band" id="why" style="padding-top: 0" aria-labelledby="why-h">
+    <div class="wrap">
+      <span class="eyebrow">Your agent has a browser?</span>
+      <h2 id="why-h">Your agent's browser is for when you're coding. Darnly is for when you're not.</h2>
+      <p class="intro">Claude in Chrome, Cursor and Codex can open your app, inside a session, once you describe the bug. Darnly is for the rest of the time: spot bugs while you use or test your app, a few seconds each, and let any agent fix them all later.</p>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Any agent</span>
+          <h3>Switch agents, keep your list</h3>
+          <p>The same key and the same inbox in Claude Code, Codex and Cursor. Change agents whenever you like. Your bugs come with you.</p>
+        </div>
+        <div class="step">
+          <span class="n">No session</span>
+          <h3>Spot it now, fix it later</h3>
+          <p>No chat to open, nothing to type out. Point at the bug, add one line, keep testing. Fix the whole list in one go.</p>
+        </div>
+        <div class="step">
+          <span class="n">No quota</span>
+          <h3>Out of usage? Keep going</h3>
+          <p>Capturing a bug makes no AI calls. Keep finding bugs while your limit resets, and your agent fixes them when it's back.</p>
+        </div>
+      </div>
+      <a class="all-tools" href="/why-darnly/">Why Darnly when your agent has a browser →</a>
+    </div>
+  </section>
+
   <section class="band" id="report" style="padding-top: 0">
     <div class="wrap report">
       <div>
@@ -227,17 +253,12 @@ and save my week
       <div>
         <span class="eyebrow">Darnly for Mac</span>
         <h2>Bugs outside the browser, too.</h2>
-        <p class="intro">A small menu bar app for Mac apps, the iOS Simulator and the Android Emulator. Same three moves, same inbox, so your agent already knows what to do.</p>
+        <p class="intro">A menu bar app for Mac apps, the iOS Simulator and the Android Emulator. Same three moves, same inbox as the Chrome extension.</p>
         <ul>
-          <li><span>Press <kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>D</kbd> anywhere, click the broken part, type what you expected.</span></li>
-          <li><span>The element comes from macOS accessibility: its kind, label and accessibility id (<code>testID</code> in React Native), the best clue to the code.</span></li>
-          <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
-          <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
+          <li><span>Press <kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>D</kbd> anywhere, click the broken part, say what you expected.</span></li>
+          <li><span>Your agent gets the element's accessibility id (<code>testID</code> in React Native), the best clue to the code.</span></li>
+          <li><span>Plus errors from the last 60 seconds, from the Simulator, the Emulator or the app's own log, with secrets hidden.</span></li>
         </ul>
-        <div class="cta">
-          <a class="btn btn-primary" href={MAC_DMG_URL}>Download for Mac</a>
-        </div>
-        <p class="intro">For macOS 14 or later. Open the download, drag Darnly to Applications, and it walks you through the rest. Or with Homebrew: <code>brew install --cask maruthiram08/darnly/darnly</code></p>
       </div>
       <div class="file" role="figure" aria-label="Example bug report from the Mac app">
         <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
@@ -258,6 +279,34 @@ brand gradient
 No errors in the app's log in the last 60 seconds.</pre>
       </div>
     </div>
+    <div class="wrap">
+      <div class="mac-install" aria-label="Install Darnly for Mac">
+        <div class="mi-col">
+          <span class="mi-label">Download</span>
+          <a class="btn btn-primary" href={MAC_DMG_URL}>Download for Mac</a>
+          <p>macOS 14 or later. Open it, drag Darnly to Applications, and it walks you through the rest.</p>
+        </div>
+        <div class="mi-or" aria-hidden="true">or</div>
+        <div class="mi-col">
+          <span class="mi-label">Homebrew</span>
+          <div class="mi-cmd">
+            <code data-brew>brew install --cask maruthiram08/darnly/darnly</code>
+            <button type="button" class="mi-copy" data-copy-brew>Copy</button>
+          </div>
+          <p>Paste it in Terminal. Updates come with <code>brew upgrade</code>.</p>
+        </div>
+      </div>
+    </div>
+  <script>
+    document.querySelectorAll<HTMLButtonElement>('[data-copy-brew]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const text = btn.parentElement?.querySelector('[data-brew]')?.textContent ?? '';
+        try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; }
+        catch { btn.textContent = 'Select and copy'; }
+        setTimeout(() => (btn.textContent = 'Copy'), 2200);
+      });
+    });
+  </script>
   </section>
 
   <section class="band" id="privacy" style="padding-top: 0">
