@@ -21,6 +21,8 @@ interface Props {
   crumb?: { name: string; href: string } | null;
   // Optional page-specific line for the Darnly strip.
   strip?: { lead: string; text: string };
+  // Date the page was written or last checked (YYYY-MM-DD). Defaults to the first batch's date.
+  updated?: string;
 }
 
 const PUBLISHED = '2026-11-02';
@@ -35,7 +37,9 @@ const {
   path = `/guides/${slug}/`,
   crumb = { name: 'Guides', href: '/guides/' },
   strip,
+  updated = PUBLISHED,
 } = Astro.props;
+const updatedText = new Date(`${updated}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const source = `guide-${slug}`;
 const canonical = new URL(path, Astro.site).toString();
 const site = Astro.site!.toString();
@@ -54,8 +58,8 @@ const jsonLd = JSON.stringify([
     description,
     url: canonical,
     mainEntityOfPage: canonical,
-    datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    datePublished: updated,
+    dateModified: updated,
     author: darnly,
     publisher: darnly,
     image: new URL('/og/default.jpg', Astro.site).toString(),
@@ -79,7 +83,7 @@ const jsonLd = JSON.stringify([
     {crumb && <a class="crumb" href={crumb.href}>{crumb.name}</a>}
     <h1>{h1}</h1>
     <p class="lede">{lede}</p>
-    <p class="date">Updated <time datetime={PUBLISHED}>2 November 2026</time></p>
+    <p class="date">Updated <time datetime={updated}>{updatedText}</time></p>
 
     <article class="prose"><slot /></article>
 
@@ -98,7 +102,7 @@ const jsonLd = JSON.stringify([
     {sources.length > 0 && (
       <section class="sources" aria-labelledby="src-h">
         <h2 id="src-h">Sources</h2>
-        <p>Checked on 2 November 2026. Products change, so check their pages before you decide.</p>
+        <p>Checked on {updatedText}. Products change, so check their pages before you decide.</p>
         <ul>{sources.map((s) => <li>{s.url ? <a href={s.url} rel="nofollow">{s.name}</a> : s.name}</li>)}</ul>
       </section>
     )}

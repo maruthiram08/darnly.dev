@@ -1,0 +1,67 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-claude-in-chrome';
+const faq = [
+  { q: 'What is Claude in Chrome?', a: 'A Chrome extension from Anthropic that lets Claude use your browser. Connected to Claude Code (start it with <code>claude --chrome</code>), the agent can open tabs, click, fill forms, read console errors and the page, and take screenshots, using the sites you\'re already signed into.' },
+  { q: 'Does Claude in Chrome cost anything?', a: 'It needs a paid Claude plan (Pro, Max, Team or Enterprise), and what the agent does in the browser counts toward your plan\'s usage.' },
+  { q: 'Can Claude in Chrome see my live site?', a: 'Yes. It isn\'t limited to localhost. It opens any page in your Chrome, signed in as you.' },
+  { q: 'Do Darnly and Claude in Chrome work together?', a: 'Yes. Darnly reports end with a "How to check it\'s fixed" section, so when Claude Code has Chrome connected it opens the page after fixing and checks its own work.' },
+  { q: 'Does Darnly only work with Claude Code?', a: 'No. The same reports work in Codex and Cursor too, and the cloud inbox works in any agent that can add an MCP server.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-03"
+  title="Darnly vs Claude in Chrome: which one for your bugs?"
+  description="Claude in Chrome lets Claude Code drive your browser. Darnly lets you point at bugs as you test and queue them. When each one fits, and how they work together."
+  h1="Darnly vs Claude in Chrome"
+  lede="Claude in Chrome lets Claude Code open and drive your browser while you're in a session, and Darnly lets you point at bugs while you test and keeps them in an inbox for later, so Claude in Chrome is better for the agent checking its own work and Darnly is better for collecting what you find."
+  faq={faq}
+  sources={[
+    { name: 'Use Claude Code with Chrome (Anthropic docs)', url: 'https://code.claude.com/docs/en/chrome' },
+  ]}
+>
+  <p>If you use Claude Code, you may already have Claude in Chrome. It's a strong tool, and it overlaps with Darnly less than it looks. Facts about Claude in Chrome below come from Anthropic's docs, checked on 3 November 2026.</p>
+
+  <h2>What each one is</h2>
+  <p><strong>Claude in Chrome</strong> is Anthropic's browser extension. With Claude Code started as <code>claude --chrome</code>, the agent opens new tabs in your Chrome, shares your sign-ins, and can click, type, read console errors and the page, record GIFs and save screenshots. You ask it in words, from your terminal or editor, and watch it work.</p>
+  <p><strong>Darnly</strong> is a free Chrome extension and Mac app. You press one key, click the broken part and type what you expected. It saves a report with a screenshot (the broken part boxed in red), the element, the page address and recent console errors and failed requests. Reports land in <code>.darnly/inbox/</code> in your project, or in an optional cloud inbox, until an agent fixes them.</p>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Claude in Chrome</th></tr></thead>
+    <tbody>
+      <tr><td>Who drives the browser</td><td>You</td><td>The agent</td></tr>
+      <tr><td>How you report a bug</td><td>Point at it and add one line</td><td>Describe it in words in a Claude Code session</td></tr>
+      <tr><td>Needs a session open</td><td>No. Bugs wait in an inbox</td><td>Yes</td></tr>
+      <tr><td>Keeps a list for later</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Uses your AI usage</td><td>Capturing makes no AI calls</td><td>Every browser step counts toward your plan</td></tr>
+      <tr><td>Works with other agents</td><td>Claude Code, Codex, Cursor, any MCP agent</td><td>Claude only</td></tr>
+      <tr><td>Checks its own fix</td><td>No, it relies on your agent's browser for that</td><td>Yes</td></tr>
+      <tr><td>Outside the browser</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Chromium browsers. Claude Code has computer use for Mac apps</td></tr>
+      <tr><td>Price</td><td>Free</td><td>Needs a paid Claude plan</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>When Claude in Chrome is the better pick</h2>
+  <ul>
+    <li><strong>You're already in a session.</strong> You changed something and want the agent to open the page and see if it worked. That's exactly what it's for.</li>
+    <li><strong>The bug is easy to describe.</strong> "The form on /signup errors when I submit" is enough for the agent to go and find it.</li>
+    <li><strong>You want it to click through a flow.</strong> Testing a form with bad input or walking through checkout is work the agent can do for you.</li>
+  </ul>
+
+  <h2>When Darnly is the better pick</h2>
+  <ul>
+    <li><strong>You're testing, not coding.</strong> Click through your app like a user, capture each bug in a few seconds, and keep going. Fix them all later with <code>/darnly</code>.</li>
+    <li><strong>The bug is hard to put into words.</strong> "That bit is a few pixels off" is easy to point at and hard to describe so the agent finds the same spot.</li>
+    <li><strong>It might not happen again.</strong> Darnly saves what was on screen and the errors at that moment. A fresh tab may not show the same thing.</li>
+    <li><strong>You're out of usage.</strong> Capturing doesn't use your plan, so you can keep finding bugs while you wait for your limit to reset.</li>
+    <li><strong>You also use Codex or Cursor.</strong> The same inbox works in all of them.</li>
+  </ul>
+
+  <h2>Using both</h2>
+  <p>Capture bugs with Darnly while you test. Later, start <code>claude --chrome</code> in your project and type <code>/darnly</code>. Claude Code fixes each bug, then uses Claude in Chrome to open the page and check it, following the "How to check it's fixed" section in each report. It ends its note with "(checked in the browser)" when it did. More on this in <a href="/why-darnly/">why Darnly when your agent has a browser</a>.</p>
+  <p>Want to try the capture half? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, it's free.</p>
+</GuidePage>
