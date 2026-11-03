@@ -9,6 +9,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let welcome = WelcomeWindow()
     private var busy = false
     private var frozen: Screenshot.Frozen?
+    private var update: UpdateCheck.Release?
+    private var updateTimer: Timer?
+    /// The version macOS reads from Info.plist. Nil under `swift run`, so a dev build never checks for updates.
+    private var appVersion: String? { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String }
 
     private var projectURL: URL? {
         get { UserDefaults.standard.string(forKey: "projectPath").map { URL(fileURLWithPath: $0, isDirectory: true) } }
@@ -26,10 +30,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !UserDefaults.standard.bool(forKey: "welcomeShown") { showWelcome() }
         else if Destination.current == .folder && projectURL == nil { chooseProject() }
         else if Destination.current == .folder, let folder = projectURL { offerAgentSetup(folder) }
+        // Ask GitHub for a newer release a few seconds after launch, then once a day while the app stays open.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.checkForUpdate(manual: false) }
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { [weak self] _ in
+            self?.checkForUpdate(manual: false)
+        }
+    }
+
+    // MARK: Updates (GitHub releases, no packages)
+
+    private func checkForUpdate(manual: Bool) {
+        guard let current = appVersion else {
+            if manual { notify("This is a development build, so it doesn't check for updates.") }
+            return
+        }
+        Task { @MainActor in
+            let found = await UpdateCheck.fetch(current: current)
+            update = found
+            rebuildMenu()
+            if let found {
+                // Say it once per new version (or every time when asked from the menu).
+                let key = "updateNoticeShown"
+                if manual || UserDefaults.standard.string(forKey: key) != found.version {
+                    UserDefaults.standard.set(found.version, forKey: key)
+                    if manual { showUpdate() } else { notify("Darnly \(found.version) is out. Open the Darnly menu and click Update available to get it.") }
+                }
+            } else if manual {
+                notify("You have the latest Darnly (\(current)).")
+            }
+        }
+    }
+
+    @objc private func checkForUpdateFromMenu() { checkForUpdate(manual: true) }
+
+    @objc private func showUpdate() {
+        guard let update else { return }
+        let brew = UpdateCheck.installedWithHomebrew
+        let alert = NSAlert()
+        alert.messageText = "Darnly \(update.version) is available"
+        alert.informativeText = brew
+            ? "You installed Darnly with Homebrew. To update, open Terminal and run:\n\n\(UpdateCheck.brewCommand)\n\nThen open Darnly again."
+            : "Download the new version, open it, and drag Darnly to Applications (choose Replace). Then open Darnly again.\n\nInstalled with Homebrew? Run \(UpdateCheck.brewCommand) instead."
+        alert.addButton(withTitle: brew ? "Copy command" : "Download")
+        alert.addButton(withTitle: "What's new")
+        alert.addButton(withTitle: "Later")
+        NSApp.activate(ignoringOtherApps: true)
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            if brew {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(UpdateCheck.brewCommand, forType: .string)
+                notify("Copied. Paste it into Terminal and press Enter.")
+            } else {
+                NSWorkspace.shared.open(update.downloadURL)
+            }
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.open(update.pageURL)
+        default:
+            break
+        }
     }
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        if let update {
+            menu.addItem(item("Update available: Darnly \(update.version)…", #selector(showUpdate)))
+            menu.addItem(.separator())
+        }
         let cap = NSMenuItem(title: "Capture a bug", action: #selector(captureFromMenu), keyEquivalent: "d")
         cap.keyEquivalentModifierMask = [.option, .shift]
         cap.target = self
@@ -53,6 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(item("How to use Darnly…", #selector(showWelcome)))
         menu.addItem(item("Permissions…", #selector(openPermissions)))
+        menu.addItem(item("Check for updates…", #selector(checkForUpdateFromMenu)))
         menu.addItem(item("Quit Darnly", #selector(NSApplication.terminate(_:)), target: NSApp))
         statusItem.menu = menu
     }

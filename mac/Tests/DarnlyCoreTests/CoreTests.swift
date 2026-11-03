@@ -249,3 +249,30 @@ final class AgentSetupTests: XCTestCase {
         XCTAssertNil(AgentSetup.mergeCursorCommand("# my own darnly command\n"))
     }
 }
+
+final class UpdateCheckTests: XCTestCase {
+    func testComparesVersions() {
+        XCTAssertTrue(UpdateCheck.isNewer([0, 3, 10], than: [0, 3, 9]))
+        XCTAssertTrue(UpdateCheck.isNewer([0, 4], than: [0, 3, 9]))
+        XCTAssertFalse(UpdateCheck.isNewer([0, 3, 1], than: [0, 3, 1, 0]))
+        XCTAssertNil(UpdateCheck.version(fromTag: "v0.3.2"))
+        XCTAssertEqual(UpdateCheck.version(fromTag: "mac-v0.3.2"), [0, 3, 2])
+    }
+
+    func testPicksNewestPublishedMacRelease() {
+        let json = """
+        [
+          {"tag_name": "mac-v0.4.0", "draft": true, "prerelease": false, "html_url": "https://github.com/x/r/4", "assets": []},
+          {"tag_name": "ext-v9.0.0", "draft": false, "prerelease": false, "html_url": "https://github.com/x/r/e", "assets": []},
+          {"tag_name": "mac-v0.3.2", "draft": false, "prerelease": false, "html_url": "https://github.com/x/r/32",
+           "assets": [{"name": "Darnly.dmg", "browser_download_url": "https://github.com/x/d/Darnly.dmg"}]},
+          {"tag_name": "mac-v0.3.1", "draft": false, "prerelease": false, "html_url": "https://github.com/x/r/31", "assets": []}
+        ]
+        """.data(using: .utf8)!
+        let r = UpdateCheck.newer(than: "0.3.1", releasesJSON: json)
+        XCTAssertEqual(r?.version, "0.3.2")
+        XCTAssertEqual(r?.downloadURL.absoluteString, "https://github.com/x/d/Darnly.dmg")
+        XCTAssertNil(UpdateCheck.newer(than: "0.3.2", releasesJSON: json))
+        XCTAssertNil(UpdateCheck.newer(than: "0.3.1", releasesJSON: Data("not json".utf8)))
+    }
+}
