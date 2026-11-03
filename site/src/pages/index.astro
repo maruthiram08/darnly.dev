@@ -46,6 +46,7 @@ const jsonLd = JSON.stringify([
   },
 ]);
 import FixLoopVideo from '../components/FixLoopVideo.astro';
+import HeroLoop from '../components/HeroLoop.astro';
 ---
 <Base
   title="Darnly: Turn on-screen bugs into context for AI agents"
@@ -81,32 +82,7 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
           <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
       </div>
-      <div class="scene" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
-        <div class="browser">
-          <div class="bar"><i></i><i></i><i></i><span class="url">localhost:3000/plan</span></div>
-          <div class="app">
-            <div class="app-top"><b class="dot"></b><b>Acme Planner</b></div>
-            <div class="app-h">This week</div>
-            <div class="cards">
-              <div class="card"><b>Write launch post</b><span>Content</span></div>
-              <div class="card"><b>Record demo</b><span>Video</span></div>
-              <div class="card"><b>Invite testers</b><span>Community</span></div>
-            </div>
-            <div class="row">
-              <div class="target"><span class="tag">button · 103×39</span><span class="fakebtn">Save plan</span></div>
-              <span class="fakebtn ghost">Share</span>
-              <svg class="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l15 10-7 1.5L8.5 21z" fill="#0B2230" stroke="#FCFFFF" stroke-width="1.6" stroke-linejoin="round"/></svg>
-            </div>
-            <div class="hint">Click the broken part · Esc to cancel</div>
-          </div>
-        </div>
-        <div class="note">
-          <span class="note-label">What did you expect?</span>
-          <p>Save plan should be clickable and save my week<span class="caret"></span></p>
-          <span class="enter">Enter ↵</span>
-        </div>
-        <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed. Take a look.</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
-      </div>
+      <HeroLoop />
     </div>
   </div>
 </header>
