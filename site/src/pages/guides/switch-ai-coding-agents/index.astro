@@ -1,0 +1,40 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'switch-ai-coding-agents';
+const faq = [
+  { q: 'Can I use Claude Code, Codex and Cursor on the same project?', a: 'Yes. They all work on the same files. Keep the instructions they share in AGENTS.md, which Codex and Cursor read, and add a line <code>@AGENTS.md</code> to CLAUDE.md so Claude Code reads it too.' },
+  { q: 'What do I lose when I switch agents?', a: 'Anything that lives only inside the old tool: chat history, its own rules files, and habits tied to its browser or editor. Anything in your project folder comes with you.' },
+  { q: 'Does Darnly work the same in every agent?', a: 'Yes. You capture bugs the same way, and they land in the same <code>.darnly/inbox/</code> folder. You type <code>/darnly</code> in Claude Code or Cursor, or say "fix my bugs" in Codex. The cloud inbox works in any agent that can add an MCP server.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-03"
+  title="How to switch AI coding agents without losing your bugs"
+  description="Moving between Claude Code, Codex and Cursor? Keep your instructions in AGENTS.md and your bug list in your project, so the next agent picks up where the last one left off."
+  h1="How to switch AI coding agents and keep your bug list"
+  lede="To switch between Claude Code, Codex and Cursor without starting over, keep everything the agent needs in your project folder: shared instructions in AGENTS.md, and your list of bugs in files the next agent can read."
+  faq={faq}
+>
+  <p>New agents and new models come out every few weeks, and plans run out at different times. Lots of vibecoders use two or three agents. The trick is to keep what matters out of any one tool, so switching is just opening a different app.</p>
+
+  <h2>1. Put your instructions in AGENTS.md</h2>
+  <p>AGENTS.md is a plain file in the root of your project with notes for any coding agent: how to run the app, what not to touch, how you like things done. Codex and Cursor read it. For Claude Code, add one line to CLAUDE.md: <code>@AGENTS.md</code>. Now one file teaches every agent.</p>
+
+  <h2>2. Keep your bugs in the project, not in a chat</h2>
+  <p>A bug you described in last week's Cursor chat is gone when you open Claude Code. Keep bugs in files instead: a <code>BUGS.md</code> the agent ticks off, or a folder of reports. <a href="/guides/keep-a-list-of-bugs/">How to keep a list of bugs</a>.</p>
+
+  <h2>3. Use tools that don't belong to one agent</h2>
+  <p>Each agent now has its own browser: Claude in Chrome, Cursor's Design Mode, Codex for Chrome. They're useful, but the way you report bugs with each one stays behind when you switch. A bug capture that saves to your project works with all of them.</p>
+  <p><a href="/">Darnly</a> is built for that. You press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, click the broken part and say what you expected. The report lands in <code>.darnly/inbox/</code> in your project. Setup writes the AGENTS.md note, a <code>/darnly</code> command for Claude Code and Cursor, and in Codex you just say "fix my bugs". Change agents whenever you like. Your bug list comes with you.</p>
+
+  <h2>4. If your code isn't on your computer</h2>
+  <p>For apps built in the cloud, Darnly's optional cloud inbox holds your bugs, and any agent that can add an MCP server reads them at <code>https://api.darnly.dev/mcp</code>. <a href="/setup/">Setup for Claude Code, Cursor and Codex</a>.</p>
+
+  <h2>5. Switch in one step</h2>
+  <p>Open the new agent in the same project folder and say: "Read AGENTS.md, then fix the bugs in .darnly/inbox/." That's it. It picks up the same instructions and the same list.</p>
+
+  <p>Want your bug list to travel with you? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, it's free. Or read <a href="/why-darnly/">why Darnly when your agent already has a browser</a>.</p>
+</GuidePage>

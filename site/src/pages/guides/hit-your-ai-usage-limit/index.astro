@@ -1,0 +1,44 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'hit-your-ai-usage-limit';
+const faq = [
+  { q: 'What happens when I hit my Claude Code, Codex or Cursor limit?', a: 'The agent stops working, or slows down, until your plan\'s limit resets or you add more usage. How long that takes depends on your plan, and each tool shows it in its own settings or usage page.' },
+  { q: 'Does looking at a bug with my agent\'s browser use my limit?', a: 'Yes. When the agent opens a page, reads it, or takes a screenshot, that\'s part of its work, and it counts toward your usage like anything else the agent does.' },
+  { q: 'Does Darnly use my AI usage?', a: 'No. Capturing a bug with Darnly makes no AI calls. The usage happens later, when your agent fixes the bugs.' },
+  { q: 'Will fixing a batch of bugs use less usage than fixing them one by one?', a: 'We don\'t claim that. Our own benchmark found Darnly reports cost a bit more per bug than a pasted screenshot. What you gain is that testing never has to wait for your limit.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-03"
+  title="Hit your Claude Code or Cursor usage limit? Keep testing your app"
+  description="Out of Claude Code, Codex or Cursor usage? Keep testing your app and writing down bugs, so your agent can fix the whole list the moment your limit resets."
+  h1="Hit your AI usage limit? Keep finding bugs"
+  lede="When your coding agent hits its usage limit, stop coding but keep testing: click through your app, write down every bug in a way your agent can act on, and hand over the whole list the moment your limit resets."
+  faq={faq}
+  strip={{ lead: 'Out of usage right now?', text: 'Darnly captures bugs without any AI calls. Press one key, click the broken part, say what you expected. Your agent fixes the list when it\'s back.' }}
+>
+  <p>Every paid plan for Claude Code, Codex and Cursor has a usage limit. On busy days you hit it in the middle of building, and the agent stops. That's annoying, but it's also the best time to do the part of the work that needs you and not the agent: using your app like a real person would.</p>
+
+  <h2>1. Don't spend the wait asking the agent to look</h2>
+  <p>Agent browsers like Claude in Chrome or Codex for Chrome are great, but every page they open and every screenshot they take is part of the agent's work, so it uses the same limit. While you wait, you are the tester.</p>
+
+  <h2>2. Click through your app like a user</h2>
+  <p>Go through each main path: sign up, sign in, the main thing your app does, settings, and sign out. Try it narrow and wide. Type wrong things into forms. Our <a href="/guides/test-your-vibe-coded-app/">test-before-launch checklist</a> has the full list.</p>
+
+  <h2>3. Write each bug so the agent can act on it</h2>
+  <p>For each problem, note four things: the page, the exact part that's wrong, what you expected instead, and any red errors in the console. A vague note like "the menu is weird" costs you a round of questions later. <a href="/guides/write-a-bug-report-for-ai-agents/">A template for a good report</a>.</p>
+  <p>By hand, that's a screenshot, a note and a copied error for every bug. With <a href="/">Darnly</a> it's <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, a click on the broken part and one line. It saves the screenshot with a red box, the element, the page and the errors from the last 60 seconds, and makes no AI calls, so it works fine while you're out of usage.</p>
+
+  <h2>4. Keep them in one place</h2>
+  <p>Put every bug in one list the agent can read: a <code>BUGS.md</code> in your project, or Darnly's inbox, which fills up as you capture. <a href="/guides/keep-a-list-of-bugs/">How to keep a list of bugs across projects</a>.</p>
+
+  <h2>5. When your limit resets, fix them in one go</h2>
+  <p>Open your agent and hand over the list. With Darnly, type <code>/darnly</code> in Claude Code or Cursor, or say "fix my bugs" in Codex. The agent works through each report and tells you what it changed. If your plan has run out on one agent and you have another, the same reports work there too. <a href="/guides/switch-ai-coding-agents/">More on switching agents</a>.</p>
+
+  <div class="tip"><p><strong>Tip:</strong> if the agent can open a browser, ask it to check each fix on the page before it moves on. Darnly reports include a "How to check it's fixed" section for exactly that.</p></div>
+
+  <p>Want your waiting time to count? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>, it's free. Or read <a href="/why-darnly/">why Darnly when your agent already has a browser</a>.</p>
+</GuidePage>

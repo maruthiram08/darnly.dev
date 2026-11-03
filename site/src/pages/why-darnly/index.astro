@@ -1,0 +1,81 @@
+---
+// The answer to "my agent already has a browser, why would I need Darnly?". Claims checked on 3 November 2026.
+import GuidePage from '../../layouts/GuidePage.astro';
+import { storeUrl } from '../../data/site';
+
+const slug = 'why-darnly';
+const faq = [
+  { q: 'My agent already has a browser. Why would I need Darnly?', a: 'Your agent\'s browser is for when you\'re coding: the agent opens the page and you describe the bug in words, inside an open session. Darnly is for when you\'re not: you press one key, point at the bug, add one line, and it waits in an inbox until any agent fixes it.' },
+  { q: 'Does Darnly replace Claude in Chrome or Cursor\'s browser?', a: 'No. Use both. Darnly captures the bugs you find. The agent\'s browser is great for the agent opening the page afterwards to check its own fix, which Darnly doesn\'t do.' },
+  { q: 'Does Darnly work with more than one agent?', a: 'Yes. Reports are plain files in <code>.darnly/inbox/</code> that Claude Code, Codex and Cursor all read, and the optional cloud inbox works in any agent that can add an MCP server. Switch agents and your bug list stays the same. <a href="/guides/switch-ai-coding-agents/">How to switch agents and keep your bugs</a>.' },
+  { q: 'Does capturing a bug use my AI usage?', a: 'No. Capturing a bug with Darnly makes no AI calls, so you can keep reporting bugs after you hit your plan\'s limit. Your agent fixes them when the limit resets. <a href="/guides/hit-your-ai-usage-limit/">More on that</a>.' },
+  { q: 'Can several people share one Darnly inbox?', a: 'Not yet. Today the cloud inbox is yours, across all your projects and agents. Inviting testers or clients is planned.' },
+  { q: 'Does it work for mobile apps?', a: 'The Mac app captures bugs in Mac apps, the iOS Simulator and the Android Emulator, with their logs. It doesn\'t work on a real phone.' },
+];
+---
+<GuidePage
+  slug={slug}
+  path="/why-darnly/"
+  crumb={null}
+  updated="2026-11-03"
+  title="Why Darnly when your AI agent already has a browser"
+  description="Claude in Chrome, Cursor and Codex let your agent open a browser. Darnly lets you point at bugs while you test, queue them, and have any agent fix them later."
+  h1="Why Darnly when your agent has a browser"
+  lede="Your agent's browser is for when you're coding. Darnly is for when you're not: you spot bugs while you use or test your app, a few seconds each, and any agent fixes them all later in one go."
+  faq={faq}
+  strip={{ lead: 'Testing your app today?', text: 'Darnly is a free Chrome extension and Mac app. Press one key, click the broken part, say what you expected. The bug waits in your inbox until Claude Code, Codex or Cursor fixes it.' }}
+  sources={[
+    { name: 'Use Claude Code with Chrome (Anthropic docs)', url: 'https://code.claude.com/docs/en/chrome' },
+    { name: 'Cursor: a visual editor for the Cursor Browser (December 2025)', url: 'https://cursor.com/blog/browser-visual-editor' },
+    { name: 'Cursor Design Mode explained (Cursor 3, April 2026)', url: 'https://pasqualepillitteri.it/en/news/3794/cursor-design-mode-what-it-is-how-it-works-cursor-3' },
+    { name: 'OpenAI debuts a Codex plugin for Chrome (Engadget, May 2026)', url: 'https://engadget.com/2167480/openai-debuts-a-codex-plugin-for-chrome' },
+    { name: 'VS Code integrated browser docs', url: 'https://code.visualstudio.com/docs/debugtest/integrated-browser' },
+  ]}
+>
+  <p>Claude Code can drive your Chrome. Cursor has a browser with a visual editor. Codex has a Chrome plugin, and VS Code has a browser you can pick elements in. So it's fair to ask what a bug capture tool adds. We checked what each one does today and kept only the reasons that held up.</p>
+
+  <h2>What the agents' browsers do today</h2>
+  <p>All of them can open your live site with your sign-ins. In every one, you work inside an open session with that agent, and either the agent drives or you describe the change in its chat.</p>
+  <div class="table"><table>
+    <thead><tr><th>Tool</th><th>How it works</th><th>What it needs</th><th>Queue bugs for later?</th></tr></thead>
+    <tbody>
+      <tr><td><a href="/guides/darnly-vs-claude-in-chrome/">Claude in Chrome</a> with Claude Code</td><td>The agent opens tabs, clicks, reads the console and the page</td><td>A Claude Code session with Chrome connected, and a paid Claude plan</td><td>No</td></tr>
+      <tr><td><a href="/guides/darnly-vs-cursor-design-mode/">Cursor's visual editor and Design Mode</a></td><td>You click or annotate an element in Cursor's browser and the agent edits the code</td><td>Cursor open, with your app running in its browser</td><td>No</td></tr>
+      <tr><td>Codex for Chrome</td><td>The agent tests your app, reads tabs and uses DevTools</td><td>The Codex app</td><td>No</td></tr>
+      <tr><td>VS Code's integrated browser</td><td>You add an element to the chat or comment on it, on any URL</td><td>VS Code open, with a chat session</td><td>No</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Six reasons to use Darnly anyway</h2>
+
+  <h3>1. Switch agents, keep your workflow</h3>
+  <p>Each agent's browser ties you to that agent. Darnly's key, panel and inbox are the same whether you fix bugs in Claude Code, Codex or Cursor this month. Reports are plain files in your project, so the next agent you try reads them too. Change agents whenever you like. Your bug list comes with you. <a href="/guides/switch-ai-coding-agents/">How to switch agents without losing your bugs</a>.</p>
+
+  <h3>2. No session, no typing it out</h3>
+  <p>With an agent's browser you open a session and describe the bug in words: which page, which button, what looks wrong. With Darnly you press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, click the broken part, and add one line on what you expected. The screenshot, the element and the recent errors are saved for you.</p>
+
+  <h3>3. Spot it now, fix it later</h3>
+  <p>Bugs wait in an inbox until you sit down to fix. None of the agent browsers above keeps a list of bugs for later. So you can click through your whole app, capture ten things, and then type <code>/darnly</code> once to have them fixed in one go.</p>
+
+  <h3>4. It saves the moment</h3>
+  <p>The report keeps what you saw: the page you were on, what you were signed in as, the data on screen, console errors and failed requests from the last 60 seconds. An agent opening a fresh tab often can't make a bug that only shows up sometimes happen again. Darnly saves the bug the moment you see it, even if it never happens again.</p>
+
+  <h3>5. One inbox for all your projects and agents</h3>
+  <p>The optional cloud inbox holds bugs from every project, and any agent that supports MCP can read it at <code>https://api.darnly.dev/mcp</code>. Each agent lists only the bugs for the project it's working on. <a href="/setup/">How to set it up</a>.</p>
+
+  <h3>6. Out of quota? Keep finding bugs</h3>
+  <p>An agent's browser spends your usage just to look at a bug, and stops when you hit your plan's limit. Capturing with Darnly makes no AI calls. Keep testing, and your agent fixes the list when your limit resets. <a href="/guides/hit-your-ai-usage-limit/">What to do when you hit your limit</a>.</p>
+
+  <p>It also works outside the browser. <a href="/#mac">Darnly for Mac</a> captures bugs in Mac apps, the iOS Simulator and the Android Emulator, with their logs. You point at the bug instead of explaining it. And it's free to use.</p>
+
+  <h2>When you don't need Darnly</h2>
+  <ul>
+    <li><strong>You only find bugs while you code.</strong> If you sit in your editor with the dev server running and spot problems as the agent works, its own browser is right there.</li>
+    <li><strong>The bug is easy to say in one sentence.</strong> "The signup form errors on submit" is enough for an agent with a browser to go and find it.</li>
+    <li><strong>You want the agent to check its own fix.</strong> Agent browsers can open the page after a change and look. Darnly doesn't do that step. It's the reason to use both.</li>
+  </ul>
+
+  <h2>Use both</h2>
+  <p>The loop we recommend: test your app like a user and capture every bug with Darnly as you go. Later, open your agent and type <code>/darnly</code>. Each report has a "How to check it's fixed" section, so an agent with a browser (Claude in Chrome, Chrome DevTools MCP or Playwright) opens the page and checks its own fix before it marks the bug done. You take a last look. <a href="/guides/test-your-vibe-coded-app/">How to test your app before launch</a>.</p>
+  <p>Want to try it on your next bug? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>.</p>
+</GuidePage>
