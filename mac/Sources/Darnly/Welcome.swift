@@ -141,9 +141,15 @@ struct WelcomeView: View {
                         }
                     } else {
                         HStack {
-                            Text(model.cloudEmail.map { "Signed in as **\($0)**. Bugs go to your private Darnly inbox." } ?? "Claude, Codex or Cursor online: sign in once, then add the Darnly connector (api.darnly.dev/mcp) in your agent.")
-                                .foregroundStyle(Color.inkSoft)
-                                .fixedSize(horizontal: false, vertical: true)
+                            Group {
+                                if let email = model.cloudEmail {
+                                    Text("Signed in as **\(email)**. Bugs go to your private Darnly inbox.")
+                                } else {
+                                    Text("Claude, Codex or Cursor online: sign in once, then add the Darnly connector (api.darnly.dev/mcp) in your agent.")
+                                }
+                            }
+                            .foregroundStyle(Color.inkSoft)
+                            .fixedSize(horizontal: false, vertical: true)
                             Spacer()
                             if model.cloudEmail == nil { Button("Sign in with Google…") { model.signIn() }.buttonStyle(.borderedProminent) }
                         }
