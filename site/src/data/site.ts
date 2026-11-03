@@ -603,4 +603,7 @@ export const GUIDES: Item[] = [
   { slug: 'darnly-vs-cursor-design-mode', name: 'Darnly vs Cursor Design Mode', blurb: 'Live tweaks inside Cursor while you build, or a bug list from your normal browser for any agent.' },
   { slug: 'hit-your-ai-usage-limit', name: 'Hit your AI usage limit? Keep finding bugs', blurb: 'Out of Claude Code, Codex or Cursor usage? Test your app now and hand over the list when it resets.' },
   { slug: 'switch-ai-coding-agents', name: 'How to switch AI coding agents and keep your bug list', blurb: 'AGENTS.md for instructions, your bugs in the project, so the next agent picks up where the last left off.' },
+  { slug: 'report-a-bug-to-lovable', name: 'How to report a bug to Lovable', blurb: 'A marked screenshot, the page and what you expected, pasted into Lovable\u2019s chat.' },
+  { slug: 'report-a-bug-to-bolt', name: 'How to report a bug to Bolt', blurb: 'Attach a marked screenshot within Bolt\u2019s limits, plus the page, what you expected and the errors.' },
+  { slug: 'report-a-bug-to-v0', name: 'How to report a bug to v0', blurb: 'Paste a marked screenshot into v0 and point it at the one component to fix.' },
 ];

@@ -1,0 +1,46 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'report-a-bug-to-lovable';
+const faq = [
+  { q: 'Can I paste a screenshot into Lovable?', a: 'Yes. Lovable\'s docs say you can paste an image into the chat, drag it in, or use Attach files in the Chat actions menu. There is also Take a screenshot under Add context.' },
+  { q: 'How many images can I attach in Lovable?', a: 'Lovable\'s docs list up to 10 files per message, with images up to 15 MB in total per message. It compresses large images for you.' },
+  { q: 'Should I use Lovable\'s Select elements or Darnly?', a: 'For a change you make inside the Lovable preview, Lovable\'s own Select elements is the quickest. Darnly helps when you find the bug on your published site or another browser tab, or when the cause is a console error or failed request the picture can\'t show.' },
+  { q: 'What should a bug report to Lovable include?', a: 'A screenshot with the broken part marked, the page it is on, what you did, what happened, what you expected, and any red console errors.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Chrome extension is free, and Copy picture and Copy details work without an account.' },
+];
+const sources = [
+  { name: 'Lovable docs: using images', url: 'https://docs.lovable.dev/tips-tricks/using-images' },
+  { name: 'Lovable docs: chat', url: 'https://docs.lovable.dev/features/projects/chat' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="How to report a bug to Lovable with a screenshot · Darnly"
+  description="Give Lovable a marked screenshot, the page, what you expected and any console errors, so it fixes the right thing. The manual way and a one-key way."
+  h1="How to report a bug to Lovable (with a screenshot)"
+  lede="To report a bug to Lovable, paste a screenshot with the broken part marked into the Lovable chat, say which page it is on and what you expected, and paste any red console errors."
+  faq={faq}
+  sources={sources}
+>
+  <p>Lovable builds fast, and it fixes fast too, when it knows exactly what you mean. "The button is broken" makes it guess. A marked picture and one clear sentence usually don't.</p>
+
+  <h2>Step by step, by hand</h2>
+  <ol>
+    <li><strong>Make the bug happen once more.</strong> Note what you clicked, in order.</li>
+    <li><strong>Take a screenshot and mark the broken part.</strong> Lovable's chat lets you attach a picture and click <strong>Draw</strong> to mark it up before you send.</li>
+    <li><strong>Add it to the chat.</strong> Paste it, drag it in, or use <strong>Attach files</strong> in the Chat actions menu.</li>
+    <li><strong>Say what you expected.</strong> One sentence. "The Sign up button should open the form, like the one in the header does."</li>
+    <li><strong>Say how far the fix should go.</strong> "Only this page" or "every page". It saves a round of questions.</li>
+    <li><strong>Add the clues a picture can't show.</strong> If nothing visible happens, open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows) and paste the red lines. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
+  </ol>
+
+  <h2>Lovable's own Select elements</h2>
+  <p>Inside the Lovable preview, the <strong>Select elements</strong> tool in the preview toolbar lets you pick an element and describe the change. For tweaks while you build, that is the quickest route. It only works in the preview, though. Bugs you find on your published site, on your phone, or while testing a real sign-up still need a screenshot and a note.</p>
+
+  <h2>The one-key way with Darnly</h2>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that makes the screenshot and the note together, on any page, including your published Lovable site. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected and press Enter.</p>
+  <p>Then click <strong>1. Copy picture</strong> and paste it into Lovable's chat, and <strong>2. Copy details</strong> and paste that too. The picture has the broken part boxed in red with your note on it. The details hold the page address, the element's text and styles, and failed requests from the last 60 seconds, plus console errors if you switched on <strong>Record errors on this site</strong>. Passwords, card numbers, tokens and keys are hidden before anything is copied.</p>
+  <p>Darnly doesn't make Lovable smarter. A good screenshot and sentence often get the same fix. What it saves is the hand-over: one key instead of screenshot, crop, mark, find the console, copy, paste. See <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a>.</p>
+</GuidePage>
