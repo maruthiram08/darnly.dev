@@ -92,10 +92,8 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         stack.wantsLayer = true
         stack.layer?.backgroundColor = Brand.page.cgColor
 
-        // Header: the ladybug and what was picked.
-        let bug = NSImageView(image: NSImage(systemSymbolName: "ladybug.fill", accessibilityDescription: nil) ?? NSImage())
-        bug.contentTintColor = Brand.pink
-        bug.symbolConfiguration = .init(pointSize: 15, weight: .semibold)
+        // Header: Darnly's logo and a title.
+        let bug = NSImageView(image: Brand.logo(size: 20, template: false))
         let title = label("New bug", size: 15, weight: .bold, color: Brand.ink)
         let header = NSStackView(views: [bug, title])
         header.spacing = 6

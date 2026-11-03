@@ -60,3 +60,32 @@ extension NSButton {
         return b
     }
 }
+
+extension Brand {
+    /// The red of the box in Darnly's app icon.
+    static let mark = NSColor(hex: 0xE11D48)
+
+    /// Darnly's logo: a rounded box with a dot on its lower right corner, the way a capture marks a bug.
+    /// `template: true` draws it in black for the menu bar, where macOS tints it to match light or dark menu bars.
+    static func logo(size: CGFloat = 18, template: Bool = true) -> NSImage {
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { r in
+            let s = r.width / 18                          // drawn on an 18-point grid
+            let color = template ? NSColor.black : Brand.mark
+            let box = NSBezierPath(roundedRect: NSRect(x: 2.5 * s, y: 2.5 * s, width: 11.5 * s, height: 11.5 * s), xRadius: 2.2 * s, yRadius: 2.2 * s)
+            box.lineWidth = 2 * s
+            color.setStroke()
+            box.stroke()
+            // Clear a ring around the dot, then draw the dot, like the white ring on the app icon.
+            let centre = NSPoint(x: 13.6 * s, y: 13.6 * s)
+            NSGraphicsContext.current?.compositingOperation = .clear
+            NSBezierPath(ovalIn: NSRect(x: centre.x - 4.2 * s, y: centre.y - 4.2 * s, width: 8.4 * s, height: 8.4 * s)).fill()
+            NSGraphicsContext.current?.compositingOperation = .sourceOver
+            color.setFill()
+            NSBezierPath(ovalIn: NSRect(x: centre.x - 2.7 * s, y: centre.y - 2.7 * s, width: 5.4 * s, height: 5.4 * s)).fill()
+            return true
+        }
+        image.isTemplate = template
+        image.accessibilityDescription = "Darnly"
+        return image
+    }
+}

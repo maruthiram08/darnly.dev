@@ -200,7 +200,7 @@ struct WelcomeView: View {
             }
 
             HStack {
-                Image(systemName: "ladybug.fill").foregroundStyle(Color.pink)
+                Image(nsImage: Brand.logo(size: 18, template: false))
                 Text("Darnly lives in the menu bar. Reopen this from its menu: How to use Darnly.")
                     .font(.caption).foregroundStyle(Color.inkSoft)
                 Spacer()
