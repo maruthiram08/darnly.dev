@@ -3,7 +3,7 @@
 import Base from '../layouts/Base.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SetupPrompt from '../components/SetupPrompt.astro';
-import { MAC_DMG_URL, STORE_URL, TOOLS, storeUrl } from '../data/site';
+import { STORE_URL, TOOLS, storeUrl } from '../data/site';
 import '../styles/home.css';
 
 // A few popular free tools for the strip above the footer; any slug that's gone is skipped.
@@ -49,8 +49,8 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
 ---
 <Base
   title="Darnly: Turn on-screen bugs into context for AI agents"
-  description="For fixing the details in designs your AI made. Press a key, click what's off, say what you want: Darnly hands Claude Code, Codex or Cursor the screenshot, the element, its styles and the recent errors."
-  ogDescription="For fixing the details in designs your AI made. Point at what's off; your agent changes just that."
+  description="Spot a bug, press a key, click it. Darnly hands your AI coding agent the screenshot, the element and the recent errors, so it can find and fix it."
+  ogDescription="Spot a bug, press a key, click it. Your AI coding agent gets everything it needs to fix it."
 >
 <script slot="head" type="application/ld+json" set:html={jsonLd} />
 
@@ -71,8 +71,8 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
     <div class="hero-grid" id="top">
       <div>
         <a class="news" href="/changelog/"><b>New in 0.3.1</b> Type /darnly, then "Take a look" when it's fixed →</a>
-        <h1>Your AI made it. <em>Point at what's off.</em> It fixes just that.</h1>
-        <p class="lede">For fixing the details, and the bugs, in what your AI built. Press one key, click what's off, say what you want. Claude Code, Codex or Cursor gets the screenshot, the exact element, its styles and the recent errors.</p>
+        <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
+        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor the screenshot, the exact element and the recent errors, without breaking your flow.</p>
         <div class="cta">
           <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
           <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
@@ -234,10 +234,7 @@ and save my week
           <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
           <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
         </ul>
-        <div class="cta">
-          <a class="btn btn-primary" href={MAC_DMG_URL}>Download for Mac</a>
-        </div>
-        <p class="intro">For macOS 14 or later. Open the download, drag Darnly to Applications, and it walks you through the rest. Or with Homebrew: <code>brew install --cask maruthiram08/darnly/darnly</code></p>
+        <p class="intro">Early access: write to <span class="mail-inline">hello@darnly.dev</span> for the Mac download.</p>
       </div>
       <div class="file" role="figure" aria-label="Example bug report from the Mac app">
         <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
