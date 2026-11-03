@@ -185,6 +185,7 @@ struct WelcomeView: View {
                     Text(model.destination == .cloud ? "In your agent, say" : "In your agent, in that project, type").foregroundStyle(Color.inkSoft)
                     Text(agentPrompt)
                         .font(.system(.body, design: .monospaced))
+                        .fixedSize()
                         .foregroundStyle(Color.ink)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(RoundedRectangle(cornerRadius: 6).fill(Color.wash))
