@@ -2,9 +2,11 @@
 
 A menu bar app for bugs that aren't in a browser: Mac apps, the iOS Simulator and the Android Emulator.
 
+Click the Darnly icon in the menu bar for its panel: a Capture button, where bugs go (this Mac or the cloud inbox), and your recent bugs, each marked Waiting until your agent moves it to `.darnly/done`, then Fixed. Right-click the icon for the full menu.
+
 Press **Option+Shift+D**, click the broken part, type what you expected, press Enter. The report lands in your project's `.darnly/inbox/`, the same folder and format the Chrome extension uses, so your coding agent already knows what to do with it.
 
-Agent in the cloud (Claude, Codex or Cursor online)? Choose **In the cloud** on the welcome screen (or **Cloud inbox** in the menu) and sign in with Google once. Captures then go to your private Darnly cloud inbox, the same one the Chrome extension uses, and the agent reads them through the Darnly connector at `https://api.darnly.dev/mcp`. If an upload fails, the bug is saved to the project folder (or `~/Darnly/.darnly/inbox`) instead. The session token is kept in the macOS Keychain.
+Agent in the cloud (Claude, Codex or Cursor online)? Choose **In the cloud** on the welcome screen (or **Cloud inbox** in the panel) and sign in with Google once. Captures then go to your private Darnly cloud inbox, the same one the Chrome extension uses, and the agent reads them through the Darnly connector at `https://api.darnly.dev/mcp`. If an upload fails, the bug is saved to the project folder (or `~/Darnly/.darnly/inbox`) instead. The session token is kept in the macOS Keychain.
 
 Each report has:
 - a screenshot of that window, with a red box around the element and a ring where you clicked;
@@ -32,6 +34,10 @@ On first launch a welcome screen walks you through choosing the project folder, 
 - **Screen Recording**, for the screenshot.
 
 When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or Xcode. Use `Darnly.app` to see it as Darnly.
+
+## Updates
+
+A few seconds after launch, and once a day after that, Darnly asks GitHub for the newest `mac-v*` release (drafts and pre-releases are skipped). If it's newer than the running version, the menu gets **Update available: Darnly x.y.z…** at the top and a short note appears once. Clicking it opens the DMG download, or, if Darnly was installed with Homebrew, copies `brew upgrade --cask darnly`. **Check for updates…** in the menu asks right away. Builds run with `swift run` don't check. So users see an update, publish the release (below) and bump the cask.
 
 ## Share it (signed DMG)
 
