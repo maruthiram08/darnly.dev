@@ -2,6 +2,9 @@
 export const STORE_URL = 'https://chromewebstore.google.com/detail/darnly/gognoljafcabnmbbpfoeeamcflpbgidj';
 
 // Chrome Web Store link tagged with the page it came from, so installs can be counted per page.
+/** The signed, notarized Mac app: the newest GitHub release's Darnly.dmg (see mac/README.md, Share it). */
+export const MAC_DMG_URL = 'https://github.com/maruthiram08/darnly.dev/releases/latest/download/Darnly.dmg';
+
 export const storeUrl = (source: string) => `${STORE_URL}?utm_source=${encodeURIComponent(source)}`;
 
 // Tool groups on /tools/, in the footer and in "More free tools", in this order.
