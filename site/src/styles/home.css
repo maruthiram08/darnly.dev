@@ -131,6 +131,7 @@ section.tools-strip { padding-bottom: 0; }
 .final p { color: rgba(252, 255, 255, 0.9); max-width: 66ch; }
 .mail-inline { font: 500 0.95em/1 var(--mono); user-select: all; color: var(--ink); }
 .report li code { font: 0.9em var(--mono); }
+.report .intro code { font: 0.88em var(--mono); background: var(--white); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 .mail { font: 500 16px/1 var(--mono); user-select: all; background: rgba(252, 255, 255, 0.16); padding: 10px 14px; border-radius: 10px; }
 
 

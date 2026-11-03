@@ -49,6 +49,8 @@ Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.3.2 ./scripts/make-dmg
 
 To publish it: on GitHub, **Releases → Draft a new release**, tag `mac-v<version>` (for example `mac-v0.3.1`), title `Darnly for Mac <version>`, attach `build/Darnly.dmg`, and publish. darnly.dev's **Download for Mac** link (`releases/latest/download/Darnly.dmg`) then serves it. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
 
+Homebrew: `brew install --cask maruthiram08/darnly/darnly`. For each release, update version and sha256 in `Casks/darnly.rb` in [maruthiram08/homebrew-darnly](https://github.com/maruthiram08/homebrew-darnly) (and in `homebrew/darnly.rb` here) to what make-dmg.sh prints.
+
 Why not the Mac App Store: App Store apps must run sandboxed, and a sandboxed app can't read other apps' accessibility elements or run `simctl`, `adb` or `log`, which is what Darnly needs. A notarized download plus Homebrew is how most Mac developer tools ship.
 
 ## Set up the coding agent
@@ -68,7 +70,3 @@ Menu bar and notch apps work too: open the app's panel first, then press Option+
 ## Tests
 
 `swift test` runs the report, redaction, log-parsing, project-name and agent-setup tests. GitHub Actions runs them on every change under `mac/`, uploads an unsigned `Darnly-mac` zip, and draws the welcome screen and note box (`Darnly --snapshot <folder>`) to the `mac-ui-pictures` branch for review.
-
-## Not yet
-
-- Homebrew: the cask is ready in `homebrew/darnly.rb`; it needs a tap repo (for example `darnlyhq/homebrew-tap`) once the first release is up.
