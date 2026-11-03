@@ -9,6 +9,8 @@ on:
 jobs:
   build-and-test:
     runs-on: macos-15
+    permissions:
+      contents: write   # only to push the UI pictures to the mac-ui-pictures branch
     defaults:
       run:
         working-directory: mac
@@ -20,7 +22,23 @@ jobs:
         run: swift test
       - name: Build Darnly.app
         run: ./scripts/make-app.sh
+      - name: Pictures of the UI (welcome screen, note box)
+        run: build/Darnly.app/Contents/MacOS/Darnly --snapshot "$PWD/build/ui"
       - uses: actions/upload-artifact@v4
         with:
           name: Darnly-mac
           path: mac/build/Darnly-mac-*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Darnly-mac-ui
+          path: mac/build/ui/*.png
+      - name: Keep the UI pictures on the mac-ui-pictures branch, for review without downloading artifacts
+        if: github.event_name == 'push'
+        working-directory: mac/build/ui
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q -b mac-ui-pictures
+          git add *.png
+          git -c user.name="darnly-ci" -c user.email="ci@darnly.dev" commit -qm "Mac UI pictures for ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" mac-ui-pictures

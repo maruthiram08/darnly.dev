@@ -5,6 +5,8 @@ struct NoteResult {
     var note: String
     /// PNG of a picture the user pasted or dropped: what it should look like.
     var reference: Data?
+    /// The cloud project the bug goes under (cloud inbox only).
+    var project: String?
 }
 
 /// The note box. Pasting or dropping a picture adds it as "what it should look like"; text pastes as text.
@@ -44,77 +46,155 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
     private var window: NSPanel?
     private var textView: NoteTextView?
     private var referenceLabel: NSTextField?
+    private var projectField: NSTextField?
     private var reference: Data?
     private var completion: ((NoteResult?) -> Void)?
 
     /// Largest side of a saved reference picture, in pixels. Big enough to read, small enough for an agent.
     static let maxReferenceSide: CGFloat = 1600
 
-    func show(image: NSImage?, summary: String, completion: @escaping (NoteResult?) -> Void) {
+    func show(image: NSImage?, summary: String, project: String? = nil, completion: @escaping (NoteResult?) -> Void) {
         self.completion = completion
         reference = nil
-        let width: CGFloat = 420
-        let previewHeight: CGFloat = image.map { min(260, width * $0.size.height / max($0.size.width, 1)) } ?? 0
-        let height = previewHeight + 230
-        let panel = NSPanel(contentRect: CGRect(x: 0, y: 0, width: width + 32, height: height), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let content = makeContent(image: image, summary: summary, project: project)
+        let panel = NSPanel(contentRect: CGRect(origin: .zero, size: content.fittingSize), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = "Darnly"
         panel.level = .floating
         panel.delegate = self
+        panel.appearance = Brand.appearance
+        panel.backgroundColor = Brand.page
+        panel.contentView = content
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+        if let tv = textView { panel.makeFirstResponder(tv) }
+        NSApp.activate(ignoringOtherApps: true)
+        window = panel
+    }
+
+    private func label(_ text: String, size: CGFloat = 11, weight: NSFont.Weight = .regular, color: NSColor = Brand.inkSoft) -> NSTextField {
+        let l = NSTextField(labelWithString: text)
+        l.font = .systemFont(ofSize: size, weight: weight)
+        l.textColor = color
+        return l
+    }
+
+    /// The panel's contents: the marked screenshot, what was picked, the note box. Also drawn by `--snapshot`.
+    func makeContent(image: NSImage?, summary: String, project: String? = nil) -> NSView {
+        let width: CGFloat = 440
+        let previewHeight: CGFloat = image.map { min(260, width * $0.size.height / max($0.size.width, 1)) } ?? 0
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 8
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        stack.spacing = 10
+        stack.edgeInsets = NSEdgeInsets(top: 18, left: 18, bottom: 18, right: 18)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.widthAnchor.constraint(equalToConstant: width + 36).isActive = true
+        stack.wantsLayer = true
+        stack.layer?.backgroundColor = Brand.page.cgColor
+
+        // Header: Darnly's logo and a title.
+        let bug = NSImageView(image: Brand.logo(size: 20, template: false))
+        let title = label("New bug", size: 15, weight: .bold, color: Brand.ink)
+        let header = NSStackView(views: [bug, title])
+        header.spacing = 6
+        stack.addArrangedSubview(header)
+
         if let image {
             let iv = NSImageView(image: image)
             iv.imageScaling = .scaleProportionallyUpOrDown
+            iv.wantsLayer = true
+            iv.layer?.cornerRadius = 8
+            iv.layer?.masksToBounds = true
+            iv.layer?.borderWidth = 1
+            iv.layer?.borderColor = Brand.line.cgColor
+            iv.layer?.backgroundColor = NSColor.white.cgColor
             iv.translatesAutoresizingMaskIntoConstraints = false
             iv.widthAnchor.constraint(equalToConstant: width).isActive = true
             iv.heightAnchor.constraint(equalToConstant: previewHeight).isActive = true
             stack.addArrangedSubview(iv)
         }
-        let info = NSTextField(labelWithString: summary)
-        info.textColor = .secondaryLabelColor
-        info.font = .systemFont(ofSize: 11)
+        let info = label(summary)
         info.lineBreakMode = .byTruncatingTail
         info.widthAnchor.constraint(equalToConstant: width).isActive = true
         stack.addArrangedSubview(info)
-        stack.addArrangedSubview(NSTextField(labelWithString: "What did you expect?"))
+        stack.setCustomSpacing(14, after: info)
+
+        stack.addArrangedSubview(label("What did you expect?", size: 13, weight: .semibold, color: Brand.ink))
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.widthAnchor.constraint(equalToConstant: width).isActive = true
-        scroll.heightAnchor.constraint(equalToConstant: 64).isActive = true
-        let tv = NoteTextView(frame: CGRect(x: 0, y: 0, width: width, height: 64))
+        scroll.borderType = .noBorder
+        scroll.drawsBackground = false
+        // The note box: white, rounded, a sky-blue edge.
+        let box = NSBox()
+        box.boxType = .custom
+        box.titlePosition = .noTitle
+        box.borderColor = Brand.sky
+        box.borderWidth = 1
+        box.cornerRadius = 8
+        box.fillColor = .white
+        box.contentViewMargins = NSSize(width: 2, height: 2)
+        box.contentView = scroll
+        box.translatesAutoresizingMaskIntoConstraints = false
+        box.widthAnchor.constraint(equalToConstant: width).isActive = true
+        box.heightAnchor.constraint(equalToConstant: 76).isActive = true
+        let tv = NoteTextView(frame: CGRect(x: 0, y: 0, width: width, height: 72))
         tv.autoresizingMask = [.width]
         tv.isVerticallyResizable = true
-        tv.minSize = NSSize(width: 0, height: 64)
+        tv.minSize = NSSize(width: 0, height: 72)
         tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         tv.textContainer?.widthTracksTextView = true
+        tv.textContainerInset = NSSize(width: 6, height: 8)
         tv.font = .systemFont(ofSize: 13)
+        tv.textColor = Brand.ink
+        tv.backgroundColor = .white
+        tv.insertionPointColor = Brand.sky
         tv.delegate = self
         tv.isRichText = false
         tv.onImage = { [weak self] in self?.setReference($0) }
         scroll.documentView = tv
-        stack.addArrangedSubview(scroll)
-        let ref = NSTextField(labelWithString: "")
-        ref.font = .systemFont(ofSize: 11)
-        ref.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(box)
+        let ref = label("")
         stack.addArrangedSubview(ref)
-        let hint = NSTextField(labelWithString: "Enter to save · Shift+Enter for a new line · Esc to cancel")
-        hint.textColor = .tertiaryLabelColor
-        hint.font = .systemFont(ofSize: 11)
-        stack.addArrangedSubview(hint)
-        panel.contentView = stack
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        panel.makeFirstResponder(tv)
-        NSApp.activate(ignoringOtherApps: true)
-        window = panel
+
+        if let project {
+            // Cloud inbox: the project this bug goes under, guessed once and remembered per app. Editing is optional.
+            let field = NSTextField(string: project)
+            field.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+            field.textColor = Brand.ink
+            field.placeholderString = "project name"
+            field.widthAnchor.constraint(equalToConstant: 180).isActive = true
+            field.toolTip = "Your agent lists the cloud bugs of its project. Darnly remembers this name for the app."
+            let row = NSStackView(views: [label("Project", size: 12, weight: .semibold, color: Brand.ink), field])
+            row.spacing = 8
+            stack.addArrangedSubview(row)
+            projectField = field
+        } else {
+            projectField = nil
+        }
+
+        let hint = label("Enter saves · Shift+Enter new line · Esc cancels", color: Brand.inkSoft.withAlphaComponent(0.75))
+        let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
+        cancel.bezelStyle = .rounded
+        let save = NSButton.brand("Save bug", target: self, action: #selector(saveClicked))
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        let footer = NSStackView(views: [hint, spacer, cancel, save])
+        footer.spacing = 8
+        footer.widthAnchor.constraint(equalToConstant: width).isActive = true
+        stack.setCustomSpacing(14, after: stack.arrangedSubviews.last!)
+        stack.addArrangedSubview(footer)
+
         textView = tv
         referenceLabel = ref
         showReferenceState()
+        return stack
+    }
+
+    @objc private func saveClicked() { finish(currentResult()) }
+    @objc private func cancelClicked() { finish(nil) }
+
+    private func currentResult() -> NoteResult {
+        NoteResult(note: textView?.string ?? "", reference: reference, project: projectField?.stringValue)
     }
 
     private func setReference(_ image: NSImage) {
@@ -124,7 +204,7 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
 
     private func showReferenceState() {
         referenceLabel?.stringValue = reference != nil
-            ? "✓ Picture of what you want added. Paste another to replace it."
+            ? "✓ Picture of what it should look like added. Paste another to replace it."
             : "Optional: paste or drop a picture of what it should look like."
     }
 
@@ -145,7 +225,7 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
     func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
         if selector == #selector(NSResponder.insertNewline(_:)) {
             if NSApp.currentEvent?.modifierFlags.contains(.shift) == true { return false }
-            finish(NoteResult(note: textView.string, reference: reference))
+            finish(currentResult())
             return true
         }
         if selector == #selector(NSResponder.cancelOperation(_:)) {
