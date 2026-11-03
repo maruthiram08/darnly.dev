@@ -81,7 +81,7 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
           <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
       </div>
-      <div class="scene" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
+      <div class="scene play" role="img" aria-label="Darnly in action: a broken Save plan button boxed in red, a note saying what was expected, and the agent reporting it fixed.">
         <div class="browser">
           <div class="bar"><i></i><i></i><i></i><span class="url">localhost:3000/plan</span></div>
           <div class="app">
@@ -102,7 +102,7 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
         </div>
         <div class="note">
           <span class="note-label">What did you expect?</span>
-          <p>Save plan should be clickable and save my week<span class="caret"></span></p>
+          <p>{"Save plan should be clickable and save my week".split(" ").map((w, i) => <span class="w" style={`--i:${i}`}>{w} </span>)}<span class="caret"></span></p>
           <span class="enter">Enter ↵</span>
         </div>
         <div class="toast"><span class="tick">✓</span><div><b>1 bug fixed. Take a look.</b><span>PlanBar.tsx · removed pointer-events: none</span></div></div>
