@@ -249,11 +249,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         let bundleId = NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier
-        let project = Destination.current == .cloud ? cloudProject(for: window.ownerName, bundleId: bundleId) : nil
+        let cloudGuess = Destination.current == .cloud ? cloudProject(for: window.ownerName, bundleId: bundleId) : nil
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
         let result: NoteResult? = await withCheckedContinuation { cont in
             notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary,
-                           project: project) { cont.resume(returning: $0) }
+                           project: cloudGuess) { cont.resume(returning: $0) }
         }
         guard let result else { return }
         let note = result.note
@@ -269,7 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Destination.current == .cloud {
             var forCloud = capture
             forCloud.forCloud = true
-            let sendProject = ProjectName.clean(result.project ?? "").isEmpty ? project : result.project
+            let sendProject = ProjectName.clean(result.project ?? "").isEmpty ? cloudGuess : result.project
             if let sendProject { saveCloudProject(sendProject, for: window.ownerName, bundleId: bundleId) }
             let parts = Cloud.uploadParts(title: title, appName: window.ownerName, project: sendProject, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
             do {
