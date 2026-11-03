@@ -3,7 +3,7 @@
 import Base from '../layouts/Base.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SetupPrompt from '../components/SetupPrompt.astro';
-import { STORE_URL, TOOLS, storeUrl } from '../data/site';
+import { MAC_DMG_URL, STORE_URL, TOOLS, storeUrl } from '../data/site';
 import '../styles/home.css';
 
 // A few popular free tools for the strip above the footer; any slug that's gone is skipped.
@@ -234,7 +234,10 @@ and save my week
           <li><span>Errors from the last 60 seconds: the Simulator, the Emulator (adb) or the Mac app's own log, secrets hidden.</span></li>
           <li><span>Works on menu bar and notch apps. A welcome screen sets up the folder and permissions on first launch.</span></li>
         </ul>
-        <p class="intro">Early access: write to <span class="mail-inline">hello@darnly.dev</span> for the Mac download.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href={MAC_DMG_URL}>Download for Mac</a>
+        </div>
+        <p class="intro">For macOS 14 or later. Open the download, drag Darnly to Applications, and it walks you through the rest. Or with Homebrew: <code>brew install --cask maruthiram08/darnly/darnly</code></p>
       </div>
       <div class="file" role="figure" aria-label="Example bug report from the Mac app">
         <div class="file-head"><span>.darnly/inbox/2026-11-01-0805-popup-gradient.md</span><span>markdown</span></div>
