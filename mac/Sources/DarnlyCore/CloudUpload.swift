@@ -66,9 +66,10 @@ public enum Cloud {
         }
     }
 
-    /// The parts of POST /v1/bugs: meta (title, page, client id for safe retries), the report and the pictures.
-    public static func uploadParts(clientId: String = "mac-" + UUID().uuidString, title: String, appName: String, markdown: String, png: Data?, reference: Data?) -> [Part] {
-        let meta: [String: String] = ["title": String(title.prefix(300)), "pageUrl": pageURL(appName: appName), "clientId": clientId]
+    /// The parts of POST /v1/bugs: meta (title, page, project, client id for safe retries), the report and the pictures.
+    public static func uploadParts(clientId: String = "mac-" + UUID().uuidString, title: String, appName: String, project: String? = nil, markdown: String, png: Data?, reference: Data?) -> [Part] {
+        var meta: [String: String] = ["title": String(title.prefix(300)), "pageUrl": pageURL(appName: appName), "clientId": clientId]
+        if let project, !ProjectName.clean(project).isEmpty { meta["project"] = ProjectName.clean(project) }
         let metaData = (try? JSONSerialization.data(withJSONObject: meta, options: [.sortedKeys])) ?? Data("{}".utf8)
         var parts = [
             Part(name: "meta", contentType: "application/json", data: metaData),
