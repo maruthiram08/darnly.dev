@@ -5,7 +5,7 @@ import { storeUrl } from '../../data/site';
 
 const slug = 'changelog';
 const faq = [
-  { q: 'What is the latest version of Darnly?', a: 'Darnly 0.3.1. It adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
+  { q: 'What is the latest version of Darnly?', a: 'Darnly 0.3.1, for both the Chrome extension and the Mac app. It adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
   { q: 'How do I update Darnly?', a: 'Chrome updates extensions by itself, usually within a few hours of a release. To update now, open chrome://extensions, switch on Developer mode, and click Update.' },
   { q: 'Do I need to set up my project again after an update?', a: 'To get the new /darnly command and the Claude Code hook, click Set up this project in the Darnly panel once more. Darnly only adds its own lines and keeps the rest of your files as they are.' },
 ];
@@ -22,6 +22,15 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   faq={faq}
   strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
+  <h2 id="mac-0-3-1">Darnly for Mac 0.3.1: a public download</h2>
+  <p>The Mac app, for bugs in Mac apps, the iOS Simulator and the Android Emulator, now has a public download, and catches up with the extension.</p>
+  <ul>
+    <li><strong>Download it, or use Homebrew.</strong> <a href="/#mac">Download for Mac</a> (macOS 14 or later, signed and notarized), or run <code>brew install --cask maruthiram08/darnly/darnly</code>.</li>
+    <li><strong>Sets up your agent.</strong> When you pick a project folder, it offers to add the same note, <code>/darnly</code> command and Claude Code hook as the extension, so one <code>/darnly</code> fixes browser and Mac bugs together.</li>
+    <li><strong>Project names in the cloud.</strong> In cloud mode the note box has a Project field, so your agent only fetches the bugs for the code it's working on.</li>
+    <li><strong>Darnly's colours</strong> on the welcome screen and note box, and the Darnly logo in the menu bar.</li>
+  </ul>
+
   <h2 id="v0-3-1">0.3.1: close the loop</h2>
   <p>Capturing a bug was already quick. This release covers what happens after: starting the fix, answering your agent's questions, and checking the result.</p>
   <ul>

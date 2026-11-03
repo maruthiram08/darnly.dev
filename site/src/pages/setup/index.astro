@@ -73,8 +73,12 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   <p>First, <a href={storeUrl('setup')}>add Darnly to Chrome</a>, then click the Darnly icon in the toolbar to open its panel. (Pin it from the puzzle-piece menu so it's always one click away.)</p>
 
   <h3 id="projects">Working on more than one project</h3>
-  <p>Darnly remembers the project for each site, either a folder or the cloud inbox. With one project, nothing changes. With several, the first time you capture on a site Darnly hasn't seen, it asks <em>Which project is &lt;site&gt;?</em> and shows your recent projects, <strong>In the cloud</strong> and <strong>Another folder…</strong>. Pick one and it remembers. In the cloud, bugs from each site are grouped under a project name; the panel shows it as <em>Project &lt;name&gt;</em> with a <strong>rename</strong> link, so it can match your folder's name.</p>
+  <p>Darnly remembers the project for each site, either a folder or the cloud inbox. With one project, nothing changes. With several, the first time you capture on a site Darnly hasn't seen, it asks <em>Which project is &lt;site&gt;?</em> and shows your recent projects, <strong>In the cloud</strong> and <strong>Another folder…</strong>. Pick one and it remembers.</p>
+  <p>In the cloud inbox, each bug carries a project name, so your agent only fetches the bugs for the code it's working on. Darnly guesses the name from the site (or the page title on localhost); the Mac app asks for it in the note box. Newer versions of the extension show it in the panel as <em>Project &lt;name&gt;</em> with a <strong>rename</strong> link, so you can make it match your folder's name.</p>
   <p>To switch a site later, click <strong>change</strong> next to <em>Saving to</em>. You'll see your other recent projects, then <strong>another folder</strong>, <strong>use the cloud instead</strong> and <strong>cancel</strong>. Switching to the cloud only unlinks the folder; your files stay where they are. To delete a bug you no longer need, click the <strong>×</strong> next to it under <em>Captured bugs</em>, then <strong>Yes</strong>.</p>
+
+  <h3 id="mac">Bugs in Mac apps and simulators</h3>
+  <p>For bugs outside the browser (a Mac app, the iOS Simulator or the Android Emulator), use <a href="/#mac">Darnly for Mac</a>: download it, or run <code>brew install --cask maruthiram08/darnly/darnly</code>. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, click the broken part and type what you expected. It saves to the same project folder or cloud inbox as the extension, and when you pick a folder it offers to set up your agent (<code>/darnly</code> and the Claude Code hook), so everything below works the same.</p>
 
   <h2 id="without-mcp">Without MCP</h2>
 
