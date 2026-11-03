@@ -18,6 +18,8 @@ export interface ElementInfo {
   point?: { x: number; y: number };
   /** When the picked box is a big container, the small element exactly under the cursor (often what was meant). */
   atCursor?: { selector: string; tag: string; text: string; html: string; rect: ElementInfo['rect']; labels?: string[] };
+  /** Other elements on the page that look made the same way (same tag and classes), so the agent knows whether a change is local or global. */
+  similar?: { selector: string; count: number };
 }
 
 /** The ~20 computed styles that explain most visual bugs. */
@@ -26,6 +28,7 @@ export const KEY_STYLES = [
   'width', 'height', 'margin', 'padding', 'overflow',
   'color', 'background-color', 'border', 'font-family', 'font-size', 'font-weight',
   'line-height', 'text-align', 'cursor', 'transform',
+  'gap', 'border-radius', 'letter-spacing', 'box-shadow', 'border-color',
 ] as const;
 
 const TEST_ATTRS = ['data-testid', 'data-test', 'data-cy', 'data-test-id'];
@@ -172,9 +175,28 @@ export function shortLabels(el: Element, max = 4): string[] {
   return out;
 }
 
+/**
+ * How many other elements share this one's tag and stable classes ("button.btn.btn-primary": 6 more on this page).
+ * Tells the agent whether the style it changes is shared. Nothing when the element has no stable classes,
+ * because a bare tag ("div") would count everything.
+ */
+export function similarElements(el: Element): ElementInfo['similar'] {
+  const classes = stableClasses(el).slice(0, 4);
+  if (!classes.length) return undefined;
+  const selector = `${el.tagName.toLowerCase()}.${classes.map(cssEscape).join('.')}`;
+  try {
+    const count = el.ownerDocument.querySelectorAll(selector).length - 1;
+    return count > 0 ? { selector, count } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function describeElement(el: Element): ElementInfo {
   const r = el.getBoundingClientRect();
+  const similar = similarElements(el);
   return {
+    ...(similar ? { similar } : {}),
     labels: shortLabels(el),
     selector: selectorFor(el),
     tag: el.tagName.toLowerCase(),

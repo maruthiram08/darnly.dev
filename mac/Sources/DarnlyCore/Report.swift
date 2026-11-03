@@ -13,8 +13,13 @@ public struct ElementInfo: Equatable, Codable {
     public var frame: CGRect
     /// Short texts nearby (the element and its children), for searching the code.
     public var labels: [String]
+    /// In a browser window (Safari, Chrome, Arc, Firefox): the page's address, from the web area around the element.
+    public var pageURL: String?
+    /// In a browser window: the element's HTML id and classes, which browsers expose to accessibility.
+    public var domId: String?
+    public var domClasses: [String]?
 
-    public init(role: String, roleDescription: String? = nil, title: String? = nil, label: String? = nil, value: String? = nil, identifier: String? = nil, frame: CGRect, labels: [String] = []) {
+    public init(role: String, roleDescription: String? = nil, title: String? = nil, label: String? = nil, value: String? = nil, identifier: String? = nil, frame: CGRect, labels: [String] = [], pageURL: String? = nil, domId: String? = nil, domClasses: [String]? = nil) {
         self.role = role
         self.roleDescription = roleDescription
         self.title = title
@@ -23,6 +28,9 @@ public struct ElementInfo: Equatable, Codable {
         self.identifier = identifier
         self.frame = frame
         self.labels = labels
+        self.pageURL = pageURL
+        self.domId = domId
+        self.domClasses = domClasses
     }
 
     /// The best short name for the element: its title, label, value or kind.
@@ -124,6 +132,7 @@ public enum Report {
         ]
         if let b = c.bundleId { lines.append("bundle_id: \(yaml(b))") }
         if let d = c.device { lines.append("device: \(yaml(d))") }
+        if let u = webURL(c) { lines.append("url: \(yaml(u))") }
         lines += [
             "window_size: \(Int(c.windowSize.width))x\(Int(c.windowSize.height))",
             "captured: \(iso.string(from: c.capturedAt))",
@@ -154,6 +163,8 @@ public enum Report {
             if let l = e.label, !l.isEmpty { lines.append("- label: \"\(oneLine(Redact.text(l), max: 200))\"") }
             if let v = e.value, !v.isEmpty { lines.append("- value: \"\(oneLine(Redact.text(v), max: 200))\"") }
             if let i = e.identifier, !i.isEmpty { lines.append("- accessibility id: `\(oneLine(i, max: 120))` (start here)") }
+            if let d = e.domId, !d.isEmpty { lines.append("- HTML id: `\(oneLine(d, max: 120))`") }
+            if let cl = cssClasses(e), !cl.isEmpty { lines.append("- classes: `\(cl)`") }
             lines.append("- size: \(Int(e.frame.width))x\(Int(e.frame.height)) at (\(Int(e.frame.minX)), \(Int(e.frame.minY))) in the window")
             lines.append("")
         } else {
@@ -167,7 +178,10 @@ public enum Report {
         var unique: [String] = []
         for l in labels where !unique.contains(l) { unique.append(l) }
         if !unique.isEmpty { hints.append("- text on screen to search the code for: " + unique.prefix(4).map { "\"\($0)\"" }.joined(separator: ", ")) }
-        if let b = c.bundleId { hints.append("- app: `\(b)`") }
+        if let path = webURL(c).flatMap({ URL(string: $0)?.path }), path.count > 1 {
+            hints.append("- page route: `\(oneLine(path, max: 120))` (look for the route or page file with this path)")
+        }
+        if let b = c.bundleId, webURL(c) == nil { hints.append("- app: `\(b)`") }
         if !hints.isEmpty { lines += ["## Where to look"] + hints + [""] }
         if !c.logs.isEmpty {
             let f = DateFormatter()
@@ -190,6 +204,51 @@ public enum Report {
                 : "Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with \(c.id) to \(doneFolder)/.",
             "",
         ]
+        lines += verify(c)
         return lines.joined(separator: "\n")
+    }
+
+    /// The page address when the capture was in a browser window, secrets hidden and no spaces or backticks.
+    static func webURL(_ c: NativeCapture) -> String? {
+        guard let u = c.element?.pageURL, u.hasPrefix("http://") || u.hasPrefix("https://") else { return nil }
+        let clean = Redact.text(u).replacingOccurrences(of: #"[\s`<>]"#, with: "", options: .regularExpression)
+        return String(clean.prefix(500))
+    }
+
+    /// Up to four HTML classes that look like names, joined as a CSS selector (".card.card-title").
+    static func cssClasses(_ e: ElementInfo) -> String? {
+        let names = (e.domClasses ?? []).filter { $0.range(of: #"^[A-Za-z_-][\w-]{0,40}$"#, options: .regularExpression) != nil }.prefix(4)
+        return names.isEmpty ? nil : names.map { ".\($0)" }.joined()
+    }
+
+    /// "How to check it's fixed": the agent confirms the fix itself when it has a browser or can take a screenshot.
+    static func verify(_ c: NativeCapture) -> [String] {
+        let wrote = c.forCloud ? "your `mark_fixed` note" : "your **Fixed:** line"
+        var out = ["## How to check it's fixed"]
+        let before = c.noScreenshotReason == nil ? " The screenshot in this report shows how it looked before." : ""
+        if let u = webURL(c) {
+            let local = URL(string: u)?.host.map { ["localhost", "127.0.0.1", "0.0.0.0"].contains($0) } ?? false
+            out += [
+                "After fixing, check it yourself if you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright or similar):",
+                "1. Open `\(u)`\(local ? " (start the dev server first if it isn't running)" : "") in a window about \(Int(c.windowSize.width))x\(Int(c.windowSize.height)).",
+                c.element != nil ? "2. Find the element by its HTML id, classes or text under \"Element\" above." : "2. Look at the whole visible page.",
+                "3. Check that the **Expected** line is now true." + before,
+            ]
+        } else {
+            let shot: String
+            switch c.platform {
+            case .iosSimulator: shot = "`xcrun simctl io booted screenshot /tmp/darnly-check.png`"
+            case .androidEmulator: shot = "`adb exec-out screencap -p > /tmp/darnly-check.png`"
+            case .mac: shot = "`screencapture -x /tmp/darnly-check.png`"
+            }
+            out += [
+                "After fixing, check it yourself if you can run the app:",
+                "1. Rebuild and run it, and open the same screen\(c.device.map { " on \(oneLine($0, max: 60))" } ?? "").",
+                "2. Take a screenshot with \(shot) and look at it.",
+                (c.element != nil ? "3. Find the element (its accessibility id or text under \"Element\" above) and check that the **Expected** line is now true." : "3. Check that the **Expected** line is now true.") + before,
+            ]
+        }
+        out += ["If it still looks wrong, fix it again. If you can't run it, say so instead of guessing. End \(wrote) with \"(checked)\" when you did.", ""]
+        return out
     }
 }

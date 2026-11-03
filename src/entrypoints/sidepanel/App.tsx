@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { PRODUCT, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
-import { captureMarkdown, headingFrom } from '@/lib/capture-markdown';
+import { captureMarkdown, headingFrom, type ChangeAspect, type ChangeScope } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
@@ -50,6 +50,9 @@ export function App() {
   const [stage, setStage] = useState<Stage>('idle');
   const [capture, setCapture] = useState<PendingCapture | null>(null);
   const [note, setNote] = useState('');
+  // Optional "change only this one / all like it" and what kind of change, for tweaking designs the AI made.
+  const [scope, setScope] = useState<ChangeScope | undefined>();
+  const [aspect, setAspect] = useState<ChangeAspect | undefined>();
   // Optional picture of what it should look like, pasted or dropped into the note box.
   const [reference, setReference] = useState<{ png: Blob; url: string } | null>(null);
   const addReference = async (file: File | Blob) => {
@@ -312,6 +315,8 @@ export function App() {
         });
         if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
+        setScope(undefined);
+        setAspect(undefined);
         clearReference();
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
@@ -400,6 +405,8 @@ export function App() {
       logs: c.logs,
       recorder: c.recorder,
       reference: !!reference,
+      scope: c.element ? scope : undefined,
+      aspect: c.element ? aspect : undefined,
     };
     return {
       id,
@@ -724,6 +731,9 @@ export function App() {
               <p className="text-xs text-ink-soft">Optional: paste or drop a picture of what it should look like. Shift+Enter for a new line.</p>
             )}
           </div>
+          {capture.element && (
+            <TweakRow similar={capture.element.similar?.count} scope={scope} setScope={setScope} aspect={aspect} setAspect={setAspect} />
+          )}
           <button className={primaryCls} onClick={save} disabled={saving}>
             {saving ? (!folder && session ? 'Sending…' : 'Saving…') : 'Save (Enter)'}
           </button>
@@ -749,6 +759,10 @@ export function App() {
               ) : (
                 <NextStep>Tell your agent: <em>"fix the bugs in {INBOX_FOLDER}"</em></NextStep>
               )}
+              {/* For the terminal: one paste names this exact bug, no screenshot path to dig out. */}
+              <button className={linkCls + ' text-xs'} onClick={() => copyPrompt(`Fix the bug in ${lastFile}, then check it in the browser.`)}>
+                Copy a one-line prompt for the terminal
+              </button>
             </>
           ) : (
             <NextStep>Bug ready. Copy the picture and the details into your agent's chat (Claude, Codex, Cursor).</NextStep>
@@ -1043,6 +1057,37 @@ function NextStep({ children }: { children: ReactNode }) {
       <Icon name="arrow" className="mt-0.5 h-4 w-4 shrink-0 text-sky" />
       <span>{children}</span>
     </p>
+  );
+}
+
+const ASPECTS: [ChangeAspect, string][] = [['spacing', 'Spacing'], ['colour', 'Colour'], ['size', 'Size'], ['text', 'Text']];
+
+/** Optional, one click each: whether to change just this element or all like it, and what kind of change. Click again to clear. */
+function TweakRow({ similar, scope, setScope, aspect, setAspect }: {
+  similar?: number;
+  scope?: ChangeScope;
+  setScope: (s: ChangeScope | undefined) => void;
+  aspect?: ChangeAspect;
+  setAspect: (a: ChangeAspect | undefined) => void;
+}) {
+  const pill = (on: boolean) =>
+    `rounded-full border px-2.5 py-0.5 text-xs transition-colors ${on ? 'border-sky bg-sky text-white' : 'border-line bg-white text-ink hover:border-sky/40 hover:bg-wash'}`;
+  return (
+    <div className="space-y-1.5 text-xs" aria-label="Optional: what to change">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="w-14 text-ink-soft">Change</span>
+        <button type="button" aria-pressed={scope === 'this'} className={pill(scope === 'this')} onClick={() => setScope(scope === 'this' ? undefined : 'this')}>Only this one</button>
+        <button type="button" aria-pressed={scope === 'all'} className={pill(scope === 'all')} onClick={() => setScope(scope === 'all' ? undefined : 'all')}>
+          All like it{similar ? ` (${similar + 1})` : ''}
+        </button>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="w-14 text-ink-soft">About</span>
+        {ASPECTS.map(([key, label]) => (
+          <button key={key} type="button" aria-pressed={aspect === key} className={pill(aspect === key)} onClick={() => setAspect(aspect === key ? undefined : key)}>{label}</button>
+        ))}
+      </div>
+    </div>
   );
 }
 

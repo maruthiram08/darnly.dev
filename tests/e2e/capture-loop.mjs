@@ -82,6 +82,14 @@ try {
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   await panel.getByLabel('What did you expect?').fill('Pay now should be clickable and open the payment form');
+  // "Change only this" chips: optional, one click each.
+  await panel.getByRole('button', { name: 'Only this one' }).click();
+  await panel.getByRole('button', { name: 'Size', exact: true }).click();
+  if (process.env.PANEL_SHOT) {
+    await panel.setViewportSize({ width: 400, height: 860 });
+    await panel.waitForTimeout(300);
+    await panel.screenshot({ path: process.env.PANEL_SHOT });
+  }
   await panel.getByLabel('What did you expect?').press('Enter');
   await panel.getByText('Saved to').waitFor({ timeout: 5000 });
 
@@ -110,6 +118,9 @@ try {
   console.log('files:', names);
   console.log(md);
   if (!md.includes('button[data-testid="pay-now"]')) fail('selector missing');
+  if (!md.includes('**Change only this one:**')) fail('scope line missing');
+  if (!md.includes('- current size (before the fix): width:')) fail('current size values missing');
+  if (!md.includes("## How to check it's fixed")) fail('verify section missing');
   if (!md.includes('pointer-events: none')) fail('styles missing');
   if (!md.includes('**Expected:** Pay now should be clickable')) fail('note missing');
   if (!(png > 1000)) fail('screenshot missing or empty');

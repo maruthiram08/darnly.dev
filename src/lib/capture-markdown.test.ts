@@ -197,3 +197,48 @@ describe('captureMarkdown prompt-injection fencing', () => {
     expect(md).toContain('# Bug on /checkout: div\n');
   });
 });
+
+describe('captureMarkdown: check the fix and change only this', () => {
+  const element = {
+    selector: 'h2.card-title',
+    tag: 'h2',
+    text: 'Pricing',
+    html: '<h2 class="card-title">Pricing</h2>',
+    styles: { 'font-size': '32px', 'line-height': '40px', 'font-weight': '700', width: '300px', height: '40px', margin: '0px', padding: '0px' },
+    rect: { x: 10, y: 20, width: 300, height: 40 },
+    similar: { selector: 'h2.card-title', count: 5 },
+  };
+
+  it('always says how to check the fix in a browser, outside the page data', () => {
+    const md = captureMarkdown({ ...base, element });
+    const check = md.indexOf("## How to check it's fixed");
+    expect(check).toBeGreaterThan(md.indexOf('<!-- darnly:page-data:end -->'));
+    expect(md).toContain('1. Open `http://localhost:3000/checkout` (start the dev server first');
+    expect(md).toContain('about 1440x900');
+    expect(md).toContain('selector under "Element"');
+    expect(md).toContain('**Fixed:** line with "(checked in the browser)"');
+    expect(captureMarkdown({ ...base, element, forCloud: true })).toContain('`mark_fixed` note with "(checked in the browser)"');
+    expect(captureMarkdown({ ...base, url: 'https://example.com/a' })).not.toContain('dev server');
+  });
+
+  it('lists similar elements and defaults look changes to this one only', () => {
+    const md = captureMarkdown({ ...base, element });
+    expect(md).toContain('- similar: 5 other elements on this page match `h2.card-title`');
+    expect(md).toContain('change only this one. If something is broken');
+    expect(md).not.toContain('**Change only this one:**');
+  });
+
+  it('writes the user\'s scope and the current values of what to change', () => {
+    const md = captureMarkdown({ ...base, element, scope: 'this', aspect: 'size' });
+    expect(md).toContain('**Change only this one:**');
+    expect(md).toContain('**What to change:** size');
+    expect(md.indexOf('**Change only this one:**')).toBeLessThan(md.indexOf('<!-- darnly:page-data:start -->'));
+    expect(md).toContain('- current size (before the fix): width: 300px; height: 40px; font-size: 32px; line-height: 40px; font-weight: 700');
+    expect(md).toContain('compare them with the "current size" values');
+    expect(md).toContain('it should look exactly as before');
+    expect(md).not.toContain('If the note is about how it looks');
+    const all = captureMarkdown({ ...base, element, scope: 'all' });
+    expect(all).toContain('**Change all like it:**');
+    expect(all).toContain('they should have changed too');
+  });
+});
