@@ -140,6 +140,18 @@ section.tools-strip { padding-bottom: 0; }
 .final p { color: rgba(252, 255, 255, 0.9); max-width: 66ch; }
 .mail-inline { font: 500 0.95em/1 var(--mono); user-select: all; color: var(--ink); }
 .report li code { font: 0.9em var(--mono); }
+/* Mac install card: the two ways to install, side by side, so the brew command isn't buried in a paragraph. */
+.mac-install { display: grid; grid-template-columns: 1fr auto 1fr; gap: 28px; align-items: start; margin-top: 48px; padding: 32px; border-radius: 20px; background: var(--wash); border: 1px solid var(--line); }
+.mi-col { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; min-width: 0; }
+.mi-col p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+.mi-col p code { font: 0.9em var(--mono); }
+.mi-label { font: 500 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sky); }
+.mac-install .cta, .mac-install .btn { margin: 0; }
+.mi-or { align-self: center; font: 500 13px/1 var(--mono); color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+.mi-cmd { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 8px 8px 16px; border-radius: 14px; background: var(--ink); }
+.mi-cmd code { flex: 1; min-width: 0; font: 500 14px/1.5 var(--mono); color: #D9EEF6; overflow-wrap: normal; user-select: all; }
+.mi-copy { flex: none; font: 600 14px/1 var(--body); padding: 10px 16px; border-radius: 999px; border: 0; background: var(--sky); color: var(--white); cursor: pointer; }
+.mi-copy:hover { filter: brightness(1.08); }
 .report .intro code { font: 0.88em var(--mono); background: var(--white); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 .mail { font: 500 16px/1 var(--mono); user-select: all; background: rgba(252, 255, 255, 0.16); padding: 10px 14px; border-radius: 10px; }
 
@@ -186,6 +198,9 @@ section.tools-strip { padding-bottom: 0; }
   .hero-grid, .report, .privacy { grid-template-columns: 1fr; }
   .loop, .ways { grid-template-columns: 1fr; }
   .name { grid-template-columns: 1fr; }
+  .mac-install { grid-template-columns: 1fr; gap: 20px; padding: 24px; }
+  .mi-or { align-self: flex-start; }
+  .mi-cmd code { font-size: 12.5px; }
   .nav-links { display: none; }
   .hero-grid { margin-top: 48px; }
   section.band { padding-block: 64px; }
