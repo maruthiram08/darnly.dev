@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import DarnlyCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -9,6 +10,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let welcome = WelcomeWindow()
     private var busy = false
     private var frozen: Screenshot.Frozen?
+    private let popover = NSPopover()
+    private let panel = PanelModel()
+    private var menu = NSMenu()
     private var update: UpdateCheck.Release?
     private var updateTimer: Timer?
     /// The version macOS reads from Info.plist. Nil under `swift run`, so a dev build never checks for updates.
@@ -23,7 +27,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
             button.image = Brand.logo()
+            // Left click opens the panel; right click (or Control-click) shows the plain menu.
+            button.target = self
+            button.action = #selector(statusClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
+        setUpPanel()
         rebuildMenu()
         hotkey = Hotkey { [weak self] in self?.capture() }
         // First launch: the welcome screen walks through the folder, the two permissions and the hotkey.
@@ -53,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let key = "updateNoticeShown"
                 if manual || UserDefaults.standard.string(forKey: key) != found.version {
                     UserDefaults.standard.set(found.version, forKey: key)
-                    if manual { showUpdate() } else { notify("Darnly \(found.version) is out. Open the Darnly menu and click Update available to get it.") }
+                    if manual { showUpdate() } else { notify("Darnly \(found.version) is out. Click the Darnly icon in the menu bar, then Update.") }
                 }
             } else if manual {
                 notify("You have the latest Darnly (\(current)).")
@@ -122,7 +131,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Permissions…", #selector(openPermissions)))
         menu.addItem(item("Check for updates…", #selector(checkForUpdateFromMenu)))
         menu.addItem(item("Quit Darnly", #selector(NSApplication.terminate(_:)), target: NSApp))
+        self.menu = menu
+        refreshPanel()
+    }
+
+    // MARK: The menu bar panel
+
+    private func setUpPanel() {
+        popover.behavior = .transient
+        popover.appearance = Brand.appearance
+        popover.contentViewController = NSHostingController(rootView: PanelView(model: panel))
+        panel.capture = { [weak self] in
+            self?.popover.performClose(nil)
+            // Let the panel fade out first so it isn't in the screenshot.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self?.capture() }
+        }
+        panel.useFolder = { [weak self] in self?.useFolder() }
+        panel.useCloud = { [weak self] in self?.popover.performClose(nil); self?.useCloud() }
+        panel.chooseFolder = { [weak self] in self?.popover.performClose(nil); self?.chooseProject() }
+        panel.setUpAgent = { [weak self] in self?.setUpAgent() }
+        panel.openInbox = { [weak self] in self?.popover.performClose(nil); self?.openInbox() }
+        panel.openBug = { [weak self] bug in
+            guard let file = bug.file else { return }
+            self?.popover.performClose(nil)
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file)])
+        }
+        panel.showHelp = { [weak self] in self?.popover.performClose(nil); self?.showWelcome() }
+        panel.showMore = { [weak self] in self?.popover.performClose(nil); self?.showMenu() }
+        panel.quit = { NSApp.terminate(nil) }
+    }
+
+    @objc private func statusClicked() {
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true { return showMenu() }
+        togglePanel()
+    }
+
+    private func togglePanel() {
+        guard let button = statusItem.button else { return }
+        if popover.isShown { return popover.performClose(nil) }
+        refreshPanel()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// The plain menu, for right click and the panel's "…" button.
+    private func showMenu() {
         statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    private var recentBugs: [RecentBug] {
+        get { RecentBugs.decode(UserDefaults.standard.data(forKey: "recentBugs")) }
+        set { UserDefaults.standard.set(RecentBugs.encode(newValue), forKey: "recentBugs") }
+    }
+
+    private func remember(_ bug: RecentBug) {
+        recentBugs = RecentBugs.adding(bug, to: recentBugs)
+        refreshPanel()
+    }
+
+    private func refreshPanel() {
+        let folder = projectURL
+        panel.destination = Destination.current
+        panel.folderName = folder?.lastPathComponent
+        panel.cloudEmail = CloudAccount.shared.isSignedIn ? CloudAccount.shared.email : nil
+        panel.agentReady = folder.map { AgentSetup.plan(folder: $0, project: $0.lastPathComponent).isEmpty }
+        panel.waiting = folder.map { Inbox.waiting(project: $0) } ?? 0
+        panel.recent = recentBugs.map { ($0, RecentBugs.state(of: $0)) }
+        if !Probe.isTrusted(prompt: false) {
+            panel.notice = .init(text: "Allow Accessibility so Darnly knows what you clicked.", button: "Allow") { [weak self] in
+                self?.popover.performClose(nil)
+                self?.openPermissions()
+            }
+        } else if let update {
+            panel.notice = .init(text: "Darnly \(update.version) is available.", button: "Update") { [weak self] in
+                self?.popover.performClose(nil)
+                self?.showUpdate()
+            }
+        } else {
+            panel.notice = nil
+        }
     }
 
     private func item(_ title: String, _ action: Selector, target: AnyObject? = nil) -> NSMenuItem {
@@ -231,6 +321,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notify("Couldn't set up the agent: \(error.localizedDescription)")
         }
         welcome.refresh()
+        refreshPanel()
     }
 
     // MARK: Cloud project names
@@ -341,6 +432,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let parts = Cloud.uploadParts(title: title, appName: window.ownerName, project: sendProject, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
             do {
                 try await CloudAccount.shared.upload(parts)
+                remember(RecentBug(title: title, app: window.ownerName, date: now, project: ProjectName.clean(sendProject ?? "my-app")))
                 notify("Sent to your Darnly cloud inbox under \(ProjectName.clean(sendProject ?? "my-app")). Tell your agent: fix the bugs in my Darnly inbox")
                 return
             } catch let e as CloudError {
@@ -354,6 +446,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let folder = project ?? fallbackFolder
         do {
             let file = try Inbox.save(project: folder, id: capture.id, markdown: Report.markdown(capture), png: png, reference: result.reference, logs: capture.logs)
+            remember(RecentBug(title: title, app: window.ownerName, date: now, file: file.path))
             let shown = folder == project ? Report.inboxFolder : "~/Darnly/\(Report.inboxFolder)"
             notify(problem + "Saved to \(shown)/\(file.lastPathComponent)." + (problem.isEmpty ? " Tell your agent: fix the bugs in \(Report.inboxFolder)" : ""))
         } catch {
