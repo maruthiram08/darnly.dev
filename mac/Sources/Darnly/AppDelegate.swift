@@ -18,8 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "ladybug", accessibilityDescription: "Darnly")
-            button.image?.isTemplate = true
+            button.image = Brand.logo()
         }
         rebuildMenu()
         hotkey = Hotkey { [weak self] in self?.capture() }
@@ -300,9 +299,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pop = NSPopover()
         pop.behavior = .transient
         pop.appearance = Brand.appearance
-        let icon = NSImageView(image: NSImage(systemSymbolName: "ladybug.fill", accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = Brand.pink
-        icon.symbolConfiguration = .init(pointSize: 15, weight: .semibold)
+        let icon = NSImageView(image: Brand.logo(size: 20, template: false))
         icon.setContentHuggingPriority(.required, for: .horizontal)
         let label = NSTextField(wrappingLabelWithString: text)
         label.textColor = Brand.ink
