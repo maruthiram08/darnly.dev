@@ -13,6 +13,8 @@ const LOCAL_HINT = 'Bugs saved straight into a project folder (the Mac app, or t
 
 const INSTRUCTIONS = `Darnly holds bugs the user captured on screen: a screenshot with the broken part boxed in red, what they expected, the element, and recent errors.
 To fix them: call list_bugs, then get_bug for each one, fix the code, then mark_fixed with one line on what you changed.
+If the report says "Change only this one", change that element alone and leave others that share its component or classes as they are; "Change all like it" means change the shared component, class or token.
+After fixing, check it yourself when you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright): each report has a "How to check it's fixed" section. If you checked, end your mark_fixed note with "(checked in the browser)".
 Start at the "code:" line when there is one. If the expected note is vague or compares to another part of the app, look at that code first; if it is still unclear, call ask_user with your question (so Darnly tells the user you are waiting for them), then ask the user that one short question in your chat.
 This server only holds bugs sent to the Darnly cloud. Bugs saved straight into a project (the Mac app, or the Chrome extension in folder mode) are files in .darnly/inbox/ in that project: if that folder exists, fix those too and move each fixed file and its PNG to .darnly/done/.
 When you open a bug with get_bug, Darnly marks it as yours for 20 minutes, so other agents skip it. If list_bugs or get_bug says another agent is already working on a bug, skip it unless the user asks you to take it over.
@@ -58,7 +60,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         id: { type: 'string', description: 'The bug id.' },
-        note: { type: 'string', description: 'One line on what you changed and where, e.g. "Made Pay now clickable in src/components/PayButton.tsx".' },
+        note: { type: 'string', description: 'One line on what you changed and where, e.g. "Made Pay now clickable in src/components/PayButton.tsx (checked in the browser)". Add "(checked in the browser)" only when you opened the page and saw it fixed.' },
       },
       required: ['id', 'note'],
       additionalProperties: false,

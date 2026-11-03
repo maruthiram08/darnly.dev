@@ -22,7 +22,22 @@ export interface CaptureInput {
   forCloud?: boolean;
   /** The user added a picture of what it should look like. */
   reference?: boolean;
+  /** "Change only this one" or "all like it": answers the agent's "just here, or everywhere?" before it asks. */
+  scope?: ChangeScope;
+  /** What kind of change the user wants, so the report lists the current values of exactly those styles. */
+  aspect?: ChangeAspect;
 }
+
+export type ChangeScope = 'this' | 'all';
+export type ChangeAspect = 'spacing' | 'colour' | 'size' | 'text';
+
+/** The styles behind each kind of change; their current values go in the report, so the agent (and its check) knows the starting point. */
+export const ASPECT_STYLES: Record<ChangeAspect, { label: string; styles: string[] }> = {
+  spacing: { label: 'spacing (margin, padding, gap)', styles: ['margin', 'padding', 'gap'] },
+  colour: { label: 'colour (text, background, border)', styles: ['color', 'background-color', 'border-color', 'box-shadow'] },
+  size: { label: 'size (width, height, text size and weight)', styles: ['width', 'height', 'font-size', 'line-height', 'font-weight'] },
+  text: { label: 'the words (copy)', styles: [] },
+};
 
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
 
@@ -88,6 +103,7 @@ export function captureMarkdown(c: CaptureInput): string {
     '',
     `**Expected:** ${c.note.trim() || '(no note given)'}`,
     '',
+    ...changeLines(c),
     `**Screenshot:** ${png}${c.element ? ' (the red box marks the element)' : ''}`,
     '',
   ];
@@ -117,6 +133,10 @@ export function captureMarkdown(c: CaptureInput): string {
       ...(el.components?.length ? [`- drawn by: ${el.components.map((n) => `\`${n}\``).join(' > ')}`] : el.component ? [`- component: ${el.component}`] : []),
       `- size: ${Math.round(el.rect.width)}x${Math.round(el.rect.height)} at (${Math.round(el.rect.x)}, ${Math.round(el.rect.y)})`,
       `- styles: ${styles}`,
+      ...(c.aspect && ASPECT_STYLES[c.aspect].styles.length
+        ? [`- current ${c.aspect} (before the fix): ${ASPECT_STYLES[c.aspect].styles.map((k) => `${k}: ${el.styles[k] ?? '?'}`).join('; ')}`]
+        : []),
+      ...(el.similar ? [`- similar: ${el.similar.count} other element${el.similar.count === 1 ? '' : 's'} on this page match \`${el.similar.selector}\``] : []),
       '',
       ...codeBlock(el.html, 'html'),
       '',
@@ -164,9 +184,68 @@ export function captureMarkdown(c: CaptureInput): string {
       : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
       : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
+    ...(!c.scope && c.element?.similar
+      ? ['Other elements on the page are made the same way (see "similar" above). If the note is about how it looks and doesn\'t say "all" or "everywhere", change only this one. If something is broken (it doesn\'t work), fix it where it is made.']
+      : []),
     '',
+    ...verifyLines(c),
   );
   return lines.join('\n');
+}
+
+/** The user's "change only this one / all like it" and "what to change" choices. Fixed wording only: no page text. */
+function changeLines(c: CaptureInput): string[] {
+  const out: string[] = [];
+  if (c.scope === 'this') {
+    out.push(
+      '**Change only this one:** the user wants this element changed and nothing else. Leave other elements that share its component, classes or styles as they are. If the style comes from a shared class, component or design token, override it for this one (a prop, a variant or one extra class) instead of editing the shared one.',
+      '',
+    );
+  } else if (c.scope === 'all') {
+    out.push(
+      '**Change all like it:** the user wants every element like this one changed the same way. Change the shared component, class or design token, not just this one place.',
+      '',
+    );
+  }
+  if (c.aspect) out.push(`**What to change:** ${ASPECT_STYLES[c.aspect].label}`, '');
+  return out;
+}
+
+/** "How to check it's fixed": lets an agent with a browser (Claude in Chrome, Playwright, DevTools MCP) confirm the fix itself. */
+function verifyLines(c: CaptureInput): string[] {
+  const url = c.url.replace(/[`\s<>]/g, '');
+  let local = false;
+  try {
+    local = ['localhost', '127.0.0.1', '0.0.0.0'].includes(new URL(c.url).hostname);
+  } catch {
+    /* not a URL */
+  }
+  const el = c.element;
+  const steps = [
+    `1. Open \`${url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    el
+      ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`
+      : '2. Look at the whole visible page.',
+    '3. Check that the **Expected** line is now true. The screenshot shows how it looked before.',
+  ];
+  if (el && c.aspect && ASPECT_STYLES[c.aspect].styles.length) {
+    steps.push(`${steps.length + 1}. Read its computed ${c.aspect} styles and compare them with the "current ${c.aspect}" values above: they should have changed the way the note says.`);
+  } else if (el && c.aspect === 'text') {
+    steps.push(`${steps.length + 1}. Read its text: it should now say what the note asks for.`);
+  }
+  if (el?.similar && c.scope === 'this') {
+    steps.push(`${steps.length + 1}. Look at one of the other elements that match the "similar" selector: it should look exactly as before.`);
+  } else if (el?.similar && c.scope === 'all') {
+    steps.push(`${steps.length + 1}. Look at a few of the other elements that match the "similar" selector: they should have changed too.`);
+  }
+  const where = c.forCloud ? 'your `mark_fixed` note' : c.forPaste ? 'your reply' : 'your **Fixed:** line';
+  return [
+    "## How to check it's fixed",
+    'After fixing, check it yourself if you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright or similar):',
+    ...steps,
+    `If it still looks wrong, fix it again. If you can't open a browser, say so instead of guessing. End ${where} with "(checked in the browser)" when you did.`,
+    '',
+  ];
 }
 
 /** Things the agent can search for: the page route and short visible labels near the element. */
