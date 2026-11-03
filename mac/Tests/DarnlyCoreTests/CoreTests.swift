@@ -281,6 +281,9 @@ final class RecentBugsTests: XCTestCase {
         XCTAssertEqual(RecentBugs.state(of: RecentBug(title: "x", app: "A", date: Date(), project: "p")), .cloud)
         try fm.removeItem(at: done)
         XCTAssertEqual(RecentBugs.state(of: bug), .missing)
+    }
+}
+
 final class UpdateCheckTests: XCTestCase {
     func testComparesVersions() {
         XCTAssertTrue(UpdateCheck.isNewer([0, 3, 10], than: [0, 3, 9]))
