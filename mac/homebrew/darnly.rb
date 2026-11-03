@@ -2,8 +2,8 @@
 #   brew install --cask maruthiram08/darnly/darnly
 # For each release, set version and sha256 to what make-dmg.sh prints.
 cask "darnly" do
-  version "0.3.1"
-  sha256 "ba5b1527b18b9bb13ca73bd67d864d1f44a22b21e36c35a602e0dc023d4efe89"
+  version "0.3.2"
+  sha256 "018c1fa23ccf18f6b965c5e942a5219e3acd53819484b9ca16dc44f4978e5bf8"
 
   url "https://github.com/maruthiram08/darnly.dev/releases/download/mac-v#{version}/Darnly.dmg"
   name "Darnly"
