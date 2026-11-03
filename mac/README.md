@@ -35,6 +35,10 @@ On first launch a welcome screen walks you through choosing the project folder, 
 
 When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or Xcode. Use `Darnly.app` to see it as Darnly.
 
+## Updates
+
+A few seconds after launch, and once a day after that, Darnly asks GitHub for the newest `mac-v*` release (drafts and pre-releases are skipped). If it's newer than the running version, the menu gets **Update available: Darnly x.y.z…** at the top and a short note appears once. Clicking it opens the DMG download, or, if Darnly was installed with Homebrew, copies `brew upgrade --cask darnly`. **Check for updates…** in the menu asks right away. Builds run with `swift run` don't check. So users see an update, publish the release (below) and bump the cask.
+
 ## Share it (signed DMG)
 
 `./scripts/make-dmg.sh` builds `build/Darnly.dmg`, signed with your Developer ID and notarized by Apple, so it opens on any Mac without a warning. One-time setup on your Mac:

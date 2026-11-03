@@ -18,6 +18,9 @@ enum UISnapshot {
         let first = PanelModel()
         first.notice = .init(text: "Allow Accessibility so Darnly knows what you clicked.", button: "Allow") {}
         save(NSHostingView(rootView: PanelView(model: first)), to: folder.appendingPathComponent("panel-first-run.png"))
+        let newer = PanelModel.sample(cloud: false)
+        newer.notice = .init(text: "Darnly 0.3.3 is available.", button: "Update") {}
+        save(NSHostingView(rootView: PanelView(model: newer)), to: folder.appendingPathComponent("panel-update.png"))
         let note = NotePanel()
         save(note.makeContent(image: sampleScreenshot(), summary: "button \"Save plan\" in Maccy"), to: folder.appendingPathComponent("note-box.png"))
         let cloudNote = NotePanel()

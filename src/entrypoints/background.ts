@@ -6,6 +6,7 @@
  * - A hidden offscreen page must stay open, or Chrome drops folder access whenever the side panel closes.
  */
 import { redactLog, type LogEntry } from '@/lib/logs';
+import { whatsNewUrl } from '@/lib/whats-new';
 
 export default defineBackground(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -24,6 +25,11 @@ export default defineBackground(() => {
   }
   chrome.runtime.onStartup.addListener(keepAlivePage);
   chrome.runtime.onInstalled.addListener(keepAlivePage);
+  // Users never see Chrome's silent updates, so after one, open the release notes once at the new version.
+  chrome.runtime.onInstalled.addListener(({ reason, previousVersion }) => {
+    const url = whatsNewUrl(reason, previousVersion, chrome.runtime.getManifest().version);
+    if (url) chrome.tabs.create({ url }).catch(() => {});
+  });
 
   // Failures only the browser sees (blocked images, CORS, DNS). Kept per tab for 60 seconds in session storage.
   const key = (tabId: number) => `net:${tabId}`;
