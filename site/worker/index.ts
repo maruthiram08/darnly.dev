@@ -1,4 +1,7 @@
-// darnly.dev Worker. Static pages are served from site/dist; this only handles /api/*.
+// darnly.dev Worker. Static pages are served from site/dist; this only handles /api/* and /ingest/*.
+//
+// /ingest/*
+//   PostHog analytics for the site's own pages, passed through to PostHog (see posthog.ts).
 //
 // GET /api/og?url=https://example.com
 //   Fetches a public page and returns its share tags (Open Graph, Twitter, title, description)
@@ -146,6 +149,7 @@ import { checkPackage, cleanName as cleanPackageName, type GetJson } from './npm
 import { takeShots } from './shots';
 import { checkSlop, mainScripts } from './slop';
 import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
+import { posthogProxy } from './posthog';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -173,6 +177,7 @@ const UA = 'Mozilla/5.0 (compatible; DarnlyPreview/1.0; +https://darnly.dev/tool
 export default {
   async fetch(req: Request, env: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname.startsWith('/ingest/')) return posthogProxy(req, url);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/frame') return frameApi(req, url, env, ctx);

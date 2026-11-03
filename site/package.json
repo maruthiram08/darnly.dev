@@ -15,6 +15,7 @@
     "astro": "7.4.4",
     "gifenc": "1.0.3",
     "marked": "18.1.0",
+    "posthog-js": "1.445.1",
     "qrcode-generator": "1.4.4",
     "sql-formatter": "15.8.2",
     "tailwindcss": "4.3.3",

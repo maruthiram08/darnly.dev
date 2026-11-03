@@ -3,9 +3,9 @@
   "compatibility_date": "2026-10-31",
   // The site is built with Astro in site/; this runs before every deploy.
   "build": { "command": "npm ci --prefix site && npm run build --prefix site" },
-  // Static pages come from site/dist. Only /api/* runs the Worker (site/worker/index.ts).
+  // Static pages come from site/dist. Only /api/* and /ingest/* (PostHog analytics) run the Worker (site/worker/index.ts).
   "main": "site/worker/index.ts",
-  "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "assets": { "directory": "./site/dist", "binding": "ASSETS", "run_worker_first": ["/api/*", "/ingest/*"] },
   // Free tools that fetch other sites: at most 20 checks a minute per visitor.
   // The sitemap generator also gets 2 crawls a minute, since one crawl reads up to 100 pages.
   // Every limit needs its own namespace_id; when adding one, pick a number nobody uses yet.

@@ -1,0 +1,65 @@
+---
+// PostHog page views and clicks, added to every page by Base.astro once POSTHOG_KEY is set.
+// - Cookieless: no cookies or browser storage, so no cookie banner. PostHog counts unique
+//   visitors with a daily hash on its side ("Cookieless server hash mode" must be on in
+//   PostHog > Settings > Project > Web analytics, or events are dropped).
+// - Loaded after the page is idle, from this site's own /_astro/ files, and sent to /ingest/
+//   on darnly.dev (the Worker passes it to PostHog). So it doesn't slow the first paint, the
+//   CSP stays 'self', and ad blockers that block posthog.com don't hide visitors.
+// - Only runs on darnly.dev itself, not on localhost or pull request previews.
+// - Named events for the clicks that matter: cta_click { cta: chrome_store | mac_download | brew_copy }.
+---
+<script>
+  import { POSTHOG_KEY, POSTHOG_REGION } from '../data/analytics';
+
+  type Props = Record<string, string>;
+  type PH = { capture: (event: string, props?: Props, opts?: { transport?: 'XHR' | 'fetch' | 'sendBeacon' }) => void };
+
+  const live = location.hostname === 'darnly.dev' || location.hostname === 'www.darnly.dev';
+  if (POSTHOG_KEY && live) {
+    let ph: PH | null = null;
+    const waiting: [string, Props][] = [];
+    const send = (event: string, props: Props) => {
+      // sendBeacon so a click that leaves the page (Chrome store, DMG download) still arrives.
+      if (ph) ph.capture(event, props, { transport: 'sendBeacon' });
+      else waiting.push([event, props]);
+    };
+
+    // Which section of the page a click came from (hero, mac, why...), for comparing buttons.
+    const where = (el: Element) => el.closest('section[id], header, footer, nav')?.id || el.closest('header, footer, nav')?.tagName.toLowerCase() || '';
+
+    document.addEventListener('click', (e) => {
+      const el = (e.target as Element | null)?.closest?.('a, button');
+      if (!el) return;
+      const href = el instanceof HTMLAnchorElement ? el.href : '';
+      let cta = '';
+      if (href.includes('chromewebstore.google.com/detail/darnly')) cta = 'chrome_store';
+      else if (href.endsWith('/Darnly.dmg')) cta = 'mac_download';
+      else if (el.hasAttribute('data-copy-brew')) cta = 'brew_copy';
+      if (cta) send('cta_click', { cta, location: where(el), path: location.pathname });
+    }, { capture: true });
+
+    const start = () => {
+      import('posthog-js').then(({ default: posthog }) => {
+        posthog.init(POSTHOG_KEY, {
+          api_host: '/ingest',
+          ui_host: `https://${POSTHOG_REGION}.posthog.com`,
+          defaults: '2026-08-30',
+          cookieless_mode: 'always',
+          person_profiles: 'identified_only',
+          capture_pageview: true,
+          capture_pageleave: true,
+          autocapture: true,
+          // Off until we choose to use them: each loads more code.
+          disable_session_recording: true,
+          disable_surveys: true,
+          capture_exceptions: false,
+        });
+        ph = posthog as unknown as PH;
+        for (const [event, props] of waiting.splice(0)) ph.capture(event, props);
+      }).catch(() => {});
+    };
+    if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 4000 });
+    else setTimeout(start, 2000);
+  }
+</script>
