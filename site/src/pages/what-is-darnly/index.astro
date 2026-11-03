@@ -11,6 +11,7 @@ const faq = [
   { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp. <a href="/setup/">Setup steps for each agent</a>.' },
   { q: 'Does Darnly send my data anywhere?', a: 'Not by default. Reports stay on your computer as files in your project or text you choose to paste. Only the optional cloud inbox sends bugs to your private Darnly inbox.' },
   { q: 'How do I tell my agent to fix my Darnly bugs?', a: 'Type /darnly in Claude Code or Cursor, or say "fix my Darnly bugs" in Codex. One command fixes the bugs in your project folder and your cloud inbox, and the Darnly panel then says what got fixed.' },
+  { q: 'Can I use Darnly on several projects?', a: 'Yes. Darnly remembers a project folder or the cloud inbox for each site, asks the first time it sees a new site, and lets you switch with change in the panel. In the cloud, each bug carries its project name, so your agent only fetches its own project\'s bugs.' },
   { q: 'Does Darnly save tokens?', a: 'No. In our own benchmark, Darnly reports cost about 1.6 times as much per bug as a pasted screenshot, and both fixed every bug. Darnly saves you effort, not tokens.' },
 ];
 ---
@@ -43,6 +44,9 @@ const faq = [
 
   <h2>Does my agent start fixing bugs on its own?</h2>
   <p>Not quite: a browser can't wake a coding agent, so you start it with <code>/darnly</code>, but in Claude Code, Darnly adds a hook so the agent tells you when new bugs land in your project folder and offers to fix them.</p>
+
+  <h2>Can I use Darnly on several projects?</h2>
+  <p>Yes. Darnly remembers where bugs go for each site, either a project folder or the cloud inbox, and asks the first time you capture on a new site. Click <strong>change</strong> in the panel to switch a site to another folder or to the cloud. In the cloud, each bug carries its project's name, so your agent only fetches the bugs for the code it's working on. <a href="/setup/#projects">How projects work</a>.</p>
 
   <h2>What if my code is in the cloud?</h2>
   <p>Darnly lets you copy the picture and the details to paste into your agent's chat, or send bugs to an optional private cloud inbox that agents read through Darnly's MCP server for bug reports at <code>https://api.darnly.dev/mcp</code>. <a href="/setup/">How to set it up in Claude Code, Cursor or Codex</a>.</p>
