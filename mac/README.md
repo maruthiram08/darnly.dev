@@ -35,7 +35,7 @@ When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or
 
 ## Share it (signed DMG)
 
-`./scripts/make-dmg.sh` builds `build/Darnly-<version>.dmg`, signed with your Developer ID and notarized by Apple, so it opens on any Mac without a warning. One-time setup on your Mac:
+`./scripts/make-dmg.sh` builds `build/Darnly.dmg`, signed with your Developer ID and notarized by Apple, so it opens on any Mac without a warning. One-time setup on your Mac:
 
 1. **Developer ID certificate.** Xcode → Settings → Accounts → select your team → Manage Certificates → **+** → **Developer ID Application**. Only the team's Account Holder can create it. Check with `security find-identity -v -p codesigning`.
 2. **App-specific password.** At [account.apple.com](https://account.apple.com) → Sign-In and Security → App-Specific Passwords → create one named "notarytool".
@@ -45,7 +45,19 @@ When running with `swift run` or from Xcode, macOS asks on behalf of Terminal or
    xcrun notarytool store-credentials darnly --apple-id you@example.com --team-id ABCDE12345 --password abcd-efgh-ijkl-mnop
    ```
 
-Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.2.1 ./scripts/make-dmg.sh` for a new version). It also copies the DMG to `site/download/Darnly.dmg`; commit and push that file, and darnly.dev's **Download for Mac** button (`/download/Darnly.dmg`) serves the new version. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
+Then `cd mac && ./scripts/make-dmg.sh` (`DARNLY_VERSION=0.3.2 ./scripts/make-dmg.sh` for a new version). It makes `build/Darnly.dmg` and prints the version and checksum for Homebrew.
+
+To publish it: on GitHub, **Releases → Draft a new release**, tag `mac-v<version>` (for example `mac-v0.3.1`), title `Darnly for Mac <version>`, attach `build/Darnly.dmg`, and publish. darnly.dev's **Download for Mac** link (`releases/latest/download/Darnly.dmg`) then serves it. Whoever gets the DMG drags Darnly to Applications, opens it, and allows Accessibility and Screen Recording when asked.
+
+Why not the Mac App Store: App Store apps must run sandboxed, and a sandboxed app can't read other apps' accessibility elements or run `simctl`, `adb` or `log`, which is what Darnly needs. A notarized download plus Homebrew is how most Mac developer tools ship.
+
+## Set up the coding agent
+
+When you choose a project folder, Darnly offers (once) to tell your coding agent where the bugs are, the same files the Chrome extension writes: a short block in `AGENTS.md`, the `/darnly` skill (`.agents/skills` and `.claude/skills`), Cursor's `/darnly` command and two Claude Code hooks in `.claude/settings.json`. Your own text in those files is kept. Run it again any time from the menu: **Set up coding agent in this folder…** The texts come from `src/lib/agent-setup.ts` (generated into `Sources/DarnlyCore/AgentSetupText.swift`; after changing agent-setup.ts run `DARNLY_UPDATE_MAC=1 npx vitest run src/lib/mac-agent-setup.test.ts`).
+
+## Cloud projects
+
+In cloud mode the note box shows a **Project** name, so an agent asking the cloud for "this project's bugs" gets the Mac ones too. Darnly guesses it once per app (the project folder's name if you chose one, else the app's name) and remembers what you type.
 
 ## Keys while picking
 
@@ -55,8 +67,8 @@ Menu bar and notch apps work too: open the app's panel first, then press Option+
 
 ## Tests
 
-`swift test` runs the report, redaction and log-parsing tests. GitHub Actions runs them on every change under `mac/` and uploads an unsigned `Darnly-mac` zip.
+`swift test` runs the report, redaction, log-parsing, project-name and agent-setup tests. GitHub Actions runs them on every change under `mac/`, uploads an unsigned `Darnly-mac` zip, and draws the welcome screen and note box (`Darnly --snapshot <folder>`) to the `mac-ui-pictures` branch for review.
 
 ## Not yet
 
-- `brew install --cask darnlyhq/tap/darnly` (needs a darnlyhq/homebrew-tap repo pointing at a released DMG).
+- Homebrew: the cask is ready in `homebrew/darnly.rb`; it needs a tap repo (for example `darnlyhq/homebrew-tap`) once the first release is up.

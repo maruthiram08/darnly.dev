@@ -170,3 +170,61 @@ final class ReportTests: XCTestCase {
         XCTAssertFalse(md.contains(".darnly/inbox"))
     }
 }
+
+final class ProjectNameTests: XCTestCase {
+    func testCleansLikeTheExtension() {
+        XCTAssertEqual(ProjectName.clean("  My App (beta) "), "my-app-beta")
+        XCTAssertEqual(ProjectName.clean("counterdraft.com"), "counterdraft.com")
+        XCTAssertEqual(ProjectName.clean("!!!"), "")
+    }
+
+    func testSuggestsSavedThenFolderThenApp() {
+        let folder = URL(fileURLWithPath: "/Users/me/Code/Maccy", isDirectory: true)
+        XCTAssertEqual(ProjectName.suggest(saved: "clip", folder: folder, appName: "Maccy"), "clip")
+        XCTAssertEqual(ProjectName.suggest(saved: nil, folder: folder, appName: "Simulator"), "maccy")
+        XCTAssertEqual(ProjectName.suggest(saved: nil, folder: nil, appName: "Context Shot"), "context-shot")
+    }
+
+    func testUploadCarriesTheProject() throws {
+        let parts = Cloud.uploadParts(clientId: "mac-test-123", title: "t", appName: "Maccy", project: "Maccy App", markdown: "# hi", png: nil, reference: nil)
+        let meta = try JSONSerialization.jsonObject(with: parts[0].data) as? [String: String]
+        XCTAssertEqual(meta?["project"], "maccy-app")
+        let none = Cloud.uploadParts(clientId: "mac-test-123", title: "t", appName: "Maccy", markdown: "# hi", png: nil, reference: nil)
+        XCTAssertNil((try JSONSerialization.jsonObject(with: none[0].data) as? [String: String])?["project"])
+    }
+}
+
+final class AgentSetupTests: XCTestCase {
+    func testNewProjectGetsEverything() {
+        let plan = AgentSetup.plan(existing: [:], project: "maccy")
+        XCTAssertEqual(Set(plan.map(\.path)), ["AGENTS.md", ".claude/settings.json", ".cursor/commands/darnly.md", ".agents/skills/darnly/SKILL.md", ".claude/skills/darnly/SKILL.md"])
+        let agents = plan.first { $0.path == "AGENTS.md" }!.content
+        XCTAssertTrue(agents.contains("Darnly project: `maccy`"))
+        XCTAssertTrue(agents.contains(AgentSetupText.agentsMarkerStart))
+        XCTAssertFalse(agents.contains(AgentSetupText.projectSlot))
+    }
+
+    func testRunningTwiceChangesNothing() {
+        var files: [String: String] = ["CLAUDE.md": "# Rules\n", ".gitignore": "node_modules\n", ".claude/settings.json": "{\"model\": \"opus\"}"]
+        for c in AgentSetup.plan(existing: files, project: "maccy") { files[c.path] = c.content }
+        XCTAssertTrue(files["CLAUDE.md"]!.hasSuffix("@AGENTS.md\n"))
+        XCTAssertTrue(files[".gitignore"]!.contains(".darnly/"))
+        XCTAssertTrue(files[".claude/settings.json"]!.contains("\"model\" : \"opus\""))
+        XCTAssertTrue(files[".claude/settings.json"]!.contains(AgentSetupText.hookMark))
+        XCTAssertEqual(AgentSetup.plan(existing: files, project: "maccy"), [])
+    }
+
+    func testKeepsTheUsersTextAndRefreshesOurBlock() {
+        let old = "# AGENTS.md\n\nUse pnpm.\n\n\(AgentSetupText.agentsMarkerStart)\nold text\n\(AgentSetupText.agentsMarkerEnd)\n\nMore rules.\n"
+        let next = AgentSetup.mergeAgentsMd(old, project: nil)!
+        XCTAssertTrue(next.hasPrefix("# AGENTS.md\n\nUse pnpm.\n\n"))
+        XCTAssertTrue(next.hasSuffix("\n\nMore rules.\n"))
+        XCTAssertFalse(next.contains("old text"))
+        XCTAssertFalse(next.contains("Darnly project:"))
+    }
+
+    func testNeverTouchesFilesItCannotRead() {
+        XCTAssertNil(AgentSetup.mergeClaudeSettings("{ not json"))
+        XCTAssertNil(AgentSetup.mergeCursorCommand("# my own darnly command\n"))
+    }
+}

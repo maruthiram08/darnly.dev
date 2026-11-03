@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // First launch: the welcome screen walks through the folder, the two permissions and the hotkey.
         if !UserDefaults.standard.bool(forKey: "welcomeShown") { showWelcome() }
         else if Destination.current == .folder && projectURL == nil { chooseProject() }
+        else if Destination.current == .folder, let folder = projectURL { offerAgentSetup(folder) }
     }
 
     private func rebuildMenu() {
@@ -47,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(inbox)
         menu.addItem(.separator())
         menu.addItem(item("Choose project folder…", #selector(chooseProject)))
+        if projectURL != nil { menu.addItem(item("Set up coding agent in this folder…", #selector(setUpAgentFromMenu))) }
         menu.addItem(item("Open inbox in Finder", #selector(openInbox)))
         if cloud.isSignedIn { menu.addItem(item("Sign out of cloud inbox", #selector(signOutCloud))) }
         menu.addItem(.separator())
@@ -65,7 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func captureFromMenu() { capture() }
 
     @objc private func showWelcome() {
-        welcome.show(project: { [weak self] in self?.projectURL }, chooseProject: { [weak self] in self?.chooseProject() }, signIn: { [weak self] in self?.signInCloud() }, changed: { [weak self] in self?.rebuildMenu() })
+        welcome.show(project: { [weak self] in self?.projectURL }, chooseProject: { [weak self] in self?.chooseProject() }, signIn: { [weak self] in self?.signInCloud() },
+                     setUpAgent: { [weak self] in self?.setUpAgent() }, changed: { [weak self] in self?.rebuildMenu() })
     }
 
     @objc private func useFolder() {
@@ -119,7 +122,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseFiles = false
         panel.prompt = "Use this folder"
         NSApp.activate(ignoringOtherApps: true)
-        if panel.runModal() == .OK, let url = panel.url { projectURL = url }
+        if panel.runModal() == .OK, let url = panel.url {
+            projectURL = url
+            offerAgentSetup(url)
+        }
+    }
+
+    // MARK: Agent setup (the same files the Chrome extension writes)
+
+    /// Asks once per folder whether to tell the coding agent about .darnly/inbox. Nothing is asked when it already knows.
+    private func offerAgentSetup(_ folder: URL) {
+        let plan = AgentSetup.plan(folder: folder, project: folder.lastPathComponent)
+        guard !plan.isEmpty else { return }
+        var asked = UserDefaults.standard.stringArray(forKey: "agentSetupAsked") ?? []
+        guard !asked.contains(folder.path) else { return }
+        asked.append(folder.path)
+        UserDefaults.standard.set(asked, forKey: "agentSetupAsked")
+        let alert = NSAlert()
+        alert.messageText = "Tell your coding agent where the bugs are?"
+        alert.informativeText = """
+        Darnly adds a short note to AGENTS.md, a /darnly command for Claude Code, Codex and Cursor, and two Claude Code hooks that mention new bugs. Your own text in these files is kept.
+
+        \(plan.map { ($0.isNew ? "New: " : "Updated: ") + $0.path }.joined(separator: "\n"))
+        """
+        alert.addButton(withTitle: "Set up")
+        alert.addButton(withTitle: "Not now")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn { setUpAgent() }
+    }
+
+    @objc private func setUpAgentFromMenu() { setUpAgent() }
+
+    private func setUpAgent() {
+        guard let folder = projectURL else { return chooseProject() }
+        let plan = AgentSetup.plan(folder: folder, project: folder.lastPathComponent)
+        guard !plan.isEmpty else { return notify("Your agent already knows about \(Report.inboxFolder) in \(folder.lastPathComponent). Type /darnly to fix bugs.") }
+        do {
+            try AgentSetup.apply(plan, in: folder)
+            notify("Set up \(folder.lastPathComponent): your agent now finds bugs in \(Report.inboxFolder). Type /darnly to fix them.")
+        } catch {
+            notify("Couldn't set up the agent: \(error.localizedDescription)")
+        }
+        welcome.refresh()
+    }
+
+    // MARK: Cloud project names
+
+    /// The name the user's cloud bugs from this app go under: saved once per app, renamable in the note box.
+    private func cloudProject(for app: String, bundleId: String?) -> String {
+        let saved = (UserDefaults.standard.dictionary(forKey: "appProject") as? [String: String])?[bundleId ?? app]
+        return ProjectName.suggest(saved: saved, folder: projectURL, appName: app)
+    }
+
+    private func saveCloudProject(_ name: String, for app: String, bundleId: String?) {
+        let clean = ProjectName.clean(name)
+        guard !clean.isEmpty else { return }
+        var all = UserDefaults.standard.dictionary(forKey: "appProject") as? [String: String] ?? [:]
+        all[bundleId ?? app] = clean
+        UserDefaults.standard.set(all, forKey: "appProject")
     }
 
     @objc private func openInbox() {
@@ -188,9 +248,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSLog("Darnly: screenshot failed: \(error)")
             }
         }
+        let bundleId = NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier
+        let cloudGuess = Destination.current == .cloud ? cloudProject(for: window.ownerName, bundleId: bundleId) : nil
         let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
         let result: NoteResult? = await withCheckedContinuation { cont in
-            notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary) { cont.resume(returning: $0) }
+            notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary,
+                           project: cloudGuess) { cont.resume(returning: $0) }
         }
         guard let result else { return }
         let note = result.note
@@ -199,17 +262,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let title = Report.title(note: note, element: element)
         let capture = NativeCapture(
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
-            bundleId: collected.bundleId ?? NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier,
+            bundleId: collected.bundleId ?? bundleId,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
             element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason, hasReference: result.reference != nil)
         var problem = ""
         if Destination.current == .cloud {
             var forCloud = capture
             forCloud.forCloud = true
-            let parts = Cloud.uploadParts(title: title, appName: window.ownerName, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
+            let sendProject = ProjectName.clean(result.project ?? "").isEmpty ? cloudGuess : result.project
+            if let sendProject { saveCloudProject(sendProject, for: window.ownerName, bundleId: bundleId) }
+            let parts = Cloud.uploadParts(title: title, appName: window.ownerName, project: sendProject, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
             do {
                 try await CloudAccount.shared.upload(parts)
-                notify("Sent to your Darnly cloud inbox. Tell your agent: fix the bugs in my Darnly inbox")
+                notify("Sent to your Darnly cloud inbox under \(ProjectName.clean(sendProject ?? "my-app")). Tell your agent: fix the bugs in my Darnly inbox")
                 return
             } catch let e as CloudError {
                 problem = e.message + " "
@@ -230,18 +295,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func notify(_ text: String) {
-        // A short-lived note under the menu bar icon.
+        // A short-lived note under the menu bar icon, in Darnly's colours.
         guard let button = statusItem.button else { return }
         let pop = NSPopover()
         pop.behavior = .transient
+        pop.appearance = Brand.appearance
+        let icon = NSImageView(image: NSImage(systemSymbolName: "ladybug.fill", accessibilityDescription: nil) ?? NSImage())
+        icon.contentTintColor = Brand.pink
+        icon.symbolConfiguration = .init(pointSize: 15, weight: .semibold)
+        icon.setContentHuggingPriority(.required, for: .horizontal)
         let label = NSTextField(wrappingLabelWithString: text)
-        label.preferredMaxLayoutWidth = 300
+        label.textColor = Brand.ink
+        label.font = .systemFont(ofSize: 13)
+        label.preferredMaxLayoutWidth = 280
+        let row = NSStackView(views: [icon, label])
+        row.alignment = .top
+        row.spacing = 10
+        row.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 14)
         let vc = NSViewController()
-        let box = NSView(frame: CGRect(x: 0, y: 0, width: 320, height: max(64, label.fittingSize.height + 20)))
-        label.frame = box.bounds.insetBy(dx: 10, dy: 10)
-        box.addSubview(label)
-        vc.view = box
+        vc.view = row
         pop.contentViewController = vc
+        pop.contentSize = row.fittingSize
         pop.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         DispatchQueue.main.asyncAfter(deadline: .now() + 6) { pop.close() }
     }
