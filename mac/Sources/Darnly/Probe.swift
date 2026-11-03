@@ -103,8 +103,29 @@ enum Probe {
             value: (raw as? String) ?? (raw as? NSNumber)?.stringValue,
             identifier: attr(el, "AXIdentifier"),
             frame: f.offsetBy(dx: -window.frame.minX, dy: -window.frame.minY),
-            labels: texts
+            labels: texts,
+            pageURL: pageURL(of: el),
+            domId: attr(el, "AXDOMIdentifier"),
+            domClasses: attr(el, "AXDOMClassList")
         )
+    }
+
+    /// In a browser, the address of the page the element is on: the AXURL of the web area around it.
+    static func pageURL(of el: AXUIElement) -> String? {
+        var node: AXUIElement? = el
+        for _ in 0..<60 {
+            guard let n = node else { return nil }
+            if (attr(n, kAXRoleAttribute) as String?) == "AXWebArea" {
+                let raw: CFTypeRef? = attr(n, "AXURL")
+                if let u = raw as? URL { return u.absoluteString }
+                if let u = raw as? NSURL { return u.absoluteString }
+                return raw as? String
+            }
+            let role: String? = attr(n, kAXRoleAttribute)
+            if role == kAXWindowRole || role == kAXApplicationRole { return nil }
+            node = attr(n, kAXParentAttribute)
+        }
+        return nil
     }
 
     static func isTrusted(prompt: Bool) -> Bool {

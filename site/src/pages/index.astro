@@ -72,10 +72,10 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
       <div>
         <a class="news" href="/changelog/"><b>New in 0.3.1</b> Type /darnly, then "Take a look" when it's fixed →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
-        <p class="lede">Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor the screenshot, the exact element and the recent errors, without breaking your flow.</p>
-        <div class="cta">
-          <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
-          <a class="btn btn-ghost" href="#mac">Get the Mac app</a>
+        <p class="lede">Darnly hands it the screenshot, the exact element and the recent errors. You never leave the page.</p>
+        <div class="cta cta-labelled">
+          <div class="cta-item"><a class="btn btn-primary btn-shimmer" href={storeUrl('home')}>Add to Chrome</a><small>For web apps: localhost or live</small></div>
+          <div class="cta-item"><a class="btn btn-ghost" href="#mac">Get the Mac app</a><small>For native apps: Mac, iOS, Android</small></div>
         </div>
         <div class="agents" aria-label="Works with">
           <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
@@ -184,6 +184,32 @@ import FixLoopVideo from '../components/FixLoopVideo.astro';
         </div>
       </div>
       <FixLoopVideo />
+    </div>
+  </section>
+
+  <section class="band" id="why" style="padding-top: 0" aria-labelledby="why-h">
+    <div class="wrap">
+      <span class="eyebrow">Your agent has a browser?</span>
+      <h2 id="why-h">Your agent's browser is for when you're coding. Darnly is for when you're not.</h2>
+      <p class="intro">Claude in Chrome, Cursor and Codex can open your app, inside a session, once you describe the bug. Darnly is for the rest of the time: spot bugs while you use or test your app, a few seconds each, and let any agent fix them all later.</p>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Any agent</span>
+          <h3>Switch agents, keep your list</h3>
+          <p>The same key and the same inbox in Claude Code, Codex and Cursor. Change agents whenever you like. Your bugs come with you.</p>
+        </div>
+        <div class="step">
+          <span class="n">No session</span>
+          <h3>Spot it now, fix it later</h3>
+          <p>No chat to open, nothing to type out. Point at the bug, add one line, keep testing. Fix the whole list in one go.</p>
+        </div>
+        <div class="step">
+          <span class="n">No quota</span>
+          <h3>Out of usage? Keep going</h3>
+          <p>Capturing a bug makes no AI calls. Keep finding bugs while your limit resets, and your agent fixes them when it's back.</p>
+        </div>
+      </div>
+      <a class="all-tools" href="/why-darnly/">Why Darnly when your agent has a browser →</a>
     </div>
   </section>
 

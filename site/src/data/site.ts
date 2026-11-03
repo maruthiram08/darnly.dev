@@ -599,4 +599,8 @@ export const GUIDES: Item[] = [
   { slug: 'darnly-vs-tracebug', name: 'Darnly vs TraceBug', blurb: 'A full bug recording for developers and QA, or a quick capture that lands in your project.' },
   { slug: 'screenshot-wont-paste-into-claude-code', name: 'Screenshot won’t paste into Claude Code or Cursor?', blurb: 'The right paste key for Mac, Windows, WSL and VS Code, and the file path fallback that always works.' },
   { slug: 'stuck-in-an-ai-error-loop', name: 'Stuck in an AI error loop? How to get out', blurb: 'Stop, revert to the last working commit, give the exact error and what you expected, one change at a time.' },
+  { slug: 'darnly-vs-claude-in-chrome', name: 'Darnly vs Claude in Chrome', blurb: 'The agent drives your browser in a session, or you point at bugs as you test and fix them later.' },
+  { slug: 'darnly-vs-cursor-design-mode', name: 'Darnly vs Cursor Design Mode', blurb: 'Live tweaks inside Cursor while you build, or a bug list from your normal browser for any agent.' },
+  { slug: 'hit-your-ai-usage-limit', name: 'Hit your AI usage limit? Keep finding bugs', blurb: 'Out of Claude Code, Codex or Cursor usage? Test your app now and hand over the list when it resets.' },
+  { slug: 'switch-ai-coding-agents', name: 'How to switch AI coding agents and keep your bug list', blurb: 'AGENTS.md for instructions, your bugs in the project, so the next agent picks up where the last left off.' },
 ];

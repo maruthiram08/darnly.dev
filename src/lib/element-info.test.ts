@@ -92,3 +92,13 @@ describe('failedRequestsFromHistory', () => {
     expect(out[0]).toMatchObject({ url: 'https://x.com/api/frames', status: 404, fromHistory: true, t: 1010 });
   });
 });
+
+describe('similarElements', () => {
+  it('counts other elements with the same tag and classes', async () => {
+    const { similarElements } = await import('./element-info');
+    document.body.insertAdjacentHTML('beforeend', '<button class="btn btn-primary">A</button><button class="btn btn-primary">B</button>');
+    expect(similarElements(document.querySelector('button')!)).toEqual({ selector: 'button.btn', count: 2 });
+    expect(similarElements(document.querySelector('.card')!)).toBeUndefined(); // the only one
+    expect(similarElements(document.querySelector('li')!)).toBeUndefined(); // no classes
+  });
+});
