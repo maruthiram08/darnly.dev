@@ -11,6 +11,13 @@ enum UISnapshot {
             let view = NSHostingView(rootView: WelcomeView(model: WelcomeModel.sample(cloud: cloud)) {})
             save(view, to: folder.appendingPathComponent("\(name).png"))
         }
+        // The menu bar panel: a project folder with bugs waiting and one fixed, the cloud inbox, and a first run.
+        for (name, cloud) in [("panel-this-mac", false), ("panel-cloud", true)] {
+            save(NSHostingView(rootView: PanelView(model: PanelModel.sample(cloud: cloud))), to: folder.appendingPathComponent("\(name).png"))
+        }
+        let first = PanelModel()
+        first.notice = .init(text: "Allow Accessibility so Darnly knows what you clicked.", button: "Allow") {}
+        save(NSHostingView(rootView: PanelView(model: first)), to: folder.appendingPathComponent("panel-first-run.png"))
         let note = NotePanel()
         save(note.makeContent(image: sampleScreenshot(), summary: "button \"Save plan\" in Maccy"), to: folder.appendingPathComponent("note-box.png"))
         let cloudNote = NotePanel()

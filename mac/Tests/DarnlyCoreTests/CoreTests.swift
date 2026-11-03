@@ -249,3 +249,37 @@ final class AgentSetupTests: XCTestCase {
         XCTAssertNil(AgentSetup.mergeCursorCommand("# my own darnly command\n"))
     }
 }
+
+final class RecentBugsTests: XCTestCase {
+    func testNewestFirstAndCapped() {
+        var list: [RecentBug] = []
+        for i in 0..<25 { list = RecentBugs.adding(RecentBug(title: "bug \(i)", app: "A", date: Date()), to: list) }
+        XCTAssertEqual(list.count, RecentBugs.limit)
+        XCTAssertEqual(list.first?.title, "bug 24")
+    }
+
+    func testRoundTripsAndSurvivesJunk() {
+        let bug = RecentBug(title: "Save button", app: "Maccy", date: Date(timeIntervalSince1970: 1_800_000_000), project: "maccy")
+        XCTAssertEqual(RecentBugs.decode(RecentBugs.encode([bug])), [bug])
+        XCTAssertEqual(RecentBugs.decode(Data("nope".utf8)), [])
+        XCTAssertEqual(RecentBugs.decode(nil), [])
+    }
+
+    func testStateFollowsTheFile() throws {
+        let fm = FileManager.default
+        let project = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? fm.removeItem(at: project) }
+        let file = try Inbox.save(project: project, id: "2026-11-03-save", markdown: "# Save", png: nil, logs: [])
+        let bug = RecentBug(title: "Save", app: "A", date: Date(), file: file.path)
+        XCTAssertEqual(RecentBugs.state(of: bug), .waiting)
+        XCTAssertEqual(Inbox.waiting(project: project), 1)
+        let done = project.appendingPathComponent(".darnly/done", isDirectory: true)
+        try fm.createDirectory(at: done, withIntermediateDirectories: true)
+        try fm.moveItem(at: file, to: done.appendingPathComponent(file.lastPathComponent))
+        XCTAssertEqual(RecentBugs.state(of: bug), .fixed)
+        XCTAssertEqual(Inbox.waiting(project: project), 0)
+        XCTAssertEqual(RecentBugs.state(of: RecentBug(title: "x", app: "A", date: Date(), project: "p")), .cloud)
+        try fm.removeItem(at: done)
+        XCTAssertEqual(RecentBugs.state(of: bug), .missing)
+    }
+}

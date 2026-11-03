@@ -5,10 +5,10 @@
 #   - a "Developer ID Application" certificate in your keychain
 #   - notarytool credentials saved under the name "darnly":
 #       xcrun notarytool store-credentials darnly --apple-id <you> --team-id <TEAMID> --password <app-specific password>
-# Options: DARNLY_VERSION=0.3.1, DARNLY_SIGN_ID="Developer ID Application: Name (TEAMID)", DARNLY_NOTARY_PROFILE=darnly
+# Options: DARNLY_VERSION=0.3.2, DARNLY_SIGN_ID="Developer ID Application: Name (TEAMID)", DARNLY_NOTARY_PROFILE=darnly
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${DARNLY_VERSION:-0.3.1}"
+VERSION="${DARNLY_VERSION:-0.3.2}"
 PROFILE="${DARNLY_NOTARY_PROFILE:-darnly}"
 
 if [ -z "${DARNLY_SIGN_ID:-}" ]; then
