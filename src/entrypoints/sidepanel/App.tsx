@@ -5,6 +5,7 @@ import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom, type ChangeAspect, type ChangeScope } from '@/lib/capture-markdown';
 import { markScreenshot, referencePng } from '@/lib/screenshot';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
+import type { RecordShape } from '@/lib/record-shape';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
@@ -19,6 +20,7 @@ interface PendingCapture {
   screenshotError?: string;
   logs: LogEntry[];
   recorder: boolean;
+  record?: RecordShape;
 }
 
 interface SiteStatus {
@@ -294,7 +296,7 @@ export function App() {
     };
     chrome.tabs.onActivated.addListener(onTab);
     chrome.tabs.onUpdated.addListener(onTab);
-    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean; record?: RecordShape };
     const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
@@ -312,6 +314,7 @@ export function App() {
           screenshotError: msg.screenshotError,
           logs: mergeLogs(msg.pageLogs ?? [], msg.browserLogs ?? []),
           recorder: !!msg.recorder,
+          record: msg.record,
         });
         if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
@@ -404,6 +407,7 @@ export function App() {
       element: c.element,
       logs: c.logs,
       recorder: c.recorder,
+      record: c.record,
       reference: !!reference,
       scope: c.element ? scope : undefined,
       aspect: c.element ? aspect : undefined,
@@ -680,6 +684,7 @@ export function App() {
               <>
                 <Chip tone={capture.logs.some((l) => l.kind !== 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind !== 'request').length, 'error', 'errors')}</Chip>
                 <Chip tone={capture.logs.some((l) => l.kind === 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind === 'request').length, 'failed request', 'failed requests')}</Chip>
+                {capture.record && <Chip title="The field names, lengths and ages of the record behind this element, for your agent. No real values are sent.">data shape added</Chip>}
                 <Chip>secrets hidden</Chip>
               </>
             ) : (

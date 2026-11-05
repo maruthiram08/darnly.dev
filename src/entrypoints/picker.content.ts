@@ -2,9 +2,10 @@ import { describeElement, failedRequestsFromHistory, isSensitiveField, smallestE
 import type { LogEntry } from '@/lib/logs';
 import { redactLog } from '@/lib/logs';
 import { redactText, redactUrl } from '@/lib/redact';
+import { cleanRecordShape, type RecordShape } from '@/lib/record-shape';
 
 /** Asks the page recorder (if it runs on this site) for its last 60 seconds, and the React component of the picked element. */
-type FromPage = { logs: LogEntry[]; component?: string; components?: string[]; source?: string; recorder: boolean };
+type FromPage = { logs: LogEntry[]; component?: string; components?: string[]; source?: string; record?: RecordShape; recorder: boolean };
 const shortString = (v: unknown, max = 120) => (typeof v === 'string' && v.length <= max ? v : undefined);
 
 function askRecorder(el: Element | null): Promise<FromPage> {
@@ -17,11 +18,11 @@ function askRecorder(el: Element | null): Promise<FromPage> {
       resolve(r);
     };
     const onMessage = (e: MessageEvent) => {
-      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string; components?: unknown; source?: string } | null;
+      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string; components?: unknown; source?: string; record?: unknown } | null;
       if (e.source === window && d?.darnly === 'logs' && d.id === id) {
         // The page could send anything here, so keep only short strings.
         const components = Array.isArray(d.components) ? d.components.map((c) => shortString(c, 60)).filter((c): c is string => !!c).slice(-4) : undefined;
-        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: shortString(d.component, 60), components, source: shortString(d.source, 200), recorder: true });
+        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: shortString(d.component, 60), components, source: shortString(d.source, 200), record: cleanRecordShape(d.record), recorder: true });
       }
     };
     addEventListener('message', onMessage);
@@ -117,6 +118,8 @@ function start(): () => void {
       // Without the recorder, failed requests still come from the browser's request history.
       pageLogs: (fromPage.recorder ? fromPage.logs : failedRequestsFromHistory(window)).map(redactLog),
       recorder: fromPage.recorder,
+      // Only the record's shape, rebuilt from fixed patterns; the page's real values never get here.
+      record: el ? fromPage.record : undefined,
       page: {
         url: redactUrl(location.href),
         title: redactText(document.title),

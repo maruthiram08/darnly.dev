@@ -17,6 +17,10 @@ const server = http.createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     return res.end('{"error":"cart is empty","session":"s3cr3tsessionvalue"}');
   }
+  if (req.url.startsWith('/api/order')) {
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    return res.end(JSON.stringify({ order: { id: 'ord_9', button_label: 'Pay now', customer_email: 'buyer@shop.test', coupon: null, items: [1, 2, 3], created_at: '2025-01-01T00:00:00Z', access_token: 'zz-order-token-zz' } }));
+  }
   if (req.url.startsWith('/frames')) {
     res.setHeader('content-type', 'text/html');
     return res.end(fs.readFileSync(path.join(root, 'tests/fixtures/frames.html')));
@@ -134,6 +138,10 @@ try {
     if (all.includes(secret)) fail('secret leaked: ' + secret);
   }
   if (!logsName) fail('logs.json missing');
+  if (!md.includes('## The data behind this element')) fail('data shape section missing');
+  if (!md.includes('record id ord_9')) fail('record id missing');
+  if (!md.includes('- customer_email: <email>') || !md.includes('- items: <list, 3 items>') || !md.includes('- coupon: null')) fail('record shape wrong');
+  for (const value of ['buyer@shop.test', 'zz-order-token-zz', 'access_token']) if (md.includes(value)) fail('record value leaked: ' + value);
   if (!md.includes('## Errors (last 60s)')) fail('errors section missing');
   if (!/console\.error: Payment init failed/.test(md)) fail('console error missing');
   if (!/uncaught error: .*TypeError/.test(md)) fail('uncaught error missing');
