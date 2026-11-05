@@ -25,6 +25,8 @@
     console.error('Payment init failed for key ' + ['sk', 'live', '51HqLyjWDarjtT1zdp7dcXYZ'].join('_'));
     // Planted bug 4: a failing API call with a token in the URL and a session in the body
     fetch('/api/cart?token=abc12345&page=2', { method: 'POST' });
+    // The order behind the button, loaded like a real app loads its data: the report should show its shape, never its values.
+    fetch('/api/order').then((r) => r.json());
     // Planted bug 5: an uncaught error
     setTimeout(() => { const cart = undefined; cart.id; }, 50);
   </script>

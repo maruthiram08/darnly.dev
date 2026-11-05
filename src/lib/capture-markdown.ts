@@ -1,6 +1,7 @@
 import { DONE_FOLDER, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from './element-info';
 import { errorLines, requestLines, type LogEntry } from './logs';
+import { recordLines, type RecordShape } from './record-shape';
 
 export interface CaptureInput {
   id: string;
@@ -16,6 +17,8 @@ export interface CaptureInput {
   logs?: LogEntry[];
   /** False when the page recorder isn't switched on for this site. */
   recorder?: boolean;
+  /** The shape (never the values) of the record that filled the element, from the page's recent data. */
+  record?: RecordShape;
   /** Written for pasting into a chat (cloud projects): no file paths the agent can't open. */
   forPaste?: boolean;
   /** Written for the cloud inbox: the agent reads it through MCP, which returns the picture with it. */
@@ -159,6 +162,7 @@ export function captureMarkdown(c: CaptureInput): string {
   }
   const hints = searchHints(c);
   if (hints.length) lines.push('## Where to look', ...hints, '');
+  if (c.record && el) lines.push(...recordLines(c.record));
   const logs = c.logs ?? [];
   const errors = errorLines(logs);
   const requests = requestLines(logs);
@@ -184,6 +188,9 @@ export function captureMarkdown(c: CaptureInput): string {
       : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
       : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
+    ...(c.record && c.element
+      ? ['If the bug may depend on data, compare "The data behind this element" with what your code expects (empty, missing or old-format fields, long text, many items), and test with a record shaped like it, not a fresh one.']
+      : []),
     ...(!c.scope && c.element?.similar
       ? ['Other elements on the page are made the same way (see "similar" above). If the note is about how it looks and doesn\'t say "all" or "everywhere", change only this one. If something is broken (it doesn\'t work), fix it where it is made.']
       : []),
