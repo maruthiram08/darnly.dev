@@ -3,7 +3,8 @@ import { PRODUCT, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom, type ChangeAspect, type ChangeScope } from '@/lib/capture-markdown';
-import { markScreenshot, referencePng } from '@/lib/screenshot';
+import { markScreenshot, referencePng, stepsSheet } from '@/lib/screenshot';
+import { cleanSteps, stepText, type Step } from '@/lib/steps';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
@@ -19,6 +20,9 @@ interface PendingCapture {
   screenshotError?: string;
   logs: LogEntry[];
   recorder: boolean;
+  /** What the user did before the bug: the steps they recorded, or the last few kept automatically. */
+  steps: Step[];
+  stepsRecorded: boolean;
 }
 
 interface SiteStatus {
@@ -128,6 +132,14 @@ export function App() {
   const [cloudBugs, setCloudBugs] = useState<CaptureSummary[]>([]);
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
+  const [recordingSteps, setRecordingSteps] = useState<number | null>(null);
+  const refreshRecording = useCallback(async () => {
+    const r = await chrome.runtime.sendMessage({ type: 'steps-status' }).catch(() => null);
+    setRecordingSteps(r?.ok && typeof r.count === 'number' ? r.count : null);
+  }, []);
+  useEffect(() => {
+    refreshRecording();
+  }, [refreshRecording]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => {
     loadSession().then(setSession, () => {});
@@ -289,12 +301,13 @@ export function App() {
       watchOtherProjects();
     }, 5000);
     const onTab = () => {
+      refreshRecording();
       refreshSite();
       refreshFolder();
     };
     chrome.tabs.onActivated.addListener(onTab);
     chrome.tabs.onUpdated.addListener(onTab);
-    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean; pageSteps?: unknown; recordedSteps?: unknown; tabId?: number; count?: number | null };
     const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
@@ -304,8 +317,14 @@ export function App() {
       } else if (msg.type === 'picker-failed') {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
+      } else if (msg.type === 'steps-updated') {
+        refreshRecording();
       } else if (msg.type === 'capture-ready') {
+        const recorded = cleanSteps(msg.recordedSteps, true);
+        setRecordingSteps(null);
         setCapture({
+          steps: recorded.length ? recorded : cleanSteps(msg.pageSteps),
+          stepsRecorded: recorded.length > 0,
           element: msg.element,
           page: msg.page!,
           screenshot: msg.screenshot,
@@ -330,7 +349,7 @@ export function App() {
       chrome.tabs.onActivated.removeListener(onTab);
       chrome.tabs.onUpdated.removeListener(onTab);
     };
-  }, [refreshFolder, refreshSite, refreshProject, watchOtherProjects]);
+  }, [refreshFolder, refreshSite, refreshProject, watchOtherProjects, refreshRecording]);
 
   const linkFolder = async () => {
     try {
@@ -384,6 +403,18 @@ export function App() {
     if (action === 'cancel') setStage('idle'); // even if the page already lost the picker
   };
 
+  // "Record steps": on, with how many steps so far, for the active tab (null = not recording).
+  const startRecording = async () => {
+    setMessage('');
+    const r = await chrome.runtime.sendMessage({ type: 'steps-start' }).catch(() => null);
+    if (r?.ok) setRecordingSteps(r.count ?? 0);
+    else setMessage(`Couldn't record on this page${r?.error ? ` (${r.error})` : ''}. Chrome pages and the Web Store can't be recorded.`);
+  };
+  const stopRecording = async () => {
+    await chrome.runtime.sendMessage({ type: 'steps-stop' }).catch(() => null);
+    setRecordingSteps(null);
+  };
+
   const startFromPanel = async () => {
     const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
     if (r?.ok) setStage('picking');
@@ -407,6 +438,9 @@ export function App() {
       reference: !!reference,
       scope: c.element ? scope : undefined,
       aspect: c.element ? aspect : undefined,
+      steps: c.steps,
+      stepsRecorded: c.stepsRecorded,
+      stepsPicture: c.stepsRecorded && c.steps.some((st) => st.shot),
     };
     return {
       id,
@@ -446,7 +480,11 @@ export function App() {
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption);
     }
     // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
-    const referenceFile = reference ? { [`${id}.reference.png`]: reference.png } : {};
+    const referenceFile: Record<string, Blob> = reference ? { [`${id}.reference.png`]: reference.png } : {};
+    const sheet = capture.stepsRecorded
+      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText(st), n: i + 1 }))).catch(() => undefined)
+      : undefined;
+    if (sheet) referenceFile[`${id}.steps.jpg`] = sheet;
     const asFiles = Object.entries(files)
       .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
       .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
@@ -488,6 +526,7 @@ export function App() {
           report: cloudReport,
           picture: files[`${id}.png`] as Blob | undefined,
           reference: reference?.png,
+          steps: sheet,
           logs: files[`${id}.logs.json`] as string | undefined,
         });
         done('', true);
@@ -633,6 +672,26 @@ export function App() {
             <Icon name="target" className="h-4 w-4" />
             Capture a bug
           </button>
+          {recordingSteps == null ? (
+            <button className={secondaryCls + ' flex w-full items-center justify-center gap-2 text-sm'} onClick={startRecording} title="For bugs that take a few clicks to reach: Darnly lists each step, with a small picture, in the report">
+              <span className="h-2.5 w-2.5 rounded-full bg-pink" aria-hidden="true" />
+              Record the steps first
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-pink/30 bg-pink/5 p-3">
+              <div className="flex items-start gap-2.5">
+                <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-ink">Recording your steps · {plural(recordingSteps, 'step', 'steps')}</p>
+                  <p className="text-xs text-ink-soft">Do what leads to the bug. When you see it, capture it{shortcut ? ` (${shortcut})` : ''} and the steps go with it. What you type is never recorded.</p>
+                </div>
+              </div>
+              <button className={secondaryCls + ' w-full py-1.5 text-xs'} onClick={stopRecording}>Stop and throw away</button>
+            </div>
+          )}
           {shown.length === 0 && (
             <ol className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
               {['Click the broken part and say what you expected.', 'Darnly hands your agent the picture, the element and the errors.', 'You see here when your agent has fixed it.'].map((t, i) => (
@@ -684,6 +743,11 @@ export function App() {
               </>
             ) : (
               <Chip>Errors not recorded on this site</Chip>
+            )}
+            {capture.steps.length > 0 && (
+              <Chip title={capture.steps.map((st, i) => `${i + 1}. ${stepText(st)}`).join('\n')}>
+                {capture.stepsRecorded ? plural(capture.steps.length, 'recorded step', 'recorded steps') : `last ${plural(capture.steps.length, 'step', 'steps')}`}
+              </Chip>
             )}
           </div>
           <div className="space-y-1.5">
