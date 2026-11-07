@@ -104,7 +104,7 @@ export function siteOf(pageUrl: string): string {
 }
 
 /** Every file a bug can have in R2, so deleting a bug removes them all. */
-const FILE_NAMES = ['report.md', 'picture.png', 'reference.png', 'logs.json'];
+const FILE_NAMES = ['report.md', 'picture.png', 'reference.png', 'steps.jpg', 'logs.json'];
 
 export interface NewBug {
   title: string;
@@ -114,6 +114,8 @@ export interface NewBug {
   picture?: ArrayBuffer;
   /** A picture the user added of what it should look like (optional). */
   reference?: ArrayBuffer;
+  /** The steps the user recorded, as one JPEG of numbered screenshots (optional). */
+  steps?: ArrayBuffer;
   logs?: string;
   /** Random id the extension makes once per capture, so a repeated upload isn't saved twice. */
   clientId?: string;
@@ -130,13 +132,21 @@ async function readPng(part: File, tooLarge: string): Promise<ArrayBuffer> {
   return bytes;
 }
 
-/** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), reference (PNG, optional), logs (JSON, optional). */
+async function readJpeg(part: File): Promise<ArrayBuffer> {
+  if (part.size > LIMITS.pictureBytes) throw new HttpError(413, 'steps_too_large');
+  const bytes = await part.arrayBuffer();
+  const head = new Uint8Array(bytes.slice(0, 3));
+  if (!(head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff)) throw new HttpError(415, 'steps_not_jpeg');
+  return bytes;
+}
+
+/** Reads the multipart upload from the extension: meta (JSON), report (markdown), picture (PNG), reference (PNG, optional), steps (JPEG, optional), logs (JSON, optional). */
 export async function parseUpload(req: Request): Promise<NewBug> {
   // Without a declared size the body would be read before any limit applies; the extension always sends one.
   const declared = req.headers.get('content-length');
   if (declared == null || !/^\d+$/.test(declared)) throw new HttpError(411, 'length_required');
   const length = Number(declared);
-  if (length > 2 * LIMITS.pictureBytes + LIMITS.reportBytes + LIMITS.logsBytes + 64_000) throw new HttpError(413, 'too_large');
+  if (length > 3 * LIMITS.pictureBytes + LIMITS.reportBytes + LIMITS.logsBytes + 64_000) throw new HttpError(413, 'too_large');
   let form: FormData;
   try {
     form = await req.formData();
@@ -147,12 +157,14 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   const report = form.get('report');
   const picture = form.get('picture');
   const reference = form.get('reference');
+  const steps = form.get('steps');
   const logs = form.get('logs');
   if (
     typeof meta !== 'string' ||
     !(report instanceof File || typeof report === 'string') ||
     (picture != null && !(picture instanceof File)) ||
-    (reference != null && !(reference instanceof File))
+    (reference != null && !(reference instanceof File)) ||
+    (steps != null && !(steps instanceof File))
   ) {
     throw new HttpError(400, 'missing_parts');
   }
@@ -166,6 +178,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
   if (reportText.length > LIMITS.reportBytes) throw new HttpError(413, 'report_too_large');
   const bytes = picture instanceof File ? await readPng(picture, 'picture_too_large') : undefined;
   const referenceBytes = reference instanceof File ? await readPng(reference, 'reference_too_large') : undefined;
+  const stepsBytes = steps instanceof File ? await readJpeg(steps) : undefined;
   let logsText: string | undefined;
   if (logs != null) {
     logsText = typeof logs === 'string' ? logs : await logs.text();
@@ -178,6 +191,7 @@ export async function parseUpload(req: Request): Promise<NewBug> {
     report: reportText,
     picture: bytes,
     reference: referenceBytes,
+    steps: stepsBytes,
     logs: logsText,
     project: projectName(parsed.project),
     clientId: typeof parsed.clientId === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(parsed.clientId) ? parsed.clientId : undefined,
@@ -194,7 +208,7 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     if (seen) return summary(seen);
   }
   const now = Date.now();
-  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.logs?.length ?? 0);
+  const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.steps?.byteLength ?? 0) + (bug.logs?.length ?? 0);
   const counts = await env.DB.prepare(
     "SELECT SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS hour, SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) AS waiting, SUM(bytes) AS stored FROM bugs WHERE user_id = ?",
   )
@@ -212,6 +226,7 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     env.FILES.put(prefix + 'report.md', bug.report, { httpMetadata: { contentType: 'text/markdown; charset=utf-8' } }),
     bug.picture ? env.FILES.put(prefix + 'picture.png', bug.picture, { httpMetadata: { contentType: 'image/png' } }) : null,
     bug.reference ? env.FILES.put(prefix + 'reference.png', bug.reference, { httpMetadata: { contentType: 'image/png' } }) : null,
+    bug.steps ? env.FILES.put(prefix + 'steps.jpg', bug.steps, { httpMetadata: { contentType: 'image/jpeg' } }) : null,
     bug.logs ? env.FILES.put(prefix + 'logs.json', bug.logs, { httpMetadata: { contentType: 'application/json' } }) : null,
   ]);
   const row: BugRow = {
@@ -319,6 +334,13 @@ export async function getPicture(env: Env, userId: string, bugId: string): Promi
 export async function getReference(env: Env, userId: string, bugId: string): Promise<ArrayBuffer | null> {
   const row = await ownBug(env, userId, bugId);
   const obj = await env.FILES.get(row.files_prefix + 'reference.png');
+  return obj ? obj.arrayBuffer() : null;
+}
+
+/** The recorded steps picture, if the user recorded steps. */
+export async function getStepsPicture(env: Env, userId: string, bugId: string): Promise<ArrayBuffer | null> {
+  const row = await ownBug(env, userId, bugId);
+  const obj = await env.FILES.get(row.files_prefix + 'steps.jpg');
   return obj ? obj.arrayBuffer() : null;
 }
 

@@ -1,4 +1,5 @@
 import type { LogEntry } from '@/lib/logs';
+import { addStep, AUTO_STEPS, watchSteps, type Step } from '@/lib/steps';
 
 /**
  * Page recorder. Runs inside the page itself (MAIN world), before the page's own code,
@@ -9,6 +10,8 @@ import type { LogEntry } from '@/lib/logs';
  * nothing is stored, and it clears when the tab closes.
  * Never recorded: request bodies, headers (so no cookies or Authorization).
  * A failed response keeps a 300-character snippet, which the picker redacts.
+ * It also keeps the user's last few actions (clicked "Save", typed in "Email", opened /settings), never what they typed,
+ * so the report can say how they got to the bug.
  */
 export default defineContentScript({
   matches: ['http://localhost/*', 'http://127.0.0.1/*'],
@@ -33,6 +36,10 @@ function record() {
     buffer.push({ t: Date.now(), ...e });
     if (buffer.length > MAX_ENTRIES) buffer.shift();
   };
+  let steps: Step[] = [];
+  watchSteps(window, (st) => {
+    steps = addStep(steps, { t: Date.now(), ...st }, AUTO_STEPS * 2);
+  });
   const fresh = () => {
     const cutoff = Date.now() - MAX_AGE;
     return buffer.filter((e) => e.t >= cutoff);
@@ -120,7 +127,7 @@ function record() {
     if (e.source !== window || d?.darnly !== 'get-logs' || !d.id) return;
     const picked = document.querySelector('[data-darnly-picked]');
     const info = picked ? componentInfo(picked) : undefined;
-    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source }, '*');
+    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, steps }, '*');
   });
 }
 
