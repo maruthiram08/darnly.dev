@@ -606,4 +606,5 @@ export const GUIDES: Item[] = [
   { slug: 'report-a-bug-to-lovable', name: 'How to report a bug to Lovable', blurb: 'A marked screenshot, the page and what you expected, pasted into Lovable\u2019s chat.' },
   { slug: 'report-a-bug-to-bolt', name: 'How to report a bug to Bolt', blurb: 'Attach a marked screenshot within Bolt\u2019s limits, plus the page, what you expected and the errors.' },
   { slug: 'report-a-bug-to-v0', name: 'How to report a bug to v0', blurb: 'Paste a marked screenshot into v0 and point it at the one component to fix.' },
+  { slug: 'screenshot-wont-paste-into-codex', name: 'Screenshot won\u2019t paste into Codex CLI?', blurb: 'Ctrl+V on a Mac, drag and drop on Wayland, and codex --image, which always works.' },
 ];
