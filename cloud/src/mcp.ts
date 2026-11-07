@@ -34,7 +34,7 @@ const TOOLS = [
       },
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: { title: 'List Darnly bugs', readOnlyHint: true },
   },
   {
     name: 'get_bug',
@@ -50,7 +50,7 @@ const TOOLS = [
       required: ['id'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    annotations: { title: 'Read a Darnly bug', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'mark_fixed',
@@ -65,7 +65,7 @@ const TOOLS = [
       required: ['id', 'note'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    annotations: { title: 'Mark a Darnly bug fixed', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'ask_user',
@@ -81,7 +81,7 @@ const TOOLS = [
       required: ['id', 'question'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    annotations: { title: 'Tell Darnly you are waiting for the user', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
 ];
 
