@@ -1,0 +1,62 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'screenshot-wont-paste-into-codex';
+const faq = [
+  { q: 'Why does Cmd+V not paste a screenshot into Codex CLI on my Mac?', a: 'Most terminals only pass text to Cmd+V, so the picture never reaches Codex. In GitHub issues on the Codex repo, the working key on macOS is Ctrl+V. If that fails too, start Codex with codex --image and the file path.' },
+  { q: 'How do I attach a screenshot to Codex CLI from a file?', a: 'Start Codex with codex --image path/to/shot.png and your prompt. OpenAI\'s Codex CLI docs show --image for passing a screenshot with your first prompt.' },
+  { q: 'Ctrl+V does nothing for images on Linux. What now?', a: 'An open issue reports that on Wayland, with terminals like kitty and Alacritty, Ctrl+V attaches nothing and shows no error. Reporters say dragging the image file into the terminal works. Or use codex --image.' },
+  { q: 'I pasted a file path and it turned into [Image #1]. Why?', a: 'Codex turns a pasted path to an existing image into an image attachment. That is handy when you want the picture. If you wanted the path as text, put a word before it, like "Image file path:".' },
+  { q: 'Does the Codex IDE extension paste images more reliably?', a: 'Commenters on the macOS paste issue point to the IDE extension as a place where pasting images works. If the terminal keeps failing, try the extension or use a file.' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Screenshot won't paste into Codex CLI? Fixes that work"
+  description="Screenshot won't paste into Codex CLI? The right key on Mac and Linux, the codex --image fallback, drag and drop, and the path trick."
+  h1="Screenshot won't paste into Codex CLI? Fixes that work"
+  lede="If a screenshot won't paste into Codex CLI, try Ctrl+V instead of Cmd+V on a Mac, and if that fails, start Codex with codex --image and the screenshot's file path, which works in every terminal."
+  faq={faq}
+  sources={[
+    { name: 'OpenAI Codex CLI docs: bring visual context into the prompt', url: 'https://learn.chatgpt.com/docs/codex/cli' },
+    { name: 'openai/codex #2899: pasting image from clipboard in the CLI', url: 'https://github.com/openai/codex/issues/2899' },
+    { name: 'openai/codex #10523: macOS image paste is Ctrl+V only', url: 'https://github.com/openai/codex/issues/10523' },
+    { name: 'openai/codex #4818: Ctrl+V image paste on Wayland attaches nothing', url: 'https://github.com/openai/codex/issues/4818' },
+    { name: 'openai/codex #9283: pasted image path becomes an attachment', url: 'https://github.com/openai/codex/issues/9283' },
+  ]}
+  strip={{ lead: 'Tired of the paste step?', text: 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Codex, Claude Code or Cursor) can fix. It saves the screenshot into your project, so there is nothing to paste.' }}
+>
+  <p>OpenAI's docs give two ways to show Codex a picture: pass it with <code>codex --image</code> when you start, or paste it into the interactive composer. Paste is the one that breaks, and the reason is usually the terminal, not Codex. Here is what works on each setup, checked against the docs and open issues on the Codex repo.</p>
+
+  <h2>The fix that always works: --image</h2>
+  <ol>
+    <li>Save the screenshot as a PNG. On a Mac, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> saves a file to your desktop.</li>
+    <li>Move it into your project folder, so the path is short.</li>
+    <li>Start Codex with the picture and your note:</li>
+  </ol>
+  <pre><code>codex --image screenshots/cart.png "On /cart the total stays at $20 when I change the quantity to 3. Expected: $60."</code></pre>
+  <p>No clipboard is involved, so none of the paste problems below can stop it.</p>
+
+  <h2>macOS</h2>
+  <ul>
+    <li><strong>Use <kbd>Ctrl</kbd>+<kbd>V</kbd>, not <kbd>Cmd</kbd>+<kbd>V</kbd>.</strong> Terminals send text on <kbd>Cmd</kbd>+<kbd>V</kbd>, so the picture never arrives. In the Codex issues about this, <kbd>Ctrl</kbd>+<kbd>V</kbd> is the key that works.</li>
+    <li><strong>Copy the screenshot, don't just save it.</strong> <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> puts it on the clipboard. Plain <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> only saves a file.</li>
+    <li><strong>Look for the chip.</strong> When it works, an <code>[Image #1]</code> chip shows in the composer before you send. No chip means no picture.</li>
+  </ul>
+
+  <h2>Linux</h2>
+  <ul>
+    <li><strong>On Wayland, <kbd>Ctrl</kbd>+<kbd>V</kbd> may do nothing.</strong> An open issue reports this with kitty and Alacritty, with no error shown. Reporters say dragging the file into the terminal works.</li>
+    <li><strong>Check your terminal config.</strong> In the same issue, one person's Alacritty key settings were the cause.</li>
+    <li><strong>Use <code>--image</code></strong> if neither works.</li>
+  </ul>
+
+  <h2>The path trick</h2>
+  <p>Paste or type the full path of an image file into the composer. Codex turns a path to an existing image into an <code>[Image #1]</code> attachment, so you get the picture without the clipboard. If you wanted the path as plain text, put a word in front of it.</p>
+
+  <h2>Skip the paste step with Darnly</h2>
+  <p>Every fix above ends with a file Codex can read. <a href={storeUrl(`guide-${slug}`)}>Darnly</a> makes that file for you. It's a free Chrome extension, and a free Mac app for things outside the browser.</p>
+  <p>Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, and type what you expected. With your project folder linked, Darnly saves a PNG with the broken part boxed in red into <code>.darnly/inbox/</code>, next to a short report with the element, the page address and recent errors. Then tell Codex "fix my bugs". It reads the files from the folder. No clipboard, no key to remember.</p>
+  <p>For what to write next to the picture, see <a href="/guides/give-codex-a-screenshot/">how to give Codex a screenshot of a bug</a>. Using Claude Code or Cursor? See <a href="/guides/screenshot-wont-paste-into-claude-code/">screenshot won't paste into Claude Code or Cursor</a>.</p>
+</GuidePage>
