@@ -28,7 +28,7 @@ Darnly does not read pages you do not capture. On localhost, and on sites you sw
 Reports can list what you did before the bug, so your agent can repeat it:
 
 - **Automatically**, on localhost and sites you switch recording on for: your last 10 actions from the last 5 minutes, kept in the page's memory.
-- **When you press "Record the steps first"** in the Darnly panel: every action in that tab until you capture the bug or stop, each with a small screenshot of the screen just after it. The list lives in the browser's memory for that session and is thrown away when you stop, capture or close the tab.
+- **When you press "Record the steps first"** in the Darnly panel: every action in that tab until you capture the bug or stop, each with a small screenshot of the screen just after it. The list lives in the browser's memory for that session and is thrown away when you stop, capture or close the tab. On a site other than localhost, Chrome first asks you to allow Darnly on that site, so recording can carry on when the page reloads; you can remove that in Chrome's extension settings at any time.
 
 A step says what you clicked, which field you typed in, which option you chose and which page you opened. **Darnly never records what you type**, only where. A step's screenshot shows the screen like the main screenshot does; a step is left without a screenshot while a card number field on the page is filled in.
 

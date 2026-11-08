@@ -408,8 +408,24 @@ export function App() {
   // "Record steps": on, with how many steps so far, for the active tab (null = not recording).
   const startRecording = async () => {
     setMessage('');
+    // Recording follows the user across page loads on this site, which needs Chrome's "allow on this site".
+    // Asked first, while the button click still counts as the user's own action (Chrome shows no prompt if already allowed).
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    let origin = site.origin;
+    try {
+      if (tab?.url && /^https?:/.test(tab.url)) origin = new URL(tab.url).origin;
+    } catch {
+      /* keep the last known site */
+    }
+    if (origin && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      const ok = await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+      if (!ok) return setMessage(`Darnly needs "Allow" on ${origin.replace(/^https?:\/\//, '')} to record your steps there.`);
+    }
     const r = await chrome.runtime.sendMessage({ type: 'steps-start' }).catch(() => null);
     if (r?.ok) setRecordingSteps(r.count ?? 0);
+    else if (/permission|Cannot access/i.test(r?.error ?? ''))
+      // Chrome hasn't told Darnly which site this tab is on yet: one click on the toolbar icon on that page does.
+      setMessage('Chrome needs you to allow Darnly on this page first: click the Darnly icon in the toolbar while you are on it, then press Record again.');
     else setMessage(`Couldn't record on this page${r?.error ? ` (${r.error})` : ''}. Chrome pages and the Web Store can't be recorded.`);
   };
   const stopRecording = async () => {
