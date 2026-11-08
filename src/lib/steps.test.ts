@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { addStep, cleanStep, cleanSteps, describeTarget, recentSteps, stepText, watchSteps, type Step } from './steps';
+import { addStep, classesOf, cleanStep, cleanSteps, describeTarget, recentSteps, stepText, watchSteps, type Step } from './steps';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -9,7 +9,7 @@ beforeEach(() => {
       <input id="pw" type="password" placeholder="Password" />
       <label><input id="remember" type="checkbox" /> Remember me</label>
       <select id="plan" aria-label="Plan"><option>Free</option><option>Pro</option></select>
-      <button type="submit"><span class="icon"></span><span>Save changes</span></button>
+      <button type="submit" class="btn primary"><span class="icon"></span><span>Save changes</span></button>
       <a href="#pricing">Pricing</a>
       <div id="card">Order 1234</div>
     </form>`;
@@ -56,7 +56,7 @@ describe('watchSteps', () => {
 
     expect(steps.map((s) => stepText({ t: 0, ...s }))).toEqual([
       `Opened \`${new URL(location.href).pathname}\``,
-      'Clicked button "Save changes"',
+      'Clicked button "Save changes" (classes: `btn primary`)',
       'Typed in field "Email"',
       'Ticked checkbox "Remember me"',
       'Chose "Pro" in dropdown "Plan"',
@@ -66,11 +66,32 @@ describe('watchSteps', () => {
     expect(JSON.stringify(steps)).not.toContain('secret@example.com');
   });
 
+  it('ignores clicks on plain text, but not on things that look clickable', () => {
+    const steps: Omit<Step, 't'>[] = [];
+    stop = watchSteps(window, (s) => steps.push(s));
+    document.querySelector('#card')!.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    (document.querySelector('#card') as HTMLElement).style.cursor = 'pointer';
+    document.querySelector('#card')!.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    expect(steps.map((s) => stepText({ t: 0, ...s })).slice(1)).toEqual(['Clicked div "Order 1234"']);
+  });
+
   it('ignores clicks the page makes by itself', () => {
     const steps: Omit<Step, 't'>[] = [];
     stop = watchSteps(window, (s) => steps.push(s));
     document.querySelector('button')!.click();
     expect(steps.map((s) => s.kind)).toEqual(['page']);
+  });
+});
+
+describe('classesOf', () => {
+  it('drops machine-made class names and never cuts one in half', () => {
+    const b = document.createElement('button');
+    b.className = 'cl-userButtonTrigger cl-button cl-internal-bth0nk css-1x2y3z h-10 hover:text-ember-600 ' + 'w-full '.repeat(30);
+    const out = classesOf(b);
+    expect(out.startsWith('cl-userButtonTrigger cl-button h-10 hover:text-ember-600')).toBe(true);
+    expect(out).not.toContain('bth0nk');
+    expect(out.length).toBeLessThanOrEqual(120);
+    expect(out.split(' ').every((c) => c === 'w-full' || !c.startsWith('w-'))).toBe(true);
   });
 });
 
@@ -83,6 +104,16 @@ describe('addStep', () => {
     list = addStep(list, { t: 4, kind: 'click', target: 'button "A"' }, 3); // two real clicks stay two
     list = addStep(list, { t: 5, kind: 'click', target: 'button "B"' }, 3);
     expect(list.map((s) => s.t)).toEqual([3, 4, 5]);
+  });
+});
+
+describe('addStep and pages a click opened', () => {
+  it('folds a page that opens right after a click into that click', () => {
+    let list: Step[] = [{ t: 0, kind: 'page', url: 'http://localhost/' }];
+    list = addStep(list, { t: 1000, kind: 'click', target: 'button "Dashboard"', url: 'http://localhost/' }, 40);
+    list = addStep(list, { t: 1500, kind: 'page', url: 'http://localhost/workspace' }, 40);
+    list = addStep(list, { t: 9000, kind: 'page', url: 'http://localhost/later' }, 40); // long after: its own step
+    expect(list.map(stepText)).toEqual(['Opened `/`', 'Clicked button "Dashboard" → opened `/workspace`', 'Opened `/later`']);
   });
 });
 
@@ -119,5 +150,6 @@ describe('stepText', () => {
   it('keeps page text from breaking the markdown', () => {
     expect(stepText({ t: 0, kind: 'click', target: 'button "a`b"' })).toBe('Clicked button "a\'b"');
     expect(stepText({ t: 0, kind: 'page', url: 'http://localhost:3000/settings?tab=1' })).toBe('Opened `/settings?tab=1`');
+    expect(cleanStep({ kind: 'click', target: 'button "Go"', classes: 'h-10 px-3 hover:text-ember-600`<x>' })!.classes).toBe('h-10 px-3 hover:text-ember-600x');
   });
 });

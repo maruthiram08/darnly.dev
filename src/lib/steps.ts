@@ -16,6 +16,10 @@ export interface Step {
   detail?: string;
   /** The page it happened on. */
   url?: string;
+  /** A click or key that opened another page: that page (one step, not two). */
+  to?: string;
+  /** Clicks: the control's class names, so the agent can search the code for it. */
+  classes?: string;
   /** Recorded steps only: a small JPEG of the screen just after the step (data URL). */
   shot?: string;
 }
@@ -27,6 +31,8 @@ export const AUTO_STEPS = 10;
 export const AUTO_MAX_AGE = 5 * 60_000;
 /** Recorded steps: at most this many (the rest are dropped from the start, the bug is at the end). */
 export const MAX_RECORDED_STEPS = 40;
+/** A page that opens within this long after a click counts as that click's result. */
+export const FOLLOWS_MS = 4000;
 
 const INTERACTIVE =
   'a[href],button,summary,label,select,textarea,input,[role=button],[role=link],[role=tab],[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option],[role=checkbox],[role=radio],[role=switch],[role=combobox],[contenteditable=""],[contenteditable=true]';
@@ -88,6 +94,14 @@ export function controlOf(el: Element): Element {
   return el.closest(INTERACTIVE) ?? el;
 }
 
+/** Clickable things that aren't buttons or links (a div with a click handler) usually show a pointer cursor. */
+function hasPointer(el: Element, win: Window): boolean {
+  for (let n: Element | null = el, i = 0; n && i < 4; n = n.parentElement, i++) {
+    if (win.getComputedStyle(n).cursor === 'pointer') return true;
+  }
+  return false;
+}
+
 /** `button "Save changes"`, `field "Email"`, `div "Order #1234"`. */
 export function describeTarget(el: Element): string {
   const c = controlOf(el);
@@ -123,8 +137,9 @@ export function watchSteps(win: Window, onStep: (s: Omit<Step, 't'>) => void): (
 
   const safe = (fn: (e: Event) => void) => (e: Event) => {
     try {
-      // Only what a person did, not clicks the page made itself.
+      // Only what a person did, not clicks the page made itself, and not clicks on Darnly's own bars.
       if (!e.isTrusted) return;
+      if ((e.target as Element | null)?.tagName?.startsWith('DARNLY-')) return;
       fn(e);
     } catch {
       /* never break the page */
@@ -135,9 +150,12 @@ export function watchSteps(win: Window, onStep: (s: Omit<Step, 't'>) => void): (
     const el = e.target as Element | null;
     if (!el || el.nodeType !== 1) return;
     const c = controlOf(el);
+    // A click on plain text or empty space (not a control, no pointer cursor) changes nothing: not a step.
+    if (c === el && !el.matches(INTERACTIVE) && !hasPointer(el, win)) return;
     // Fields, dropdowns and checkboxes report through "change" instead, which says what happened.
     if (isTextEntry(c) || c.tagName === 'SELECT' || (c.tagName === 'INPUT' && ['checkbox', 'radio', 'file'].includes((c.getAttribute('type') || '').toLowerCase()))) return;
-    onStep({ kind: 'click', target: describeTarget(el), url: here() });
+    const classes = classesOf(c);
+    onStep({ kind: 'click', target: describeTarget(el), ...(classes && { classes }), url: here() });
     // A click often changes the page address a moment later (client-side routing).
     setTimeout(checkUrl, 300);
   });
@@ -199,9 +217,30 @@ export function watchSteps(win: Window, onStep: (s: Omit<Step, 't'>) => void): (
   };
 }
 
+/**
+ * The class names worth searching the code for: no machine-made ones (cl-internal-bth0nk, css-1x2y3z, sc-AbCdE),
+ * cut at a whole class so none ends half-written.
+ */
+export function classesOf(el: Element): string {
+  // Prefixes of CSS-in-JS and widget libraries, BEM-style hashes, and a last part mixing letters and digits (bth0nk, 1x2y3z).
+  const generated = /^(css|sc|jsx|svelte|emotion|cl-internal)-|^_|__[a-zA-Z0-9]{5,}$|-(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])[a-z0-9]{5,8}$/;
+  let out = '';
+  for (const c of Array.from(el.classList)) {
+    if (generated.test(c)) continue;
+    if ((out + ' ' + c).trim().length > 120) break;
+    out = (out + ' ' + c).trim();
+  }
+  return out;
+}
+
 /** Adds a step, merging repeats (typing in the same field twice, the same page twice in a row). */
 export function addStep(list: Step[], s: Step, max: number): Step[] {
   const last = list.at(-1);
+  // A page that opens right after a click or Enter is where that click led: fold it into that step.
+  if (s.kind === 'page' && last && (last.kind === 'click' || last.kind === 'key') && !last.to && s.t - last.t <= FOLLOWS_MS) {
+    if (s.url === last.url) return list;
+    return [...list.slice(0, -1), { ...last, to: s.url, ...(s.shot && { shot: s.shot }) }];
+  }
   if (last && last.kind === s.kind && last.target === s.target && last.detail === s.detail && (s.kind === 'type' || (s.kind === 'page' && last.url === s.url))) {
     return list;
   }
@@ -218,6 +257,8 @@ export function cleanStep(v: unknown, keepShot = false): Step | null {
   const target = str(s.target, 80);
   const detail = str(s.detail, 50);
   const url = str(s.url, 1000);
+  const to = str(s.to, 1000);
+  const classes = str(s.classes, 120)?.replace(/[^\w\s:./\[\]#%()-]/g, '').trim();
   const shot = keepShot && typeof s.shot === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s.shot) && s.shot.length < 400_000 ? s.shot : undefined;
   return {
     t: typeof s.t === 'number' && Number.isFinite(s.t) ? s.t : Date.now(),
@@ -225,6 +266,8 @@ export function cleanStep(v: unknown, keepShot = false): Step | null {
     ...(target && { target: redactText(target) }),
     ...(detail && { detail: redactText(detail) }),
     ...(url && { url: redactUrl(url) }),
+    ...(to && { to: redactUrl(to) }),
+    ...(classes && { classes }),
     ...(shot && { shot }),
   };
 }
@@ -249,13 +292,18 @@ function pathOf(url = ''): string {
 
 /** One step in plain words, for the report. Quotes and backticks from the page can't break the markdown. */
 export function stepText(s: Step): string {
+  const led = s.to ? ` → opened \`${pathOf(s.to).replace(/[`\s]/g, '') || '/'}\`` : '';
+  return stepWords(s) + led;
+}
+
+function stepWords(s: Step): string {
   const t = (s.target ?? '').replace(/`/g, "'");
   const d = (s.detail ?? '').replace(/["`]/g, "'");
   switch (s.kind) {
     case 'page':
       return `Opened \`${pathOf(s.url).replace(/[`\s]/g, '') || '/'}\``;
     case 'click':
-      return `Clicked ${t || 'the page'}`;
+      return `Clicked ${t || 'the page'}${s.classes ? ` (classes: \`${s.classes}\`)` : ''}`;
     case 'type':
       return `Typed in ${t || 'a field'}`;
     case 'choose':

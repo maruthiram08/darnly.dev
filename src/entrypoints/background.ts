@@ -60,13 +60,31 @@ export default defineBackground(() => {
 
   // "Record steps": the list lives here (per tab, in session storage) so it survives page loads.
   const recKey = (tabId: number) => `rec:${tabId}`;
-  type Recording = { startedAt: number; steps: Step[] };
+  type Recording = { startedAt: number; steps: Step[]; paused?: boolean };
   let recQueue: Promise<unknown> = Promise.resolve();
   async function recording(tabId: number): Promise<Recording | undefined> {
     return (await chrome.storage.session.get(recKey(tabId)))[recKey(tabId)] as Recording | undefined;
   }
-  function tellPanel(tabId: number, count: number | null) {
-    chrome.runtime.sendMessage({ type: 'steps-updated', tabId, count }).catch(() => {});
+  function tellPanel(tabId: number, count: number | null, paused = false) {
+    chrome.runtime.sendMessage({ type: 'steps-updated', tabId, count, paused }).catch(() => {});
+  }
+  async function setPaused(tabId: number, paused: boolean) {
+    recQueue = recQueue.then(async () => {
+      const rec = await recording(tabId);
+      if (!rec) return;
+      await chrome.storage.session.set({ [recKey(tabId)]: { ...rec, paused } });
+      tellPanel(tabId, rec.steps.length, paused);
+      chrome.tabs.sendMessage(tabId, { type: 'steps-paused', paused, count: rec.steps.length }).catch(() => {});
+    }).catch(() => {});
+    await recQueue;
+  }
+  /** "Done" on the page's recording bar: the same as W in the picker, a whole-page capture. */
+  async function finishFromPage(tab: chrome.tabs.Tab) {
+    // The panel shows the note box; open it if it was closed (Chrome may refuse without a click in the panel).
+    if (tab.windowId != null) chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
+    await startPicker(tab.id!);
+    chrome.runtime.sendMessage({ type: 'picking' }).catch(() => {});
+    await chrome.tabs.sendMessage(tab.id!, { type: 'picker-command', action: 'whole' });
   }
   async function injectSteps(tabId: number) {
     await chrome.scripting.executeScript({ target: { tabId }, files: ['/content-scripts/steps.js'] });
@@ -91,7 +109,8 @@ export default defineBackground(() => {
   let lastShot = 0;
   async function stepShot(windowId: number, arrived: number): Promise<string | undefined> {
     // Stay under Chrome's limit of two screenshots a second.
-    const wait = Math.max(0, lastShot + 550 - Date.now());
+    // At least a frame or two, so the page has repainted without its recording bar.
+    const wait = Math.max(60, lastShot + 550 - Date.now());
     // Steps came faster than screenshots can be taken: a late picture would show a later step, so skip it.
     if (Date.now() + wait - arrived > 700) return undefined;
     await new Promise((r) => setTimeout(r, wait));
@@ -112,12 +131,16 @@ export default defineBackground(() => {
     }
   }
 
-  async function onStep(tab: chrome.tabs.Tab, raw: unknown, noShot: boolean): Promise<boolean> {
+  type StepReply = { recording: boolean; count?: number; paused?: boolean };
+  async function onStep(tab: chrome.tabs.Tab, raw: unknown, noShot: boolean): Promise<StepReply> {
     const tabId = tab.id!;
     const arrived = Date.now();
-    if (!(await recording(tabId))) return false;
+    const now = await recording(tabId);
+    if (!now) return { recording: false };
+    if (now.paused) return { recording: true, paused: true, count: now.steps.length };
     const step = cleanStep(raw);
-    if (!step) return true;
+    if (!step) return { recording: true, count: now.steps.length };
+    let count = now.steps.length;
     // One step at a time, in the order they happened, each with its screenshot.
     recQueue = recQueue.then(async () => {
       const shot = !noShot && tab.active && tab.windowId != null ? await stepShot(tab.windowId, arrived) : undefined;
@@ -125,9 +148,12 @@ export default defineBackground(() => {
       if (!rec) return;
       const steps = addStep(rec.steps, { ...step, ...(shot && { shot }) }, MAX_RECORDED_STEPS);
       await chrome.storage.session.set({ [recKey(tabId)]: { ...rec, steps } });
+      count = steps.length;
       tellPanel(tabId, steps.length);
     }).catch(() => {});
-    return true;
+    // Reply once the screenshot is taken, so the page's recording bar can stay out of it.
+    await recQueue;
+    return { recording: true, count };
   }
 
   // A new page load in a recording tab: keep recording there.
@@ -196,17 +222,30 @@ export default defineBackground(() => {
       return true;
     }
     if (msg.type === 'step' && sender.tab?.id != null) {
-      onStep(sender.tab, msg.step, msg.noShot === true).then((on) => reply({ recording: on }), () => reply({ recording: true }));
+      onStep(sender.tab, msg.step, msg.noShot === true).then(reply, () => reply({ recording: true }));
       return true;
     }
-    if (msg.type === 'steps-start' || msg.type === 'steps-stop' || msg.type === 'steps-status') {
+    // From the recording bar on the page.
+    if ((msg.type === 'steps-tab-status' || msg.type === 'steps-pause' || msg.type === 'steps-done' || msg.type === 'steps-cancel') && sender.tab?.id != null) {
+      const tab = sender.tab;
+      (async () => {
+        if (msg.type === 'steps-pause') await setPaused(tab.id!, msg.paused === true);
+        if (msg.type === 'steps-cancel') await stopRecording(tab.id!);
+        if (msg.type === 'steps-done') await finishFromPage(tab);
+        const rec = await recording(tab.id!);
+        return { on: !!rec, count: rec?.steps.length ?? 0, paused: !!rec?.paused };
+      })().then(reply, (e) => reply({ ok: false, error: String((e as Error)?.message ?? e) }));
+      return true;
+    }
+    if (msg.type === 'steps-start' || msg.type === 'steps-stop' || msg.type === 'steps-status' || msg.type === 'steps-panel-pause') {
       chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(async ([tab]) => {
         try {
           if (!tab?.id) throw new Error('No active tab');
           if (msg.type === 'steps-start') await startRecording(tab.id);
           if (msg.type === 'steps-stop') await stopRecording(tab.id);
+          if (msg.type === 'steps-panel-pause') await setPaused(tab.id, msg.paused === true);
           const rec = await recording(tab.id);
-          reply({ ok: true, tabId: tab.id, count: rec ? rec.steps.length : null });
+          reply({ ok: true, tabId: tab.id, count: rec ? rec.steps.length : null, paused: !!rec?.paused });
         } catch (e) {
           reply({ ok: false, error: String((e as Error).message ?? e) });
         }

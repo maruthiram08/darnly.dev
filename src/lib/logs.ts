@@ -17,6 +17,8 @@ export interface LogEntry {
   resourceType?: string;
   /** Read from the browser's request history (any site, no recorder); the HTTP method isn't known. */
   fromHistory?: boolean;
+  /** A request that worked but took a long time (from the request history). */
+  slow?: boolean;
 }
 
 /** Page-supplied entries can hold anything, so keep only short strings and plain numbers. */
@@ -38,6 +40,7 @@ export function redactLog(e: LogEntry): LogEntry {
     ...(str(e.resourceType, 30) && { resourceType: str(e.resourceType, 30) }),
     ...((e.source === 'page' || e.source === 'browser') && { source: e.source }),
     ...(e.fromHistory === true && { fromHistory: true }),
+    ...(e.slow === true && { slow: true }),
     ...(message && { message: redactText(message) }),
     ...(stack && { stack: redactText(stack) }),
     ...(url && { url: redactUrl(url) }),
@@ -79,7 +82,7 @@ export function errorLines(logs: LogEntry[], max = 10): string[] {
 
 export function requestLines(logs: LogEntry[], max = 10): string[] {
   return logs
-    .filter((e) => e.kind === 'request')
+    .filter((e) => e.kind === 'request' && !e.slow)
     .slice(-max)
     .map((e) => {
       const status = e.status ? String(e.status) : `failed${e.message ? ` (${e.message})` : ''}`;
@@ -87,4 +90,13 @@ export function requestLines(logs: LogEntry[], max = 10): string[] {
       const type = e.resourceType && e.resourceType !== 'xmlhttprequest' ? ` [${e.resourceType}]` : '';
       return `- ${e.method ? `${e.method} ` : ''}${short(e.url)} ${status}${e.ms != null ? ` (${e.ms} ms)` : ''}${type}${snippet}`;
     });
+}
+
+/** Requests that worked but were slow, slowest first. */
+export function slowRequestLines(logs: LogEntry[], max = 5): string[] {
+  return logs
+    .filter((e) => e.kind === 'request' && e.slow)
+    .sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0))
+    .slice(0, max)
+    .map((e) => `- ${short(e.url)}${e.status ? ` ${e.status}` : ''} took ${e.ms} ms`);
 }

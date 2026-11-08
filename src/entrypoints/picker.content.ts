@@ -1,4 +1,4 @@
-import { describeElement, failedRequestsFromHistory, isSensitiveField, smallestElementAt, withCursor, type ElementInfo } from '@/lib/element-info';
+import { describeElement, failedRequestsFromHistory, slowRequestsFromHistory, isSensitiveField, smallestElementAt, withCursor, type ElementInfo } from '@/lib/element-info';
 import type { LogEntry } from '@/lib/logs';
 import { redactLog } from '@/lib/logs';
 import { redactText, redactUrl } from '@/lib/redact';
@@ -116,7 +116,8 @@ function start(): () => void {
       type: 'element-picked',
       element: element && redactElement(element),
       // Without the recorder, failed requests still come from the browser's request history.
-      pageLogs: (fromPage.recorder ? fromPage.logs : failedRequestsFromHistory(window)).map(redactLog),
+      // Slow requests that did work come from the history on every site (a "too slow" bug has no error).
+      pageLogs: [...(fromPage.recorder ? fromPage.logs : failedRequestsFromHistory(window)), ...slowRequestsFromHistory(window)].map(redactLog),
       recorder: fromPage.recorder,
       // The user's last few actions on this page (only where the recorder runs).
       pageSteps: fromPage.steps ?? [],

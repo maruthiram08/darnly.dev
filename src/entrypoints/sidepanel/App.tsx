@@ -133,9 +133,11 @@ export function App() {
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
   const [recordingSteps, setRecordingSteps] = useState<number | null>(null);
+  const [recordingPaused, setRecordingPaused] = useState(false);
   const refreshRecording = useCallback(async () => {
     const r = await chrome.runtime.sendMessage({ type: 'steps-status' }).catch(() => null);
     setRecordingSteps(r?.ok && typeof r.count === 'number' ? r.count : null);
+    setRecordingPaused(!!r?.paused);
   }, []);
   useEffect(() => {
     refreshRecording();
@@ -406,13 +408,38 @@ export function App() {
   // "Record steps": on, with how many steps so far, for the active tab (null = not recording).
   const startRecording = async () => {
     setMessage('');
+    // Recording follows the user across page loads on this site, which needs Chrome's "allow on this site".
+    // Asked first, while the button click still counts as the user's own action (Chrome shows no prompt if already allowed).
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    let origin = site.origin;
+    try {
+      if (tab?.url && /^https?:/.test(tab.url)) origin = new URL(tab.url).origin;
+    } catch {
+      /* keep the last known site */
+    }
+    if (origin && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      const ok = await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+      if (!ok) return setMessage(`Darnly needs "Allow" on ${origin.replace(/^https?:\/\//, '')} to record your steps there.`);
+    }
     const r = await chrome.runtime.sendMessage({ type: 'steps-start' }).catch(() => null);
     if (r?.ok) setRecordingSteps(r.count ?? 0);
+    else if (/permission|Cannot access/i.test(r?.error ?? ''))
+      // Chrome hasn't told Darnly which site this tab is on yet: one click on the toolbar icon on that page does.
+      setMessage(`Chrome hasn't let Darnly into this tab yet. On the page, press ${shortcut ?? 'the Darnly shortcut'} and then Esc, then press Record again. Darnly then asks to be allowed on this site, once.`);
     else setMessage(`Couldn't record on this page${r?.error ? ` (${r.error})` : ''}. Chrome pages and the Web Store can't be recorded.`);
   };
   const stopRecording = async () => {
     await chrome.runtime.sendMessage({ type: 'steps-stop' }).catch(() => null);
     setRecordingSteps(null);
+  };
+
+  // Ends the recording with the whole screen as the picture: the steps and a note are often all the agent needs.
+  const finishRecording = async () => {
+    setMessage('');
+    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' }).catch(() => null);
+    if (!r?.ok) return setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page, then W, to finish.`);
+    setStage('picking');
+    await pickerCommand('whole');
   };
 
   const startFromPanel = async () => {
@@ -482,7 +509,7 @@ export function App() {
     // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
     const referenceFile: Record<string, Blob> = reference ? { [`${id}.reference.png`]: reference.png } : {};
     const sheet = capture.stepsRecorded
-      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText(st), n: i + 1 }))).catch(() => undefined)
+      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText({ ...st, classes: undefined }), n: i + 1 }))).catch(() => undefined)
       : undefined;
     if (sheet) referenceFile[`${id}.steps.jpg`] = sheet;
     const asFiles = Object.entries(files)
@@ -668,10 +695,12 @@ export function App() {
               </button>
             </div>
           )}
-          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
-            <Icon name="target" className="h-4 w-4" />
-            Capture a bug
-          </button>
+          {recordingSteps == null && (
+            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+              <Icon name="target" className="h-4 w-4" />
+              Capture a bug
+            </button>
+          )}
           {recordingSteps == null ? (
             <button className={secondaryCls + ' flex w-full items-center justify-center gap-2 text-sm'} onClick={startRecording} title="For bugs that take a few clicks to reach: Darnly lists each step, with a small picture, in the report">
               <span className="h-2.5 w-2.5 rounded-full bg-pink" aria-hidden="true" />
@@ -685,11 +714,19 @@ export function App() {
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">Recording your steps · {plural(recordingSteps, 'step', 'steps')}</p>
-                  <p className="text-xs text-ink-soft">Do what leads to the bug. When you see it, capture it{shortcut ? ` (${shortcut})` : ''} and the steps go with it. What you type is never recorded.</p>
+                  <p className="font-semibold text-ink">{recordingPaused ? 'Paused' : 'Recording your steps'} · {plural(recordingSteps, 'step', 'steps')}</p>
+                  <p className="text-xs text-ink-soft">Do what leads to the bug on the page. When you reach it, press Done here or on the page's bar. What you type is never recorded.</p>
                 </div>
               </div>
-              <button className={secondaryCls + ' w-full py-1.5 text-xs'} onClick={stopRecording}>Stop and throw away</button>
+              <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={finishRecording}>
+                <Icon name="check" className="h-4 w-4" />
+                Done, describe the bug
+              </button>
+              <p className="text-center text-xs text-ink-soft">
+                <button className={linkCls} onClick={startFromPanel} title="Point at the broken part, then describe it">Point at the broken part first</button>
+                {' · '}
+                <button className={linkCls} onClick={stopRecording}>Cancel recording</button>
+              </p>
             </div>
           )}
           {shown.length === 0 && (
