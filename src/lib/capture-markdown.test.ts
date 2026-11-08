@@ -242,3 +242,46 @@ describe('captureMarkdown: check the fix and change only this', () => {
     expect(all).toContain('they should have changed too');
   });
 });
+
+describe('steps in the report', () => {
+  const steps = [
+    { t: 1, kind: 'page' as const, url: 'http://localhost:3000/cart' },
+    { t: 2, kind: 'click' as const, target: 'button "Checkout"' },
+    { t: 3, kind: 'type' as const, target: 'field "Coupon"' },
+  ];
+
+  it('lists the automatic last steps, marked as possibly unrelated', () => {
+    const md = captureMarkdown({ ...base, steps });
+    expect(md).toContain("## Steps before this (the user's last 3 actions on this site)");
+    expect(md).toContain('1. Opened `/cart`\n2. Clicked button "Checkout"\n3. Typed in field "Coupon"');
+    expect(md).toContain('may include steps that have nothing to do with the bug');
+    expect(md).not.toContain('Pictures of the steps');
+    // Control names come from the page, so they sit inside the page-data markers.
+    expect(md.indexOf('## Steps before this')).toBeGreaterThan(md.indexOf('<!-- darnly:page-data:start -->'));
+    expect(md.indexOf('## Steps before this')).toBeLessThan(md.indexOf('<!-- darnly:page-data:end -->'));
+  });
+
+  it('lists recorded steps with their picture, and the check repeats them', () => {
+    const md = captureMarkdown({ ...base, steps, stepsRecorded: true, stepsPicture: true });
+    expect(md).toContain('## Steps to get here (recorded by the user)');
+    expect(md).toContain('Pictures of the steps: .darnly/inbox/2026-11-01-0140-pay-now-should-open.steps.jpg');
+    expect(md).toContain('Then follow the steps under "Steps to get here"');
+    expect(captureMarkdown({ ...base, steps, stepsRecorded: true, stepsPicture: true, forCloud: true })).toContain('the steps picture returned with this bug');
+    expect(captureMarkdown({ ...base, steps, stepsRecorded: true, stepsPicture: true, forPaste: true })).not.toContain('Pictures of the steps');
+  });
+
+  it('says nothing about steps when there are none', () => {
+    expect(captureMarkdown(base)).not.toContain('Steps');
+  });
+  it('lists slow requests on their own, slowest first', () => {
+    const logs = [
+      { t: 1, kind: 'request', url: 'https://x.com/api/feed', status: 200, ms: 2100, slow: true, fromHistory: true },
+      { t: 2, kind: 'request', url: 'https://x.com/api/deep-dive', status: 200, ms: 6400, slow: true, fromHistory: true },
+    ];
+    const md = captureMarkdown({ ...base, recorder: false, logs: logs as never });
+    expect(md).toContain('## Slow requests');
+    expect(md.indexOf('/api/deep-dive 200 took 6400 ms')).toBeLessThan(md.indexOf('/api/feed 200 took 2100 ms'));
+    expect(md).not.toContain('## Failed requests');
+    expect(md).toContain('No failed requests since the page loaded');
+  });
+});

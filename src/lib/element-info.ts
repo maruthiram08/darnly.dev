@@ -277,6 +277,31 @@ export function withCursor(info: ElementInfo, picked: Element, point: { x: numbe
   return out;
 }
 
+/** A data request that worked but took at least this long is listed as slow. */
+export const SLOW_REQUEST_MS = 1500;
+
+/**
+ * Slow data requests (fetch / XHR) since the page loaded, from the browser's request history.
+ * Failed ones are left to failedRequestsFromHistory and the recorder.
+ */
+export function slowRequestsFromHistory(win: Window, max = 5) {
+  const entries = win.performance.getEntriesByType('resource') as (PerformanceResourceTiming & { responseStatus?: number })[];
+  return entries
+    .filter((e) => (e.initiatorType === 'fetch' || e.initiatorType === 'xmlhttprequest') && e.duration >= SLOW_REQUEST_MS && (e.responseStatus ?? 0) < 400)
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, max)
+    .map((e) => ({
+      t: Math.round(win.performance.timeOrigin + e.responseEnd),
+      kind: 'request' as const,
+      url: e.name,
+      ...(e.responseStatus ? { status: e.responseStatus } : {}),
+      ms: Math.round(e.duration),
+      resourceType: 'xmlhttprequest',
+      fromHistory: true,
+      slow: true,
+    }));
+}
+
 /**
  * Failed requests since the page loaded, from the browser's own request history.
  * Works on every site with no setup, because it needs no recorder (Chrome 109+ reports the status code).

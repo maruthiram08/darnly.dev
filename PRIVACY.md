@@ -1,6 +1,6 @@
 # Darnly privacy policy
 
-Last updated: 1 November 2026
+Last updated: 7 November 2026
 
 Darnly is a Chrome extension that turns a bug you see on a web page into a report your AI coding agent can read. This policy explains what it touches and where that goes.
 
@@ -18,9 +18,19 @@ When you press the Darnly shortcut and click part of a page, Darnly reads:
 - details about the element you clicked: its text, HTML, styles, size and position, and its React component name and source file when the page exposes them;
 - the page address and title;
 - console errors and failed network requests from about the last 60 seconds, on localhost and on sites you switch recording on for. On other sites, only failed requests the browser already lists for the page;
-- the note you type.
+- the note you type;
+- the steps that led to the bug (see below).
 
-Darnly does not read pages you do not capture. On localhost, and on sites you switch on, a small recorder keeps the last 60 seconds of errors in the page's memory, so they are ready if you capture. That buffer never leaves the page unless you capture.
+Darnly does not read pages you do not capture. On localhost, and on sites you switch on, a small recorder keeps the last 60 seconds of errors in the page's memory, so they are ready if you capture. It also keeps your last few actions there (for example "clicked button Save", "typed in field Email", "opened /settings"). That buffer never leaves the page unless you capture.
+
+## Steps that led to the bug
+
+Reports can list what you did before the bug, so your agent can repeat it:
+
+- **Automatically**, on localhost and sites you switch recording on for: your last 10 actions from the last 5 minutes, kept in the page's memory.
+- **When you press "Record the steps first"** in the Darnly panel: every action in that tab until you capture the bug or stop, each with a small screenshot of the screen just after it. The list lives in the browser's memory for that session and is thrown away when you stop, capture or close the tab. On a site other than localhost, Chrome first asks you to allow Darnly on that site, so recording can carry on when the page reloads; you can remove that in Chrome's extension settings at any time.
+
+A step says what you clicked, which field you typed in, which option you chose and which page you opened. **Darnly never records what you type**, only where. A step's screenshot shows the screen like the main screenshot does; a step is left without a screenshot while a card number field on the page is filled in.
 
 ## What Darnly hides
 

@@ -83,3 +83,43 @@ function wrap(paragraphs: string[], width: number, font: number): string[] {
   }
   return out.length > 6 ? [...out.slice(0, 5), out[5] + ' …'] : out;
 }
+
+/** The steps picture holds at most this many screenshots (the last ones: the bug is at the end). */
+export const MAX_STEP_PICTURES = 12;
+
+/**
+ * One picture of the recorded steps: a grid of the small screenshots, each captioned with its number (matching the
+ * numbered list in the report) and what the user did. JPEG, so a dozen screenshots stay small.
+ */
+export async function stepsSheet(steps: { shot?: string; label: string; n: number }[]): Promise<Blob | undefined> {
+  const withShots = steps.filter((s) => s.shot).slice(-MAX_STEP_PICTURES);
+  if (!withShots.length) return undefined;
+  const images = await Promise.all(withShots.map(async (s) => createImageBitmap(await (await fetch(s.shot!)).blob()).catch(() => null)));
+  const cols = Math.min(3, withShots.length);
+  const cellW = 420;
+  const thumbH = Math.round(cellW * Math.max(...images.map((i) => (i ? i.height / i.width : 0.625)), 0.4));
+  const captionH = 34;
+  const gap = 12;
+  const rows = Math.ceil(withShots.length / cols);
+  const canvas = new OffscreenCanvas(cols * cellW + (cols + 1) * gap, rows * (thumbH + captionH) + (rows + 1) * gap);
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  withShots.forEach((s, i) => {
+    const x = gap + (i % cols) * (cellW + gap);
+    const y = gap + Math.floor(i / cols) * (thumbH + captionH + gap);
+    const img = images[i];
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, cellW, thumbH + captionH);
+    if (img) ctx.drawImage(img, x, y, cellW, Math.round((cellW * img.height) / img.width));
+    // The number and what the user did, in a bar under the picture (nothing drawn over the page itself).
+    ctx.fillStyle = '#111827';
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    let label = `${s.n}. ${s.label}`;
+    while (label.length > 4 && ctx.measureText(label).width > cellW - 16) label = label.slice(0, -2);
+    if (label !== `${s.n}. ${s.label}`) label = label.trimEnd() + '…';
+    ctx.fillText(label, x + 8, y + thumbH + captionH / 2);
+  });
+  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+}
