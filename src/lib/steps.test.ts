@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { addStep, cleanStep, cleanSteps, describeTarget, recentSteps, stepText, watchSteps, type Step } from './steps';
+import { addStep, classesOf, cleanStep, cleanSteps, describeTarget, recentSteps, stepText, watchSteps, type Step } from './steps';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -66,11 +66,32 @@ describe('watchSteps', () => {
     expect(JSON.stringify(steps)).not.toContain('secret@example.com');
   });
 
+  it('ignores clicks on plain text, but not on things that look clickable', () => {
+    const steps: Omit<Step, 't'>[] = [];
+    stop = watchSteps(window, (s) => steps.push(s));
+    document.querySelector('#card')!.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    (document.querySelector('#card') as HTMLElement).style.cursor = 'pointer';
+    document.querySelector('#card')!.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    expect(steps.map((s) => stepText({ t: 0, ...s })).slice(1)).toEqual(['Clicked div "Order 1234"']);
+  });
+
   it('ignores clicks the page makes by itself', () => {
     const steps: Omit<Step, 't'>[] = [];
     stop = watchSteps(window, (s) => steps.push(s));
     document.querySelector('button')!.click();
     expect(steps.map((s) => s.kind)).toEqual(['page']);
+  });
+});
+
+describe('classesOf', () => {
+  it('drops machine-made class names and never cuts one in half', () => {
+    const b = document.createElement('button');
+    b.className = 'cl-userButtonTrigger cl-button cl-internal-bth0nk css-1x2y3z h-10 hover:text-ember-600 ' + 'w-full '.repeat(30);
+    const out = classesOf(b);
+    expect(out.startsWith('cl-userButtonTrigger cl-button h-10 hover:text-ember-600')).toBe(true);
+    expect(out).not.toContain('bth0nk');
+    expect(out.length).toBeLessThanOrEqual(120);
+    expect(out.split(' ').every((c) => c === 'w-full' || !c.startsWith('w-'))).toBe(true);
   });
 });
 
@@ -83,6 +104,16 @@ describe('addStep', () => {
     list = addStep(list, { t: 4, kind: 'click', target: 'button "A"' }, 3); // two real clicks stay two
     list = addStep(list, { t: 5, kind: 'click', target: 'button "B"' }, 3);
     expect(list.map((s) => s.t)).toEqual([3, 4, 5]);
+  });
+});
+
+describe('addStep and pages a click opened', () => {
+  it('folds a page that opens right after a click into that click', () => {
+    let list: Step[] = [{ t: 0, kind: 'page', url: 'http://localhost/' }];
+    list = addStep(list, { t: 1000, kind: 'click', target: 'button "Dashboard"', url: 'http://localhost/' }, 40);
+    list = addStep(list, { t: 1500, kind: 'page', url: 'http://localhost/workspace' }, 40);
+    list = addStep(list, { t: 9000, kind: 'page', url: 'http://localhost/later' }, 40); // long after: its own step
+    expect(list.map(stepText)).toEqual(['Opened `/`', 'Clicked button "Dashboard" → opened `/workspace`', 'Opened `/later`']);
   });
 });
 

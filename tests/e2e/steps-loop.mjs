@@ -116,12 +116,14 @@ try {
   console.log(md.slice(md.indexOf('## Steps'), md.indexOf('## Element')));
   if (process.env.SAVE_STEPS && sheet) fs.writeFileSync(process.env.SAVE_STEPS, Buffer.from(sheet.b64, 'base64'));
   if (!md.includes('## Steps to get here (recorded by the user)')) fail('recorded steps section missing');
-  for (const want of ['Opened `/cart`', 'Clicked field "Coupon code"', 'Typed in field "Coupon code"', 'Clicked link "Go to checkout"', 'Opened `/checkout`']) {
+  if (md.includes('Clicked h1')) fail('clicks on plain headings were counted as steps');
+  for (const want of ['Opened `/cart`', 'Clicked field "Coupon code"', 'Typed in field "Coupon code"', 'Clicked link "Go to checkout" → opened `/checkout`']) {
     if (want === 'Clicked field "Coupon code"') continue; // clicks into fields are not steps (typing is)
     if (!md.includes(want)) fail(`step missing: ${want}`);
   }
   if (md.includes('SECRETCODE42')) fail('typed text leaked into the report');
   if (!sheet || sheet.size < 2000) fail('steps picture missing');
+  if (/\d\. Opened `\/checkout`/.test(md)) fail('the page a click opened was counted as its own step');
   if (!md.includes('.steps.jpg')) fail('report does not point to the steps picture');
   if (!md.includes(`1. Open \`${base}/cart\``)) fail('the check does not start from the first recorded page');
   if (!md.includes('Whole visible page captured')) fail('Done did not capture the whole page');
