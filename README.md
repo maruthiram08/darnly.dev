@@ -10,13 +10,13 @@ Made for people who build apps with AI coding agents, developer or not.
 
 ## How it works
 
-1. Press **Option+Shift+B** (Mac) or **Alt+Shift+B** (Windows) on any page, on localhost or your live site.
+1. Press **Option+Shift+B** on a Mac (Windows is coming soon) on any page, on localhost or your live site.
 2. Click the broken part. Arrow keys make the box bigger or smaller, W picks the whole page, Esc cancels.
 3. Type what you expected and press Enter.
 
 Where the report goes:
 
-- **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and **Set up this project** adds a short note to `AGENTS.md`, a `/darnly` command for Claude Code and Cursor, and a Claude Code hook that tells the agent when bugs are waiting. Then type `/darnly` (in Codex, say "fix my bugs").
+- **Code on your computer:** link your project folder once. Each bug lands as plain files in `.darnly/inbox/` (Markdown plus a PNG), and **Set up this project** adds a short note to `AGENTS.md`, a `/darnly` command for Claude Code and Cursor, and a Claude Code hook that tells the agent when bugs are waiting. Then type `/darnly` (in Codex, say "fix my Darnly bugs").
 - **Code in the cloud:** sign in once and bugs go to your private Darnly inbox. Add the connector `https://api.darnly.dev/mcp` to your agent ([how, for each agent](https://darnly.dev/setup/)) (tools: `list_bugs`, `get_bug`, `ask_user`, `mark_fixed`), or copy the picture and the details into your agent's chat.
 
 When the agent fixes a bug, the Darnly panel says "1 bug fixed. Take a look." with one line on what changed. If the agent has a question, the panel tells you to go back to its chat.

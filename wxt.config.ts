@@ -28,7 +28,7 @@ export default defineConfig({
       : {}),
     // Production sites are switched on one at a time from the side panel; Chrome asks to confirm each.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
-    // Localhost works without asking; other sites work through the hotkey (activeTab). Per-site opt-in comes in Sprint 2.
+    // Localhost works without asking; other sites work through the hotkey (activeTab), plus the sites the user switches on (above).
     host_permissions: [
       'http://localhost/*',
       'http://127.0.0.1/*',

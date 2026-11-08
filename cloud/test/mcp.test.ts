@@ -227,6 +227,23 @@ describe('MCP for coding agents', () => {
     expect((await SELF.fetch(`${BASE}/mcp`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(405);
   });
 
+  it('refuses oversized bodies and batches, and answers small batches', async () => {
+    const token = await connectAgent('batch@example.com');
+    const post = (body: string) =>
+      SELF.fetch(`${BASE}/mcp`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body });
+    const ping = (id: number) => ({ jsonrpc: '2.0', id, method: 'ping' });
+    const ok = await post(JSON.stringify([ping(1), ping(2)]));
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('cache-control')).toBe('no-store');
+    expect(((await ok.json()) as unknown[]).length).toBe(2);
+    const many = await post(JSON.stringify(Array.from({ length: 21 }, (_, i) => ping(i + 1))));
+    expect(many.status).toBe(400);
+    expect(((await many.json()) as { error: { code: number } }).error.code).toBe(-32600);
+    expect((await post('[]')).status).toBe(400);
+    const big = await post(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: { pad: 'x'.repeat(300_000) } }));
+    expect(big.status).toBe(413);
+  });
+
   it('stops two agents fixing the same bug', async () => {
     const email = 'claims@example.com';
     const codex = await connectAgent(email, 'Codex');

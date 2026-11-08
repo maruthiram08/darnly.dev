@@ -1,4 +1,4 @@
-// Small helpers shared by the API and (later) the MCP endpoint.
+// Small helpers shared by the API and the MCP endpoint.
 
 export class HttpError extends Error {
   constructor(public status: number, public code: string, message?: string) {
@@ -9,7 +9,8 @@ export class HttpError extends Error {
 export function json(data: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', ...headers },
+    // Answers carry one user's bugs: never kept by a browser or shared cache.
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
   });
 }
 
@@ -40,9 +41,38 @@ export async function sha256(text: string): Promise<string> {
   return base64url(new Uint8Array(digest));
 }
 
+/**
+ * Reads a request body as text, stopping once it passes maxBytes, so a huge body is never held in memory.
+ * A declared Content-Length over the limit is refused before anything is read.
+ */
+export async function readText(req: Request, maxBytes: number): Promise<string> {
+  const declared = Number(req.headers.get('content-length') ?? NaN);
+  if (Number.isFinite(declared) && declared > maxBytes) throw new HttpError(413, 'too_large');
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      reader.cancel().catch(() => {});
+      throw new HttpError(413, 'too_large');
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    all.set(c, at);
+    at += c.byteLength;
+  }
+  return new TextDecoder().decode(all);
+}
+
 export async function readJson<T>(req: Request, maxBytes = 16_000): Promise<T> {
-  const text = await req.text();
-  if (text.length > maxBytes) throw new HttpError(413, 'too_large');
+  const text = await readText(req, maxBytes);
   try {
     return JSON.parse(text) as T;
   } catch {
