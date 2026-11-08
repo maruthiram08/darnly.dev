@@ -93,6 +93,27 @@ describe('failedRequestsFromHistory', () => {
   });
 });
 
+describe('slowRequestsFromHistory', () => {
+  it('keeps slow data requests that worked, slowest first', async () => {
+    const { slowRequestsFromHistory } = await import('./element-info');
+    const win = {
+      performance: {
+        timeOrigin: 1000,
+        getEntriesByType: () => [
+          { name: 'https://x.com/api/fast', responseStatus: 200, responseEnd: 5, duration: 200, initiatorType: 'fetch' },
+          { name: 'https://x.com/api/slow', responseStatus: 200, responseEnd: 3000, duration: 2500, initiatorType: 'fetch' },
+          { name: 'https://x.com/api/slower', responseStatus: 200, responseEnd: 6000, duration: 5200, initiatorType: 'xmlhttprequest' },
+          { name: 'https://x.com/api/failed', responseStatus: 422, responseEnd: 6000, duration: 5100, initiatorType: 'fetch' },
+          { name: 'https://x.com/big.png', responseStatus: 200, responseEnd: 4000, duration: 4000, initiatorType: 'img' },
+        ],
+      },
+    } as unknown as Window;
+    const out = slowRequestsFromHistory(win);
+    expect(out.map((e) => e.url)).toEqual(['https://x.com/api/slower', 'https://x.com/api/slow']);
+    expect(out[0]).toMatchObject({ ms: 5200, status: 200, slow: true });
+  });
+});
+
 describe('similarElements', () => {
   it('counts other elements with the same tag and classes', async () => {
     const { similarElements } = await import('./element-info');

@@ -1,6 +1,6 @@
 # Darnly privacy policy
 
-Last updated: 1 November 2026
+Last updated: 8 November 2026
 
 Darnly is a Chrome extension that turns a bug you see on a web page into a report your AI coding agent can read. This policy explains what it touches and where that goes.
 
@@ -18,13 +18,32 @@ When you press the Darnly shortcut and click part of a page, Darnly reads:
 - details about the element you clicked: its text, HTML, styles, size and position, and its React component name and source file when the page exposes them;
 - the page address and title;
 - console errors and failed network requests from about the last 60 seconds, on localhost and on sites you switch recording on for. On other sites, only failed requests the browser already lists for the page;
-- the note you type.
+- the **shape** of the data behind the element you clicked, on localhost and on sites you switch recording on for (see "The data behind this element" below);
+- the note you type;
+- the steps that led to the bug (see below).
 
-Darnly does not read pages you do not capture. On localhost, and on sites you switch on, a small recorder keeps the last 60 seconds of errors in the page's memory, so they are ready if you capture. That buffer never leaves the page unless you capture.
+Darnly does not read pages you do not capture. On localhost, and on sites you switch on, a small recorder keeps the last 60 seconds of errors, and the last 20 data (JSON) responses the page loaded, in the page's memory, so they are ready if you capture. It also keeps your last few actions there (for example "clicked button Save", "typed in field Email", "opened /settings"). That memory is never saved, is cleared when you close the tab, and never leaves the page unless you capture.
+
+## The data behind this element
+
+Some bugs only happen with your real data: an old record missing a field, a very long name, a list with 400 items. So when you capture, Darnly looks through the page's recent data responses for the record that filled the element you clicked, and adds a description of its **shape** to the report.
+
+The shape is field names and what kind of value each one holds, never the values themselves. For example: `name: <text, 61 chars>`, `email: <email>`, `plan: null`, `tasks: <list, 412 items>`, `created_at: <date, 14 months ago>`. Real values stay in your browser. The only values kept are the record's id (so your agent can find it), true/false, zero, and short status-like words under fields such as `status` or `plan` (for example `active` or `pro`). Fields with secret-looking names (tokens, passwords, keys) are left out entirely.
+
+This happens on your computer, needs nothing from you, and only on localhost and sites you switched recording on for. The shape is part of the report, so it goes wherever the report goes (your project folder, your clipboard, or your cloud inbox).
+
+## Steps that led to the bug
+
+Reports can list what you did before the bug, so your agent can repeat it:
+
+- **Automatically**, on localhost and sites you switch recording on for: your last 10 actions from the last 5 minutes, kept in the page's memory.
+- **When you press "Record the steps first"** in the Darnly panel: every action in that tab until you capture the bug or stop, each with a small screenshot of the screen just after it. The list lives in the browser's memory for that session and is thrown away when you stop, capture or close the tab. On a site other than localhost, Chrome first asks you to allow Darnly on that site, so recording can carry on when the page reloads; you can remove that in Chrome's extension settings at any time.
+
+A step says what you clicked, which field you typed in, which option you chose and which page you opened. **Darnly never records what you type**, only where. A step's screenshot shows the screen like the main screenshot does; a step is left without a screenshot while a card number field on the page is filled in.
 
 ## What Darnly hides
 
-Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys and secret-looking query parameters. These are replaced with `[hidden]`.
+Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys and secret-looking query parameters. These are replaced with `[hidden]`. Data responses are never copied into the report: only the shape of one record, as described above.
 
 ## Where reports go
 
@@ -37,7 +56,7 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 
 ## The cloud inbox (optional, version 0.2.0 and later)
 
-**What is sent:** for each bug you capture while signed in, the report (the same text you would otherwise save or paste), the marked screenshot, and the recent errors, all after the secrets above have been removed on your computer. Also your Google account's email address and Google's account id, to know whose inbox it is.
+**What is sent:** for each bug you capture while signed in, the report (the same text you would otherwise save or paste, including the data shape described above, never data values), the marked screenshot, and the recent errors, all after the secrets above have been removed on your computer. Also your Google account's email address and Google's account id, to know whose inbox it is.
 
 **Where it lives:** on Cloudflare, which runs Darnly cloud for us (a database for the bug list, file storage for screenshots and reports). Data is encrypted at rest by Cloudflare.
 
@@ -60,7 +79,7 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 - **storage:** your settings and the linked folder.
 - **offscreen:** keeps folder access alive so Chrome doesn't ask again every time the panel closes.
 - **webRequest:** to notice failed requests (like a missing image) on localhost and sites you switch on.
-- **Optional access to sites:** asked for one site at a time, only when you click "Record errors on this site".
+- **Optional access to sites:** asked for one site at a time, only when you click "Record errors on this site". On those sites (and on localhost) Darnly also notes the shape of the data behind the element you capture.
 - **identity** (version 0.2.0 and later): "Sign in with Google" for the cloud inbox. Used only when you click it.
 
 ## Contact

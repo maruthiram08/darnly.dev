@@ -3,12 +3,15 @@ import { PRODUCT, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from '@/lib/element-info';
 import { captureId } from '@/lib/capture-name';
 import { captureMarkdown, headingFrom, type ChangeAspect, type ChangeScope } from '@/lib/capture-markdown';
-import { markScreenshot, referencePng } from '@/lib/screenshot';
+import { markScreenshot, referencePng, stepsSheet } from '@/lib/screenshot';
+import { cleanSteps, stepText, type Step } from '@/lib/steps';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
+import type { RecordShape } from '@/lib/record-shape';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
+import { reportOpen } from '@/lib/open-count';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
@@ -19,6 +22,10 @@ interface PendingCapture {
   screenshotError?: string;
   logs: LogEntry[];
   recorder: boolean;
+  record?: RecordShape;
+  /** What the user did before the bug: the steps they recorded, or the last few kept automatically. */
+  steps: Step[];
+  stepsRecorded: boolean;
 }
 
 interface SiteStatus {
@@ -128,6 +135,16 @@ export function App() {
   const [cloudBugs, setCloudBugs] = useState<CaptureSummary[]>([]);
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
+  const [recordingSteps, setRecordingSteps] = useState<number | null>(null);
+  const [recordingPaused, setRecordingPaused] = useState(false);
+  const refreshRecording = useCallback(async () => {
+    const r = await chrome.runtime.sendMessage({ type: 'steps-status' }).catch(() => null);
+    setRecordingSteps(r?.ok && typeof r.count === 'number' ? r.count : null);
+    setRecordingPaused(!!r?.paused);
+  }, []);
+  useEffect(() => {
+    refreshRecording();
+  }, [refreshRecording]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => {
     loadSession().then(setSession, () => {});
@@ -138,6 +155,7 @@ export function App() {
     try {
       const list = (await listCloudBugs(s)).map(toSummary);
       const fixedNow = await checkFixes(`cloud:${s.email}`, list);
+      reportOpen(`cloud:${s.email}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
       setCloudBugs(list);
     } catch (e) {
@@ -167,6 +185,7 @@ export function App() {
   };
   const cloudSignOut = async () => {
     if (session) await signOut(session);
+    if (session) reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
   };
@@ -178,6 +197,7 @@ export function App() {
       setMessage(`Couldn't sign out everywhere: ${(e as Error).message}`);
       return;
     }
+    reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
     setMessage('Signed out on every computer, and every coding agent is disconnected. Add the connector again to reconnect one.');
@@ -223,6 +243,7 @@ export function App() {
     if (!f || (await folderAccess(f)) !== 'granted') return;
     const list = await listCaptures(f);
     const fixedNow = await checkFixes(`folder:${f.name}`, list);
+    reportOpen(`folder:${f.name}`, list);
     if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     setCaptures(list);
     const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', '.claude/settings.json', CURSOR_COMMAND_PATH, `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
@@ -261,7 +282,9 @@ export function App() {
     for (const r of await recentFolders()) {
       if (folderRef.current && (await r.isSameEntry(folderRef.current).catch(() => false))) continue;
       if ((await folderAccess(r)) !== 'granted') continue;
-      const fixedNow = await checkFixes(`folder:${r.name}`, await listCaptures(r).catch(() => []));
+      const list = await listCaptures(r).catch(() => []);
+      reportOpen(`folder:${r.name}`, list);
+      const fixedNow = await checkFixes(`folder:${r.name}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     }
   }, [setJustFixed]);
@@ -289,12 +312,13 @@ export function App() {
       watchOtherProjects();
     }, 5000);
     const onTab = () => {
+      refreshRecording();
       refreshSite();
       refreshFolder();
     };
     chrome.tabs.onActivated.addListener(onTab);
     chrome.tabs.onUpdated.addListener(onTab);
-    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean };
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean; record?: RecordShape; pageSteps?: unknown; recordedSteps?: unknown; tabId?: number; count?: number | null };
     const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
@@ -304,14 +328,21 @@ export function App() {
       } else if (msg.type === 'picker-failed') {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
+      } else if (msg.type === 'steps-updated') {
+        refreshRecording();
       } else if (msg.type === 'capture-ready') {
+        const recorded = cleanSteps(msg.recordedSteps, true);
+        setRecordingSteps(null);
         setCapture({
+          steps: recorded.length ? recorded : cleanSteps(msg.pageSteps),
+          stepsRecorded: recorded.length > 0,
           element: msg.element,
           page: msg.page!,
           screenshot: msg.screenshot,
           screenshotError: msg.screenshotError,
           logs: mergeLogs(msg.pageLogs ?? [], msg.browserLogs ?? []),
           recorder: !!msg.recorder,
+          record: msg.record,
         });
         if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
@@ -330,7 +361,7 @@ export function App() {
       chrome.tabs.onActivated.removeListener(onTab);
       chrome.tabs.onUpdated.removeListener(onTab);
     };
-  }, [refreshFolder, refreshSite, refreshProject, watchOtherProjects]);
+  }, [refreshFolder, refreshSite, refreshProject, watchOtherProjects, refreshRecording]);
 
   const linkFolder = async () => {
     try {
@@ -384,6 +415,43 @@ export function App() {
     if (action === 'cancel') setStage('idle'); // even if the page already lost the picker
   };
 
+  // "Record steps": on, with how many steps so far, for the active tab (null = not recording).
+  const startRecording = async () => {
+    setMessage('');
+    // Recording follows the user across page loads on this site, which needs Chrome's "allow on this site".
+    // Asked first, while the button click still counts as the user's own action (Chrome shows no prompt if already allowed).
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    let origin = site.origin;
+    try {
+      if (tab?.url && /^https?:/.test(tab.url)) origin = new URL(tab.url).origin;
+    } catch {
+      /* keep the last known site */
+    }
+    if (origin && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      const ok = await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+      if (!ok) return setMessage(`Darnly needs "Allow" on ${origin.replace(/^https?:\/\//, '')} to record your steps there.`);
+    }
+    const r = await chrome.runtime.sendMessage({ type: 'steps-start' }).catch(() => null);
+    if (r?.ok) setRecordingSteps(r.count ?? 0);
+    else if (/permission|Cannot access/i.test(r?.error ?? ''))
+      // Chrome hasn't told Darnly which site this tab is on yet: one click on the toolbar icon on that page does.
+      setMessage(`Chrome hasn't let Darnly into this tab yet. On the page, press ${shortcut ?? 'the Darnly shortcut'} and then Esc, then press Record again. Darnly then asks to be allowed on this site, once.`);
+    else setMessage(`Couldn't record on this page${r?.error ? ` (${r.error})` : ''}. Chrome pages and the Web Store can't be recorded.`);
+  };
+  const stopRecording = async () => {
+    await chrome.runtime.sendMessage({ type: 'steps-stop' }).catch(() => null);
+    setRecordingSteps(null);
+  };
+
+  // Ends the recording with the whole screen as the picture: the steps and a note are often all the agent needs.
+  const finishRecording = async () => {
+    setMessage('');
+    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' }).catch(() => null);
+    if (!r?.ok) return setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page, then W, to finish.`);
+    setStage('picking');
+    await pickerCommand('whole');
+  };
+
   const startFromPanel = async () => {
     const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
     if (r?.ok) setStage('picking');
@@ -404,9 +472,13 @@ export function App() {
       element: c.element,
       logs: c.logs,
       recorder: c.recorder,
+      record: c.record,
       reference: !!reference,
       scope: c.element ? scope : undefined,
       aspect: c.element ? aspect : undefined,
+      steps: c.steps,
+      stepsRecorded: c.stepsRecorded,
+      stepsPicture: c.stepsRecorded && c.steps.some((st) => st.shot),
     };
     return {
       id,
@@ -446,7 +518,11 @@ export function App() {
       files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption);
     }
     // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
-    const referenceFile = reference ? { [`${id}.reference.png`]: reference.png } : {};
+    const referenceFile: Record<string, Blob> = reference ? { [`${id}.reference.png`]: reference.png } : {};
+    const sheet = capture.stepsRecorded
+      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText({ ...st, classes: undefined }), n: i + 1 }))).catch(() => undefined)
+      : undefined;
+    if (sheet) referenceFile[`${id}.steps.jpg`] = sheet;
     const asFiles = Object.entries(files)
       .filter(([name]) => !name.endsWith('.logs.json')) // the markdown already lists the errors; keep the drop to two files
       .map(([name, body]) => new File([body], name, { type: name.endsWith('.png') ? 'image/png' : 'text/markdown' }));
@@ -488,6 +564,7 @@ export function App() {
           report: cloudReport,
           picture: files[`${id}.png`] as Blob | undefined,
           reference: reference?.png,
+          steps: sheet,
           logs: files[`${id}.logs.json`] as string | undefined,
         });
         done('', true);
@@ -629,10 +706,40 @@ export function App() {
               </button>
             </div>
           )}
-          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
-            <Icon name="target" className="h-4 w-4" />
-            Capture a bug
-          </button>
+          {recordingSteps == null && (
+            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+              <Icon name="target" className="h-4 w-4" />
+              Capture a bug
+            </button>
+          )}
+          {recordingSteps == null ? (
+            <button className={secondaryCls + ' flex w-full items-center justify-center gap-2 text-sm'} onClick={startRecording} title="For bugs that take a few clicks to reach: Darnly lists each step, with a small picture, in the report">
+              <span className="h-2.5 w-2.5 rounded-full bg-pink" aria-hidden="true" />
+              Record the steps first
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-pink/30 bg-pink/5 p-3">
+              <div className="flex items-start gap-2.5">
+                <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-ink">{recordingPaused ? 'Paused' : 'Recording your steps'} · {plural(recordingSteps, 'step', 'steps')}</p>
+                  <p className="text-xs text-ink-soft">Do what leads to the bug on the page. When you reach it, press Done here or on the page's bar. What you type is never recorded.</p>
+                </div>
+              </div>
+              <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={finishRecording}>
+                <Icon name="check" className="h-4 w-4" />
+                Done, describe the bug
+              </button>
+              <p className="text-center text-xs text-ink-soft">
+                <button className={linkCls} onClick={startFromPanel} title="Point at the broken part, then describe it">Point at the broken part first</button>
+                {' · '}
+                <button className={linkCls} onClick={stopRecording}>Cancel recording</button>
+              </p>
+            </div>
+          )}
           {shown.length === 0 && (
             <ol className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
               {['Click the broken part and say what you expected.', 'Darnly hands your agent the picture, the element and the errors.', 'You see here when your agent has fixed it.'].map((t, i) => (
@@ -680,10 +787,16 @@ export function App() {
               <>
                 <Chip tone={capture.logs.some((l) => l.kind !== 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind !== 'request').length, 'error', 'errors')}</Chip>
                 <Chip tone={capture.logs.some((l) => l.kind === 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind === 'request').length, 'failed request', 'failed requests')}</Chip>
+                {capture.record && <Chip title="The field names, lengths and ages of the record behind this element, for your agent. No real values are sent.">data shape added</Chip>}
                 <Chip>secrets hidden</Chip>
               </>
             ) : (
               <Chip>Errors not recorded on this site</Chip>
+            )}
+            {capture.steps.length > 0 && (
+              <Chip title={capture.steps.map((st, i) => `${i + 1}. ${stepText(st)}`).join('\n')}>
+                {capture.stepsRecorded ? plural(capture.steps.length, 'recorded step', 'recorded steps') : `last ${plural(capture.steps.length, 'step', 'steps')}`}
+              </Chip>
             )}
           </div>
           <div className="space-y-1.5">

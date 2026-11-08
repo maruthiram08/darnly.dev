@@ -1,4 +1,6 @@
 import type { LogEntry } from '@/lib/logs';
+import { findRecordShape, type SeenResponse } from '@/lib/record-shape';
+import { addStep, AUTO_STEPS, watchSteps, type Step } from '@/lib/steps';
 
 /**
  * Page recorder. Runs inside the page itself (MAIN world), before the page's own code,
@@ -9,6 +11,11 @@ import type { LogEntry } from '@/lib/logs';
  * nothing is stored, and it clears when the tab closes.
  * Never recorded: request bodies, headers (so no cookies or Authorization).
  * A failed response keeps a 300-character snippet, which the picker redacts.
+ * It also keeps the last 20 JSON responses (under 200 KB each, in memory only) so that at capture it can
+ * describe the record behind the picked element by its shape. Only that shape (field names, kinds, lengths,
+ * ages, the record id) is handed over; the values never leave the page.
+ * It also keeps the user's last few actions (clicked "Save", typed in "Email", opened /settings), never what they typed,
+ * so the report can say how they got to the bug.
  */
 export default defineContentScript({
   matches: ['http://localhost/*', 'http://127.0.0.1/*'],
@@ -26,6 +33,29 @@ export default defineContentScript({
 const MAX_AGE = 60_000;
 const MAX_ENTRIES = 200;
 const SNIPPET = 300;
+const MAX_JSON = 20;
+const MAX_JSON_SIZE = 200_000;
+
+const isJson = (type: string | null) => !!type && /\bjson\b/i.test(type) && !/ndjson|jsonl|event-stream|seq/i.test(type);
+
+/** The text the user saw in the picked element (and, failing that, the row or card around it). */
+function textsAround(el: Element): string[] {
+  const texts: string[] = [];
+  let node: Element | null = el;
+  for (let i = 0; node && node !== document.body && i < 5; i++, node = node.parentElement) {
+    const own = (node as HTMLElement).innerText ?? node.textContent ?? '';
+    // Form fields filled from the record count too (never password or card fields).
+    const values = Array.from(node.querySelectorAll('input:not([type=password]):not([type=hidden]),textarea'))
+      .filter((f) => !/cc-|card|cvc|cvv|password/i.test(`${f.getAttribute('name')} ${f.getAttribute('autocomplete')} ${f.id}`))
+      .map((f) => (f as HTMLInputElement).value)
+      .slice(0, 30);
+    const text = [own, ...values].join('\n');
+    // Past this size it's a whole table or page, and any record would match.
+    if (text.length > 2000) break;
+    if (texts.at(-1) !== text) texts.push(text);
+  }
+  return texts;
+}
 
 function record() {
   const buffer: LogEntry[] = [];
@@ -33,6 +63,15 @@ function record() {
     buffer.push({ t: Date.now(), ...e });
     if (buffer.length > MAX_ENTRIES) buffer.shift();
   };
+  const responses: SeenResponse[] = [];
+  const keep = (method: string, url: string, body: unknown) => {
+    responses.push({ t: Date.now(), method, url, body });
+    if (responses.length > MAX_JSON) responses.shift();
+  };
+  let steps: Step[] = [];
+  watchSteps(window, (st) => {
+    steps = addStep(steps, { t: Date.now(), ...st }, AUTO_STEPS * 2);
+  });
   const fresh = () => {
     const cutoff = Date.now() - MAX_AGE;
     return buffer.filter((e) => e.t >= cutoff);
@@ -78,6 +117,20 @@ function record() {
     const url = input instanceof Request ? input.url : String(input);
     try {
       const res = await originalFetch.call(this, input, init);
+      try {
+        const size = Number(res.headers.get('content-length') ?? 0);
+        if (res.ok && res.body && isJson(res.headers.get('content-type')) && size <= MAX_JSON_SIZE) {
+          const href = new URL(url, location.href).href;
+          res.clone().text().then(
+            (text) => {
+              if (text.length <= MAX_JSON_SIZE) keep(method, href, JSON.parse(text));
+            },
+            () => {},
+          ).catch(() => {});
+        }
+      } catch {
+        /* never break the page */
+      }
       if (res.status >= 400) {
         const entry = { kind: 'request' as const, method, url: new URL(url, location.href).href, status: res.status, ms: Math.round(performance.now() - start) };
         res.clone().text().then(
@@ -102,6 +155,14 @@ function record() {
   XHR.send = function (this: XMLHttpRequest & { __d?: { method: string; url: string } }, body?: Document | XMLHttpRequestBodyInit | null) {
     const start = performance.now();
     this.addEventListener('loadend', () => {
+      try {
+        if (this.__d && this.status >= 200 && this.status < 300 && isJson(this.getResponseHeader('content-type'))) {
+          if (this.responseType === 'json' && this.response && JSON.stringify(this.response).length <= MAX_JSON_SIZE) keep(this.__d.method, this.__d.url, this.response);
+          else if ((this.responseType === '' || this.responseType === 'text') && this.responseText.length <= MAX_JSON_SIZE) keep(this.__d.method, this.__d.url, JSON.parse(this.responseText));
+        }
+      } catch {
+        /* not JSON after all */
+      }
       if (!this.__d || (this.status > 0 && this.status < 400)) return;
       let snippet: string | undefined;
       try {
@@ -120,7 +181,13 @@ function record() {
     if (e.source !== window || d?.darnly !== 'get-logs' || !d.id) return;
     const picked = document.querySelector('[data-darnly-picked]');
     const info = picked ? componentInfo(picked) : undefined;
-    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source }, '*');
+    let record;
+    try {
+      record = picked && responses.length ? findRecordShape(responses, textsAround(picked)) : undefined;
+    } catch {
+      /* never break the capture */
+    }
+    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, record, steps }, '*');
   });
 }
 

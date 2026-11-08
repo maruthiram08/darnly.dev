@@ -14,7 +14,7 @@ const faq = [
   { q: 'How do I know a bug was fixed?', a: 'The Darnly panel says "1 bug fixed. Take a look." with the agent\'s one-line note on what it changed. It remembers what it last saw, so you get this even if the panel was closed while the agent worked.' },
   { q: 'Can Claude Code, Cursor and Codex share one inbox on the same project?', a: 'Yes. In folder mode they all read the same <code>.darnly/inbox/</code> (Codex and Cursor through AGENTS.md, Claude Code through CLAUDE.md and its skill). In cloud mode, connect each agent with the same Google account and they all see the same list. Each agent marks the bug it\'s working on, so the others skip it for 20 minutes: in the cloud inbox Darnly does this when the agent opens the bug, and in the folder the agent writes a Working on it line into the bug file. If an agent stalls, the mark runs out and the bug is free again.' },
   { q: 'Can my agent see bugs from my other projects?', a: 'The cloud inbox holds bugs from all your projects in one private list. Each cloud bug carries a project name, taken from the site name (or the page title on localhost), and you can rename it in the Darnly panel. Set up this project writes that name into AGENTS.md, so the agent asks only for its own project\'s bugs and still checks that each page belongs to the code it\'s working on.' },
-  { q: 'Can I use it in the Claude app or claude.ai?', a: `Yes, where your plan lets you add custom connectors: add a custom connector with the address ${MCP}, then sign in with Google when asked.` },
+  { q: 'Can I use it in the Claude app or claude.ai?', a: `Yes. Darnly is listed in Claude\'s connector directory: in Claude, open Settings, then Connectors, search for Darnly, click Connect and sign in with Google. You can also add it as a custom connector with the address ${MCP}.` },
   { q: 'Can I use Darnly on several projects?', a: 'Yes. Darnly remembers the project for each site, a folder or the cloud. The first time you capture on a new site, it asks which project it belongs to and offers your recent ones. To switch later, click change next to Saving to.' },
   { q: 'How do I delete a bug?', a: 'Click the × next to it in Captured bugs, then Yes. In a project folder this deletes the bug\'s files from .darnly/; in the cloud it deletes the bug and its picture. In cloud mode, Delete all my cloud bugs clears the whole inbox.' },
   { q: 'How do I disconnect an agent?', a: 'In the Darnly panel, choose to sign out on every computer. That disconnects every coding agent too. Add the connector again to reconnect one.' },
@@ -38,7 +38,7 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   sources={sources}
   strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Add it, press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
-  <p class="jump">Jump to: <a href="#prompt">Setup prompt</a> · <a href="#loop">After you capture</a> · <a href="#pick">Which way?</a> · <a href="#without-mcp">Without MCP</a> · <a href="#with-mcp">With MCP</a> · <a href="#claude-code">Claude Code</a> · <a href="#cursor">Cursor</a> · <a href="#codex">Codex</a></p>
+  <p class="jump">Jump to: <a href="#prompt">Setup prompt</a> · <a href="#loop">After you capture</a> · <a href="#pick">Which way?</a> · <a href="#without-mcp">Without MCP</a> · <a href="#with-mcp">With MCP</a> · <a href="#claude-code">Claude Code</a> · <a href="#claude-app">Claude app</a> · <a href="#cursor">Cursor</a> · <a href="#codex">Codex</a></p>
 
   <h2 id="prompt">Fastest: let your agent set it up</h2>
   <p>Copy this prompt and paste it into Claude Code, Cursor or Codex, in the project you're building. Your agent adds the Darnly MCP server, writes the note that tells it where your bugs are, adds the <code>/darnly</code> command, and keeps screenshots out of git. Then it tells you the one thing left to click: signing in with Google.</p>
@@ -126,6 +126,15 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
     <li>Back in Claude Code, type: <code>/darnly</code> (or <code>fix my Darnly bugs</code> if you haven't added the command yet)</li>
   </ol>
   <p><strong>It worked if</strong> <code>/mcp</code> shows darnly as connected and Claude Code calls <code>list_bugs</code>. <strong>If it says "Needs authentication"</strong>, run step 3 again, or run <code>claude mcp login darnly</code> in your terminal.</p>
+
+  <h2 id="claude-app">Claude app (claude.ai and Claude Desktop)</h2>
+  <p>Darnly is in <a href="https://claude.ai/directory/61d14810-2780-48d5-896e-6368a039d0d4">Claude's connector directory</a>, so there's no address to paste.</p>
+  <ol>
+    <li>In Claude, open <strong>Settings</strong>, then <strong>Connectors</strong>, and search for <strong>Darnly</strong>. Or open <a href="https://claude.ai/directory/61d14810-2780-48d5-896e-6368a039d0d4">Darnly in the directory</a>.</li>
+    <li>Click <strong>Connect</strong>. Your browser opens. Continue with Google, using the same account as in step 1.</li>
+    <li>In a new chat, type: <code>fix my Darnly bugs</code></li>
+  </ol>
+  <p><strong>It worked if</strong> Claude lists your waiting bugs. Claude may ask before it uses each Darnly tool; click <strong>Allow</strong>.</p>
 
   <h2 id="cursor">Cursor</h2>
   <p><strong>Without MCP:</strong> use the <a href="#without-mcp">project folder</a>. Cursor reads the <code>AGENTS.md</code> note Darnly adds, and gets a <code>/darnly</code> command. See also <a href="/guides/report-a-bug-to-cursor/">how to report a bug to Cursor</a>.</p>

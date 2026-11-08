@@ -1,0 +1,55 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'screenshot-wont-paste-into-claude-desktop';
+const faq = [
+  { q: 'Why won\'t my screenshot paste into the Claude desktop app?', a: 'Usually the screenshot was saved as a file, not copied. On a Mac, Cmd+Shift+4 only saves a file to your desktop; Cmd+Ctrl+Shift+4 copies it so Cmd+V works. On Windows, Win+Shift+S copies it. If paste still does nothing, drag the file into the chat or click + to attach it.' },
+  { q: 'Can the Claude desktop app take the screenshot for me?', a: 'Yes, on a Mac. Double-tap Option to open quick entry, then drag over the area you want, or click a window to attach it. Claude needs Screen Recording and Accessibility permission in System Settings > Privacy & Security for this.' },
+  { q: 'What image types and sizes does claude.ai accept?', a: 'JPEG, PNG, GIF and WebP. Anthropic\'s docs list up to 20 images per message, 10 MB per image, and up to 8000x8000 pixels.' },
+  { q: 'Is pasting into Claude Code in the desktop app the same?', a: 'Not quite. Claude Code has its own rules for pasting images. See our guide to screenshots that won\'t paste into Claude Code.' },
+  { q: 'Is there a way to skip pasting screenshots?', a: 'Darnly saves bug screenshots to a private inbox that Claude reads through its connector, which is listed in Claude\'s connector directory. You capture the bug, then tell Claude "fix my Darnly bugs".' },
+];
+---
+<GuidePage
+  slug={slug}
+  title="Screenshot won't paste into the Claude desktop app? Fixes"
+  description="Screenshot won't paste into the Claude desktop app or claude.ai? Copy it instead of saving it, drag the file in, or let Claude's quick entry capture it."
+  h1="Screenshot won't paste into the Claude desktop app? Here's the fix"
+  lede="If a screenshot won't paste into the Claude desktop app or claude.ai, it was probably saved as a file instead of copied: on a Mac press Cmd+Ctrl+Shift+4 (not Cmd+Shift+4), on Windows press Win+Shift+S, then paste with Cmd+V or Ctrl+V. Or drag the file into the chat."
+  faq={faq}
+  sources={[
+    { name: 'Claude Help Center: use quick entry with Claude Desktop on Mac', url: 'https://support.claude.com/en/articles/12626668-use-quick-entry-with-claude-desktop-on-mac' },
+    { name: 'Claude Help Center: uploading files to Claude', url: 'https://support.claude.com/en/articles/8241126' },
+    { name: 'Claude docs: vision (image limits)', url: 'https://platform.claude.com/docs/en/build-with-claude/vision' },
+  ]}
+  strip={{ lead: 'Reporting bugs to Claude?', text: 'Darnly is a free Chrome extension and Mac app. Press one key, click the broken part, say what you expected, and Claude reads it through the Darnly connector. Nothing to paste.' }}
+>
+  <p>This guide is for the Claude chat: the Claude desktop app on Mac and Windows, and claude.ai in the browser. For the terminal, see <a href="/guides/screenshot-wont-paste-into-claude-code/">screenshot won't paste into Claude Code</a>.</p>
+
+  <h2>1. Copy the screenshot, don't just save it</h2>
+  <p>Paste only works with what's on the clipboard. Most screenshot keys save a file instead.</p>
+  <ul>
+    <li><strong>Mac:</strong> <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd>, drag over the area, then click in Claude's message box and press <kbd>Cmd</kbd>+<kbd>V</kbd>. (Plain <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> saves a file to your desktop and leaves the clipboard alone.)</li>
+    <li><strong>Windows:</strong> <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>, drag over the area, then press <kbd>Ctrl</kbd>+<kbd>V</kbd> in the message box.</li>
+  </ul>
+  <p><strong>It worked if</strong> a small preview of the picture shows above your message before you send.</p>
+
+  <h2>2. Drag the file in, or attach it</h2>
+  <p>Already have the screenshot as a file? Drag it from your desktop or Finder onto the chat. Or click <strong>+</strong> in the message box and choose the file. This skips the clipboard completely.</p>
+
+  <h2>3. On a Mac, let Claude take it</h2>
+  <p>The Claude desktop app can capture the screen itself. Double-tap <kbd>Option</kbd> to open quick entry, then drag over the area you want, or click a window to attach all of it.</p>
+  <p>If nothing gets captured, open <strong>System Settings</strong>, then <strong>Privacy &amp; Security</strong>, and switch Claude on under <strong>Screen Recording</strong> and <strong>Accessibility</strong>. The Claude app has to be running, but it can stay in the background.</p>
+
+  <h2>4. Check the picture itself</h2>
+  <ul>
+    <li><strong>Type:</strong> JPEG, PNG, GIF or WebP. A HEIC photo or a PDF page won't attach as an image.</li>
+    <li><strong>Size:</strong> up to 10 MB per image and 8000x8000 pixels. A full-screen capture on a big monitor can go over that, so crop to the part that matters.</li>
+    <li><strong>Count:</strong> up to 20 images per message.</li>
+  </ul>
+
+  <h2>Skip the paste step with Darnly</h2>
+  <p>If you're pasting screenshots to report bugs in an app you're building, <a href={storeUrl(`guide-${slug}`)}>Darnly</a> does it for you. It's a free Chrome extension, and a free Mac app for things outside the browser.</p>
+  <p>Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part and type what you expected. Darnly saves the screenshot with the broken part boxed in red, plus the element, the page address and recent errors. Add Darnly from Claude's connector directory (<strong>Settings</strong>, then <strong>Connectors</strong>, search Darnly), then tell Claude "fix my Darnly bugs". <a href="/setup/#claude-app">Setup steps</a>.</p>
+</GuidePage>

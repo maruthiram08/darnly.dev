@@ -1,6 +1,8 @@
 import { DONE_FOLDER, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from './element-info';
-import { errorLines, requestLines, type LogEntry } from './logs';
+import { recordLines, type RecordShape } from './record-shape';
+import { errorLines, requestLines, slowRequestLines, type LogEntry } from './logs';
+import { stepText, type Step } from './steps';
 
 export interface CaptureInput {
   id: string;
@@ -16,6 +18,8 @@ export interface CaptureInput {
   logs?: LogEntry[];
   /** False when the page recorder isn't switched on for this site. */
   recorder?: boolean;
+  /** The shape (never the values) of the record that filled the element, from the page's recent data. */
+  record?: RecordShape;
   /** Written for pasting into a chat (cloud projects): no file paths the agent can't open. */
   forPaste?: boolean;
   /** Written for the cloud inbox: the agent reads it through MCP, which returns the picture with it. */
@@ -26,6 +30,12 @@ export interface CaptureInput {
   scope?: ChangeScope;
   /** What kind of change the user wants, so the report lists the current values of exactly those styles. */
   aspect?: ChangeAspect;
+  /** What the user did before the bug: recorded on purpose ("Record steps") or the last few actions, kept automatically. */
+  steps?: Step[];
+  /** True when the user pressed "Record steps"; false or missing for the automatic last few. */
+  stepsRecorded?: boolean;
+  /** A picture of the recorded steps was saved with the bug (one small screenshot per step). */
+  stepsPicture?: boolean;
 }
 
 export type ChangeScope = 'this' | 'all';
@@ -122,6 +132,7 @@ export function captureMarkdown(c: CaptureInput): string {
   const pageDataFrom = lines.length;
   // The page title is free text the page chose, so it goes inside the markers (not in the front matter).
   if (c.title.trim()) lines.push(`Page title: "${c.title.replace(/\s+/g, ' ').trim().slice(0, 200)}"`, '');
+  lines.push(...stepLines(c));
   const el = c.element;
   if (el) {
     const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
@@ -159,14 +170,18 @@ export function captureMarkdown(c: CaptureInput): string {
   }
   const hints = searchHints(c);
   if (hints.length) lines.push('## Where to look', ...hints, '');
+  if (c.record && el) lines.push(...recordLines(c.record));
   const logs = c.logs ?? [];
   const errors = errorLines(logs);
   const requests = requestLines(logs);
   if (errors.length) lines.push('## Errors (last 60s)', ...errors, '');
   if (requests.length) lines.push(c.recorder === false ? '## Failed requests (since the page loaded)' : '## Failed requests (last 60s)', ...requests, '');
-  if (logs.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
+  const slow = slowRequestLines(logs);
+  if (slow.length) lines.push('## Slow requests (worked, but took over 1.5 s; since the page loaded)', ...slow, '');
+  const problems = logs.filter((e) => !e.slow);
+  if (problems.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
   if (logs.length && !c.forPaste && !c.forCloud) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
-  if (!logs.length) {
+  if (!problems.length) {
     lines.push(
       c.recorder === false
         ? '_No failed requests since the page loaded. Console errors are not recorded on this site (recording is off)._'
@@ -184,6 +199,9 @@ export function captureMarkdown(c: CaptureInput): string {
       : c.forPaste
       ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
       : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
+    ...(c.record && c.element
+      ? ['If the bug may depend on data, compare "The data behind this element" with what your code expects (empty, missing or old-format fields, long text, many items), and test with a record shaped like it, not a fresh one.']
+      : []),
     ...(!c.scope && c.element?.similar
       ? ['Other elements on the page are made the same way (see "similar" above). If the note is about how it looks and doesn\'t say "all" or "everywhere", change only this one. If something is broken (it doesn\'t work), fix it where it is made.']
       : []),
@@ -211,6 +229,24 @@ function changeLines(c: CaptureInput): string[] {
   return out;
 }
 
+/** The steps that led to the bug, numbered. Inside the page-data markers: control names come from the page. */
+function stepLines(c: CaptureInput): string[] {
+  const steps = c.steps ?? [];
+  if (!steps.length) return [];
+  const pic = !c.stepsPicture || c.forPaste
+    ? []
+    : [`Pictures of the steps: ${c.forCloud ? 'the steps picture returned with this bug' : `${INBOX_FOLDER}/${c.id}.steps.jpg`} (numbered to match the list, each taken just after its step; up to the last 12)`];
+  return [
+    c.stepsRecorded ? '## Steps to get here (recorded by the user)' : `## Steps before this (the user's last ${steps.length === 1 ? 'action' : `${steps.length} actions`} on this site)`,
+    c.stepsRecorded
+      ? 'The user recorded these steps to show how to reach the bug. What they typed is never recorded, only where.'
+      : 'Recorded automatically. They may include steps that have nothing to do with the bug. What the user typed is never recorded, only where.',
+    ...steps.map((st, i) => `${i + 1}. ${stepText(st)}`),
+    ...pic,
+    '',
+  ];
+}
+
 /** "How to check it's fixed": lets an agent with a browser (Claude in Chrome, Playwright, DevTools MCP) confirm the fix itself. */
 function verifyLines(c: CaptureInput): string[] {
   const url = c.url.replace(/[`\s<>]/g, '');
@@ -221,8 +257,13 @@ function verifyLines(c: CaptureInput): string[] {
     /* not a URL */
   }
   const el = c.element;
+  // With recorded steps, start where the user started, then follow their steps to the bug.
+  const firstPage = c.stepsRecorded ? c.steps?.find((s) => s.kind === 'page')?.url?.replace(/[`\s<>]/g, '') : undefined;
   const steps = [
-    `1. Open \`${url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    `1. Open \`${firstPage ?? url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    ...(c.stepsRecorded && c.steps?.length
+      ? ['   Then follow the steps under "Steps to get here" (type something sensible where the user typed).']
+      : []),
     el
       ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`
       : '2. Look at the whole visible page.',
