@@ -9,7 +9,7 @@ beforeEach(() => {
       <input id="pw" type="password" placeholder="Password" />
       <label><input id="remember" type="checkbox" /> Remember me</label>
       <select id="plan" aria-label="Plan"><option>Free</option><option>Pro</option></select>
-      <button type="submit"><span class="icon"></span><span>Save changes</span></button>
+      <button type="submit" class="btn primary"><span class="icon"></span><span>Save changes</span></button>
       <a href="#pricing">Pricing</a>
       <div id="card">Order 1234</div>
     </form>`;
@@ -56,7 +56,7 @@ describe('watchSteps', () => {
 
     expect(steps.map((s) => stepText({ t: 0, ...s }))).toEqual([
       `Opened \`${new URL(location.href).pathname}\``,
-      'Clicked button "Save changes"',
+      'Clicked button "Save changes" (classes: `btn primary`)',
       'Typed in field "Email"',
       'Ticked checkbox "Remember me"',
       'Chose "Pro" in dropdown "Plan"',
@@ -119,5 +119,6 @@ describe('stepText', () => {
   it('keeps page text from breaking the markdown', () => {
     expect(stepText({ t: 0, kind: 'click', target: 'button "a`b"' })).toBe('Clicked button "a\'b"');
     expect(stepText({ t: 0, kind: 'page', url: 'http://localhost:3000/settings?tab=1' })).toBe('Opened `/settings?tab=1`');
+    expect(cleanStep({ kind: 'click', target: 'button "Go"', classes: 'h-10 px-3 hover:text-ember-600`<x>' })!.classes).toBe('h-10 px-3 hover:text-ember-600x');
   });
 });

@@ -16,6 +16,8 @@ export interface Step {
   detail?: string;
   /** The page it happened on. */
   url?: string;
+  /** Clicks: the control's class names, so the agent can search the code for it. */
+  classes?: string;
   /** Recorded steps only: a small JPEG of the screen just after the step (data URL). */
   shot?: string;
 }
@@ -123,8 +125,9 @@ export function watchSteps(win: Window, onStep: (s: Omit<Step, 't'>) => void): (
 
   const safe = (fn: (e: Event) => void) => (e: Event) => {
     try {
-      // Only what a person did, not clicks the page made itself.
+      // Only what a person did, not clicks the page made itself, and not clicks on Darnly's own bars.
       if (!e.isTrusted) return;
+      if ((e.target as Element | null)?.tagName?.startsWith('DARNLY-')) return;
       fn(e);
     } catch {
       /* never break the page */
@@ -137,7 +140,8 @@ export function watchSteps(win: Window, onStep: (s: Omit<Step, 't'>) => void): (
     const c = controlOf(el);
     // Fields, dropdowns and checkboxes report through "change" instead, which says what happened.
     if (isTextEntry(c) || c.tagName === 'SELECT' || (c.tagName === 'INPUT' && ['checkbox', 'radio', 'file'].includes((c.getAttribute('type') || '').toLowerCase()))) return;
-    onStep({ kind: 'click', target: describeTarget(el), url: here() });
+    const classes = clean(typeof c.className === 'string' ? c.className : c.getAttribute('class'), 120);
+    onStep({ kind: 'click', target: describeTarget(el), ...(classes && { classes }), url: here() });
     // A click often changes the page address a moment later (client-side routing).
     setTimeout(checkUrl, 300);
   });
@@ -218,6 +222,7 @@ export function cleanStep(v: unknown, keepShot = false): Step | null {
   const target = str(s.target, 80);
   const detail = str(s.detail, 50);
   const url = str(s.url, 1000);
+  const classes = str(s.classes, 120)?.replace(/[^\w\s:./\[\]#%()-]/g, '').trim();
   const shot = keepShot && typeof s.shot === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s.shot) && s.shot.length < 400_000 ? s.shot : undefined;
   return {
     t: typeof s.t === 'number' && Number.isFinite(s.t) ? s.t : Date.now(),
@@ -225,6 +230,7 @@ export function cleanStep(v: unknown, keepShot = false): Step | null {
     ...(target && { target: redactText(target) }),
     ...(detail && { detail: redactText(detail) }),
     ...(url && { url: redactUrl(url) }),
+    ...(classes && { classes }),
     ...(shot && { shot }),
   };
 }
@@ -255,7 +261,7 @@ export function stepText(s: Step): string {
     case 'page':
       return `Opened \`${pathOf(s.url).replace(/[`\s]/g, '') || '/'}\``;
     case 'click':
-      return `Clicked ${t || 'the page'}`;
+      return `Clicked ${t || 'the page'}${s.classes ? ` (classes: \`${s.classes}\`)` : ''}`;
     case 'type':
       return `Typed in ${t || 'a field'}`;
     case 'choose':

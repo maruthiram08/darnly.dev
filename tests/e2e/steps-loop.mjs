@@ -66,11 +66,32 @@ try {
   await page.locator('a').click(); // full page load: recording must carry on
   await page.waitForURL('**/checkout');
   await page.waitForTimeout(1200);
+  if (!(await page.evaluate(() => !!document.querySelector('darnly-steps')))) fail('no recording bar on the page after a page load');
+  if (process.env.BAR_SHOT) {
+    await page.locator('h1').click();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: process.env.BAR_SHOT });
+    await page.waitForTimeout(900);
+  }
+  // Pause on the page's bar: clicks while paused are not steps. (The bar's Shadow DOM is closed, so click by position.)
+  const pauseAt = await page.evaluate(() => ({ x: innerWidth / 2, y: innerHeight - 38 }));
+  const before = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'steps-status' }))).count;
+  await page.mouse.click(pauseAt.x + 133, pauseAt.y); // where "Pause" sits in this test page (see BAR_SHOT)
+  await page.waitForTimeout(300);
+  const paused = await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'steps-status' }));
+  if (!paused.paused) fail(`Pause on the page bar did not pause (count ${paused.count})`);
+  await page.locator('button.pay').evaluate((b) => (b.style.pointerEvents = 'auto'));
+  await page.locator('h1').click();
+  await page.waitForTimeout(800);
+  if ((await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'steps-status' }))).count !== before) fail('a click while paused was recorded');
+  await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'steps-panel-pause', paused: false }));
   await page.locator('h1').click();
   await page.waitForTimeout(900);
 
-  // "Done, describe the bug": ends the recording with the whole screen, nothing to point at.
-  await panel.getByRole('button', { name: 'Done, describe the bug' }).click();
+  // "Done" on the page's bar (the panel's "Done, describe the bug" does the same): ends the recording with
+  // the whole screen, nothing to point at.
+  if (!(await panel.getByRole('button', { name: 'Done, describe the bug' }).count())) fail('no Done button in the panel');
+  await page.mouse.click(pauseAt.x + 198, pauseAt.y); // where "Done" sits in this test page (see BAR_SHOT)
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   if (!(await panel.getByText(/recorded steps/).count())) fail('no "recorded steps" chip');

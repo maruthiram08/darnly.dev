@@ -133,9 +133,11 @@ export function App() {
   const [mcp, setMcp] = useState('');
   const [sentToCloud, setSentToCloud] = useState(false);
   const [recordingSteps, setRecordingSteps] = useState<number | null>(null);
+  const [recordingPaused, setRecordingPaused] = useState(false);
   const refreshRecording = useCallback(async () => {
     const r = await chrome.runtime.sendMessage({ type: 'steps-status' }).catch(() => null);
     setRecordingSteps(r?.ok && typeof r.count === 'number' ? r.count : null);
+    setRecordingPaused(!!r?.paused);
   }, []);
   useEffect(() => {
     refreshRecording();
@@ -491,7 +493,7 @@ export function App() {
     // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
     const referenceFile: Record<string, Blob> = reference ? { [`${id}.reference.png`]: reference.png } : {};
     const sheet = capture.stepsRecorded
-      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText(st), n: i + 1 }))).catch(() => undefined)
+      ? await stepsSheet(capture.steps.map((st, i) => ({ shot: st.shot, label: stepText({ ...st, classes: undefined }), n: i + 1 }))).catch(() => undefined)
       : undefined;
     if (sheet) referenceFile[`${id}.steps.jpg`] = sheet;
     const asFiles = Object.entries(files)
@@ -696,8 +698,8 @@ export function App() {
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">Recording your steps · {plural(recordingSteps, 'step', 'steps')}</p>
-                  <p className="text-xs text-ink-soft">Do what leads to the bug on the page. When you reach it, press Done. What you type is never recorded.</p>
+                  <p className="font-semibold text-ink">{recordingPaused ? 'Paused' : 'Recording your steps'} · {plural(recordingSteps, 'step', 'steps')}</p>
+                  <p className="text-xs text-ink-soft">Do what leads to the bug on the page. When you reach it, press Done here or on the page's bar. What you type is never recorded.</p>
                 </div>
               </div>
               <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={finishRecording}>
