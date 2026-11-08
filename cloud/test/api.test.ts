@@ -123,6 +123,11 @@ describe('cloud inbox API', () => {
     form.set('report', '# x');
     form.set('reference', new File([new TextEncoder().encode('not a png')], 'r.png', { type: 'image/png' }));
     expect((await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form })).status).toBe(415);
+    const stepsForm = new FormData();
+    stepsForm.set('meta', JSON.stringify({ title: 'x', pageUrl: 'https://a.example/' }));
+    stepsForm.set('report', '# x');
+    stepsForm.set('steps', new File([PNG], 'steps.jpg', { type: 'image/jpeg' }));
+    expect((await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: stepsForm })).status).toBe(415);
   });
 
   it('deletes all bugs and files, and deleting the account signs out', async () => {

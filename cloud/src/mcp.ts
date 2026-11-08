@@ -1,7 +1,7 @@
 // The MCP endpoint (/mcp): how a coding agent reads the cloud inbox.
 // Stateless Streamable HTTP: each POST carries one JSON-RPC message (or a batch) and gets a JSON reply.
 import type { Env } from './env';
-import { claimBug, getBug, getPicture, getReference, listBugs, listProjects, markFixed, projectName, setQuestion, type Agent } from './bugs';
+import { claimBug, getBug, getPicture, getReference, getStepsPicture, listBugs, listProjects, markFixed, projectName, setQuestion, type Agent } from './bugs';
 import { HttpError } from './util';
 
 const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
@@ -156,6 +156,11 @@ async function callTool(env: Env, userId: string, agent: Agent, name: string, ar
       if (reference) {
         content.push({ type: 'text', text: 'What it should look like (a picture the user added; where it differs from the note, follow the note):' });
         content.push({ type: 'image', data: toBase64(reference), mimeType: 'image/png' });
+      }
+      const steps = await getStepsPicture(env, userId, id).catch(() => null);
+      if (steps) {
+        content.push({ type: 'text', text: 'The steps the user recorded on the way to the bug (numbered to match "Steps to get here" in the report):' });
+        content.push({ type: 'image', data: toBase64(steps), mimeType: 'image/jpeg' });
       }
       return { content };
     }

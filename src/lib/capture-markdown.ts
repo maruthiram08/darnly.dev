@@ -1,6 +1,7 @@
 import { DONE_FOLDER, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from './element-info';
 import { errorLines, requestLines, type LogEntry } from './logs';
+import { stepText, type Step } from './steps';
 
 export interface CaptureInput {
   id: string;
@@ -26,6 +27,12 @@ export interface CaptureInput {
   scope?: ChangeScope;
   /** What kind of change the user wants, so the report lists the current values of exactly those styles. */
   aspect?: ChangeAspect;
+  /** What the user did before the bug: recorded on purpose ("Record steps") or the last few actions, kept automatically. */
+  steps?: Step[];
+  /** True when the user pressed "Record steps"; false or missing for the automatic last few. */
+  stepsRecorded?: boolean;
+  /** A picture of the recorded steps was saved with the bug (one small screenshot per step). */
+  stepsPicture?: boolean;
 }
 
 export type ChangeScope = 'this' | 'all';
@@ -122,6 +129,7 @@ export function captureMarkdown(c: CaptureInput): string {
   const pageDataFrom = lines.length;
   // The page title is free text the page chose, so it goes inside the markers (not in the front matter).
   if (c.title.trim()) lines.push(`Page title: "${c.title.replace(/\s+/g, ' ').trim().slice(0, 200)}"`, '');
+  lines.push(...stepLines(c));
   const el = c.element;
   if (el) {
     const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
@@ -211,6 +219,24 @@ function changeLines(c: CaptureInput): string[] {
   return out;
 }
 
+/** The steps that led to the bug, numbered. Inside the page-data markers: control names come from the page. */
+function stepLines(c: CaptureInput): string[] {
+  const steps = c.steps ?? [];
+  if (!steps.length) return [];
+  const pic = !c.stepsPicture || c.forPaste
+    ? []
+    : [`Pictures of the steps: ${c.forCloud ? 'the steps picture returned with this bug' : `${INBOX_FOLDER}/${c.id}.steps.jpg`} (numbered to match the list, each taken just after its step; up to the last 12)`];
+  return [
+    c.stepsRecorded ? '## Steps to get here (recorded by the user)' : `## Steps before this (the user's last ${steps.length === 1 ? 'action' : `${steps.length} actions`} on this site)`,
+    c.stepsRecorded
+      ? 'The user recorded these steps to show how to reach the bug. What they typed is never recorded, only where.'
+      : 'Recorded automatically. They may include steps that have nothing to do with the bug. What the user typed is never recorded, only where.',
+    ...steps.map((st, i) => `${i + 1}. ${stepText(st)}`),
+    ...pic,
+    '',
+  ];
+}
+
 /** "How to check it's fixed": lets an agent with a browser (Claude in Chrome, Playwright, DevTools MCP) confirm the fix itself. */
 function verifyLines(c: CaptureInput): string[] {
   const url = c.url.replace(/[`\s<>]/g, '');
@@ -223,6 +249,9 @@ function verifyLines(c: CaptureInput): string[] {
   const el = c.element;
   const steps = [
     `1. Open \`${url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    ...(c.stepsRecorded && c.steps?.length
+      ? ['   Then follow the steps under "Steps to get here", starting from their first page (type something sensible where the user typed).']
+      : []),
     el
       ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`
       : '2. Look at the whole visible page.',
