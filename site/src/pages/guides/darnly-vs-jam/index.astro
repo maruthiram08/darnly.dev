@@ -1,0 +1,74 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-jam';
+const faq = [
+  { q: 'Is Jam free?', a: 'Jam has a free plan. Its pricing page lists 30 Jams, 5 Recording Links and 30 AI summaries a month, recordings up to 5 minutes, and up to 5 creator seats. The Team plan is $14 per creator a month, billed yearly, with a 14-day free trial.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension is free and has no monthly limit on bugs. The Mac app is a download for macOS from darnly.dev.' },
+  { q: 'Does Jam work with Claude Code, Cursor and Codex?', a: 'Yes. Jam MCP, at mcp.jam.dev/mcp, has setup steps for Claude Code, Cursor, Codex, Claude, ChatGPT and VS Code. Agents can read a Jam\'s transcript, video frames, screenshots, console logs, network requests and user events. You sign in to Jam to use it.' },
+  { q: 'Does Darnly record video?', a: 'No. Darnly takes a screenshot with the broken part boxed in red, plus the element, your note, recent errors and requests, and a list of the steps that led to the bug. If you need to show a bug that only makes sense as a video, Jam is the better tool.' },
+  { q: 'Can I use both?', a: 'Yes. A common split is Jam for bugs that need a recording or come from teammates and customers, and Darnly for the bugs you spot yourself while building, since Darnly saves them straight into the project for your agent.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-08"
+  title="Jam.dev alternative for AI agents: Darnly vs Jam"
+  description="Jam is a screen recorder for software teams, with a free plan and an MCP server. Darnly saves your own bugs as files in your project for your AI agent. When each one fits."
+  h1="Darnly vs Jam"
+  lede="Jam is a screen recorder for software teams that turns a bug into a shareable recording with logs, network requests and AI summaries, while Darnly is a free Chrome extension and Mac app that saves the bugs you find yourself as files in your project, so your AI coding agent can fix them and check its own fix."
+  faq={faq}
+  sources={[
+    { name: 'Jam home page', url: 'https://jam.dev/' },
+    { name: 'Jam pricing', url: 'https://jam.dev/pricing' },
+    { name: 'Jam docs: Jam MCP', url: 'https://jam.dev/docs/debug-a-jam/mcp' },
+  ]}
+>
+  <p>If you're looking for a Jam alternative because you build alone with Claude Code, Codex or Cursor, this page is for you. Both tools turn "this is broken" into a report with the technical details a developer, or an agent, needs. They're built for different moments. Here's an honest look, with Jam's facts taken from its own pages on 8 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick Jam</strong> if you need to show a bug as a video, your team, QA or support sends you bugs, customers should be able to record one from a link, or your work lives in Jira, Linear or Slack.</li>
+    <li><strong>Pick Darnly</strong> if you're the one finding the bugs, you want each one saved in your project with no account, and you want your agent to work through the list and check each fix.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Jam</th></tr></thead>
+    <tbody>
+      <tr><td>Made for</td><td>People building with AI coding agents, reporting their own bugs</td><td>Software teams, QA, engineering and support</td></tr>
+      <tr><td>Price</td><td>Free, no monthly limit on bugs</td><td>Free plan (30 Jams and 5 Recording Links a month, 5-minute recordings). Team is $14 per creator a month, billed yearly.</td></tr>
+      <tr><td>How you capture</td><td>One key, click the broken element, type what you expected</td><td>Screen recording or screenshot from the Chrome extension, plus instant replay</td></tr>
+      <tr><td>What the report holds</td><td>Marked screenshot, the element (selector, HTML, styles), the file that drew it on a local project, your note, errors and requests from the last 60 seconds, the steps that led to the bug, and the shape of the data behind the element</td><td>Video or screenshot, console logs, network requests, user events, device details, and an AI title, summary and repro steps</td></tr>
+      <tr><td>Video</td><td>No</td><td>Yes, that's the core of Jam</td></tr>
+      <tr><td>Where reports go</td><td>Files in your project's <code>.darnly/inbox/</code>, your clipboard, or an optional private cloud inbox</td><td>A Jam link in your Jam workspace, and integrations like Linear, Jira and Slack</td></tr>
+      <tr><td>AI coding agents</td><td>Adds AGENTS.md and a skill so Claude Code, Codex or Cursor read the inbox with no connector. Optional MCP at <code>api.darnly.dev/mcp</code></td><td>Jam MCP at <code>mcp.jam.dev/mcp</code>, with setup for Claude Code, Cursor, Codex and more</td></tr>
+      <tr><td>After the fix</td><td>Each report tells the agent how to check its own fix in a browser, then it marks the bug fixed</td><td>Agents can read Jams and comments. Jam CLI lets agents publish videos as Jams to show their work.</td></tr>
+      <tr><td>Account needed</td><td>No, unless you use the cloud inbox</td><td>Yes, Jams live in a Jam workspace and Jam MCP signs you in</td></tr>
+      <tr><td>Beyond the browser</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Jam for Mac and Jam for iOS</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where Jam is the better pick</h2>
+  <p>Jam is a mature tool for teams, and some bugs really need what it does.</p>
+  <ul>
+    <li><strong>Bugs that need a video.</strong> An animation that stutters, a flow that breaks on step four, a bug you can't explain in a sentence. Jam records it, and its MCP lets an agent read the transcript and frames.</li>
+    <li><strong>Bugs from other people.</strong> Recording Links let anyone record a Jam with nothing to install, and Jam for Fin lets customers record one inside an Intercom chat. Darnly needs the reporter to install the extension.</li>
+    <li><strong>Team tools.</strong> Jam sends bugs to Linear, Jira or Slack and has webhooks. Darnly doesn't integrate with trackers.</li>
+    <li><strong>Company needs.</strong> Jam lists SOC 2 Type II, SSO, audit logs and admin controls.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>Bugs go straight into your code folder.</strong> Each one is a markdown file and a PNG in <code>.darnly/inbox/</code>, next to your code and kept out of git. Type <code>/darnly</code> or say "fix my Darnly bugs", and your agent works through them, with no link to open and nothing to sign in to.</li>
+    <li><strong>It points at the exact thing.</strong> You click the broken element, so the report names it, and you can say "Change only this one" or "Change all like it". That answers the agent's usual "just this button, or every button?" before it asks.</li>
+    <li><strong>The agent checks its own work.</strong> Each report says how to check the fix in a browser, and the agent marks the bug fixed when it's done, so your list empties as you go.</li>
+    <li><strong>No monthly limit.</strong> Capture as many bugs as you find in a testing session. Jam's free plan allows 30 Jams a month.</li>
+    <li><strong>Private by default.</strong> No account, and nothing is sent to Darnly unless you turn on the cloud inbox. Passwords, card numbers, tokens and keys are hidden before saving, and Darnly never keeps what you type or the values in your data.</li>
+  </ul>
+
+  <h2>Using them together</h2>
+  <p>They fit different moments. Use Jam when a teammate or customer needs to show you something, or a bug only makes sense as a recording. Use Darnly for the stream of small things you notice while you test your own app: this button, that gap, this error. If testers send you bugs by email or chat instead, the guide on <a href="/guides/send-bugs-from-testers-to-ai/">sending bugs from a tester or client to your AI agent</a> shows a free way to do it. For a team feedback widget, see <a href="/guides/darnly-vs-marker-io/">Darnly vs Marker.io</a>.</p>
+  <p>Want to try Darnly on your next bug? <a href={storeUrl(`guide-${slug}`)}>Add it to Chrome</a>. It takes a minute to set up.</p>
+</GuidePage>
