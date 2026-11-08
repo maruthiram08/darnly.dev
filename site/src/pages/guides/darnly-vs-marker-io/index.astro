@@ -13,6 +13,7 @@ const faq = [
 ---
 <GuidePage
   slug={slug}
+  updated="2026-11-08"
   title="Marker.io alternative for AI agents: Darnly vs Marker.io"
   description="Darnly is a free, local bug capture for solo builders and their AI agent. Marker.io is a paid team feedback tool with a client widget. When each one fits."
   h1="Darnly vs Marker.io"
@@ -43,7 +44,7 @@ const faq = [
       <tr><td>How you capture</td><td>Chrome extension (one key, click, note), plus a Mac app</td><td>Widget on your site, a browser extension and a WordPress plugin</td></tr>
       <tr><td>Who can report</td><td>Anyone who installs the extension</td><td>Anyone using the widget, without an account</td></tr>
       <tr><td>Console logs and network requests</td><td>Yes, last 60 seconds, on localhost and on sites you switch on</td><td>Listed on the Team plan and up</td></tr>
-      <tr><td>Session replay</td><td>No</td><td>Yes, on the Team plan and up</td></tr>
+      <tr><td>Session replay</td><td>No. Reports list the steps that led to the bug, with a small screenshot per step when you record them</td><td>Yes, on the Team plan and up</td></tr>
       <tr><td>Where reports go</td><td>Files in your project's <code>.darnly/inbox/</code>, your clipboard, or an optional private cloud inbox</td><td>Marker.io, and integrations like Jira, Trello, Asana, GitHub, Linear, GitLab, ClickUp, Notion and Slack</td></tr>
       <tr><td>AI coding agents</td><td>Adds AGENTS.md and a skill so Claude Code, Codex or Cursor read the inbox. Optional MCP connector at <code>api.darnly.dev/mcp</code></td><td>MCP server at <code>connect.marker.io/mcp</code>, with guides for Claude Code, Cursor, Codex and more</td></tr>
       <tr><td>Account needed</td><td>No, unless you use the cloud inbox</td><td>Yes, for the team that receives feedback</td></tr>
@@ -56,7 +57,7 @@ const faq = [
   <ul>
     <li><strong>Clients who won't install anything.</strong> Its widget lets anyone send feedback and comments without an account. Darnly can't do that.</li>
     <li><strong>Project tools.</strong> If your work lives in Jira, Linear or GitHub Issues, Marker.io sends reports there. Darnly doesn't integrate with trackers.</li>
-    <li><strong>Session replay.</strong> Seeing what a user did before the bug is very useful for hard-to-reproduce problems. Darnly keeps errors and requests from the last 60 seconds, not a recording.</li>
+    <li><strong>Session replay.</strong> Seeing what a user did before the bug is very useful for hard-to-reproduce problems. Darnly keeps errors and requests from the last 60 seconds and a list of your recent steps, not a recording.</li>
     <li><strong>Team workflow.</strong> Statuses, assignees and comments. Marker.io's MCP lets agents update status, priority and assignee, and post comments.</li>
     <li><strong>Extras.</strong> Its pricing page also lists website monitoring and, on higher plans, things like SSO and audit logs.</li>
   </ul>

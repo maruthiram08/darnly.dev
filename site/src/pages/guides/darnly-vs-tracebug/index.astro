@@ -14,6 +14,7 @@ const faq = [
 ---
 <GuidePage
   slug={slug}
+  updated="2026-11-08"
   title="TraceBug alternative: Darnly vs TraceBug compared"
   description="Darnly vs TraceBug: two free tools that turn a bug on screen into something your AI agent can fix. One records everything, one is quick. When to pick each."
   h1="Darnly vs TraceBug"
@@ -30,7 +31,7 @@ const faq = [
     { name: 'prashantsinghmangat/tracebug-ai on GitHub', url: 'https://github.com/prashantsinghmangat/tracebug-ai' },
   ]}
 >
-  <p>If you're looking for a TraceBug alternative, or deciding between the two, this page is for you. Both tools start from the same idea: a bug on your screen should become something your AI coding agent can read and fix. They make different trade-offs. Here's an honest look, with TraceBug's facts taken from its own pages on 2 November 2026.</p>
+  <p>If you're looking for a TraceBug alternative, or deciding between the two, this page is for you. Both tools start from the same idea: a bug on your screen should become something your AI coding agent can read and fix. They make different trade-offs. Here's an honest look, with TraceBug's facts taken from its own pages on 2 November 2026, and Darnly's updated for extension 0.3.3.</p>
 
   <h2>The short version</h2>
   <ul>
@@ -45,12 +46,12 @@ const faq = [
       <tr><td>Made for</td><td>People building with AI coding agents, including people who don't read code</td><td>Its Chrome Web Store listing says "For QA and devs". Its home page also names designers and product managers</td></tr>
       <tr><td>Price</td><td>Free</td><td>Free, $0. Open source under the MIT License</td></tr>
       <tr><td>How you capture</td><td>One key, click the broken part, say what you expected</td><td>Alt+B starts a capture. You can also record once and file several tickets from it</td></tr>
-      <tr><td>What's in a report</td><td>Screenshot with the broken part boxed, the element, the page address, console errors and failed requests from the last 60 seconds, and your note</td><td>Session replay, console errors with stack traces, network calls, repro steps, screenshots with annotation. Optional video and a spoken description</td></tr>
-      <tr><td>Proof the fix worked</td><td>No</td><td>Its MCP server can return a generated Playwright test that fails while the bug exists and should pass after the fix</td></tr>
+      <tr><td>What's in a report</td><td>Screenshot with the broken part boxed, the element, the page address, your note, console errors and failed requests from the last 60 seconds, slow requests, the steps that led to the bug (automatic, or recorded with a small screenshot per step), and the shape of the data behind the element</td><td>Session replay, console errors with stack traces, network calls, repro steps, screenshots with annotation. Optional video and a spoken description</td></tr>
+      <tr><td>Proof the fix worked</td><td>Steps for the agent to check its own fix in a browser (Claude in Chrome, Playwright or DevTools MCP). No generated test</td><td>Its MCP server can return a generated Playwright test that fails while the bug exists and should pass after the fix</td></tr>
       <tr><td>Where reports go</td><td>Markdown and PNG files in your project's <code>.darnly/inbox/</code>, your clipboard, or an optional private cloud inbox</td><td>One offline .html file, plus JSON and PDF downloads and GitHub and Jira exports</td></tr>
       <tr><td>AI coding agents</td><td>Adds AGENTS.md and a skill so Claude Code, Codex or Cursor read the inbox. No MCP needed for local projects</td><td>Local MCP server, added with a terminal command. Needs Node 18+ and a folder of exported reports</td></tr>
       <tr><td>Cloud projects</td><td>Cloud inbox with an MCP connector at <code>api.darnly.dev/mcp</code> (Google sign-in)</td><td>Not today. Its pricing page has a signup for when cloud sharing ships</td></tr>
-      <tr><td>Browsers</td><td>Chrome</td><td>Chrome, Edge and Brave (from the Chrome Web Store), Firefox, and an npm SDK for your own app</td></tr>
+      <tr><td>Browsers</td><td>Chrome, Edge, Brave and Arc</td><td>Chrome, Edge and Brave (from the Chrome Web Store), Firefox, and an npm SDK for your own app</td></tr>
       <tr><td>Account needed</td><td>No, unless you use the cloud inbox</td><td>No</td></tr>
       <tr><td>Mac apps and simulators</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>Websites</td></tr>
     </tbody>
@@ -59,10 +60,10 @@ const faq = [
   <h2>Where TraceBug is the better pick</h2>
   <p>TraceBug captures a lot more than Darnly does, and for many bugs that matters.</p>
   <ul>
-    <li><strong>What happened before the bug.</strong> Session replay and repro steps show the clicks that led there. Darnly doesn't record steps, so for a bug like "it breaks after I add a coupon" you have to say that in your note.</li>
-    <li><strong>A check that the fix worked.</strong> TraceBug's generated Playwright test gives the agent something that fails before the fix and should pass after. Darnly has nothing like it.</li>
-    <li><strong>Network detail.</strong> TraceBug records network calls. Darnly keeps only recent errors and failed requests.</li>
-    <li><strong>Other browsers and tools.</strong> Firefox, Edge and Brave, an npm SDK, and GitHub and Jira exports for handing a bug to a person. Darnly is Chrome only and doesn't export to trackers.</li>
+    <li><strong>A full replay.</strong> Session replay shows everything that happened before the bug. Darnly lists your recent steps (what you clicked, where you typed, which pages you opened) and, if you press Record the steps first, a small screenshot per step, but it isn't a replay.</li>
+    <li><strong>A check that the fix worked.</strong> TraceBug's generated Playwright test gives the agent something that fails before the fix and should pass after. Darnly only gives the agent steps to check the page in a browser.</li>
+    <li><strong>Network detail.</strong> TraceBug records network calls. Darnly keeps only recent errors, failed requests and slow requests.</li>
+    <li><strong>Other browsers and tools.</strong> Firefox, Edge and Brave, an npm SDK, and GitHub and Jira exports for handing a bug to a person. Darnly has no Firefox version and doesn't export to trackers.</li>
     <li><strong>Open source.</strong> TraceBug is MIT-licensed, so you can read the code and run it yourself.</li>
     <li><strong>Extras.</strong> It has in-browser detectors (accessibility, broken images, mixed content, JavaScript errors, failed or slow requests) and an optional AI debugger that uses your own Anthropic or OpenAI key, or a local Ollama.</li>
   </ul>
@@ -77,6 +78,6 @@ const faq = [
   </ul>
 
   <h2>Using them together</h2>
-  <p>To be fair to TraceBug, capturing a bug with it is quick too, with no account. The extra setup is only in connecting its reports to your agent. If you hit a bug that only shows up after several steps, a TraceBug recording is the better record. For everyday "this button is in the wrong place" bugs you find while you build, Darnly is quicker to send. The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report for AI agents</a> covers what helps an agent most either way.</p>
+  <p>To be fair to TraceBug, capturing a bug with it is quick too, with no account. The extra setup is only in connecting its reports to your agent. If you hit a bug that only shows up after a long path, a TraceBug replay is the fuller record; Darnly's Record the steps first button covers the shorter ones. For everyday "this button is in the wrong place" bugs you find while you build, Darnly is quicker to send. The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report for AI agents</a> covers what helps an agent most either way.</p>
   <p>Want to try Darnly on your next bug? <a href={storeUrl(`guide-${slug}`)}>Add it to Chrome</a>. It's free.</p>
 </GuidePage>

@@ -13,6 +13,7 @@ const faq = [
 ---
 <GuidePage
   slug={slug}
+  updated="2026-11-08"
   title="How to write a bug report for an AI coding agent"
   description="A bug report an AI coding agent can fix says where, what you did, what happened, what you expected and the scope. Copy the template and see examples."
   h1="How to write a bug report for an AI coding agent"
@@ -37,7 +38,7 @@ Screenshot path: (like screenshots/save-button.png, broken part boxed)</code></p
   <h3>Page/URL</h3>
   <p>The address is the cheapest clue there is. Routes usually match file or folder names, so <code>/settings</code> points the agent at a settings page file before it searches anything.</p>
   <h3>What I did</h3>
-  <p>Write them like a recipe. "Add two items, open the cart, change the first to 3." Agents can't click around your app, so the steps are how they picture the state the page was in.</p>
+  <p>Write them like a recipe. "Add two items, open the cart, change the first to 3." Even an agent that can open a browser starts on a fresh page, so the steps are how it gets to the state yours was in.</p>
   <h3>What I expected</h3>
   <p>This is the line that matters most. "Total should be $60" gives the agent a target it can test against. If it should look like something else in the app, say so: "like the cards on the home page".</p>
   <h3>What happened</h3>
@@ -74,6 +75,6 @@ Screenshot path: screenshots/settings-save.png (Save button boxed)</code></pre>
   </ul>
 
   <h2>Let Darnly write most of it</h2>
-  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that fills in most of this template for you. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, and type the Expected line. Darnly adds the page address, a screenshot with the element boxed in red, the element's selector, text, HTML and styles, and console errors and failed requests from the last 60 seconds. Secrets are replaced with <code>[hidden]</code>.</p>
+  <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that fills in most of this template for you. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, and type the Expected line. Darnly adds the page address, a screenshot with the element boxed in red, the element's selector, text, HTML and styles, console errors and failed requests from the last 60 seconds, and the What I did part: your last few clicks and pages (where you typed, never what you typed). Secrets are replaced with <code>[hidden]</code>.</p>
   <p>The report is saved as markdown and a PNG in <code>.darnly/inbox/</code> in your project, with a short note in AGENTS.md so Claude Code, Codex or Cursor knows to look there. You still write the two lines only you know: what you expected, and the scope. Put both in the note box.</p>
 </GuidePage>

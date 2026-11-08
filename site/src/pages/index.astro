@@ -208,8 +208,9 @@ import HeroLoop from '../components/HeroLoop.astro';
           <li><span>A screenshot with the element boxed in red and your note written on it.</span></li>
           <li><span>The exact file and component that drew it, on your local project.</span></li>
           <li><span>The element's selector, text, HTML and styles.</span></li>
-          <li><span>Console errors and failed requests from the last 60 seconds.</span></li>
-          <li><span>Clear rules: fix it, say what changed, ask if the note is vague.</span></li>
+            <li><span>The steps you took to get there, and the shape of the data behind the element (never the values).</span></li>
+          <li><span>Console errors and failed requests from the last 60 seconds, plus any slow requests.</span></li>
+          <li><span>Clear rules: fix it, check it in a browser, say what changed, ask if the note is vague.</span></li>
         </ul>
       </div>
       <div class="file" role="figure" aria-label="Example bug report">
@@ -218,6 +219,11 @@ import HeroLoop from '../components/HeroLoop.astro';
 
 <span class="p">**Expected:**</span> Save plan should be clickable
 and save my week
+
+<span class="k">## Steps before this</span>
+1. Opened `/plan`
+2. Typed in "Plan name" <span class="c">(never the words)</span>
+3. Clicked "Add a day"
 
 <span class="k">## Element (the red box)</span>
 - selector: `button[data-testid="save-plan"]`
