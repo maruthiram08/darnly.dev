@@ -5,7 +5,7 @@ import { storeUrl } from '../../data/site';
 
 const slug = 'changelog';
 const faq = [
-  { q: 'What is the latest version of Darnly?', a: 'The Chrome extension is at 0.3.1 and the Mac app at 0.3.2. Extension 0.3.1 adds the /darnly command, tells you when your agent has a question, and shows "Take a look" when a bug is fixed, even if the panel was closed.' },
+  { q: 'What is the latest version of Darnly?', a: 'The Chrome extension is at 0.3.3 and the Mac app at 0.3.2. Extension 0.3.3 adds the steps that led to the bug, the shape of the data behind the element you clicked, slow requests, and a count of waiting bugs on the Darnly icon.' },
   { q: 'How do I update Darnly?', a: 'Chrome updates extensions by itself, usually within a few hours of a release. To update now, open chrome://extensions, switch on Developer mode, and click Update.' },
   { q: 'Do I need to set up my project again after an update?', a: 'To get the new /darnly command and the Claude Code hook, click Set up this project in the Darnly panel once more. Darnly only adds its own lines and keeps the rest of your files as they are.' },
 ];
@@ -17,13 +17,31 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   updated="2026-11-08"
   crumb={null}
   title="What's new in Darnly: release notes"
-  description="Release notes for the Darnly Chrome extension and Mac app: /darnly, agent questions in the panel, 'Take a look' when a bug is fixed, the cloud inbox and MCP server."
+  description="Release notes for the Darnly Chrome extension and Mac app: the steps that led to a bug, the data behind an element, /darnly, 'Take a look' when a bug is fixed, the cloud inbox and MCP server."
   h1="What's new in Darnly"
-  lede={`Release notes for the Darnly Chrome extension and Mac app, newest first. The extension (0.3.1) closes the loop: type /darnly, see when your agent has a question, and get "Take a look" when a bug is fixed. The Mac app (0.3.2) now has a panel like the extension's.`}
+  lede={`Release notes for the Darnly Chrome extension and Mac app, newest first. The extension (0.3.3) tells your agent how you got to the bug and what data was behind it, and the Darnly icon shows how many bugs are waiting. The Mac app (0.3.2) has a panel like the extension's.`}
   faq={faq}
   strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
-  <p class="latest"><strong>Latest versions:</strong> Chrome extension <strong>0.3.1</strong> (Chrome updates it by itself) · Darnly for Mac <strong>0.3.2</strong> (click <em>Update available</em> in its menu, or run <code>brew upgrade --cask darnly</code>).</p>
+  <p class="latest"><strong>Latest versions:</strong> Chrome extension <strong>0.3.3</strong> (Chrome updates it by itself; a new release can take a few days to reach you) · Darnly for Mac <strong>0.3.2</strong> (click <em>Update available</em> in its menu, or run <code>brew upgrade --cask darnly</code>).</p>
+
+  <h2 id="v0-3-3">Chrome extension 0.3.3: how you got there, and what data was behind it</h2>
+  <p>Some bugs only show up after a few clicks, or only with one old record. This release puts both in the report, so your agent can get to the same screen with the same kind of data, without you writing it all out.</p>
+  <ul>
+    <li><strong>The steps that led to the bug.</strong> On localhost, and on sites you switch recording on for, reports list your last few actions: what you clicked, which field you typed in (never what you typed), which page you opened. Your agent follows them to see the bug for itself.</li>
+    <li><strong>Record the steps first.</strong> For a longer path, press <strong>Record the steps first</strong> in the panel, then use your app as usual. A small bar on the page counts the steps, with <strong>Pause</strong>, <strong>Done</strong> and <strong>Cancel</strong>. Each step keeps a small screenshot, so your agent sees each screen along the way.</li>
+    <li><strong>The data behind this element.</strong> Darnly finds the record that filled the part you clicked and adds its <em>shape</em>: field names, which ones are empty, how long the text is, how many items a list has, how old the record is. Never the values. Your agent can test with a record like yours instead of a fresh one. <a href="/privacy.html#the-data-behind-this-element">What is kept, and what isn't</a>.</li>
+    <li><strong>Slow requests.</strong> If a request worked but took over 1.5 seconds, the report lists it, so "it's slow" bugs come with a lead.</li>
+    <li><strong>A count on the Darnly icon.</strong> The toolbar icon shows how many bugs are waiting for a fix, across your projects and your cloud inbox. It goes down as your agent fixes them.</li>
+  </ul>
+
+  <h2 id="v0-3-2">Chrome extension 0.3.2: check the fix, and change only this one</h2>
+  <ul>
+    <li><strong>"How to check it's fixed."</strong> Every report ends with steps for your agent to check its own fix in a browser (Claude in Chrome, Playwright or the Chrome DevTools MCP), before it tells you it's done.</li>
+    <li><strong>Change only this one, or all like it.</strong> Two chips under the note answer the question agents ask most: is this one element, or every one that looks like it?</li>
+    <li><strong>What's wrong with it.</strong> Pick spacing, colour, size or text, and the report includes the element's current values for it.</li>
+    <li><strong>What's new, after an update.</strong> When Chrome updates Darnly, this page opens once at the new release.</li>
+  </ul>
 
   <h2 id="claude-directory">8 Nov 2026: Darnly is in Claude's connector directory</h2>
   <p>In Claude (claude.ai and Claude Desktop), open <strong>Settings</strong>, then <strong>Connectors</strong>, and search for Darnly. Click <strong>Connect</strong>, sign in with Google, and say <code>fix my Darnly bugs</code>. No address to paste. <a href="https://claude.ai/directory/61d14810-2780-48d5-896e-6368a039d0d4">See the listing</a> or the <a href="/setup/#claude-app">setup steps</a>.</p>

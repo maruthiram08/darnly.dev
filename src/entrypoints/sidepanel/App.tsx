@@ -6,10 +6,12 @@ import { captureMarkdown, headingFrom, type ChangeAspect, type ChangeScope } fro
 import { markScreenshot, referencePng, stepsSheet } from '@/lib/screenshot';
 import { cleanSteps, stepText, type Step } from '@/lib/steps';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
+import type { RecordShape } from '@/lib/record-shape';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
+import { reportOpen } from '@/lib/open-count';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
@@ -20,6 +22,7 @@ interface PendingCapture {
   screenshotError?: string;
   logs: LogEntry[];
   recorder: boolean;
+  record?: RecordShape;
   /** What the user did before the bug: the steps they recorded, or the last few kept automatically. */
   steps: Step[];
   stepsRecorded: boolean;
@@ -152,6 +155,7 @@ export function App() {
     try {
       const list = (await listCloudBugs(s)).map(toSummary);
       const fixedNow = await checkFixes(`cloud:${s.email}`, list);
+      reportOpen(`cloud:${s.email}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
       setCloudBugs(list);
     } catch (e) {
@@ -181,6 +185,7 @@ export function App() {
   };
   const cloudSignOut = async () => {
     if (session) await signOut(session);
+    if (session) reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
   };
@@ -192,6 +197,7 @@ export function App() {
       setMessage(`Couldn't sign out everywhere: ${(e as Error).message}`);
       return;
     }
+    reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
     setMessage('Signed out on every computer, and every coding agent is disconnected. Add the connector again to reconnect one.');
@@ -237,6 +243,7 @@ export function App() {
     if (!f || (await folderAccess(f)) !== 'granted') return;
     const list = await listCaptures(f);
     const fixedNow = await checkFixes(`folder:${f.name}`, list);
+    reportOpen(`folder:${f.name}`, list);
     if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     setCaptures(list);
     const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', '.claude/settings.json', CURSOR_COMMAND_PATH, `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
@@ -275,7 +282,9 @@ export function App() {
     for (const r of await recentFolders()) {
       if (folderRef.current && (await r.isSameEntry(folderRef.current).catch(() => false))) continue;
       if ((await folderAccess(r)) !== 'granted') continue;
-      const fixedNow = await checkFixes(`folder:${r.name}`, await listCaptures(r).catch(() => []));
+      const list = await listCaptures(r).catch(() => []);
+      reportOpen(`folder:${r.name}`, list);
+      const fixedNow = await checkFixes(`folder:${r.name}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     }
   }, [setJustFixed]);
@@ -309,7 +318,7 @@ export function App() {
     };
     chrome.tabs.onActivated.addListener(onTab);
     chrome.tabs.onUpdated.addListener(onTab);
-    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean; pageSteps?: unknown; recordedSteps?: unknown; tabId?: number; count?: number | null };
+    type Incoming = { type?: string; error?: string; element?: ElementInfo; page?: PendingCapture['page']; screenshot?: string; screenshotError?: string; pageLogs?: LogEntry[]; browserLogs?: LogEntry[]; recorder?: boolean; record?: RecordShape; pageSteps?: unknown; recordedSteps?: unknown; tabId?: number; count?: number | null };
     const listener = (msg: Incoming) => {
       if (msg.type === 'picking') {
         setStage('picking');
@@ -333,6 +342,7 @@ export function App() {
           screenshotError: msg.screenshotError,
           logs: mergeLogs(msg.pageLogs ?? [], msg.browserLogs ?? []),
           recorder: !!msg.recorder,
+          record: msg.record,
         });
         if (msg.page?.url) chrome.runtime.sendMessage({ type: 'recording-status', url: msg.page.url }).then(setSite, () => {});
         setNote('');
@@ -462,6 +472,7 @@ export function App() {
       element: c.element,
       logs: c.logs,
       recorder: c.recorder,
+      record: c.record,
       reference: !!reference,
       scope: c.element ? scope : undefined,
       aspect: c.element ? aspect : undefined,
@@ -776,6 +787,7 @@ export function App() {
               <>
                 <Chip tone={capture.logs.some((l) => l.kind !== 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind !== 'request').length, 'error', 'errors')}</Chip>
                 <Chip tone={capture.logs.some((l) => l.kind === 'request') ? 'bad' : 'plain'}>{plural(capture.logs.filter((l) => l.kind === 'request').length, 'failed request', 'failed requests')}</Chip>
+                {capture.record && <Chip title="The field names, lengths and ages of the record behind this element, for your agent. No real values are sent.">data shape added</Chip>}
                 <Chip>secrets hidden</Chip>
               </>
             ) : (

@@ -8,6 +8,9 @@
 import { redactLog, type LogEntry } from '@/lib/logs';
 import { addStep, cleanStep, MAX_RECORDED_STEPS, type Step } from '@/lib/steps';
 import { whatsNewUrl } from '@/lib/whats-new';
+import { badgeText, badgeTitle, COUNTS_KEY, totalOpen, waitingCount, type OpenCounts } from '@/lib/open-count';
+import { listCloudBugs, loadSession } from '@/lib/cloud-inbox';
+import { PRODUCT } from '@/config/product';
 
 export default defineBackground(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -203,7 +206,52 @@ export default defineBackground(() => {
     );
   });
 
+  // The number on the toolbar icon: bugs still waiting for a fix, across every inbox.
+  let countQueue: Promise<unknown> = Promise.resolve();
+  function setOpenCount(inbox: string | null, n?: number) {
+    countQueue = countQueue
+      .then(async () => {
+        const counts = ((await chrome.storage.local.get(COUNTS_KEY))[COUNTS_KEY] ?? {}) as OpenCounts;
+        if (inbox && typeof n === 'number' && Number.isFinite(n) && n >= 0) {
+          counts[inbox] = { n: Math.min(Math.floor(n), 10_000), at: Date.now() };
+          await chrome.storage.local.set({ [COUNTS_KEY]: counts });
+        }
+        const total = totalOpen(counts, { signedIn: !!(await loadSession().catch(() => null)) });
+        await chrome.action.setBadgeBackgroundColor({ color: '#d83995' });
+        if (chrome.action.setBadgeTextColor) await chrome.action.setBadgeTextColor({ color: '#ffffff' });
+        await chrome.action.setBadgeText({ text: badgeText(total) });
+        await chrome.action.setTitle({ title: badgeTitle(total, PRODUCT.NAME) });
+      })
+      .catch(() => {});
+    return countQueue;
+  }
+  // The cloud inbox, counted here every few minutes even while the panel is closed (the panel counts it every few seconds when open).
+  let cloudCountedAt = 0;
+  async function countCloud() {
+    if (Date.now() - cloudCountedAt < 4 * 60_000) return;
+    cloudCountedAt = Date.now();
+    const s = await loadSession().catch(() => null);
+    if (!s) return setOpenCount(null);
+    try {
+      await setOpenCount(`cloud:${s.email}`, waitingCount(await listCloudBugs(s)));
+    } catch {
+      /* offline or signed out: keep the last count */
+    }
+  }
+  // Only Darnly's own pages (panel, keepalive) report counts, never a content script in a web page.
+  const fromExtensionPage = (sender: chrome.runtime.MessageSender) => !!sender.url?.startsWith(chrome.runtime.getURL(''));
+  chrome.runtime.onStartup.addListener(() => setOpenCount(null));
+  chrome.runtime.onInstalled.addListener(() => setOpenCount(null));
+
   chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+    if (msg.type === 'open-count' && typeof msg.inbox === 'string' && fromExtensionPage(sender)) {
+      setOpenCount(msg.inbox.slice(0, 300), Number(msg.n)).then(() => reply(true));
+      return true;
+    }
+    if (msg.type === 'count-cloud' && fromExtensionPage(sender)) {
+      countCloud().then(() => reply(true), () => reply(false));
+      return true;
+    }
     if (msg.type === 'keepalive') {
       keepAlivePage().then(() => reply(true), () => reply(false));
       return true;

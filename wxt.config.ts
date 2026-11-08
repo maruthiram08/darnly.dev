@@ -14,7 +14,8 @@ export default defineConfig({
     // short_name keeps the toolbar and menus to just "Darnly". PRODUCT.NAME stays "Darnly" inside the app.
     name: `${PRODUCT.NAME}: Bug reports for AI coding agents`,
     short_name: PRODUCT.NAME,
-    description: 'Bug reports for AI coding agents: press a key, click the broken part, say what you expected. For Claude Code, Codex and Cursor.',
+    // The store shows this under the title in search results: lead with the outcome, then the two facts that remove doubt.
+    description: 'Point at a bug, say what you expected, and your AI coding agent fixes it. Free, no account. For Claude Code, Codex and Cursor.',
     // identity: "Sign in with Google" for the cloud inbox (projects whose code isn't on this computer).
     permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest', 'identity'],
     // The Google OAuth client (type "Chrome extension") is created once the store gives the extension its id.
