@@ -273,4 +273,15 @@ describe('steps in the report', () => {
   it('says nothing about steps when there are none', () => {
     expect(captureMarkdown(base)).not.toContain('Steps');
   });
+  it('lists slow requests on their own, slowest first', () => {
+    const logs = [
+      { t: 1, kind: 'request', url: 'https://x.com/api/feed', status: 200, ms: 2100, slow: true, fromHistory: true },
+      { t: 2, kind: 'request', url: 'https://x.com/api/deep-dive', status: 200, ms: 6400, slow: true, fromHistory: true },
+    ];
+    const md = captureMarkdown({ ...base, recorder: false, logs: logs as never });
+    expect(md).toContain('## Slow requests');
+    expect(md.indexOf('/api/deep-dive 200 took 6400 ms')).toBeLessThan(md.indexOf('/api/feed 200 took 2100 ms'));
+    expect(md).not.toContain('## Failed requests');
+    expect(md).toContain('No failed requests since the page loaded');
+  });
 });

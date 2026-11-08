@@ -1,6 +1,6 @@
 import { DONE_FOLDER, INBOX_FOLDER } from '@/config/product';
 import type { ElementInfo } from './element-info';
-import { errorLines, requestLines, type LogEntry } from './logs';
+import { errorLines, requestLines, slowRequestLines, type LogEntry } from './logs';
 import { stepText, type Step } from './steps';
 
 export interface CaptureInput {
@@ -172,9 +172,12 @@ export function captureMarkdown(c: CaptureInput): string {
   const requests = requestLines(logs);
   if (errors.length) lines.push('## Errors (last 60s)', ...errors, '');
   if (requests.length) lines.push(c.recorder === false ? '## Failed requests (since the page loaded)' : '## Failed requests (last 60s)', ...requests, '');
-  if (logs.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
+  const slow = slowRequestLines(logs);
+  if (slow.length) lines.push('## Slow requests (worked, but took over 1.5 s; since the page loaded)', ...slow, '');
+  const problems = logs.filter((e) => !e.slow);
+  if (problems.length && c.recorder === false) lines.push('_Console errors are not recorded on this site (recording is off); failed requests come from the page\'s request history._', '');
   if (logs.length && !c.forPaste && !c.forCloud) lines.push(`Full logs: ${INBOX_FOLDER}/${c.id}.logs.json`, '');
-  if (!logs.length) {
+  if (!problems.length) {
     lines.push(
       c.recorder === false
         ? '_No failed requests since the page loaded. Console errors are not recorded on this site (recording is off)._'
