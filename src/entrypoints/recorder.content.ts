@@ -1,5 +1,6 @@
 import type { LogEntry } from '@/lib/logs';
 import { findRecordShape, type SeenResponse } from '@/lib/record-shape';
+import { addStep, AUTO_STEPS, watchSteps, type Step } from '@/lib/steps';
 
 /**
  * Page recorder. Runs inside the page itself (MAIN world), before the page's own code,
@@ -13,6 +14,8 @@ import { findRecordShape, type SeenResponse } from '@/lib/record-shape';
  * It also keeps the last 20 JSON responses (under 200 KB each, in memory only) so that at capture it can
  * describe the record behind the picked element by its shape. Only that shape (field names, kinds, lengths,
  * ages, the record id) is handed over; the values never leave the page.
+ * It also keeps the user's last few actions (clicked "Save", typed in "Email", opened /settings), never what they typed,
+ * so the report can say how they got to the bug.
  */
 export default defineContentScript({
   matches: ['http://localhost/*', 'http://127.0.0.1/*'],
@@ -65,6 +68,10 @@ function record() {
     responses.push({ t: Date.now(), method, url, body });
     if (responses.length > MAX_JSON) responses.shift();
   };
+  let steps: Step[] = [];
+  watchSteps(window, (st) => {
+    steps = addStep(steps, { t: Date.now(), ...st }, AUTO_STEPS * 2);
+  });
   const fresh = () => {
     const cutoff = Date.now() - MAX_AGE;
     return buffer.filter((e) => e.t >= cutoff);
@@ -180,7 +187,7 @@ function record() {
     } catch {
       /* never break the capture */
     }
-    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, record }, '*');
+    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, record, steps }, '*');
   });
 }
 
