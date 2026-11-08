@@ -1,4 +1,5 @@
-import { SELF } from 'cloudflare:test';
+import { SELF, env } from 'cloudflare:test';
+import { deleteUnusedClients } from '../src/clients';
 import { describe, expect, it } from 'vitest';
 
 const BASE = 'https://api.darnly.dev';
@@ -273,4 +274,25 @@ describe('MCP for coding agents', () => {
     expect(after.content[0].text).toContain('[fixed]');
     expect(after.content[0].text).not.toContain('being fixed');
   });
+
+  it('forgets agents that registered but never finished signing in', async () => {
+    const register = async () =>
+      ((await (await SELF.fetch(`${BASE}/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ redirect_uris: [REDIRECT], client_name: 'Never signed in', token_endpoint_auth_method: 'none' }) })).json()) as { client_id: string }).client_id;
+    const unused = await register();
+    const token = await connectAgent('keeps-agent@example.com', 'Signed In Agent');
+    const kv = (env as unknown as { OAUTH_KV: KVNamespace }).OAUTH_KV;
+    const before = (await kv.list({ prefix: 'client:' })).keys.length;
+
+    expect(await deleteUnusedClients(env as never)).toBe(0); // too new to delete
+    expect(await kv.get(`client:${unused}`)).not.toBeNull();
+
+    const deleted = await deleteUnusedClients(env as never, Date.now() + 25 * 3_600_000);
+    expect(deleted).toBeGreaterThanOrEqual(1);
+    expect(await kv.get(`client:${unused}`)).toBeNull();
+    const left = (await kv.list({ prefix: 'client:' })).keys.length;
+    expect(left).toBeGreaterThanOrEqual(1); // the signed-in agent stays
+    expect(left).toBe(before - deleted);
+    await rpc(token, 'tools/list'); // and its token still works
+  });
 });
+

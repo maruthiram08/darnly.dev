@@ -1,6 +1,7 @@
 /**
  * Hides secrets before anything is written. Runs in the walled-off picker, never in the page.
  * Rules from the MVP architecture: token-like strings, secret-named query values, auth headers (never recorded).
+ * Email addresses are hidden too, so a report never carries someone's address.
  */
 export const HIDDEN = '[hidden]';
 
@@ -17,11 +18,19 @@ const SECRET_PATTERNS: RegExp[] = [
   /\b(?=[A-Za-z0-9+_-]*\d)(?=[A-Za-z0-9+_-]*[a-z])(?=[A-Za-z0-9+_-]*[A-Z])[A-Za-z0-9+_-]{40,}={0,2}/g, // long random token (no '/', so URL paths survive)
 ];
 
+/**
+ * Email addresses. The last part must be letters and end the address, and file names like
+ * icon@2x.png or logo@2x.min.js are left alone.
+ */
+export const EMAIL =
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?!(?:png|jpe?g|gif|svg|webp|avif|ico|bmp|js|mjs|cjs|ts|tsx|jsx|css|map|json|html?|woff2?|ttf|otf)(?![A-Za-z0-9-]|\.[A-Za-z0-9]))[A-Za-z]{2,}(?![A-Za-z0-9-]|\.[A-Za-z0-9])/g;
+
 const SECRET_NAME = /token|key|secret|session|^code$|password|passwd|pwd|auth|sig(nature)?|credential|otp|jwt|apikey/i;
 
 export function redactText(text: string): string {
   let out = text;
   for (const p of SECRET_PATTERNS) out = out.replace(p, HIDDEN);
+  out = out.replace(EMAIL, HIDDEN);
   // name=value or "name": "value" pairs with secret-looking names
   // When the name isn't secret, look again right after it, so "plan: token=abc" still hides the token.
   const pair = /(["']?)([A-Za-z_][\w-]*)\1(\s*[:=]\s*)(["']?)([^"'\s&,;}]{4,})\4/g;
@@ -39,11 +48,14 @@ export function redactText(text: string): string {
   return result + out.slice(last);
 }
 
-/** Hides query values with secret-looking names, and token-like path parts. */
+/** Hides query values with secret-looking names or email addresses, and token-like path parts. */
 export function redactUrl(url: string): string {
   try {
     const u = new URL(url);
-    for (const [k] of Array.from(u.searchParams)) if (SECRET_NAME.test(k)) u.searchParams.set(k, HIDDEN);
+    for (const [k, v] of Array.from(u.searchParams)) {
+      if (SECRET_NAME.test(k)) u.searchParams.set(k, HIDDEN);
+      else if (v.replace(EMAIL, HIDDEN) !== v) u.searchParams.set(k, v.replace(EMAIL, HIDDEN)); // a%40b.com only looks like an email once decoded
+    }
     if (u.username || u.password) {
       u.username = '';
       u.password = '';
