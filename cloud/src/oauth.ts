@@ -81,7 +81,7 @@ async function showConsent(req: Request, env: OAuthEnv): Promise<Response> {
   try {
     host = new URL(authRequest.redirectUri).host;
   } catch {}
-  const dev = env.ALLOW_DEV_LOGIN === 'true' ? '<input name="devEmail" type="email" placeholder="Dev only: sign in as this email">' : '';
+  const dev = devEmailField(env);
   return page(
     'Connect your agent',
     `<h1>Connect ${name} to Darnly?</h1>
@@ -96,6 +96,11 @@ ${host ? `<p class="where">Access goes to <strong>${escapeHtml(host)}</strong>. 
     200,
     { 'set-cookie': `${COOKIE}=${browser}; Path=/; Max-Age=${TX_TTL}; HttpOnly; Secure; SameSite=Lax` },
   );
+}
+
+/** Local development and tests only (ALLOW_DEV_LOGIN is never set in production): sign in as any email. */
+function devEmailField(env: OAuthEnv): string {
+  return env.ALLOW_DEV_LOGIN === 'true' ? '<input name="devEmail" type="email" placeholder="Dev only: sign in as this email">' : '';
 }
 
 /** POST /authorize: approved (go to Google) or cancelled (back to the app with an error). */
@@ -184,7 +189,7 @@ async function showAppSignIn(req: Request, env: OAuthEnv): Promise<Response> {
   const txId = newToken();
   const browser = newToken();
   await env.OAUTH_KV.put(`tx:${txId}`, JSON.stringify({ kind: 'app', challenge, browser } satisfies Transaction), { expirationTtl: TX_TTL });
-  const dev = env.ALLOW_DEV_LOGIN === 'true' ? '<input name="devEmail" type="email" placeholder="Dev only: sign in as this email">' : '';
+  const dev = devEmailField(env);
   return page(
     'Sign in the Mac app',
     `<h1>Sign in the Darnly Mac app?</h1>

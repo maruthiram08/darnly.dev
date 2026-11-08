@@ -18,17 +18,14 @@ export default defineConfig({
     description: 'Point at a bug, say what you expected, and your AI coding agent fixes it. Free, no account. For Claude Code, Codex and Cursor.',
     // identity: "Sign in with Google" for the cloud inbox (projects whose code isn't on this computer).
     permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'offscreen', 'webRequest', 'identity'],
-    // The Google OAuth client (type "Chrome extension") is created once the store gives the extension its id.
-    // An unpacked build gets a random id, and Google sign-in only works for the store id. Setting the store
-    // item's public key (Developer Dashboard → Package → Public key) gives an unpacked build the same id.
+    // Google sign-in only works for the store's extension id. An unpacked build gets a random id unless it is
+    // given the store item's public key (Developer Dashboard → Package → Public key) as DARNLY_MANIFEST_KEY.
     ...(process.env.DARNLY_MANIFEST_KEY ? { key: process.env.DARNLY_MANIFEST_KEY } : {}),
     // Google sign-in for the cloud inbox (public id of the "Chrome extension" OAuth client). Override with DARNLY_GOOGLE_CLIENT_ID.
-    ...((process.env.DARNLY_GOOGLE_CLIENT_ID ?? GOOGLE_CLIENT_ID)
-      ? { oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID ?? GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] } }
-      : {}),
+    oauth2: { client_id: process.env.DARNLY_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID, scopes: ['openid', 'email'] },
     // Production sites are switched on one at a time from the side panel; Chrome asks to confirm each.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
-    // Localhost works without asking; other sites work through the hotkey (activeTab). Per-site opt-in comes in Sprint 2.
+    // Localhost works without asking; other sites work through the hotkey (activeTab) or once switched on (above).
     host_permissions: [
       'http://localhost/*',
       'http://127.0.0.1/*',

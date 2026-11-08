@@ -42,9 +42,9 @@ Never set `ALLOW_DEV_LOGIN` in production.
 npm run zip   # the Chrome extension client id is built in (wxt.config.ts)
 ```
 
-Upload the zip as version 0.2.0, with the changes in `store/listing-0.2.0.md`.
+For a store release, bump `version` in `package.json` first; `npm run zip` puts the zip in `.output/`.
 
-To try sign-in before the store approves 0.2.0, build an unpacked copy with the store's id: copy the public key from Developer Dashboard → Package → Public key, then run `DARNLY_MANIFEST_KEY=<key> npm run build` and load `.output/chrome-mv3`.
+To try sign-in with an unpacked build, give it the store's id: copy the public key from Developer Dashboard → Package → Public key, then run `DARNLY_MANIFEST_KEY=<key> npm run build` and load `.output/chrome-mv3`.
 
 ## 4. Try it
 

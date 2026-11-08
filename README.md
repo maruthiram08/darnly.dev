@@ -37,7 +37,6 @@ Works in Chrome, Edge, Brave and Arc. There is also a Mac app for the iOS Simula
 
 The name lives in one file: `src/config/product.ts`. Change `NAME` and `SLUG` there.
 The extension name, the `.<slug>/` folder, the AGENTS.md markers and the skill paths all follow.
-(`spike/folder-test/` is a throwaway test and has its own copy.)
 
 ### Commands
 
@@ -54,5 +53,4 @@ The extension name, the `.<slug>/` folder, the AGENTS.md markers and the skill p
 - `src/entrypoints/`: background (hotkey, screenshot), picker (content script), side panel (note box, saving), keepalive (holds folder access)
 - `tests/e2e/`: `npm run e2e` captures a planted bug on a sample page and checks the files
 - `src/lib/`: pure helpers with unit tests
-- `spike/folder-test/`: day-one folder-write test (no build step; load the folder unpacked)
 - `benchmark/`: does a Darnly report make Claude Code search less and spend fewer tokens than a plain description? See `benchmark/README.md`

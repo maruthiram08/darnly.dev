@@ -127,13 +127,6 @@ export async function signInWithGoogle(): Promise<CloudSession> {
 }
 
 /** Local development only: the server accepts this just when ALLOW_DEV_LOGIN is on. */
-export async function signInForDev(email: string): Promise<CloudSession> {
-  const r = await call<{ token: string; email: string }>('/v1/auth/google', { method: 'POST', body: JSON.stringify({ devEmail: email }) });
-  const s = { token: r.token, email: r.email };
-  await saveSession(s);
-  return s;
-}
-
 /** Signs out every copy of Darnly on every computer, and disconnects every coding agent. */
 export async function signOutEverywhere(s: CloudSession): Promise<void> {
   await call('/v1/auth/logout-all', { method: 'POST', token: s.token });
