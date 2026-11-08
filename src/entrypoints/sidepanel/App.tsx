@@ -11,6 +11,7 @@ import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAcc
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
+import { reportOpen } from '@/lib/open-count';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
@@ -154,6 +155,7 @@ export function App() {
     try {
       const list = (await listCloudBugs(s)).map(toSummary);
       const fixedNow = await checkFixes(`cloud:${s.email}`, list);
+      reportOpen(`cloud:${s.email}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
       setCloudBugs(list);
     } catch (e) {
@@ -183,6 +185,7 @@ export function App() {
   };
   const cloudSignOut = async () => {
     if (session) await signOut(session);
+    if (session) reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
   };
@@ -194,6 +197,7 @@ export function App() {
       setMessage(`Couldn't sign out everywhere: ${(e as Error).message}`);
       return;
     }
+    reportOpen(`cloud:${session.email}`, []);
     setSession(null);
     setCloudBugs([]);
     setMessage('Signed out on every computer, and every coding agent is disconnected. Add the connector again to reconnect one.');
@@ -239,6 +243,7 @@ export function App() {
     if (!f || (await folderAccess(f)) !== 'granted') return;
     const list = await listCaptures(f);
     const fixedNow = await checkFixes(`folder:${f.name}`, list);
+    reportOpen(`folder:${f.name}`, list);
     if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     setCaptures(list);
     const paths = ['AGENTS.md', 'CLAUDE.md', '.gitignore', '.claude/settings.json', CURSOR_COMMAND_PATH, `.agents/skills/${PRODUCT.SLUG}/SKILL.md`, `.claude/skills/${PRODUCT.SLUG}/SKILL.md`];
@@ -277,7 +282,9 @@ export function App() {
     for (const r of await recentFolders()) {
       if (folderRef.current && (await r.isSameEntry(folderRef.current).catch(() => false))) continue;
       if ((await folderAccess(r)) !== 'granted') continue;
-      const fixedNow = await checkFixes(`folder:${r.name}`, await listCaptures(r).catch(() => []));
+      const list = await listCaptures(r).catch(() => []);
+      reportOpen(`folder:${r.name}`, list);
+      const fixedNow = await checkFixes(`folder:${r.name}`, list);
       if (fixedNow.length) setJustFixed((prev) => mergeFixed(prev, fixedNow));
     }
   }, [setJustFixed]);

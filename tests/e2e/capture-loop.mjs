@@ -149,6 +149,14 @@ try {
   if (!/GET \/missing-logo\.png 404 .*\[image\]/.test(md)) fail('missing image (browser-only failure) missing');
   // Sprint 3: the inbox list and "Set up this project".
   await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('inbox list missing'));
+  // The toolbar icon shows how many bugs are waiting.
+  const badge = async () => sw.evaluate(async () => ({ text: await chrome.action.getBadgeText({}), title: await chrome.action.getTitle({}) }));
+  {
+    let b;
+    for (let i = 0; i < 20 && (b = await badge()).text !== '1'; i++) await panel.waitForTimeout(200);
+    if (b.text !== '1') fail(`toolbar badge should say 1, says "${b.text}"`);
+    if (!b.title.includes('1 bug is waiting')) fail(`toolbar title missing the count: "${b.title}"`);
+  }
   await panel.getByRole('button', { name: 'See what it adds' }).click();
   await panel.getByRole('button', { name: 'Add these' }).click();
   await panel.getByText('Project set up').waitFor({ timeout: 5000 }).catch(() => fail('setup did not finish'));
@@ -201,6 +209,11 @@ try {
   });
   await panel.goto(`chrome-extension://${id}/sidepanel.html`);
   await panel.getByText('0 waiting, 1 fixed').waitFor({ timeout: 7000 }).catch(() => fail('fixed bug not shown'));
+  {
+    let b;
+    for (let i = 0; i < 20 && (b = await badge()).text !== ''; i++) await panel.waitForTimeout(200);
+    if (b.text !== '') fail(`toolbar badge should clear once the bug is fixed, says "${b.text}"`);
+  }
   await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 3000 }).catch(() => fail('fixed nudge missing'));
   await panel.getByText('made Pay now clickable in src/components/PayButton.tsx').waitFor({ timeout: 3000 }).catch(() => fail('agent fix note missing'));
   // The bug was on localhost, so reloading shows the fix (a live site would say to deploy instead).
