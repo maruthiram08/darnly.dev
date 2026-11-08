@@ -11,6 +11,11 @@ final class RedactTests: XCTestCase {
         XCTAssertTrue(out.contains("user=maruthi"))
         XCTAssertTrue(out.contains("password: [hidden]"))
     }
+
+    func testHidesEmailsButNotFileNames() {
+        XCTAssertEqual(Redact.text("no account for first.last+tag@mail.co.uk"), "no account for [hidden]")
+        XCTAssertEqual(Redact.text("GET /img/icon@2x.png 404"), "GET /img/icon@2x.png 404")
+    }
 }
 
 final class CaptureNameTests: XCTestCase {
