@@ -11,6 +11,11 @@ final class RedactTests: XCTestCase {
         XCTAssertTrue(out.contains("user=maruthi"))
         XCTAssertTrue(out.contains("password: [hidden]"))
     }
+
+    func testHidesEmailsButNotFileNames() {
+        XCTAssertEqual(Redact.text("no account for first.last+tag@mail.co.uk"), "no account for [hidden]")
+        XCTAssertEqual(Redact.text("GET /img/icon@2x.png 404"), "GET /img/icon@2x.png 404")
+    }
 }
 
 final class CaptureNameTests: XCTestCase {
@@ -308,5 +313,19 @@ final class UpdateCheckTests: XCTestCase {
         XCTAssertEqual(r?.downloadURL.absoluteString, "https://github.com/x/d/Darnly.dmg")
         XCTAssertNil(UpdateCheck.newer(than: "0.3.2", releasesJSON: json))
         XCTAssertNil(UpdateCheck.newer(than: "0.3.1", releasesJSON: Data("not json".utf8)))
+    }
+
+    func testOnlyOpensGitHubLinks() {
+        let json = """
+        [
+          {"tag_name": "mac-v0.9.0", "draft": false, "prerelease": false, "html_url": "file:///Applications/Calculator.app", "assets": []},
+          {"tag_name": "mac-v0.3.3", "draft": false, "prerelease": false, "html_url": "https://github.com/x/r/33",
+           "assets": [{"name": "Darnly.dmg", "browser_download_url": "https://evil.example/Darnly.dmg"}]}
+        ]
+        """.data(using: .utf8)!
+        let r = UpdateCheck.newer(than: "0.3.2", releasesJSON: json)
+        XCTAssertEqual(r?.version, "0.3.3")
+        XCTAssertEqual(r?.downloadURL.absoluteString, "https://github.com/x/r/33")
+        XCTAssertFalse(UpdateCheck.isGitHubURL(URL(string: "http://github.com/x")!))
     }
 }

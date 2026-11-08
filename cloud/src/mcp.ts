@@ -2,10 +2,14 @@
 // Stateless Streamable HTTP: each POST carries one JSON-RPC message (or a batch) and gets a JSON reply.
 import type { Env } from './env';
 import { claimBug, getBug, getPicture, getReference, getStepsPicture, listBugs, listProjects, markFixed, projectName, setQuestion, type Agent } from './bugs';
-import { HttpError } from './util';
+import { HttpError, readText } from './util';
 
 const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
 const PAGE_DATA_END = '<!-- darnly:page-data:end -->';
+
+/** One POST is a few small JSON-RPC messages. Bigger bodies or batches only multiply reads on our bill. */
+export const MAX_BODY_BYTES = 256 * 1024;
+export const MAX_BATCH = 20;
 
 export const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
@@ -255,11 +259,15 @@ export async function mcpFetch(req: Request, env: Env, userId: string, agent: Ag
   if (!exists) return new Response('account deleted', { status: 401 });
   let body: unknown;
   try {
-    body = JSON.parse(await req.text());
-  } catch {
+    body = JSON.parse(await readText(req, MAX_BODY_BYTES));
+  } catch (e) {
+    if (e instanceof HttpError) return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Request too large' } }, { status: 413 });
     return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, { status: 400 });
   }
   const batch = Array.isArray(body);
+  if (batch && ((body as unknown[]).length === 0 || (body as unknown[]).length > MAX_BATCH)) {
+    return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: `Send between 1 and ${MAX_BATCH} messages in one batch` } }, { status: 400 });
+  }
   const messages = (batch ? body : [body]) as RpcRequest[];
   const replies = (await Promise.all(messages.map((m) => handle(env, userId, agent, m)))).filter((r): r is object => r !== null);
   if (!replies.length) return new Response(null, { status: 202 });

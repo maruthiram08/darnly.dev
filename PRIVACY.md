@@ -43,7 +43,7 @@ A step says what you clicked, which field you typed in, which option you chose a
 
 ## What Darnly hides
 
-Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys and secret-looking query parameters. These are replaced with `[hidden]`. Data responses are never copied into the report: only the shape of one record, as described above.
+Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys, email addresses and secret-looking query parameters. These are replaced with `[hidden]`. Data responses are never copied into the report: only the shape of one record, as described above.
 
 ## Where reports go
 

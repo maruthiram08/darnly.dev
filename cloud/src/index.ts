@@ -7,6 +7,7 @@ import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getBug, getPicture, l
 import { HttpError, json, readJson } from './util';
 import { isPaused, rateLimit } from './limits';
 import { checkSpend } from './spend';
+import { deleteUnusedClients } from './clients';
 
 /** The Chrome Web Store id of the Darnly extension (tester builds get the same id from the store key). */
 const EXTENSION_ORIGIN = 'chrome-extension://gognoljafcabnmbbpfoeeamcflpbgidj';
@@ -134,6 +135,7 @@ const mcpHandler = {
     if (!userId) return new Response('signed out', { status: 401 });
     const res = await mcpFetch(req, env, userId, agentFrom(req, ctx.props));
     res.headers.set('x-content-type-options', 'nosniff');
+    res.headers.set('cache-control', 'no-store');
     return res;
   },
 };
@@ -181,6 +183,7 @@ export default {
     if (new Date(event.scheduledTime).getUTCHours() === 3) {
       ctx.waitUntil(cleanup(env).then((n) => console.log(`cleanup: deleted ${n} fixed bugs`)));
       ctx.waitUntil(deleteExpiredSessions(env).then((n) => console.log(`cleanup: deleted ${n} expired sessions`)));
+      ctx.waitUntil(deleteUnusedClients(env).then((n) => console.log(`cleanup: deleted ${n} unused agent registrations`)));
     }
   },
 } satisfies ExportedHandler<Env>;

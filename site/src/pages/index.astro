@@ -76,18 +76,24 @@ import HeroLoop from '../components/HeroLoop.astro';
         <a href="#privacy">Privacy</a>
         <a href="/tools/">Free tools</a>
       </div>
+      <a class="nav-add" href={storeUrl('home-nav')}>Add to Chrome</a>
     </nav>
     <div class="hero-grid" id="top">
       <div>
-        <a class="news" href="/changelog/"><b>New</b> Type /darnly, then "Take a look" when it's fixed →</a>
+        <a class="news" href="/changelog/#v0-3-3"><b>New</b> Your agent sees the steps that led to the bug →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
         <p class="lede">Darnly hands it the screenshot, the exact element and the recent errors. You never leave the page.</p>
         <div class="cta cta-labelled">
-          <div class="cta-item"><a class="btn btn-primary btn-shimmer" href={storeUrl('home')}>Add to Chrome</a><small>For web apps: localhost or live</small></div>
+          <div class="cta-item"><a class="btn btn-primary btn-shimmer" href={storeUrl('home-hero')}>Add to Chrome</a><small>For web apps: localhost or live</small></div>
           <div class="cta-item"><a class="btn btn-ghost" href="#mac">Get the Mac app</a><small>For native apps: Mac, iOS, Android</small></div>
         </div>
+        <p class="trust">Free · No account needed · Chrome, Edge, Brave and Arc</p>
+        <div class="on-phone" hidden data-on-phone>
+          <p><strong>On your phone?</strong> Darnly runs in Chrome on your computer. Send yourself the link and install it there.</p>
+          <button type="button" class="btn btn-ghost" data-send-link>Send me the link</button>
+        </div>
         <div class="agents" aria-label="Works with">
-          <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
+          <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a href="/setup/#other-agents">Windsurf</a><a href="/setup/#other-agents">Antigravity</a><a href="/guides/report-a-bug-to-lovable/">Lovable</a><a href="/guides/report-a-bug-to-bolt/">Bolt</a><a href="/guides/report-a-bug-to-v0/">v0</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
       </div>
       <HeroLoop />
@@ -96,40 +102,7 @@ import HeroLoop from '../components/HeroLoop.astro';
 </header>
 
 <main>
-  <section class="band setup" id="setup" aria-labelledby="setup-h">
-    <div class="wrap">
-      <span class="eyebrow">Set up in two minutes</span>
-      <h2 id="setup-h">Connect Darnly to your agent.</h2>
-      <p class="intro">Two ways to get bugs to Claude Code, Cursor or Codex. Pick the one that matches where your code lives, or paste one prompt and let your agent set it up for you.</p>
-      <div class="ways">
-        <a class="way" href="/setup/#without-mcp">
-          <span class="n">Without MCP</span>
-          <h3>Code on your computer</h3>
-          <p>Link your project folder once and click <strong>Set up this project</strong>. Each bug lands in <code>.darnly/inbox/</code> and <code>/darnly</code> fixes them. No account. Cloud project? Copy and paste each bug instead.</p>
-          <span class="more-link">No-MCP setup →</span>
-        </a>
-        <a class="way" href="/setup/#with-mcp">
-          <span class="n">With MCP</span>
-          <h3>Code in the cloud, or anywhere</h3>
-          <p>Sign in with Google and add <code>api.darnly.dev/mcp</code> to your agent once. It fetches your bugs itself. Just type <code>/darnly</code>. In Claude, find Darnly in the connector directory.</p>
-          <span class="more-link">MCP setup →</span>
-        </a>
-      </div>
-      <p class="intro projects-note">Working on several projects? Darnly remembers a folder or the cloud for each site and asks the first time it sees a new one. Switch any time with <strong>change</strong>, and in the cloud your agent only fetches its own project's bugs. <a href="/setup/#projects">How projects work</a>.</p>
-      <div class="agent-links" aria-label="Setup steps for each agent">
-        <span>Step-by-step for</span>
-        <a href="/setup/#claude-code">Claude Code</a>
-        <a href="/setup/#claude-app">Claude app</a>
-        <a href="/setup/#cursor">Cursor</a>
-        <a href="/setup/#codex">Codex</a>
-      </div>
-      <h3 class="prompt-h">Or let your agent do it all</h3>
-      <SetupPrompt compact />
-      <a class="all-tools" href="/setup/">Read the full setup guide →</a>
-    </div>
-  </section>
-
-  <section class="band" id="how" style="padding-top: 0">
+  <section class="band" id="how">
     <div class="wrap">
       <span class="eyebrow">How it works</span>
       <h2>No screenshots to drag. No explaining twice.</h2>
@@ -208,8 +181,9 @@ import HeroLoop from '../components/HeroLoop.astro';
           <li><span>A screenshot with the element boxed in red and your note written on it.</span></li>
           <li><span>The exact file and component that drew it, on your local project.</span></li>
           <li><span>The element's selector, text, HTML and styles.</span></li>
-          <li><span>Console errors and failed requests from the last 60 seconds.</span></li>
-          <li><span>Clear rules: fix it, say what changed, ask if the note is vague.</span></li>
+            <li><span>The steps you took to get there, and the shape of the data behind the element (never the values).</span></li>
+          <li><span>Console errors and failed requests from the last 60 seconds, plus any slow requests.</span></li>
+          <li><span>Clear rules: fix it, check it in a browser, say what changed, ask if the note is vague.</span></li>
         </ul>
       </div>
       <div class="file" role="figure" aria-label="Example bug report">
@@ -218,6 +192,11 @@ import HeroLoop from '../components/HeroLoop.astro';
 
 <span class="p">**Expected:**</span> Save plan should be clickable
 and save my week
+
+<span class="k">## Steps before this</span>
+1. Opened `/plan`
+2. Typed in "Plan name" <span class="c">(never the words)</span>
+3. Clicked "Add a day"
 
 <span class="k">## Element (the red box)</span>
 - selector: `button[data-testid="save-plan"]`
@@ -233,6 +212,40 @@ and save my week
       </div>
     </div>
   </section>
+
+  <section class="band setup" id="setup" aria-labelledby="setup-h">
+    <div class="wrap">
+      <span class="eyebrow">Set up in two minutes</span>
+      <h2 id="setup-h">Connect Darnly to your agent.</h2>
+      <p class="intro">Two ways to get bugs to Claude Code, Cursor or Codex. Pick the one that matches where your code lives, or paste one prompt and let your agent set it up for you.</p>
+      <div class="ways">
+        <a class="way" href="/setup/#without-mcp">
+          <span class="n">Without MCP</span>
+          <h3>Code on your computer</h3>
+          <p>Link your project folder once and click <strong>Set up this project</strong>. Each bug lands in <code>.darnly/inbox/</code> and <code>/darnly</code> fixes them. No account. Cloud project? Copy and paste each bug instead.</p>
+          <span class="more-link">No-MCP setup →</span>
+        </a>
+        <a class="way" href="/setup/#with-mcp">
+          <span class="n">With MCP</span>
+          <h3>Code in the cloud, or anywhere</h3>
+          <p>Sign in with Google and add <code>api.darnly.dev/mcp</code> to your agent once. It fetches your bugs itself. Just type <code>/darnly</code>. In Claude, find Darnly in the connector directory.</p>
+          <span class="more-link">MCP setup →</span>
+        </a>
+      </div>
+      <p class="intro projects-note">Working on several projects? Darnly remembers a folder or the cloud for each site and asks the first time it sees a new one. Switch any time with <strong>change</strong>, and in the cloud your agent only fetches its own project's bugs. <a href="/setup/#projects">How projects work</a>.</p>
+      <div class="agent-links" aria-label="Setup steps for each agent">
+        <span>Step-by-step for</span>
+        <a href="/setup/#claude-code">Claude Code</a>
+        <a href="/setup/#claude-app">Claude app</a>
+        <a href="/setup/#cursor">Cursor</a>
+        <a href="/setup/#codex">Codex</a>
+      </div>
+      <h3 class="prompt-h">Or let your agent do it all</h3>
+      <SetupPrompt compact />
+      <a class="all-tools" href="/setup/">Read the full setup guide →</a>
+    </div>
+  </section>
+
 
   <section class="band" id="mac" style="padding-top: 0">
     <div class="wrap report">
@@ -360,13 +373,31 @@ No errors in the app's log in the last 60 seconds.</pre>
         <h2>Try it on your next bug.</h2>
         <p>Darnly is free and works in Chrome, Edge, Brave and Arc. Questions or feedback? Write to hello@darnly.dev.</p>
         <div class="cta">
-          <a class="btn btn-primary" href={storeUrl('home')}>Add to Chrome</a>
+          <a class="btn btn-primary" href={storeUrl('home-final')}>Add to Chrome</a>
           <a class="btn btn-ghost" href="https://x.com/darnlyhq"><svg class="x-logo" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Follow @darnlyhq</a>
         </div>
       </div>
     </div>
   </section>
 </main>
+
+<script>
+  // Phones can't install Chrome extensions: offer to send the link to the visitor's computer instead.
+  const phone = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const box = document.querySelector<HTMLElement>('[data-on-phone]');
+  const btn = document.querySelector<HTMLButtonElement>('[data-send-link]');
+  if (phone && box && btn) {
+    box.hidden = false;
+    const url = 'https://darnly.dev/?utm_source=phone-share';
+    btn.addEventListener('click', async () => {
+      try {
+        if (navigator.share) { await navigator.share({ title: 'Darnly', text: 'Install Darnly on my computer', url }); return; }
+        await navigator.clipboard.writeText(url);
+        btn.textContent = 'Link copied ✓';
+      } catch { /* share sheet closed */ }
+    });
+  }
+</script>
 
 
 <SiteFooter />

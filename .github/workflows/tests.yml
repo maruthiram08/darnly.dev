@@ -1,0 +1,41 @@
+name: Tests
+# Unit tests and type checks for the Chrome extension (with the site's Worker tests) and the cloud Worker.
+# The Mac app has its own workflow (mac.yml).
+on:
+  pull_request:
+    paths-ignore: ['mac/**']
+  push:
+    branches: [main]
+    paths-ignore: ['mac/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # site/worker tests run with the extension's tests and need the site's tsconfig.
+      - run: npm ci --prefix site
+      - run: npm run typecheck
+      - run: npm test
+
+  cloud:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

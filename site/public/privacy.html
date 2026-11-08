@@ -68,7 +68,7 @@ footer .wrap { padding-block: 24px; }
 </ul>
 <p>A step says what you clicked, which field you typed in, which option you chose and which page you opened. <strong>Darnly never records what you type</strong>, only where. A step&#39;s screenshot shows the screen like the main screenshot does; a step is left without a screenshot while a card number field on the page is filled in.</p>
 <h2>What Darnly hides</h2>
-<p>Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys and secret-looking query parameters. These are replaced with <code>[hidden]</code>. Data responses are never copied into the report: only the shape of one record, as described above.</p>
+<p>Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys, email addresses and secret-looking query parameters. These are replaced with <code>[hidden]</code>. Data responses are never copied into the report: only the shape of one record, as described above.</p>
 <h2>Where reports go</h2>
 <ul>
 <li><p><strong>Into your project folder</strong>, if you link one. Reports are written to a <code>.darnly/</code> folder inside it, which Darnly also adds to <code>.gitignore</code> so it isn&#39;t committed.</p>

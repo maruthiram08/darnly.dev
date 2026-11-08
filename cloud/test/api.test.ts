@@ -212,4 +212,13 @@ describe('cloud inbox API', () => {
     const res = await SELF.fetch(`${BASE}/v1/bugs`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'multipart/form-data; boundary=x' }, body, duplex: 'half' } as RequestInit);
     expect(res.status).toBe(411);
   });
+
+  it('refuses a sign-in body over the size limit before reading it all, and never lets answers be cached', async () => {
+    const big = await SELF.fetch(`${BASE}/v1/auth/google`, { method: 'POST', body: JSON.stringify({ devEmail: 'big@example.com', pad: 'x'.repeat(40_000) }) });
+    expect(big.status).toBe(413);
+    expect(((await big.json()) as { error: string }).error).toBe('too_large');
+    const token = await signIn('cache@example.com');
+    const me = await SELF.fetch(`${BASE}/v1/me`, { headers: { authorization: `Bearer ${token}` } });
+    expect(me.headers.get('cache-control')).toBe('no-store');
+  });
 });
