@@ -40,7 +40,7 @@ footer .wrap { padding-block: 24px; }
 <main><div class="wrap">
 <h1>Darnly privacy policy</h1>
 <p>Last updated: 8 November 2026</p>
-<p>Darnly is a Chrome extension that turns a bug you see on a web page into a report your AI coding agent can read. This policy explains what it touches and where that goes.</p>
+<p>Darnly is a Chrome extension and a Mac app that turn a bug you see on screen into a report your AI coding agent can read. This policy explains what it touches and where that goes.</p>
 <h2>The short version</h2>
 <p>By default Darnly has no account and sends nothing to us. Every report stays on your computer until you choose to paste or share it.</p>
 <p>From version 0.2.0 there is one exception, and only if you turn it on: the <strong>cloud inbox</strong>, for projects whose code isn&#39;t on your computer. If you sign in to it, each bug you capture is sent to your private Darnly inbox so your coding agent can read it. The section &quot;The cloud inbox&quot; below explains exactly what that means.</p>
@@ -85,6 +85,9 @@ footer .wrap { padding-block: 24px; }
 <p><strong>Who can see it:</strong> only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them, mark them fixed with a one-line note, and save one short question it asked you about a bug (so the panel can tell you it is waiting; the question is cleared once the bug is fixed). It can&#39;t see anyone else&#39;s bugs.</p>
 <p><strong>How long it&#39;s kept:</strong> a bug you&#39;ve marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they&#39;re fixed or you delete them. &quot;Delete all my cloud bugs&quot; in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.</p>
 <p><strong>What we don&#39;t do with it:</strong> we don&#39;t read your bugs, sell them, use them for advertising, or train AI models on them. We look at stored data only if you ask us to help with a problem, or if the law requires it.</p>
+<h2 id="the-mac-app">The Mac app</h2>
+<p>The Darnly Mac app works the same way for bugs outside the browser: in Mac apps, the iOS Simulator and the Android Emulator. When you press its shortcut and click part of a window, it reads a screenshot of that window, the clicked element's details from macOS accessibility (its kind, title, label, value and accessibility id), the app's name and window title (and the page address, when the window is a browser), errors from the app's log (or the Simulator's or Emulator's log) in about the last 60 seconds, and the note you type. Secrets are hidden the same way. Reports are saved into the project folder you choose or, only if you choose "In the cloud" and sign in with Google, sent to your cloud inbox as described above. Your cloud sign-in is kept in the macOS Keychain.</p>
+<p>It needs two macOS permissions: Accessibility (to know what you clicked) and Screen Recording (for the screenshot). To tell you when a new version is out, it reads Darnly's public release list on GitHub; that request carries nothing about you or your bugs.</p>
 <h2>What Darnly never does</h2>
 <ul>
 <li>It never sends data anywhere unless you turned on the cloud inbox, and then only to your own inbox.</li>
