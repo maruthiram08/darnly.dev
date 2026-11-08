@@ -100,7 +100,7 @@
 // POST /api/request  { method, url, headers, body }
 //   Sends one API request for the API tester at /tools/api-tester/ and returns its status, time,
 //   size, headers and body. Public addresses only (checked on every redirect), its own limit of
-//   20 a minute, a 10 second timeout, a 1 MB response limit, no Cookie header, never cached.
+//   20 a minute (300 a minute for everyone together), a 10 second timeout, a 1 MB response limit, no Cookie header, never cached.
 //   See request.ts.
 // GET /api/ssl?domain=example.com
 //   Same rate limit. Reads the domain's certificates from the public Certificate Transparency logs
@@ -155,6 +155,7 @@ interface Env {
   LINK_LIMIT?: RateLimit; // the broken link checker reads up to 50 pages and checks 150 links
   DOMAIN_LIMIT?: RateLimit; // domain lookups, one request checks up to 12 names
   API_LIMIT?: RateLimit; // the API tester sends requests of any method, so it has its own limit
+  API_LIMIT_ALL?: RateLimit; // and a cap for all visitors together
   PSI_LIMIT?: RateLimit;
   PSI_KEY?: string; // optional Google API key for PageSpeed Insights (a Worker secret)
   // Browser Rendering for /api/shots, with its own per-visitor and site-wide limits.
@@ -200,6 +201,7 @@ export default {
         isOwnHost: (t) => isOwnHost(t, url),
         ownPage: (t) => ownPage(t, env),
         limit: env.API_LIMIT,
+        limitAll: env.API_LIMIT_ALL,
       });
     }
     if (url.pathname === '/api/ssl') return sslApi(req, url, env, ctx);

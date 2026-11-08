@@ -3,7 +3,7 @@
 // The visitor's browser posts { method, url, headers: [[name, value]], body } as JSON. We send it on
 // and hand back the status, timing, size, headers and (text) body. Guards:
 // - public http(s) addresses only, checked again on every redirect (up to 5);
-// - its own rate limit, a 10 second timeout, a 1 MB response limit and a 200 KB request body limit;
+// - its own rate limit (per visitor, plus one for everyone together), a 10 second timeout, a 1 MB response limit and a 200 KB request body limit;
 // - Cookie and proxy/forwarding headers are dropped, and the visitor's own cookies never reach us
 //   (the page sends credentials: 'omit');
 // - nothing is cached, logged or stored.
@@ -13,6 +13,8 @@ export type RequestDeps = {
   isOwnHost(target: URL): boolean;
   ownPage(target: URL): Promise<Response>;
   limit?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  /** One budget for all visitors together, so switching IPs can't turn the tester into a relay. */
+  limitAll?: { limit(o: { key: string }): Promise<{ success: boolean }> };
 };
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -85,6 +87,10 @@ export async function sendRequest(req: Request, deps: RequestDeps): Promise<Resp
   if (deps.limit) {
     const { success } = await deps.limit.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
     if (!success) return json({ error: 'You can send 20 requests a minute. Wait a moment and try again.' }, 429);
+  }
+  if (deps.limitAll) {
+    const { success } = await deps.limitAll.limit({ key: 'all' });
+    if (!success) return json({ error: 'The API tester is busy right now. Try again in a minute.' }, 429);
   }
 
   const started = Date.now();
