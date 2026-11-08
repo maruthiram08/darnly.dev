@@ -46,6 +46,40 @@ describe('redactText', () => {
   });
 });
 
+describe('emails', () => {
+  it('hides email addresses in errors, JSON and page text', () => {
+    for (const msg of [
+      'Error: no account for maruthi@example.com',
+      '{"email":"first.last+tag@mail.co.uk","plan":"pro"}',
+      'Signed in as A.User@Sub.Example.IO.',
+      '<a href="mailto:help@darnly.dev">Help</a>',
+    ]) {
+      const out = redactText(msg);
+      expect(out, msg).not.toMatch(/@[a-z]/i);
+      expect(out).toContain(HIDDEN);
+    }
+    expect(redactText('{"email":"first.last+tag@mail.co.uk","plan":"pro"}')).toBe('{"email":"[hidden]","plan":"pro"}');
+  });
+
+  it('leaves file names, packages and handles alone', () => {
+    for (const msg of [
+      'GET /img/icon@2x.png 404',
+      'Failed to load logo@3x.min.js',
+      'react-dom@18.3.1 warning',
+      'import from @scope/pkg',
+      'follow @darnlyhq on X',
+    ]) expect(redactText(msg)).toBe(msg);
+  });
+
+  it('hides emails in URLs, encoded or not', () => {
+    const out = redactUrl('https://app.com/invite?email=maruthi%40example.com&page=2');
+    expect(out).not.toContain('example.com');
+    expect(out).toContain('page=2');
+    expect(out).toContain(`email=${HIDDEN}`);
+    expect(redactUrl('https://app.com/users/maruthi@example.com/edit')).toBe(`https://app.com/users/${HIDDEN}/edit`);
+  });
+});
+
 describe('redactUrl', () => {
   it('hides secret query values but keeps the rest', () => {
     const out = redactUrl('http://localhost:3000/api/cart?token=abc12345&page=2&api_key=zzz999zzz');

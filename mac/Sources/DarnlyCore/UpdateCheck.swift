@@ -35,6 +35,11 @@ public enum UpdateCheck {
         return false
     }
 
+    /// The app opens these links in the browser, so only https addresses on github.com count.
+    public static func isGitHubURL(_ url: URL) -> Bool {
+        url.scheme == "https" && url.host?.lowercased() == "github.com"
+    }
+
     /// The newest published Mac release in GitHub's releases JSON, if it is newer than `current`.
     /// Drafts and pre-releases are skipped. The download is the release's Darnly.dmg (or its page if there is none).
     public static func newer(than current: String, releasesJSON data: Data) -> Release? {
@@ -44,10 +49,10 @@ public enum UpdateCheck {
         for item in list {
             if item["draft"] as? Bool == true || item["prerelease"] as? Bool == true { continue }
             guard let tag = item["tag_name"] as? String, let v = version(fromTag: tag),
-                  let page = (item["html_url"] as? String).flatMap(URL.init(string:)) else { continue }
+                  let page = (item["html_url"] as? String).flatMap(URL.init(string:)), isGitHubURL(page) else { continue }
             let assets = item["assets"] as? [[String: Any]] ?? []
             let dmg = assets.first { ($0["name"] as? String)?.lowercased().hasSuffix(".dmg") == true }
-            let download = (dmg?["browser_download_url"] as? String).flatMap(URL.init(string:)) ?? page
+            let download = (dmg?["browser_download_url"] as? String).flatMap(URL.init(string:)).flatMap { isGitHubURL($0) ? $0 : nil } ?? page
             if best == nil || isNewer(v, than: best!.v) {
                 best = (v, Release(version: v.map(String.init).joined(separator: "."), downloadURL: download, pageURL: page))
             }

@@ -15,6 +15,8 @@ public enum Redact {
         #"(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{12,}"#,
         #"\b[A-Fa-f0-9]{40,}\b"#, // long hex
         #"\b(?=[A-Za-z0-9+_-]*\d)(?=[A-Za-z0-9+_-]*[a-z])(?=[A-Za-z0-9+_-]*[A-Z])[A-Za-z0-9+_-]{40,}={0,2}"#, // long random token (no "/", so URL paths survive)
+        // Email addresses, but not file names like icon@2x.png (same rule as EMAIL in redact.ts).
+        #"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?!(?:png|jpe?g|gif|svg|webp|avif|ico|bmp|js|mjs|cjs|ts|tsx|jsx|css|map|json|html?|woff2?|ttf|otf)(?![A-Za-z0-9-]|\.[A-Za-z0-9]))[A-Za-z]{2,}(?![A-Za-z0-9-]|\.[A-Za-z0-9])"#,
     ].map { try! NSRegularExpression(pattern: $0) }
 
     private static let secretName = try! NSRegularExpression(

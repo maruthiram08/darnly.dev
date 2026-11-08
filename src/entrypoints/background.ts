@@ -170,7 +170,17 @@ export default defineBackground(() => {
   }
 
   /** Production sites: the recorder runs only where the user switched it on (Chrome asks to confirm). */
-  async function recordSite(origin: string) {
+  async function recordSite(raw: unknown) {
+    // One plain http(s) origin, and only one the user has already allowed in Chrome's prompt.
+    const origin = typeof raw === 'string' ? raw : '';
+    let u: URL;
+    try {
+      u = new URL(origin);
+    } catch {
+      throw new Error('Not a site address');
+    }
+    if (!/^https?:$/.test(u.protocol) || u.origin !== origin || u.hostname.includes('*')) throw new Error('Not a site address');
+    if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] }))) throw new Error('Darnly is not allowed on this site yet');
     const id = `recorder:${origin}`;
     const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
     if (!existing.length) {
@@ -181,8 +191,9 @@ export default defineBackground(() => {
     return { ok: true };
   }
 
-  async function recordingStatus(url: string) {
+  async function recordingStatus(url: unknown) {
     try {
+      if (typeof url !== 'string') return { recordable: false };
       const u = new URL(url);
       if (!/^https?:$/.test(u.protocol)) return { recordable: false };
       if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return { recordable: true, on: true, origin: u.origin, builtIn: true };
@@ -238,12 +249,15 @@ export default defineBackground(() => {
       /* offline or signed out: keep the last count */
     }
   }
-  // Only Darnly's own pages (panel, keepalive) report counts, never a content script in a web page.
+  // Only Darnly's own pages (panel, keepalive) report counts or drive the panel's buttons, never a content script in a web page.
   const fromExtensionPage = (sender: chrome.runtime.MessageSender) => !!sender.url?.startsWith(chrome.runtime.getURL(''));
+  const PANEL_ONLY = new Set(['keepalive', 'start-picker-from-panel', 'steps-start', 'steps-stop', 'steps-status', 'steps-panel-pause', 'recording-status', 'record-site']);
   chrome.runtime.onStartup.addListener(() => setOpenCount(null));
   chrome.runtime.onInstalled.addListener(() => setOpenCount(null));
 
   chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+    if (!msg || typeof msg.type !== 'string') return;
+    if (PANEL_ONLY.has(msg.type) && !fromExtensionPage(sender)) return;
     if (msg.type === 'open-count' && typeof msg.inbox === 'string' && fromExtensionPage(sender)) {
       setOpenCount(msg.inbox.slice(0, 300), Number(msg.n)).then(() => reply(true));
       return true;
