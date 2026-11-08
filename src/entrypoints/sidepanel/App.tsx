@@ -425,7 +425,7 @@ export function App() {
     if (r?.ok) setRecordingSteps(r.count ?? 0);
     else if (/permission|Cannot access/i.test(r?.error ?? ''))
       // Chrome hasn't told Darnly which site this tab is on yet: one click on the toolbar icon on that page does.
-      setMessage('Chrome needs you to allow Darnly on this page first: click the Darnly icon in the toolbar while you are on it, then press Record again.');
+      setMessage(`Chrome hasn't let Darnly into this tab yet. On the page, press ${shortcut ?? 'the Darnly shortcut'} and then Esc, then press Record again. Darnly then asks to be allowed on this site, once.`);
     else setMessage(`Couldn't record on this page${r?.error ? ` (${r.error})` : ''}. Chrome pages and the Web Store can't be recorded.`);
   };
   const stopRecording = async () => {
