@@ -415,6 +415,15 @@ export function App() {
     setRecordingSteps(null);
   };
 
+  // Ends the recording with the whole screen as the picture: the steps and a note are often all the agent needs.
+  const finishRecording = async () => {
+    setMessage('');
+    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' }).catch(() => null);
+    if (!r?.ok) return setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page, then W, to finish.`);
+    setStage('picking');
+    await pickerCommand('whole');
+  };
+
   const startFromPanel = async () => {
     const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
     if (r?.ok) setStage('picking');
@@ -668,10 +677,12 @@ export function App() {
               </button>
             </div>
           )}
-          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
-            <Icon name="target" className="h-4 w-4" />
-            Capture a bug
-          </button>
+          {recordingSteps == null && (
+            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+              <Icon name="target" className="h-4 w-4" />
+              Capture a bug
+            </button>
+          )}
           {recordingSteps == null ? (
             <button className={secondaryCls + ' flex w-full items-center justify-center gap-2 text-sm'} onClick={startRecording} title="For bugs that take a few clicks to reach: Darnly lists each step, with a small picture, in the report">
               <span className="h-2.5 w-2.5 rounded-full bg-pink" aria-hidden="true" />
@@ -686,10 +697,18 @@ export function App() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-ink">Recording your steps · {plural(recordingSteps, 'step', 'steps')}</p>
-                  <p className="text-xs text-ink-soft">Do what leads to the bug. When you see it, capture it{shortcut ? ` (${shortcut})` : ''} and the steps go with it. What you type is never recorded.</p>
+                  <p className="text-xs text-ink-soft">Do what leads to the bug on the page. When you reach it, press Done. What you type is never recorded.</p>
                 </div>
               </div>
-              <button className={secondaryCls + ' w-full py-1.5 text-xs'} onClick={stopRecording}>Stop and throw away</button>
+              <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={finishRecording}>
+                <Icon name="check" className="h-4 w-4" />
+                Done, describe the bug
+              </button>
+              <p className="text-center text-xs text-ink-soft">
+                <button className={linkCls} onClick={startFromPanel} title="Point at the broken part, then describe it">Point at the broken part first</button>
+                {' · '}
+                <button className={linkCls} onClick={stopRecording}>Cancel recording</button>
+              </p>
             </div>
           )}
           {shown.length === 0 && (

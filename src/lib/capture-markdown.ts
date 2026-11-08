@@ -247,10 +247,12 @@ function verifyLines(c: CaptureInput): string[] {
     /* not a URL */
   }
   const el = c.element;
+  // With recorded steps, start where the user started, then follow their steps to the bug.
+  const firstPage = c.stepsRecorded ? c.steps?.find((s) => s.kind === 'page')?.url?.replace(/[`\s<>]/g, '') : undefined;
   const steps = [
-    `1. Open \`${url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    `1. Open \`${firstPage ?? url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
     ...(c.stepsRecorded && c.steps?.length
-      ? ['   Then follow the steps under "Steps to get here", starting from their first page (type something sensible where the user typed).']
+      ? ['   Then follow the steps under "Steps to get here" (type something sensible where the user typed).']
       : []),
     el
       ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`

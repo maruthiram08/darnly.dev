@@ -69,15 +69,8 @@ try {
   await page.locator('h1').click();
   await page.waitForTimeout(900);
 
-  await sw.evaluate(async (u) => {
-    const [tab] = await chrome.tabs.query({ url: u + '*' });
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/picker.js'] });
-  }, `${base}/checkout`);
-  await page.waitForTimeout(300);
-  const box = await page.locator('button.pay').boundingBox();
-  await page.mouse.move(box.x + 10, box.y + 5);
-  await page.waitForTimeout(100);
-  await page.mouse.click(box.x + 10, box.y + 5);
+  // "Done, describe the bug": ends the recording with the whole screen, nothing to point at.
+  await panel.getByRole('button', { name: 'Done, describe the bug' }).click();
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   if (!(await panel.getByText(/recorded steps/).count())) fail('no "recorded steps" chip');
@@ -109,6 +102,8 @@ try {
   if (md.includes('SECRETCODE42')) fail('typed text leaked into the report');
   if (!sheet || sheet.size < 2000) fail('steps picture missing');
   if (!md.includes('.steps.jpg')) fail('report does not point to the steps picture');
+  if (!md.includes(`1. Open \`${base}/cart\``)) fail('the check does not start from the first recorded page');
+  if (!md.includes('Whole visible page captured')) fail('Done did not capture the whole page');
   const after = await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'steps-status' }));
   if (after?.count != null) fail('recording did not end with the capture');
   if (errors.length) fail(`panel errors: ${errors.join('; ')}`);
