@@ -2,7 +2,8 @@ import { ROOT_FOLDER } from '@/config/product';
 
 /**
  * The linked project folder, stored in IndexedDB (folder handles can't go in chrome.storage).
- * v1 links one folder; per-site linking comes in Sprint 3.
+ * Each site remembers its own folder (`site:<origin>`), plus a list of recent folders (`recent`).
+ * `project` is the last folder used, and was the only one before per-site projects.
  */
 const DB = 'darnly-folders';
 const STORE = 'handles';
@@ -13,25 +14,6 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function saveFolder(handle: FileSystemDirectoryHandle): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(handle, KEY);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-export async function loadFolder(): Promise<FileSystemDirectoryHandle | null> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(STORE).objectStore(STORE).get(KEY);
-    req.onsuccess = () => resolve(req.result ?? null);
     req.onerror = () => reject(req.error);
   });
 }
@@ -54,6 +36,14 @@ async function idbSet(key: string, value: unknown | null): Promise<void> {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+}
+
+export async function saveFolder(handle: FileSystemDirectoryHandle): Promise<void> {
+  await idbSet(KEY, handle);
+}
+
+export async function loadFolder(): Promise<FileSystemDirectoryHandle | null> {
+  return idbGet<FileSystemDirectoryHandle>(KEY);
 }
 
 /** The site part of a page address (https://app.example.com), or null for pages without one. */
@@ -189,7 +179,6 @@ async function writeFile(dir: FileSystemDirectoryHandle, name: string, data: Blo
   await w.close();
 }
 
-/** Writes files into <project>/.darnly/<sub>/, creating folders as needed. */
 /** Deletes a captured bug: every file starting with its id, in .darnly/inbox or .darnly/done. */
 export async function deleteCapture(root: FileSystemDirectoryHandle, id: string, status: 'waiting' | 'fixed'): Promise<void> {
   const dir = await dirAt(root, [ROOT_FOLDER, status === 'fixed' ? 'done' : 'inbox'], false);
@@ -200,6 +189,7 @@ export async function deleteCapture(root: FileSystemDirectoryHandle, id: string,
   for (const n of names) await dir.removeEntry(n);
 }
 
+/** Writes files into <project>/.darnly/<sub>/, creating folders as needed. */
 export async function writeToProject(
   handle: FileSystemDirectoryHandle,
   sub: string,

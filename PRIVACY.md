@@ -2,7 +2,7 @@
 
 Last updated: 8 November 2026
 
-Darnly is a Chrome extension that turns a bug you see on a web page into a report your AI coding agent can read. This policy explains what it touches and where that goes.
+Darnly is a Chrome extension and a Mac app that turn a bug you see on screen into a report your AI coding agent can read. This policy explains what it touches and where that goes.
 
 ## The short version
 
@@ -65,6 +65,12 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 **How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.
 
 **What we don't do with it:** we don't read your bugs, sell them, use them for advertising, or train AI models on them. We look at stored data only if you ask us to help with a problem, or if the law requires it.
+
+## The Mac app
+
+The Darnly Mac app works the same way for bugs outside the browser: in Mac apps, the iOS Simulator and the Android Emulator. When you press its shortcut and click part of a window, it reads a screenshot of that window, the clicked element's details from macOS accessibility (its kind, title, label, value and accessibility id), the app's name and window title (and the page address, when the window is a browser), errors from the app's log (or the Simulator's or Emulator's log) in about the last 60 seconds, and the note you type. Secrets are hidden the same way. Reports are saved into the project folder you choose or, only if you choose "In the cloud" and sign in with Google, sent to your cloud inbox as described above. Your cloud sign-in is kept in the macOS Keychain.
+
+It needs two macOS permissions: Accessibility (to know what you clicked) and Screen Recording (for the screenshot). To tell you when a new version is out, it reads Darnly's public release list on GitHub; that request carries nothing about you or your bugs.
 
 ## What Darnly never does
 
