@@ -134,6 +134,7 @@ const mcpHandler = {
     if (!userId) return new Response('signed out', { status: 401 });
     const res = await mcpFetch(req, env, userId, agentFrom(req, ctx.props));
     res.headers.set('x-content-type-options', 'nosniff');
+    res.headers.set('cache-control', 'no-store');
     return res;
   },
 };
