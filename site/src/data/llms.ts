@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GUIDES, STORE_URL, TOOLS, toolsByCategory, type Item } from './site';
+import { HOME_FAQ } from './faq';
 
 const SITE = 'https://darnly.dev';
 
@@ -30,6 +31,8 @@ const LINKS = `## Darnly
 - [What's new in Darnly](${SITE}/changelog/): release notes, newest first. Latest: Chrome extension 0.3.1 (/darnly, agent questions in the panel, 'Take a look' when a bug is fixed) and Darnly for Mac 0.3.2 (a menu bar panel, Update available)
 - [All free tools](${SITE}/tools/): every tool, grouped by category`;
 
+const FAQ = `## Common questions\n\n${HOME_FAQ.map((f) => `- ${f.q} ${f.a}`).join('\n')}`;
+
 const OPTIONAL = `## Optional
 
 - [Darnly on X](https://x.com/darnlyhq): product updates
@@ -56,8 +59,8 @@ function sections(full: boolean): string[] {
   return out;
 }
 
-export const llmsTxt = () => [INTRO, LINKS, ...sections(false), OPTIONAL].join('\n\n') + '\n';
-export const llmsFullTxt = () => [INTRO, LINKS, ...sections(true), OPTIONAL].join('\n\n') + '\n';
+export const llmsTxt = () => [INTRO, LINKS, FAQ, ...sections(false), OPTIONAL].join('\n\n') + '\n';
+export const llmsFullTxt = () => [INTRO, LINKS, FAQ, ...sections(true), OPTIONAL].join('\n\n') + '\n';
 
 export const textResponse = (body: string) =>
   new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });

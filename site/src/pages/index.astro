@@ -11,6 +11,9 @@ const popular = ['favicon-generator', 'open-graph-checker', 'font-finder', 'imag
   .map((slug) => TOOLS.find((t) => t.slug === slug))
   .filter((t) => t !== undefined);
 
+import { HOME_FAQ } from '../data/faq';
+const plain = (s: string) => s.replace(/<[^>]+>/g, '');
+
 // Tells search engines and AI assistants what Darnly is, who makes it, and where to get it.
 const jsonLd = JSON.stringify([
   {
@@ -43,6 +46,11 @@ const jsonLd = JSON.stringify([
     name: 'Darnly',
     url: 'https://darnly.dev/',
     publisher: { '@id': 'https://darnly.dev/#org' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: HOME_FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: plain(f.a) } })),
   },
 ]);
 import FixLoopVideo from '../components/FixLoopVideo.astro';
@@ -328,6 +336,22 @@ No errors in the app's log in the last 60 seconds.</pre>
       </div>
     </section>
   )}
+
+  <section class="band" id="faq" style="padding-top: 0" aria-labelledby="faq-h">
+    <div class="wrap">
+      <span class="eyebrow">Questions</span>
+      <h2 id="faq-h">Common questions.</h2>
+      <div class="home-faq">
+        {HOME_FAQ.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p set:html={f.a} />
+          </details>
+        ))}
+      </div>
+      <a class="all-tools" href="/what-is-darnly/">More answers: what is Darnly? →</a>
+    </div>
+  </section>
 
   <section class="final" id="install">
     <div class="wrap">
