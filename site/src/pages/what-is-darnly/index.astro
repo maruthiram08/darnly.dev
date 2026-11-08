@@ -7,8 +7,8 @@ const slug = 'what-is-darnly';
 const faq = [
   { q: 'What is Darnly?', a: 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix.' },
   { q: 'Who is Darnly for?', a: 'People who build websites and apps with AI coding agents, especially vibecoders who aren\'t developers and find it hard to describe a bug in code terms.' },
-  { q: 'How much does Darnly cost?', a: 'The Chrome extension is free. The Mac app is a download for macOS from darnly.dev.' },
-  { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp. <a href="/setup/">Setup steps for each agent</a>.' },
+  { q: 'How much does Darnly cost?', a: 'Nothing. The Chrome extension, the Mac app and the optional cloud inbox are free.' },
+  { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp, and in the Claude app Darnly is in the connector directory. <a href="/setup/">Setup steps for each agent</a>.' },
   { q: 'Does Darnly send my data anywhere?', a: 'Not by default. Reports stay on your computer as files in your project or text you choose to paste. Only the optional cloud inbox sends bugs to your private Darnly inbox.' },
   { q: 'How do I tell my agent to fix my Darnly bugs?', a: 'Type /darnly in Claude Code or Cursor, or say "fix my Darnly bugs" in Codex. One command fixes the bugs in your project folder and your cloud inbox, and the Darnly panel then says what got fixed.' },
   { q: 'Can I use Darnly on several projects?', a: 'Yes. Darnly remembers a project folder or the cloud inbox for each site, asks the first time it sees a new site, and lets you switch with change in the panel. In the cloud, each bug carries its project name, so your agent only fetches its own project\'s bugs.' },
@@ -17,6 +17,7 @@ const faq = [
 ---
 <GuidePage
   slug={slug}
+  updated="2026-11-08"
   path="/what-is-darnly/"
   crumb={null}
   title="What is Darnly? Bug reports for AI coding agents"
@@ -31,13 +32,13 @@ const faq = [
   <p>You press one key (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on a Mac; Windows is coming soon), click the broken part of the page, type what you expected, and press Enter.</p>
 
   <h2>What is in a Darnly report?</h2>
-  <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the page address, your note, and console errors and failed requests from the last 60 seconds.</p>
+  <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the file that drew it on a local project, the page address, your note, and console errors and failed requests from the last 60 seconds. It also lists the steps that led to the bug (what you clicked and where you typed, never what you typed), the shape of the data behind the element (field names and lengths, never the values), any slow requests, and steps for your agent to check its own fix in a browser.</p>
 
   <h2>Where do the reports go?</h2>
   <p>Into <code>.darnly/inbox/</code> in your project as a markdown file and a PNG, with an AGENTS.md note and a skill that tell your agent to look there, so you just type <code>/darnly</code> in Claude Code or Cursor (or say "fix my Darnly bugs" in Codex).</p>
 
   <h2>How do I know when a bug is fixed?</h2>
-  <p>The Darnly panel tells you: "1 bug fixed. Take a look.", with the agent's one line on what it changed, even if the panel was closed while the agent worked.</p>
+  <p>The Darnly panel tells you: "1 bug fixed. Take a look.", with the agent's one line on what it changed, even if the panel was closed while the agent worked. The Darnly icon in the toolbar also shows how many bugs are still waiting.</p>
 
   <h2>What if my agent has a question about a bug?</h2>
   <p>It asks you in its own chat, and the Darnly panel shows "Your agent is waiting for your input. Return to your agent." on that bug, so a bug never just looks stuck.</p>
@@ -58,16 +59,16 @@ const faq = [
   <p>Darnly is for people who build with AI coding agents, especially non-technical vibecoders who know what looks wrong but not which file is behind it.</p>
 
   <h2>How much does Darnly cost?</h2>
-  <p>The Darnly Chrome extension is free, with no account needed, and the Mac app is a download for macOS 14 or later from <a href="/#mac">darnly.dev</a> (or <code>brew install --cask maruthiram08/darnly/darnly</code>).</p>
+  <p>Darnly is free. The Chrome extension needs no account, and the Mac app is a free download for macOS 14 or later from <a href="/#mac">darnly.dev</a> (or <code>brew install --cask maruthiram08/darnly/darnly</code>).</p>
 
   <h2>Which AI coding agents does it work with?</h2>
-  <p>Darnly works with Claude Code, Codex and Cursor, and any agent that reads AGENTS.md or can connect to an MCP server can use its reports.</p>
+  <p>Darnly works with Claude Code, Codex and Cursor, and in the Claude app (claude.ai and Claude Desktop) through <a href="/setup/#claude-app">Claude's connector directory</a>. Any agent that reads AGENTS.md or can connect to an MCP server can use its reports.</p>
 
   <h2>Which browsers does it work in?</h2>
   <p>Darnly is a Chrome extension and works in Chrome, Edge, Brave and Arc.</p>
 
   <h2>Is Darnly private?</h2>
-  <p>Yes: by default nothing leaves your computer, passwords, card numbers, tokens and API keys are hidden before saving, <code>.darnly/</code> is kept out of git, and errors are only recorded on localhost and on sites you switch on one at a time.</p>
+  <p>Yes: by default nothing leaves your computer, passwords, card numbers, tokens and API keys are hidden before saving, <code>.darnly/</code> is kept out of git, errors and steps are only recorded on localhost and on sites you switch on one at a time, and Darnly never keeps what you type or the values in your data (<a href="/privacy.html">privacy policy</a>).</p>
 
   <h2>What does the Mac app do?</h2>
   <p>The Darnly Mac app does the same for bugs outside the browser, in Mac apps, the iOS Simulator and the Android Emulator, with <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, saving into the same inbox: your project folder or the cloud. When you pick a folder it offers to set up your agent, so <code>/darnly</code> fixes Mac and browser bugs together.</p>
