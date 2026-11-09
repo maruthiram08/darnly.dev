@@ -274,22 +274,31 @@ async function agent(bug, model, condition, note, root, transcript) {
       summary = res.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').slice(0, 300);
       break;
     }
-    const results = [];
+    // Tools run first. A finish sent in the same turn as a failed tool call doesn't count: the model
+    // often sends edit + finish together, and ending there would grade an edit it never saw fail.
     let finished = false;
-    for (const u of uses) {
-      if (u.name === 'finish') {
-        finished = true;
-        summary = String(u.input?.summary ?? '').slice(0, 300);
-        results.push({ type: 'tool_result', tool_use_id: u.id, content: 'OK' });
-        continue;
-      }
+    let failed = false;
+    const out = new Map();
+    for (const u of uses.filter((u) => u.name !== 'finish')) {
       try {
-        results.push({ type: 'tool_result', tool_use_id: u.id, content: runTool(root, u.name, u.input ?? {}, stats).slice(0, 40000) });
+        out.set(u.id, { type: 'tool_result', tool_use_id: u.id, content: runTool(root, u.name, u.input ?? {}, stats).slice(0, 40000) });
       } catch (e) {
         stats.toolErrors++;
-        results.push({ type: 'tool_result', tool_use_id: u.id, content: `Error: ${e.message}`, is_error: true });
+        failed = true;
+        out.set(u.id, { type: 'tool_result', tool_use_id: u.id, content: `Error: ${e.message}`, is_error: true });
       }
     }
+    for (const u of uses.filter((u) => u.name === 'finish')) {
+      if (failed) {
+        stats.finishRejected = (stats.finishRejected ?? 0) + 1;
+        out.set(u.id, { type: 'tool_result', tool_use_id: u.id, content: 'Not finished: another tool call in this turn failed. Look at its error, then finish again.', is_error: true });
+      } else {
+        finished = true;
+        summary = String(u.input?.summary ?? '').slice(0, 300);
+        out.set(u.id, { type: 'tool_result', tool_use_id: u.id, content: 'OK' });
+      }
+    }
+    const results = uses.map((u) => out.get(u.id));
     messages.push({ role: 'user', content: results });
     transcript.push({ role: 'tools', content: results.map((r) => ({ ...r, content: String(r.content).slice(0, 2000) })) });
     if (finished) {
