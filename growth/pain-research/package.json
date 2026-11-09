@@ -1,0 +1,12 @@
+{
+  "name": "darnly-pain-research",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "collect": "node collect.mjs",
+    "tag": "node tag.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0"
+  }
+}
