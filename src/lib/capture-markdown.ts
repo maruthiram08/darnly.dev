@@ -114,6 +114,8 @@ export function captureMarkdown(c: CaptureInput): string {
     `**Expected:** ${c.note.trim() || '(no note given)'}`,
     '',
     ...changeLines(c),
+    windowLine(c.viewport),
+    '',
     `**Screenshot:** ${png}${c.element ? ' (the red box marks the element)' : ''}`,
     '',
   ];
@@ -211,6 +213,21 @@ export function captureMarkdown(c: CaptureInput): string {
   return lines.join('\n');
 }
 
+/** Phone, tablet or desktop, by the page's width in CSS pixels (the common 640 / 1024 breakpoints). */
+export function widthKind(width: number): 'phone' | 'tablet' | 'desktop' {
+  return width < 640 ? 'phone' : width < 1024 ? 'tablet' : 'desktop';
+}
+
+/**
+ * The window the user saw the bug in. Layout bugs often show only at some widths, so the agent should look
+ * (and check its fix) at this width, not its own default. Numbers only: no page text.
+ */
+function windowLine(v: CaptureInput['viewport']): string {
+  const w = Math.round(v.width);
+  const h = Math.round(v.height);
+  return `**Window:** ${w}x${h} CSS pixels (${widthKind(w)} width). The bug was seen at this width: look at the page and check your fix at ${w}px wide, because layout bugs often show only at some widths.`;
+}
+
 /** The user's "change only this one / all like it" and "what to change" choices. Fixed wording only: no page text. */
 function changeLines(c: CaptureInput): string[] {
   const out: string[] = [];
@@ -260,7 +277,7 @@ function verifyLines(c: CaptureInput): string[] {
   // With recorded steps, start where the user started, then follow their steps to the bug.
   const firstPage = c.stepsRecorded ? c.steps?.find((s) => s.kind === 'page')?.url?.replace(/[`\s<>]/g, '') : undefined;
   const steps = [
-    `1. Open \`${firstPage ?? url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} in a window about ${c.viewport.width}x${c.viewport.height}, the size the user had.`,
+    `1. Open \`${firstPage ?? url}\`${local ? ' (start the dev server first if it isn\'t running)' : ''} with the page (viewport) set to ${Math.round(c.viewport.width)}x${Math.round(c.viewport.height)}, the size the user had. Set the width exactly: a few pixels can cross a breakpoint.`,
     ...(c.stepsRecorded && c.steps?.length
       ? ['   Then follow the steps under "Steps to get here" (type something sensible where the user typed).']
       : []),

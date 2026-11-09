@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { captureMarkdown, headingFrom } from './capture-markdown';
+import { captureMarkdown, headingFrom, widthKind } from './capture-markdown';
 
 const base = {
   id: '2026-11-01-0140-pay-now-should-open',
@@ -214,7 +214,7 @@ describe('captureMarkdown: check the fix and change only this', () => {
     const check = md.indexOf("## How to check it's fixed");
     expect(check).toBeGreaterThan(md.indexOf('<!-- darnly:page-data:end -->'));
     expect(md).toContain('1. Open `http://localhost:3000/checkout` (start the dev server first');
-    expect(md).toContain('about 1440x900');
+    expect(md).toContain('set to 1440x900');
     expect(md).toContain('selector under "Element"');
     expect(md).toContain('**Fixed:** line with "(checked in the browser)"');
     expect(captureMarkdown({ ...base, element, forCloud: true })).toContain('`mark_fixed` note with "(checked in the browser)"');
@@ -283,5 +283,24 @@ describe('steps in the report', () => {
     expect(md.indexOf('/api/deep-dive 200 took 6400 ms')).toBeLessThan(md.indexOf('/api/feed 200 took 2100 ms'));
     expect(md).not.toContain('## Failed requests');
     expect(md).toContain('No failed requests since the page loaded');
+  });
+});
+
+describe('window width', () => {
+  it('says the width plainly in the report body, outside the page data, and asks for the fix to be checked at it', () => {
+    const md = captureMarkdown({ ...base, viewport: { width: 390, height: 844 } });
+    expect(md).toContain('**Window:** 390x844 CSS pixels (phone width).');
+    expect(md).toContain('check your fix at 390px wide');
+    expect(md.indexOf('**Window:**')).toBeLessThan(md.indexOf('<!-- darnly:page-data:start -->'));
+    expect(md).toContain('with the page (viewport) set to 390x844');
+    expect(md).toContain('viewport: 390x844');
+  });
+
+  it('names phone, tablet and desktop widths at the 640 / 1024 breakpoints', () => {
+    expect(widthKind(375)).toBe('phone');
+    expect(widthKind(639)).toBe('phone');
+    expect(widthKind(640)).toBe('tablet');
+    expect(widthKind(1023)).toBe('tablet');
+    expect(widthKind(1024)).toBe('desktop');
   });
 });
