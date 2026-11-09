@@ -118,9 +118,12 @@ function statusPills(runs: RunRow[], today: number, env: Env): string {
       : r.ok
         ? `<span class="pill ok">${label}: <b>working</b>, ${r.found} new, ${ago(r.at)}</span>`
         : `<span class="pill bad" title="${esc(r.error ?? '')}">${label}: <b>failing</b> (${esc(r.error ?? 'error')}), ${ago(r.at)}</span>`;
-  const claude = env.ANTHROPIC_API_KEY
-    ? `<span class="pill">Claude: ${today}/${env.MAX_JUDGE_PER_DAY} posts checked today</span>`
-    : `<span class="pill bad">Claude: <b>no API key yet</b></span>`;
+  const lastClaude = latest('claude');
+  const claude = !env.ANTHROPIC_API_KEY
+    ? `<span class="pill bad">Claude: <b>no API key yet</b></span>`
+    : lastClaude && !lastClaude.ok
+      ? `<span class="pill bad">Claude: <b>failing</b> (${esc(lastClaude.error ?? 'error')}), ${ago(lastClaude.at)}</span>`
+      : `<span class="pill">Claude: ${today}/${env.MAX_JUDGE_PER_DAY} posts checked today</span>`;
   return `<div class="status">${pill('Reddit', latest('reddit'))}${pill('Hacker News', latest('hn'))}${claude}
     <form class="inline" method="post" action="/run"><button>Search now</button></form></div>`;
 }

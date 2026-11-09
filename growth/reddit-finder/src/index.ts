@@ -18,7 +18,7 @@ function cookieKey(req: Request): string {
 
 const redirect = (to: string, extra: Record<string, string> = {}) => new Response(null, { status: 303, headers: { location: to, ...extra } });
 
-async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function route(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   if (!env.INBOX_KEY) return new Response('Set the inbox key first: npx wrangler secret put INBOX_KEY', { status: 503 });
 
@@ -39,12 +39,14 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   if (url.pathname === '/' && req.method === 'GET') {
     const t = url.searchParams.get('tab');
     const tab: Tab = t && t in TABS ? (t as Tab) : 'reply';
-    return inboxPage(env, tab, url.searchParams.get('ran') ? 'Searching now. Refresh in a minute to see new posts.' : undefined);
+    return inboxPage(env, tab, url.searchParams.get('note') ?? undefined);
   }
 
   if (url.pathname === '/run' && req.method === 'POST') {
-    ctx.waitUntil(runOnce(env));
-    return redirect('/?ran=1');
+    // Run it while the browser waits (well under a minute), so nothing gets cut off.
+    const r = await runOnce(env);
+    const note = `Found ${r.found} new posts. ${r.passed} mention an AI coding tool and something visual. Claude checked ${r.judged}.${r.claudeError ? ` Claude failed: ${r.claudeError}` : ''}`;
+    return redirect(`/?note=${encodeURIComponent(note)}`);
   }
 
   const action = url.pathname.match(/^\/post\/([^/]+)\/(replied|dismiss|undo)$/);
@@ -62,6 +64,6 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
 export default {
   fetch: route,
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(runOnce(env));
+    ctx.waitUntil(runOnce(env).then(() => undefined));
   },
 } satisfies ExportedHandler<Env>;
