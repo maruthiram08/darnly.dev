@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
-import { isSensitiveField, selectorFor, trimmedHtml, visibleText } from './element-info';
+import { containerOf, isSensitiveField, selectorFor, trimmedHtml, visibleText } from './element-info';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -121,5 +121,23 @@ describe('similarElements', () => {
     expect(similarElements(document.querySelector('button')!)).toEqual({ selector: 'button.btn', count: 2 });
     expect(similarElements(document.querySelector('.card')!)).toBeUndefined(); // the only one
     expect(similarElements(document.querySelector('li')!)).toBeUndefined(); // no classes
+  });
+});
+
+describe('containerOf', () => {
+  it('names the card around a shared button by its heading', () => {
+    document.body.innerHTML = `<main><div class="grid"><article class="plan-card"><h3>Pro plan</h3><p>Lots</p><div class="actions"><button class="btn">Buy</button></div></article></div></main>`;
+    const sizes: Record<string, [number, number]> = { BUTTON: [80, 30], DIV: [300, 40], ARTICLE: [300, 400], H3: [300, 30], P: [300, 30], MAIN: [1200, 900] };
+    for (const e of Array.from(document.querySelectorAll('*'))) {
+      const [w, h] = sizes[e.tagName] ?? [1200, 900];
+      (e as HTMLElement).getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, right: w, bottom: h, width: w, height: h, toJSON() {} }) as DOMRect;
+    }
+    const c = containerOf(document.querySelector('button')!);
+    expect(c).toEqual({ selector: 'article.plan-card', tag: 'article', label: 'Pro plan' });
+  });
+
+  it('stops at main and finds nothing for a plain page', () => {
+    document.body.innerHTML = `<main><div><span>Hi</span></div></main>`;
+    expect(containerOf(document.querySelector('span')!)).toBeUndefined();
   });
 });
