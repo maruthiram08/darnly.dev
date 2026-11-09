@@ -38,45 +38,73 @@ export async function judgedToday(env: Env): Promise<number> {
   return row?.n ?? 0;
 }
 
-/** Asks Claude about waiting posts, newest first, within the per-run and per-day caps. */
-async function judgeWaiting(env: Env): Promise<number> {
-  if (!env.ANTHROPIC_API_KEY) return 0;
+/** Turns an API error into one short line for the inbox page. */
+function short(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.replace(/\s+/g, ' ').slice(0, 160);
+}
+
+export interface RunSummary {
+  found: number;
+  passed: number;
+  judged: number;
+  claudeError?: string;
+}
+
+/**
+ * Asks Claude about waiting posts, newest first, within the per-run and per-day caps.
+ * The calls run side by side so a "Search now" click finishes quickly. A failure is
+ * saved as a "claude" run so the inbox page shows why.
+ */
+async function judgeWaiting(env: Env): Promise<{ judged: number; error?: string }> {
+  if (!env.ANTHROPIC_API_KEY) return { judged: 0 };
   const budget = Math.min(Number(env.MAX_JUDGE_PER_RUN), Number(env.MAX_JUDGE_PER_DAY) - (await judgedToday(env)));
-  if (budget <= 0) return 0;
+  if (budget <= 0) return { judged: 0 };
   const { results } = await env.DB.prepare(`SELECT id, title, body, community, source FROM posts WHERE status = 'new' ORDER BY posted_at DESC LIMIT ?`)
     .bind(budget)
     .all<{ id: string; title: string; body: string; community: string; source: string }>();
-  let judged = 0;
-  for (const p of results) {
-    try {
+  if (results.length === 0) return { judged: 0 };
+  const outcomes = await Promise.allSettled(
+    results.map(async (p) => {
       const v = await judge(env, p);
       await env.DB.prepare(`UPDATE posts SET status = 'judged', fit = ?, why = ?, mention = ?, draft = ?, judged_at = ? WHERE id = ?`)
         .bind(v?.fit ?? 0, v?.why ?? 'Claude declined to answer for this post.', v?.mention ? 1 : 0, v?.draft ?? '', now(), p.id)
         .run();
-      judged++;
-    } catch (err) {
-      console.error('judge failed', p.id, err);
-      break; // API down or out of credit: try again next hour
-    }
-  }
-  return judged;
+    }),
+  );
+  const judged = outcomes.filter((o) => o.status === 'fulfilled').length;
+  const failed = outcomes.find((o): o is PromiseRejectedResult => o.status === 'rejected');
+  if (failed) console.error('judge failed', failed.reason);
+  await logRun(env, 'claude', !failed || judged > 0, 0, judged, failed ? short(failed.reason) : undefined);
+  return { judged, error: failed ? short(failed.reason) : undefined };
 }
 
-export async function runOnce(env: Env): Promise<void> {
+export async function runOnce(env: Env): Promise<RunSummary> {
   const sources: [string, () => Promise<FoundPost[]>][] = [
     ['reddit', () => searchReddit(env, REDDIT_QUERIES)],
     ['hn', () => searchHn(HN_QUERIES)],
   ];
-  for (const [name, search] of sources) {
-    try {
-      await logRun(env, name, true, await save(env, await search()), 0);
-    } catch (err) {
-      await logRun(env, name, false, 0, 0, err instanceof Error ? err.message : String(err));
-    }
-  }
-  const judged = await judgeWaiting(env);
-  if (judged > 0) await logRun(env, 'claude', true, 0, judged);
+  const before = await countNew(env);
+  let found = 0;
+  await Promise.all(
+    sources.map(async ([name, search]) => {
+      try {
+        const n = await save(env, await search());
+        found += n;
+        await logRun(env, name, true, n, 0);
+      } catch (err) {
+        await logRun(env, name, false, 0, 0, short(err));
+      }
+    }),
+  );
+  const passed = (await countNew(env)) - before;
+  const { judged, error } = await judgeWaiting(env);
   // Keep the database small: forget old posts nobody acted on.
   await env.DB.prepare(`DELETE FROM posts WHERE found_at < ? AND status IN ('skipped', 'judged', 'dismissed')`).bind(now() - 30 * 24 * 3600).run();
   await env.DB.prepare('DELETE FROM runs WHERE at < ?').bind(now() - 7 * 24 * 3600).run();
+  return { found, passed, judged, claudeError: error };
+}
+
+async function countNew(env: Env): Promise<number> {
+  return (await env.DB.prepare(`SELECT COUNT(*) AS n FROM posts WHERE status = 'new'`).first<{ n: number }>())?.n ?? 0;
 }

@@ -132,4 +132,27 @@ describe('inbox', () => {
     expect(html).toContain('Reddit: <b>failing</b> (Reddit answered 403 (blocked or rate limited))');
     expect(html).toContain('Hacker News: <b>working</b>');
   });
+
+  it('shows why Claude failed and runs Search now while the browser waits', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.startsWith('https://www.reddit.com/search.rss')) {
+        return new Response(atom([{ id: 't3_err', title: 'Cursor broke my navbar layout', body: 'help', sub: 'cursor', author: 'cy', at: now - 60 }]));
+      }
+      if (url.startsWith('https://hn.algolia.com/')) return Response.json({ hits: [] });
+      if (url.startsWith('https://api.anthropic.com/')) {
+        return Response.json({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }, { status: 400 });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    const cookie = await login();
+    const res = await SELF.fetch(`${BASE}/run`, { method: 'POST', headers: { cookie }, redirect: 'manual' });
+    expect(res.status).toBe(303);
+    const note = decodeURIComponent(new URL(res.headers.get('location') ?? '', BASE).searchParams.get('note') ?? '');
+    expect(note).toContain('Found 1 new posts. 1 mention an AI coding tool and something visual. Claude checked 0.');
+    expect(note).toContain('credit balance is too low');
+    const html = await (await SELF.fetch(`${BASE}/`, { headers: { cookie } })).text();
+    expect(html).toContain('Claude: <b>failing</b>');
+    expect(html).toContain('credit balance is too low');
+  });
 });
