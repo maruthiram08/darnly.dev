@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:34045/cart",
+  "entries": [
+    {
+      "t": 1794256236258,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:34045/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

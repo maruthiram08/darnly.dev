@@ -15,7 +15,8 @@ import { startApp } from '../lib/devserver.mjs';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const ext = path.resolve(here, '../../.output-e2e/chrome-mv3');
-const outDir = path.join(here, 'captures');
+// DARNLY_EVAL_CAPTURES=captures-v2 writes a second set (for example, to test a change in report wording).
+const outDir = path.join(here, process.env.DARNLY_EVAL_CAPTURES || 'captures');
 if (!fs.existsSync(ext)) throw new Error('Build the extension first: DARNLY_E2E=1 npx wxt build (from the repo root)');
 
 const only = process.argv.slice(2);

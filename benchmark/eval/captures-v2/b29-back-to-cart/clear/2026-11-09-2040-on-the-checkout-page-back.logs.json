@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:40289/checkout",
+  "entries": [
+    {
+      "t": 1794256785648,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:40289/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

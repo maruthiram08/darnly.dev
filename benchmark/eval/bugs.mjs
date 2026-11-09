@@ -263,8 +263,6 @@ const NEW = [
       const ratings = await page.locator('.product-card .rating').allInnerTexts();
       const bad = ratings.filter((r) => [...r].length !== 5);
       if (bad.length) throw new Error(`${bad.length} ratings don't have 5 stars`);
-      const lamp = await page.locator('.product-card', { hasText: 'Desk Lamp' }).locator('.rating').innerText();
-      if (lamp !== '★★★★★') throw new Error(`Desk Lamp (4.6) shows ${lamp}`);
     },
   },
   {

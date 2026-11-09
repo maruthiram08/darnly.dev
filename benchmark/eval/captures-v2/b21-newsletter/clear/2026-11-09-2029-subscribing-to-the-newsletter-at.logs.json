@@ -1,0 +1,31 @@
+{
+  "url": "http://localhost:33677/",
+  "entries": [
+    {
+      "t": 1794256167211,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:33677/favicon.ico",
+      "source": "browser"
+    },
+    {
+      "t": 1794256167785,
+      "kind": "rejection",
+      "message": "Unhandled promise rejection: Error: POST /api/subscribe failed with 404",
+      "stack": "Error: POST /api/subscribe failed with 404\n    at postJson (http://localhost:33677/src/lib/api.ts:12:22)\n    at async onSubmit (http://localhost:33677/src/components/NewsletterForm.tsx:17:9)",
+      "source": "page"
+    },
+    {
+      "t": 1794256167785,
+      "kind": "request",
+      "method": "POST",
+      "status": 404,
+      "ms": 12,
+      "url": "http://localhost:33677/api/subscribe",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    }
+  ]
+}

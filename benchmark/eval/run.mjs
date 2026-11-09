@@ -12,7 +12,7 @@
 // Usage (from benchmark/eval, after npm install):
 //   DARNLY_TEST_ANTHROPIC_KEY=... node run.mjs [--models sonnet,haiku] [--notes clear,short]
 //        [--conditions text,screenshot,darnly] [--bugs b01-place-order,...] [--reps 1]
-//        [--budget 35] [--concurrency 4] [--effort medium] [--workspace <id>] [--resume runs/<dir>] [--mock]
+//        [--budget 35] [--concurrency 4] [--effort medium] [--workspace <id>] [--captures captures-v2] [--resume runs/<dir>] [--mock]
 // --mock runs everything without the API: a fake agent that applies the known fix, to test the harness.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -48,7 +48,8 @@ for (const m of models) if (!MODELS[m]) throw new Error(`Unknown model ${m} (use
 for (const c of conditions) if (!['text', 'screenshot', 'darnly'].includes(c)) throw new Error(`Unknown condition ${c}`);
 for (const id of bugIds) if (!BUGS.some((b) => b.id === id)) throw new Error(`Unknown bug ${id}`);
 
-const capturesDir = path.join(here, 'captures');
+// --captures captures-v2 uses another set of reports (made by capture.mjs with DARNLY_EVAL_CAPTURES).
+const capturesDir = path.join(here, String(args.captures ?? 'captures'));
 for (const id of bugIds) if (!fs.existsSync(path.join(capturesDir, id, 'screenshot.png'))) throw new Error(`No captures for ${id}: run capture.mjs first`);
 
 let client;
@@ -80,7 +81,7 @@ if (fs.existsSync(resultsPath)) {
 let spent = [...done.values()].reduce((s, r) => s + (r.cost ?? 0), 0);
 fs.writeFileSync(
   path.join(outDir, 'settings.json'),
-  JSON.stringify({ models: models.map((m) => MODELS[m].id), notes, conditions, bugIds, reps, budget, effort, mock, maxTurns: MAX_TURNS, started: new Date().toISOString() }, null, 2),
+  JSON.stringify({ captures: path.basename(capturesDir), models: models.map((m) => MODELS[m].id), notes, conditions, bugIds, reps, budget, effort, mock, maxTurns: MAX_TURNS, started: new Date().toISOString() }, null, 2),
 );
 
 // ---------------------------------------------------------------- the agent's tools
