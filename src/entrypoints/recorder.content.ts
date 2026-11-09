@@ -182,12 +182,20 @@ function record() {
     if (e.source !== window || d?.darnly !== 'get-logs' || !d.id) return;
     const picked = document.querySelector('[data-darnly-picked]');
     const info = picked ? sourceInfo(picked) : undefined;
+    // More elements marked for the same bug (Shift+click), in their marked order.
+    const also = Array.from(document.querySelectorAll('[data-darnly-also]'))
+      .sort((x, y) => Number(x.getAttribute('data-darnly-also')) - Number(y.getAttribute('data-darnly-also')))
+      .slice(0, 8)
+      .map((x) => {
+        const i = sourceInfo(x);
+        return { components: i?.chain, source: i?.source, parts: i?.parts, framework: i?.framework };
+      });
     let record;
     try {
       record = picked && responses.length ? findRecordShape(responses, textsAround(picked)) : undefined;
     } catch {
       /* never break the capture */
     }
-    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, parts: info?.parts, framework: info?.framework, record, steps }, '*');
+    window.postMessage({ darnly: 'logs', id: d.id, logs: fresh(), component: info?.chain.at(-1), components: info?.chain, source: info?.source, parts: info?.parts, framework: info?.framework, also, record, steps }, '*');
   });
 }

@@ -23,6 +23,8 @@ export async function markScreenshot(
   point?: ElementInfo['point'],
   /** Lines written in a bar above the screenshot, so the picture alone still says what's wrong. */
   caption?: string[],
+  /** More elements marked for the same bug: boxed too, and every box gets its number (1 is the rect above). */
+  more?: ElementInfo['rect'][],
 ): Promise<Blob> {
   const img = await createImageBitmap(await (await fetch(dataUrl)).blob());
   const k = img.width / viewportWidth;
@@ -42,12 +44,34 @@ export async function markScreenshot(
     ctx.translate(0, bar);
   }
   ctx.drawImage(img, 0, 0);
-  if (rect) {
-    const s = img.width / viewportWidth;
+  const boxes = rect ? [rect, ...(more ?? [])] : [];
+  const s = img.width / viewportWidth;
+  boxes.forEach((r) => {
     const pad = 4 * s;
     ctx.strokeStyle = '#e11d48';
     ctx.lineWidth = Math.max(3, 3 * s);
-    ctx.strokeRect(rect.x * s - pad, rect.y * s - pad, rect.width * s + pad * 2, rect.height * s + pad * 2);
+    ctx.strokeRect(r.x * s - pad, r.y * s - pad, r.width * s + pad * 2, r.height * s + pad * 2);
+  });
+  // Numbers only when there are several, matching "Element 1", "Element 2" in the report.
+  if (boxes.length > 1) {
+    boxes.forEach((r, i) => {
+      const radius = 11 * s;
+      const cx = Math.max(radius, r.x * s - 4 * s);
+      const cy = Math.max(radius, r.y * s - 4 * s);
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#e11d48';
+      ctx.fill();
+      ctx.lineWidth = 2 * s;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `700 ${13 * s}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), cx, cy + 0.5 * s);
+    });
+    ctx.textAlign = 'start';
   }
   if (point) {
     // A hollow ring where the user clicked (only when the box is a big container),
