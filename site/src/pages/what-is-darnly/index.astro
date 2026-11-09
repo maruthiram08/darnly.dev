@@ -6,6 +6,7 @@ import { storeUrl } from '../../data/site';
 const slug = 'what-is-darnly';
 const faq = [
   { q: 'What is Darnly?', a: 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix.' },
+  { q: 'Does Darnly work on my live site, or only on localhost?', a: "Both. Darnly works on any page you can open in Chrome, production included: your live site, a preview link, localhost and pages behind a login. File and component names show on localhost, where your app runs as a development build." },
   { q: 'Who is Darnly for?', a: 'People who build websites and apps with AI coding agents, especially vibecoders who aren\'t developers and find it hard to describe a bug in code terms.' },
   { q: 'How much does Darnly cost?', a: 'Nothing. The Chrome extension, the Mac app and the optional cloud inbox are free.' },
   { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp, and in the Claude app Darnly is in the connector directory. <a href="/setup/">Setup steps for each agent</a>.' },
@@ -30,6 +31,9 @@ const faq = [
 
   <h2>How does Darnly work?</h2>
   <p>You press one key (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on a Mac; Windows is coming soon), click the broken part of the page, type what you expected, and press Enter.</p>
+
+  <h2>Does Darnly work on my live site, or only on localhost?</h2>
+  <p>Both. Darnly works on any page you can open in Chrome: your live production site, a preview or staging link, localhost, and pages behind a login. On every site the report has the screenshot, the element and the failed requests. Console errors and the steps before the bug are recorded on localhost by default, and on a live site once you switch recording on for that site in the Darnly panel. The file and component that drew the element come from your framework's development build, so they show on localhost, not on production.</p>
 
   <h2>What is in a Darnly report?</h2>
   <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the file that drew it on a local project, the page address, your note, and console errors and failed requests from the last 60 seconds. It also lists the steps that led to the bug (what you clicked and where you typed, never what you typed), the shape of the data behind the element (field names and lengths, never the values), any slow requests, and steps for your agent to check its own fix in a browser.</p>
