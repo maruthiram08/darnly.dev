@@ -26,7 +26,9 @@
     // The asset extractor passes each picture through /api/asset, so it gets its own, larger budget.
     { "name": "ASSET_LIMIT", "namespace_id": "4860", "simple": { "limit": 240, "period": 60 } },
     // The API tester has its own limit of 20 requests a minute.
-    { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } }
+    { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } },
+    // ...and 300 a minute for all visitors together, so nobody can send a flood through darnly.dev by switching IPs.
+    { "name": "API_LIMIT_ALL", "namespace_id": "4871", "simple": { "limit": 300, "period": 60 } }
   ],
   // Cloudflare's headless browser, used only by /api/shots for the responsive checker.
   "browser": { "binding": "BROWSER" },
