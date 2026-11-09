@@ -346,3 +346,28 @@ describe('window width', () => {
     expect(widthKind(1024)).toBe('desktop');
   });
 });
+
+describe('several marked elements', () => {
+  const one = { selector: 'h2.title', tag: 'h2', text: 'Plans', html: '<h2 class="title">Plans</h2>', styles: { 'font-size': '32px' }, rect: { x: 10, y: 10, width: 200, height: 40 } };
+  const two = { selector: 'h3.title', tag: 'h3', text: 'Pro', html: '<h3 class="title">Pro</h3>', styles: { 'font-size': '18px' }, rect: { x: 10, y: 80, width: 100, height: 24 }, source: 'src/PlanCard.tsx:9', components: ['PlanCard'] };
+  const three = { selector: 'p.price', tag: 'p', text: '$9', html: '<p class="price">$9</p>', styles: {}, rect: { x: 10, y: 120, width: 50, height: 20 } };
+
+  it('numbers each element like the boxes and says the note covers them all', () => {
+    const md = captureMarkdown({ ...base, note: 'make these headings the same size', element: { ...one, also: [two, three] } });
+    expect(md).toContain('(the numbered red boxes mark the 3 elements)');
+    expect(md).toContain('**Several elements:** the user marked 3 elements for this one note');
+    expect(md).toContain('## Element 1 (red box 1)');
+    expect(md).toContain('## Element 2 (red box 2)\n- selector: `h3.title`\n- text: "Pro"\n- code: `src/PlanCard.tsx:9`\n- drawn by: `PlanCard`');
+    expect(md).toContain('## Element 3 (red box 3)');
+    expect(md).toContain('Find each marked element by its selector under "Element 1" to "Element 3"');
+    expect(md.indexOf('## Element 3')).toBeLessThan(md.indexOf('<!-- darnly:page-data:end -->'));
+    expect(md).not.toContain('## Element (the red box)');
+  });
+
+  it('keeps the one-element report as it was', () => {
+    const md = captureMarkdown({ ...base, element: one });
+    expect(md).toContain('## Element (the red box)');
+    expect(md).toContain('(the red box marks the element)');
+    expect(md).not.toContain('Several elements');
+  });
+});

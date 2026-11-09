@@ -24,6 +24,8 @@ export interface ElementInfo {
   point?: { x: number; y: number };
   /** When the picked box is a big container, the small element exactly under the cursor (often what was meant). */
   atCursor?: { selector: string; tag: string; text: string; html: string; rect: ElementInfo['rect']; labels?: string[] };
+  /** More elements the user marked for the same note (Shift+click), boxes 2, 3 and on. */
+  also?: ElementInfo[];
   /** Other elements on the page that look made the same way (same tag and classes), so the agent knows whether a change is local or global. */
   similar?: { selector: string; count: number };
 }

@@ -82,7 +82,15 @@ try {
   const box = await page.locator('button.pay').boundingBox();
   await page.mouse.move(box.x + 20, box.y + 10);
   await page.waitForTimeout(100);
+  // Shift+click marks the button and keeps picking; a plain click on the heading adds it as element 2 and finishes.
+  await page.keyboard.down('Shift');
   await page.mouse.click(box.x + 20, box.y + 10);
+  await page.keyboard.up('Shift');
+  await page.waitForTimeout(100);
+  const h1 = await page.locator('h1').boundingBox();
+  await page.mouse.move(h1.x + 10, h1.y + 10);
+  await page.waitForTimeout(100);
+  await page.mouse.click(h1.x + 10, h1.y + 10);
 
   await panel.getByLabel('What did you expect?').waitFor({ timeout: 5000 });
   await panel.getByLabel('What did you expect?').fill('Pay now should be clickable and open the payment form');
@@ -132,6 +140,8 @@ try {
   if (!md.includes('- `PayButton`: placed at `src/pages/CheckoutPage.tsx:20`')) fail('where the component is placed missing');
   if (!md.includes('- drawn by: `CheckoutPage` > `PayButton`')) fail('component chain missing');
   if (!md.includes('# Bug on /checkout: PayButton')) fail('heading missing');
+  if (!md.includes('## Element 1 (red box 1)') || !md.includes('## Element 2 (red box 2)\n- selector: `h1`')) fail('second marked element missing');
+  if (!md.includes('the user marked 2 elements for this one note')) fail('several-elements line missing');
   if (!md.includes('"Pay now"') || !md.includes('page route: `/checkout`')) fail('search hints missing');
   const logsName = names.find((n) => n.endsWith('.logs.json'));
   const all = md + (logsName ? out[logsName] : '');

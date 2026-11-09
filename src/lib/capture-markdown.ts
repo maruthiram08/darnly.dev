@@ -100,6 +100,7 @@ function yamlValue(v: string): string {
 
 /** The markdown file an agent reads: the intent first, then the facts. */
 export function captureMarkdown(c: CaptureInput): string {
+  const marks = c.element ? 1 + (c.element.also?.length ?? 0) : 0;
   const png = c.forCloud ? 'the screenshot returned with this bug' : c.forPaste ? 'the screenshot pasted with this message' : `${INBOX_FOLDER}/${c.id}.png`;
   const lines = [
     '---',
@@ -116,8 +117,11 @@ export function captureMarkdown(c: CaptureInput): string {
     ...changeLines(c),
     windowLine(c.viewport),
     '',
-    `**Screenshot:** ${png}${c.element ? ' (the red box marks the element)' : ''}`,
+    `**Screenshot:** ${png}${c.element ? (marks > 1 ? ` (the numbered red boxes mark the ${marks} elements)` : ' (the red box marks the element)') : ''}`,
     '',
+    ...(marks > 1
+      ? [`**Several elements:** the user marked ${marks} elements for this one note (Element 1 to Element ${marks} below, numbered like the boxes). The note can be about all of them, or about how they relate ("make these match", "same gap between them"): fix them together.`, '']
+      : []),
   ];
   // Not in the paste version: "Copy picture" copies only the screenshot.
   if (c.reference && !c.forPaste) {
@@ -139,7 +143,7 @@ export function captureMarkdown(c: CaptureInput): string {
   if (el) {
     const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
     lines.push(
-      '## Element (the red box)',
+      marks > 1 ? '## Element 1 (red box 1)' : '## Element (the red box)',
       `- selector: \`${el.selector}\``,
       ...(el.text ? [`- text: "${el.text}"`] : []),
       ...(el.source ? [`- code: \`${el.source}\` (start here)`] : []),
@@ -155,7 +159,7 @@ export function captureMarkdown(c: CaptureInput): string {
       ...codeBlock(el.html, 'html'),
       '',
     );
-    lines.push(...codePlaceLines(el));
+    lines.push(...codePlaceLines(el, marks > 1 ? 1 : undefined));
     if (el.atCursor) {
       const a = el.atCursor;
       lines.push(
@@ -169,6 +173,7 @@ export function captureMarkdown(c: CaptureInput): string {
         '',
       );
     }
+    (el.also ?? []).forEach((x, i) => lines.push(...alsoLines(x, i + 2)));
   } else {
     lines.push('Whole visible page captured (no single element picked).', '');
   }
@@ -206,7 +211,7 @@ export function captureMarkdown(c: CaptureInput): string {
     ...(c.record && c.element
       ? ['If the bug may depend on data, compare "The data behind this element" with what your code expects (empty, missing or old-format fields, long text, many items), and test with a record shaped like it, not a fresh one.']
       : []),
-    ...(c.element?.parts?.some((p) => p.at && componentName(p.name))
+    ...([c.element, ...(c.element?.also ?? [])].some((e) => e?.parts?.some((p) => p.at && componentName(p.name)))
       ? ['The element comes from a component (see "Where it sits in the code"). Its "placed at" line is this one use: change it there (a prop, a variant or a class) to change only this one. The component\'s own code changes every place it is used.']
       : []),
     ...(!c.scope && c.element?.similar
@@ -218,18 +223,38 @@ export function captureMarkdown(c: CaptureInput): string {
   return lines.join('\n');
 }
 
+/** One more element the user marked (Shift+click): the same facts as the main one, shorter. */
+function alsoLines(el: ElementInfo, n: number): string[] {
+  const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
+  return [
+    `## Element ${n} (red box ${n})`,
+    `- selector: \`${el.selector}\``,
+    ...(el.text ? [`- text: "${el.text}"`] : []),
+    ...(el.source ? [`- code: \`${codePath(el.source)}\``] : []),
+    ...(el.components?.length ? [`- drawn by: ${el.components.filter((x) => componentName(x)).map((x) => `\`${x}\``).join(' > ')}`] : []),
+    `- size: ${Math.round(el.rect.width)}x${Math.round(el.rect.height)} at (${Math.round(el.rect.x)}, ${Math.round(el.rect.y)})`,
+    `- styles: ${styles}`,
+    ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page)`] : []),
+    ...(el.similar ? [`- similar: ${el.similar.count} other element${el.similar.count === 1 ? '' : 's'} on this page match \`${el.similar.selector}\``] : []),
+    '',
+    ...codeBlock(el.html, 'html'),
+    '',
+    ...codePlaceLines(el, n),
+  ];
+}
+
 /** A path the page reported, made safe for an inline code span. */
 function codePath(p: string): string {
   return p.replace(/[`\r\n<>]/g, '').slice(0, 200);
 }
 
 /** The components around the element, outermost first, with where each is placed (React, Svelte 5) and defined (Vue, Svelte). */
-function codePlaceLines(el: ElementInfo): string[] {
+function codePlaceLines(el: ElementInfo, n?: number): string[] {
   const parts = (el.parts ?? []).filter((p) => componentName(p.name) && (p.at || p.file));
   if (!parts.length) return [];
   const from = el.framework === 'vue' ? 'Vue' : el.framework === 'svelte' ? 'Svelte' : 'React';
   return [
-    '## Where it sits in the code',
+    n ? `### Where element ${n} sits in the code` : '## Where it sits in the code',
     `From ${from}'s development info, outermost first. "placed at" is where that component's tag is written (change it there to change only this use); "own file" is the component itself (a change there changes every use).`,
     ...parts.map((p) => {
       const bits = [p.at ? `placed at \`${codePath(p.at)}\`` : '', p.file ? `own file \`${codePath(p.file)}\`` : ''].filter(Boolean);
@@ -308,7 +333,9 @@ function verifyLines(c: CaptureInput): string[] {
     ...(c.stepsRecorded && c.steps?.length
       ? ['   Then follow the steps under "Steps to get here" (type something sensible where the user typed).']
       : []),
-    el
+    el?.also?.length
+      ? `2. Find each marked element by its selector under "Element 1" to "Element ${el.also.length + 1}" above.`
+      : el
       ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`
       : '2. Look at the whole visible page.',
     '3. Check that the **Expected** line is now true. The screenshot shows how it looked before.',

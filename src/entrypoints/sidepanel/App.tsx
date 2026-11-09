@@ -515,7 +515,7 @@ export function App() {
         `Expected: ${note.trim() || '(no note)'}`,
         `Page: ${capture.page.url}${target ? `   Element: ${target.selector}${target.text ? ` "${target.text.slice(0, 60)}"` : ''}` : ''}`,
       ];
-      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption);
+      files[`${id}.png`] = await markScreenshot(capture.screenshot, capture.page.viewport.width, el?.rect, el?.atCursor && el.point, caption, el?.also?.map((x) => x.rect));
     }
     // Saved with the bug, but not offered for dragging or copying (that stays at two files: report and screenshot).
     const referenceFile: Record<string, Blob> = reference ? { [`${id}.reference.png`]: reference.png } : {};
@@ -1245,7 +1245,7 @@ function MarkedPreview({ capture }: { capture: PendingCapture }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
     let revoked = '';
-    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point).then((b) => {
+    markScreenshot(capture.screenshot!, capture.page.viewport.width, capture.element?.rect, capture.element?.atCursor && capture.element.point, undefined, capture.element?.also?.map((x) => x.rect)).then((b) => {
       revoked = URL.createObjectURL(b);
       setUrl(revoked);
     });
