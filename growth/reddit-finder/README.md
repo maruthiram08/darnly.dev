@@ -11,7 +11,7 @@ A small private tool that finds Reddit and Hacker News posts where someone is st
 ## What it costs
 
 - Cloudflare: nothing extra (one Worker, one small D1 database, one hourly cron).
-- Claude: Claude looks at no more than 6 posts per hour and 30 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). On Claude Opus 5.5 that's roughly 1 to 2 cents a post, so at most about $13 a month, and usually less. To spend less, set `MODEL` to `claude-haiku-5-5`, which costs well under $1 a month.
+- Claude: Claude looks at no more than 20 posts per hour and 150 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). On Claude Opus 5.5 that's roughly 1 to 2 cents a post. Most days far fewer posts pass the word check, so the real cost is a few cents to a dollar a day. To spend less, set `MODEL` to `claude-haiku-5-5`, which costs well under $1 a month.
 - Set a monthly spend limit in the Claude Console as well (step 5), so the bill can never surprise you.
 
 ## Set it up (about 15 minutes, on your Mac)
@@ -97,7 +97,7 @@ npx wrangler deploy
 2. Press **Search now**, wait a minute, then refresh the page.
 3. Look at the pills at the top:
    - **Reddit: working** and **Hacker News: working** mean the searches ran.
-   - **Claude: N/30 posts checked today** means Claude is scoring posts.
+   - **Claude: N/150 posts checked today** means Claude is scoring posts.
 
 Posts appear under **To reply** when Claude finds a good fit. On a quiet day that may be zero, which is normal. Check **Maybe** too.
 

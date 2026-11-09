@@ -120,7 +120,7 @@ describe('inbox', () => {
     expect(html).toContain('How do I show Claude Code which button is broken?');
     expect(html).toContain('Fit 9/10');
     expect(html).toContain('Reddit: <b>working</b>');
-    expect(html).toContain('1/30 posts checked today');
+    expect(html).toContain('1/150 posts checked today');
 
     const done = await SELF.fetch(`${BASE}/post/${encodeURIComponent('reddit:t3_fit')}/replied`, { method: 'POST', headers: { cookie }, body: new URLSearchParams({ tab: 'reply' }), redirect: 'manual' });
     expect(done.headers.get('location')).toBe('/?tab=reply');
