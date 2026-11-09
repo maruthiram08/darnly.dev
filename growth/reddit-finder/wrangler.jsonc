@@ -6,9 +6,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  // Create with: npx wrangler d1 create darnly-thread-finder, then paste the id it prints here.
+  // Made with: npx wrangler d1 create darnly-thread-finder (not a secret).
   "d1_databases": [
-    { "binding": "DB", "database_name": "darnly-thread-finder", "database_id": "PASTE-DATABASE-ID-HERE", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "darnly-thread-finder", "database_id": "e943ef4f-2640-466a-99ba-cf071f50ce1d", "migrations_dir": "migrations" }
   ],
   // Every hour at minute 23.
   "triggers": { "crons": ["23 * * * *"] },
@@ -19,10 +19,10 @@
     // The Claude model that scores posts and drafts replies.
     "MODEL": "claude-opus-5-5",
     // Your Reddit username (without u/), so your own posts are skipped.
-    "REDDIT_USERNAME": "",
+    "REDDIT_USERNAME": "munta008",
     // Spend caps: Claude looks at no more than this many posts per hourly run, and per day.
-    "MAX_JUDGE_PER_RUN": "6",
-    "MAX_JUDGE_PER_DAY": "30",
+    "MAX_JUDGE_PER_RUN": "20",
+    "MAX_JUDGE_PER_DAY": "150",
     // Reddit searches per hourly run. They take turns (20 searches, 5 a run = each every 4 hours),
     // because Reddit answers 429 to more than a few searches a minute without an API app.
     "REDDIT_SEARCHES_PER_RUN": "5"
