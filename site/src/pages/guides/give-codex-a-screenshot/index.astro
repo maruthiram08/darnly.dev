@@ -26,7 +26,7 @@ const faq = [
   <ol>
     <li><strong>Take the screenshot.</strong> Crop it to the broken area plus a bit around it, so Codex can tell where on the page it is.</li>
     <li><strong>Save it where you can find it.</strong> Your Desktop is fine, or a <code>screenshots/</code> folder in your project. If you save it in the project, keep it out of git.</li>
-    <li><strong>Attach it.</strong> OpenAI's Codex CLI docs show <code>codex --image</code> for passing a screenshot with your first prompt, and you can also paste an image into the interactive composer.</li>
+    <li><strong>Attach it.</strong> OpenAI's Codex CLI docs show <code>codex --image</code> for passing a screenshot with your first prompt, and you can also paste an image into the interactive composer. If the paste does nothing, see <a href="/guides/screenshot-wont-paste-into-codex/">screenshot won't paste into Codex CLI</a>.</li>
     <li><strong>Write the note.</strong> What page, what you did, what happened, what you expected. Keep it to three or four lines.</li>
   </ol>
   <pre><code>codex --image ~/Desktop/cart.png "On /cart the subtotal stays at $20 when I change the quantity to 3. Expected: $60. Only the cart page."</code></pre>
