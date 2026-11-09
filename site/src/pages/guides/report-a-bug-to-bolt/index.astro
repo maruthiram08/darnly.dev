@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'report-a-bug-to-bolt';
@@ -34,6 +35,8 @@ const sources = [
     <li><strong>Say how far the fix should go.</strong> "Only this card" or "all cards".</li>
     <li><strong>Add the clues a picture can't show.</strong> If nothing visible happens, open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows) and paste the red lines. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
   </ol>
+
+  <GuideCta slug={slug} lead="Too many steps for every bug?" text="Darnly is a free Chrome extension that turns those steps into one: press a key, click the broken part, say what you expected. It copies a screenshot and the details ready to paste into Bolt." />
 
   <h2>The one-key way with Darnly</h2>
   <p><a href={storeUrl(`guide-${slug}`)}>Darnly</a> is a free Chrome extension that makes the screenshot and the note together, on the Bolt preview or your published site. Press <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows is coming soon), click the broken part, type what you expected and press Enter.</p>

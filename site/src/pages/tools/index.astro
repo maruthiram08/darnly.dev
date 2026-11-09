@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
 import CategoryIcon from '../../components/CategoryIcon.astro';
+import DarnlyNote from '../../components/DarnlyNote.astro';
 import { TOOLS, NEW_COUNT, toolsByCategory, categoryHref } from '../../data/site';
 
 const groups = toolsByCategory();
@@ -17,6 +18,7 @@ const count = TOOLS.length;
     <span class="eyebrow">{count} free tools</span>
     <h1>Free tools for vibecoders</h1>
     <p class="intro">The quick jobs you hit while building with an AI agent, done in seconds. No sign-in, nothing to install.</p>
+    <DarnlyNote source="tools-hub" />
     {count === 0 ? (
       <p class="empty">The first tools are on the way.</p>
     ) : (

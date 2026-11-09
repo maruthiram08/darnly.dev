@@ -1,0 +1,17 @@
+---
+// One-line Darnly note near the top of the free tools (and the /tools/ hub). Kept light: the tool comes first.
+// data-cta-at tags the click in PostHog.
+import { storeUrl } from '../data/site';
+interface Props { source: string }
+const { source } = Astro.props;
+---
+<p class="darnly-note" data-cta-at="tool-note">
+  <span>Free from <a class="home" href="/">Darnly</a>. Spot a bug in the app you're building? Darnly hands it to Claude Code, Codex or Cursor in one key.</span>
+  <a class="add" href={storeUrl(`${source}-note`)}>Add to Chrome</a>
+</p>
+<style>
+  .darnly-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 16px 0 0; padding: 10px 10px 10px 16px; border-radius: 14px; background: var(--wash); font-size: 15px; color: var(--ink-soft); max-width: max-content; }
+  .home { color: var(--ink); font-weight: 600; }
+  .add { flex: none; text-decoration: none; font-weight: 600; font-size: 14px; padding: 7px 14px; border-radius: 999px; background: var(--ink); color: var(--white); }
+  .add:hover { box-shadow: 0 4px 14px rgba(11, 34, 48, 0.25); }
+</style>

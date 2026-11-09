@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-cursor-design-mode';
@@ -57,6 +58,8 @@ const faq = [
     <li><strong>The bug comes with errors.</strong> A button that does nothing usually has a console error or a failed request behind it. Darnly saves those with the report.</li>
     <li><strong>You switch agents.</strong> Try Claude Code or Codex next month, and your bug list and habits come with you. <a href="/guides/switch-ai-coding-agents/">How to switch agents without losing your bugs</a>.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using both</h2>
   <p>Use Design Mode while you build. Use Darnly when you step back and test your app like a user. When you're ready to fix, open Cursor and type <code>/darnly</code>, then use Design Mode for any last tweak you want to see live. More on this in <a href="/why-darnly/">why Darnly when your agent has a browser</a>.</p>

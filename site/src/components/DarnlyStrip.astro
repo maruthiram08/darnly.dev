@@ -2,14 +2,16 @@
 // The "Darnly can also..." strip under every tool's result.
 import { storeUrl } from '../data/site';
 // lead/text let a tool swap in its own line; both fall back to the default pitch.
-interface Props { source: string; lead?: string; text?: string }
+// at tags where the click came from in PostHog (tool-strip, guide-strip).
+interface Props { source: string; lead?: string; text?: string; at?: string }
 const {
   source,
+  at = 'strip',
   lead = 'Spot a bug on your site?',
   text = 'Press one key, click the broken part, say what you expected. Darnly hands Claude Code, Codex or Cursor everything it needs to fix it.',
 } = Astro.props;
 ---
-<aside class="darnly-strip" aria-label="About Darnly">
+<aside class="darnly-strip" aria-label="About Darnly" data-cta-at={at}>
   <div>
     <span class="eyebrow">Made by Darnly</span>
     <p><strong>{lead}</strong> {text}</p>

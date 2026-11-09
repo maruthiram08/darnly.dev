@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-jam';
@@ -67,6 +68,8 @@ const faq = [
     <li><strong>No monthly limit.</strong> Capture as many bugs as you find in a testing session. Jam's free plan allows 30 Jams a month.</li>
     <li><strong>Private by default.</strong> No account, and nothing is sent to Darnly unless you turn on the cloud inbox. Passwords, card numbers, tokens and keys are hidden before saving, and Darnly never keeps what you type or the values in your data.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using them together</h2>
   <p>They fit different moments. Use Jam when a teammate or customer needs to show you something, or a bug only makes sense as a recording. Use Darnly for the stream of small things you notice while you test your own app: this button, that gap, this error. If testers send you bugs by email or chat instead, the guide on <a href="/guides/send-bugs-from-testers-to-ai/">sending bugs from a tester or client to your AI agent</a> shows a free way to do it. For a team feedback widget, see <a href="/guides/darnly-vs-marker-io/">Darnly vs Marker.io</a>.</p>

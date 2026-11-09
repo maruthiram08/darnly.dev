@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'copy-console-errors-for-ai';
@@ -36,6 +37,8 @@ const faq = [
 Console:
 TypeError: Cannot read properties of undefined (reading 'id')
     at saveProfile (settings.tsx:42)</code></pre>
+
+  <GuideCta slug={slug} lead="Copying errors by hand for every bug?" text="Darnly is a free Chrome extension that puts failed requests in the report with your screenshot, and console errors too once you switch on Record errors for that site. Press one key, click the broken part, and your agent gets all of it." />
 
   <h2>Don't forget failed requests</h2>
   <p>Some bugs are a request to your server or database that came back with an error. These show in the <strong>Network</strong> tab, next to Console.</p>

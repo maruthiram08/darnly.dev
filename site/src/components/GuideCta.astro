@@ -1,0 +1,24 @@
+---
+// Darnly pitch placed inside a guide, right after the section that solves the reader's problem,
+// so people who leave once they have their answer still see it. data-cta-at tags the click in PostHog.
+import { storeUrl } from '../data/site';
+interface Props { slug: string; lead: string; text: string }
+const { slug, lead, text } = Astro.props;
+---
+<aside class="guide-cta" aria-label="About Darnly" data-cta-at="guide-inline">
+  <span class="eyebrow">Made by Darnly</span>
+  <p><strong>{lead}</strong> {text}</p>
+  <div class="actions">
+    <a class="add" href={storeUrl(`guide-${slug}-inline`)}>Add to Chrome, it's free</a>
+    <a class="how" href="/">See how it works</a>
+  </div>
+</aside>
+<style>
+  .guide-cta { margin: 32px 0; padding: 22px 24px; border-radius: 18px; background: var(--wash); border: 1px solid var(--line); }
+  .guide-cta p { margin: 10px 0 0; color: var(--ink-soft); }
+  .guide-cta strong { color: var(--ink); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 16px; }
+  .guide-cta .add { text-decoration: none; font-weight: 600; padding: 12px 18px; border-radius: 999px; background: var(--ink); color: var(--white); }
+  .guide-cta .add:hover { box-shadow: 0 6px 20px rgba(11, 34, 48, 0.25); }
+  .guide-cta .how { color: var(--sky); font-weight: 500; font-size: 15px; }
+</style>

@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'screenshot-wont-paste-into-claude-code';
@@ -47,6 +48,8 @@ const faq = [
     <li>Type the path in your message: <code>Look at screenshots/save-button.png. The Save button is grey. It should be blue.</code></li>
   </ol>
   <p>Claude Code reads the image from the file. No clipboard is involved, so none of the clipboard bugs below can stop it. In bug reports on GitHub and the Cursor forum, saving to a file is the workaround people fall back to again and again.</p>
+
+  <GuideCta slug={slug} lead="Rather not paste at all?" text="Darnly is a free Chrome extension and Mac app that saves the screenshot straight into your project, with the broken part boxed in red and the errors next to it. Type /darnly in Claude Code and it reads the files. Nothing to paste." />
 
   <h2>macOS: Terminal, iTerm2 and others</h2>
   <ul>

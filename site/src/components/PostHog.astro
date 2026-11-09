@@ -7,7 +7,7 @@
 //   on darnly.dev (the Worker passes it to PostHog). So it doesn't slow the first paint, the
 //   CSP stays 'self', and ad blockers that block posthog.com don't hide visitors.
 // - Only runs on darnly.dev itself, not on localhost or pull request previews.
-// - Named events for the clicks that matter: cta_click { cta: chrome_store | mac_download | brew_copy }.
+// - Named events for the clicks that matter: cta_click { cta: chrome_store | mac_download | brew_copy, location, path, page_type }.
 ---
 <script>
   import { POSTHOG_KEY, POSTHOG_REGION } from '../data/analytics';
@@ -25,8 +25,20 @@
       else waiting.push([event, props]);
     };
 
-    // Which section of the page a click came from (hero, mac, why...), for comparing buttons.
-    const where = (el: Element) => el.closest('section[id], header, footer, nav')?.id || el.closest('header, footer, nav')?.tagName.toLowerCase() || '';
+    // Where on the page a click came from, for comparing buttons: a data-cta-at tag first
+    // (guide-inline, guide-text, guide-strip, tool-note, tool-strip, tool-panel, header, tools-hub),
+    // then the home page's section ids (hero, mac, why...).
+    const where = (el: Element) => el.closest('[data-cta-at]')?.getAttribute('data-cta-at') || el.closest('section[id], header, footer, nav')?.id || el.closest('header, footer, nav')?.tagName.toLowerCase() || '';
+
+    // Which kind of page drove the click, for the funnel: home, guide, tool, tools-hub or other.
+    const pageType = () => {
+      const p = location.pathname;
+      if (p === '/') return 'home';
+      if (p === '/tools/') return 'tools-hub';
+      if (p.startsWith('/tools/')) return 'tool';
+      if (p.startsWith('/guides/') && p !== '/guides/') return 'guide';
+      return 'other';
+    };
 
     document.addEventListener('click', (e) => {
       const el = (e.target as Element | null)?.closest?.('a, button');
@@ -36,7 +48,7 @@
       if (href.includes('chromewebstore.google.com/detail/darnly')) cta = 'chrome_store';
       else if (href.endsWith('/Darnly.dmg')) cta = 'mac_download';
       else if (el.hasAttribute('data-copy-brew')) cta = 'brew_copy';
-      if (cta) send('cta_click', { cta, location: where(el), path: location.pathname });
+      if (cta) send('cta_click', { cta, location: where(el), path: location.pathname, page_type: pageType() });
     }, { capture: true });
 
     const start = () => {

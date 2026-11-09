@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'report-a-bug-to-lovable';
@@ -35,6 +36,8 @@ const sources = [
     <li><strong>Say how far the fix should go.</strong> "Only this page" or "every page". It saves a round of questions.</li>
     <li><strong>Add the clues a picture can't show.</strong> If nothing visible happens, open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows) and paste the red lines. See <a href="/guides/copy-console-errors-for-ai/">how to copy console errors</a>.</li>
   </ol>
+
+  <GuideCta slug={slug} lead="Too many steps for every bug?" text="Darnly is a free Chrome extension that turns those steps into one: press a key, click the broken part, say what you expected. It copies a screenshot and the details ready to paste into Lovable." />
 
   <h2>Lovable's own Select elements</h2>
   <p>Inside the Lovable preview, the <strong>Select elements</strong> tool in the preview toolbar lets you pick an element and describe the change. For tweaks while you build, that is the quickest route. It only works in the preview, though. Bugs you find on your published site, on your phone, or while testing a real sign-up still need a screenshot and a note.</p>

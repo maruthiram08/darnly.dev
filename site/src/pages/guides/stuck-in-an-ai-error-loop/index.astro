@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'stuck-in-an-ai-error-loop';
@@ -36,6 +37,8 @@ const faq = [
     <li><strong>In the terminal:</strong> copy the full error from the dev server, not just the last line. The first lines often name the file.</li>
     <li><strong>No error at all?</strong> Say so. "No error in the console, the button just does nothing" is a real clue.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Give the agent the facts, not a guess." text="Darnly is a free Chrome extension that captures the broken element, the failed requests and the console errors along with your note on what should happen. Your agent starts from facts instead of another guess." />
 
   <h2>4. Say what should happen</h2>
   <p>This is the line people skip. Without it, the agent invents its own goal, and may "fix" the error by hiding it. Write one sentence: "Clicking Save should store the name and show a Saved message." Then add the scope: only this page, or everywhere.</p>

@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'write-a-bug-report-for-ai-agents';
@@ -33,6 +34,8 @@ Element: (the button, card or field, by its visible text or position)
 Errors: (red lines from the browser console, as text)
 Screenshot path: (like screenshots/save-button.png, broken part boxed)</code></pre>
   <p>The screenshot path line is there because a file in your project always reaches the agent, even when pasting an image fails. If paste is giving you trouble, see <a href="/guides/screenshot-wont-paste-into-claude-code/">why a screenshot won't paste into Claude Code or Cursor</a>.</p>
+
+  <GuideCta slug={slug} lead="Let Darnly fill in most of the template." text="Darnly is a free Chrome extension that writes the page, element, screenshot and errors for you. You click the broken part and type the one line only you know: what you expected." />
 
   <h2>Each line, and why the agent needs it</h2>
   <h3>Page/URL</h3>

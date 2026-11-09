@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'switch-ai-coding-agents';
@@ -25,6 +26,8 @@ const faq = [
 
   <h2>2. Keep your bugs in the project, not in a chat</h2>
   <p>A bug you described in last week's Cursor chat is gone when you open Claude Code. Keep bugs in files instead: a <code>BUGS.md</code> the agent ticks off, or a folder of reports. <a href="/guides/keep-a-list-of-bugs/">How to keep a list of bugs</a>.</p>
+
+  <GuideCta slug={slug} lead="Keep your bugs in the project." text="Darnly is a free Chrome extension and Mac app that saves each bug into .darnly/inbox/ in your project, so Claude Code, Codex and Cursor all read the same list. Switch agents whenever you like." />
 
   <h2>3. Use tools that don't belong to one agent</h2>
   <p>Each agent now has its own browser: Claude in Chrome, Cursor's Design Mode, Codex for Chrome. They're useful, but the way you report bugs with each one stays behind when you switch. A bug capture that saves to your project works with all of them.</p>

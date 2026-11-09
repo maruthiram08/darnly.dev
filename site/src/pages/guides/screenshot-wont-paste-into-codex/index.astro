@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'screenshot-wont-paste-into-codex';
@@ -37,6 +38,8 @@ const faq = [
   </ol>
   <pre><code>codex --image screenshots/cart.png "On /cart the total stays at $20 when I change the quantity to 3. Expected: $60."</code></pre>
   <p>No clipboard is involved, so none of the paste problems below can stop it.</p>
+
+  <GuideCta slug={slug} lead="Rather not paste at all?" text="Darnly is a free Chrome extension and Mac app that saves the screenshot straight into your project, with the broken part boxed in red and the errors next to it. Tell Codex “fix my Darnly bugs” and it reads the files. Nothing to paste." />
 
   <h2>macOS</h2>
   <ul>

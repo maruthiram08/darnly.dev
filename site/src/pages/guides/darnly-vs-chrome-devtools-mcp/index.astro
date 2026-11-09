@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-chrome-devtools-mcp';
@@ -58,6 +59,8 @@ const faq = [
     <li><strong>You'd rather not set up MCP.</strong> For a local project there's nothing to add to your agent. Darnly writes files and an AGENTS.md note.</li>
     <li><strong>The bug isn't in Chrome.</strong> The Mac app captures Mac apps and mobile simulators.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using both</h2>
   <p>A good loop for <a href="/guides/test-your-vibe-coded-app/">testing an app before launch</a>: you click around and capture bugs with Darnly as you find them. Then the agent fixes them from the inbox and, with Chrome DevTools MCP, opens the pages to check its own fixes. You look last.</p>

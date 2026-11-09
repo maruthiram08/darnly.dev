@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-marker-io';
@@ -70,6 +71,8 @@ const faq = [
     <li><strong>Private by default.</strong> No account, and nothing is sent to Darnly unless you turn on the cloud inbox. Passwords, card numbers, tokens and keys are hidden before saving.</li>
     <li><strong>Beyond the browser.</strong> The Mac app captures bugs in Mac apps, the iOS Simulator and the Android Emulator into the same inbox.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using them together</h2>
   <p>They don't really compete for the same moment. A common split: Marker.io (or another team tool) for client feedback, and Darnly for the bugs you find yourself while building and testing. If clients send you bugs by email or chat instead, the guide on <a href="/guides/send-bugs-from-testers-to-ai/">sending bugs from a tester or client to your AI agent</a> shows a free way to do it.</p>

@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'hit-your-ai-usage-limit';
@@ -31,6 +32,8 @@ const faq = [
   <h2>3. Write each bug so the agent can act on it</h2>
   <p>For each problem, note four things: the page, the exact part that's wrong, what you expected instead, and any red errors in the console. A vague note like "the menu is weird" costs you a round of questions later. <a href="/guides/write-a-bug-report-for-ai-agents/">A template for a good report</a>.</p>
   <p>By hand, that's a screenshot, a note and a copied error for every bug. With <a href="/">Darnly</a> it's <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, a click on the broken part and one line. It saves the screenshot with a red box, the element, the page and the errors from the last 60 seconds, and makes no AI calls, so it works fine while you're out of usage.</p>
+
+  <GuideCta slug={slug} lead="Out of usage right now?" text="Darnly captures bugs without any AI calls, so it works while your agent is paused. Press one key, click the broken part, say what you expected. Your agent fixes the whole list when your limit resets." />
 
   <h2>4. Keep them in one place</h2>
   <p>Put every bug in one list the agent can read: a <code>BUGS.md</code> in your project, or Darnly's inbox, which fills up as you capture. <a href="/guides/keep-a-list-of-bugs/">How to keep a list of bugs across projects</a>.</p>
