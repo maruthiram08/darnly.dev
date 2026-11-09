@@ -115,7 +115,7 @@ export async function searchReddit(env: Env, queries: string[]): Promise<FoundPo
     if (!res.ok) {
       failures++;
       lastError = `Reddit answered ${res.status}${res.status === 403 || res.status === 429 ? ' (blocked or rate limited)' : ''}`;
-      if (res.status === 403) break; // blocked: the other searches will be too
+      if (res.status === 403 || res.status === 429) break; // blocked or over the limit: the other searches will be too
       continue;
     }
     posts.push(...(token ? parseRedditJson((await res.json()) as RedditListing, q) : parseRedditAtom(await res.text(), q)));
@@ -161,4 +161,15 @@ export async function searchHn(queries: string[]): Promise<FoundPost[]> {
     posts.push(...parseHn((await res.json()) as { hits?: HnHit[] }, q));
   }
   return posts;
+}
+
+/**
+ * Reddit allows only a few searches a minute without an API app, so each run takes
+ * the next few searches in turn. With 20 searches and 5 a run, each one runs every 4 hours.
+ */
+export function searchesForThisRun(all: string[], perRun: number, at = Date.now()): string[] {
+  if (perRun >= all.length) return all;
+  const groups = Math.ceil(all.length / perRun);
+  const g = Math.floor(at / 3_600_000) % groups;
+  return all.slice(g * perRun, g * perRun + perRun);
 }
