@@ -1,8 +1,8 @@
 ---
 // PostHog page views and clicks, added to every page by Base.astro once POSTHOG_KEY is set.
-// - Cookieless: no cookies or browser storage, so no cookie banner. PostHog counts unique
-//   visitors with a daily hash on its side ("Cookieless server hash mode" must be on in
-//   PostHog > Settings > Project > Web analytics, or events are dropped).
+// - No cookies: PostHog keeps its visitor id in localStorage on darnly.dev only, which session
+//   replays need (PostHog's fully cookieless mode can't record sessions).
+// - Session replays hide everything typed into inputs (URLs pasted into the free tools too).
 // - Loaded after the page is idle, from this site's own /_astro/ files, and sent to /ingest/
 //   on darnly.dev (the Worker passes it to PostHog). So it doesn't slow the first paint, the
 //   CSP stays 'self', and ad blockers that block posthog.com don't hide visitors.
@@ -45,13 +45,16 @@
           api_host: '/ingest',
           ui_host: `https://${POSTHOG_REGION}.posthog.com`,
           defaults: '2026-08-30',
-          cookieless_mode: 'always',
+          persistence: 'localStorage',
           person_profiles: 'identified_only',
           capture_pageview: true,
           capture_pageleave: true,
           autocapture: true,
+          // Replays: only after PostHog's "Record user sessions" is switched on in the project.
+          // Typed text is never recorded.
+          disable_session_recording: false,
+          session_recording: { maskAllInputs: true },
           // Off until we choose to use them: each loads more code.
-          disable_session_recording: true,
           disable_surveys: true,
           capture_exceptions: false,
         });
