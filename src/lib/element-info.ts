@@ -10,8 +10,14 @@ export interface ElementInfo {
   component?: string;
   /** React components that drew it, outermost first (dev builds only). */
   components?: string[];
-  /** File (and line) of the nearest component, from React's dev info. */
+  /** File (and line) of the element's own tag, from the framework's dev info (React, Vue or Svelte). */
   source?: string;
+  /** The components around it, outermost first, with where each is placed and defined (dev builds only). */
+  parts?: { name: string; at?: string; file?: string }[];
+  /** Which dev info the names came from. */
+  framework?: string;
+  /** The card, row, section or dialog the element sits in, so the agent knows which use of a shared component it is. */
+  container?: { selector: string; tag: string; label?: string };
   /** Short visible labels inside it ("Voice Tone"), good strings to search the code for. */
   labels?: string[];
   /** Where the user clicked, in CSS pixels. */
@@ -192,11 +198,48 @@ export function similarElements(el: Element): ElementInfo['similar'] {
   }
 }
 
+const CONTAINER_TAGS = new Set(['SECTION', 'ARTICLE', 'LI', 'FORM', 'DIALOG', 'ASIDE', 'NAV', 'HEADER', 'FOOTER', 'TR', 'FIELDSET', 'FIGURE', 'TABLE']);
+const CONTAINER_ROLES = /^(dialog|alertdialog|region|listitem|row|group|tabpanel|article|form|navigation|banner|contentinfo)$/;
+const CONTAINER_CLASS = /card|panel|modal|dialog|drawer|sheet|popover|item|row|tile|section|box|widget|sidebar|toolbar|header|footer|hero|form/i;
+
+/** The heading inside a container ("Pro plan"), or failing that its first short label. */
+function containerLabel(el: Element): string | undefined {
+  const h = el.querySelector('h1,h2,h3,h4,h5,h6,[role=heading],legend,caption,figcaption');
+  const t = h ? visibleText(h) : shortLabels(el, 1)[0];
+  return t ? t.slice(0, 60) : undefined;
+}
+
+/**
+ * The card, row, section or dialog around the element: what tells "the Buy button in the Pro plan card" from
+ * every other use of the same Button. Works on any site (no dev info needed). Nothing when the element is itself a big block.
+ */
+export function containerOf(el: Element): ElementInfo['container'] {
+  const doc = el.ownerDocument;
+  const own = area(el);
+  let node = el.parentElement;
+  for (let i = 0; node && node !== doc.body && node !== doc.documentElement && i < 8; i++, node = node.parentElement) {
+    if (node.tagName === 'MAIN') break;
+    if (area(node) < 2 * own) continue;
+    const role = node.getAttribute('role') ?? '';
+    const looksLike =
+      CONTAINER_TAGS.has(node.tagName) ||
+      CONTAINER_ROLES.test(role) ||
+      TEST_ATTRS.some((a) => node!.hasAttribute(a)) ||
+      stableClasses(node).some((c) => CONTAINER_CLASS.test(c));
+    if (!looksLike) continue;
+    const label = containerLabel(node);
+    return { selector: selectorFor(node), tag: node.tagName.toLowerCase(), ...(label ? { label } : {}) };
+  }
+  return undefined;
+}
+
 export function describeElement(el: Element): ElementInfo {
   const r = el.getBoundingClientRect();
   const similar = similarElements(el);
+  const container = containerOf(el);
   return {
     ...(similar ? { similar } : {}),
+    ...(container ? { container } : {}),
     labels: shortLabels(el),
     selector: selectorFor(el),
     tag: el.tagName.toLowerCase(),

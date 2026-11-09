@@ -147,11 +147,13 @@ export function captureMarkdown(c: CaptureInput): string {
       ...(c.aspect && ASPECT_STYLES[c.aspect].styles.length
         ? [`- current ${c.aspect} (before the fix): ${ASPECT_STYLES[c.aspect].styles.map((k) => `${k}: ${el.styles[k] ?? '?'}`).join('; ')}`]
         : []),
+      ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page)`] : []),
       ...(el.similar ? [`- similar: ${el.similar.count} other element${el.similar.count === 1 ? '' : 's'} on this page match \`${el.similar.selector}\``] : []),
       '',
       ...codeBlock(el.html, 'html'),
       '',
     );
+    lines.push(...codePlaceLines(el));
     if (el.atCursor) {
       const a = el.atCursor;
       lines.push(
@@ -202,6 +204,9 @@ export function captureMarkdown(c: CaptureInput): string {
     ...(c.record && c.element
       ? ['If the bug may depend on data, compare "The data behind this element" with what your code expects (empty, missing or old-format fields, long text, many items), and test with a record shaped like it, not a fresh one.']
       : []),
+    ...(c.element?.parts?.some((p) => p.at && componentName(p.name))
+      ? ['The element comes from a component (see "Where it sits in the code"). Its "placed at" line is this one use: change it there (a prop, a variant or a class) to change only this one. The component\'s own code changes every place it is used.']
+      : []),
     ...(!c.scope && c.element?.similar
       ? ['Other elements on the page are made the same way (see "similar" above). If the note is about how it looks and doesn\'t say "all" or "everywhere", change only this one. If something is broken (it doesn\'t work), fix it where it is made.']
       : []),
@@ -209,6 +214,28 @@ export function captureMarkdown(c: CaptureInput): string {
     ...verifyLines(c),
   );
   return lines.join('\n');
+}
+
+/** A path the page reported, made safe for an inline code span. */
+function codePath(p: string): string {
+  return p.replace(/[`\r\n<>]/g, '').slice(0, 200);
+}
+
+/** The components around the element, outermost first, with where each is placed (React, Svelte 5) and defined (Vue, Svelte). */
+function codePlaceLines(el: ElementInfo): string[] {
+  const parts = (el.parts ?? []).filter((p) => componentName(p.name) && (p.at || p.file));
+  if (!parts.length) return [];
+  const from = el.framework === 'vue' ? 'Vue' : el.framework === 'svelte' ? 'Svelte' : 'React';
+  return [
+    '## Where it sits in the code',
+    `From ${from}'s development info, outermost first. "placed at" is where that component's tag is written (change it there to change only this use); "own file" is the component itself (a change there changes every use).`,
+    ...parts.map((p) => {
+      const bits = [p.at ? `placed at \`${codePath(p.at)}\`` : '', p.file ? `own file \`${codePath(p.file)}\`` : ''].filter(Boolean);
+      return `- \`${p.name}\`: ${bits.join(', ')}`;
+    }),
+    ...(el.source ? [`- the element's own tag: \`${codePath(el.source)}\``] : []),
+    '',
+  ];
 }
 
 /** The user's "change only this one / all like it" and "what to change" choices. Fixed wording only: no page text. */

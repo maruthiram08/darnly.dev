@@ -6,7 +6,7 @@ import { cleanRecordShape, type RecordShape } from '@/lib/record-shape';
 import { cleanSteps, recentSteps, type Step } from '@/lib/steps';
 
 /** Asks the page recorder (if it runs on this site) for its last 60 seconds, and the React component of the picked element. */
-type FromPage = { logs: LogEntry[]; component?: string; components?: string[]; source?: string; record?: RecordShape; steps?: Step[]; recorder: boolean };
+type FromPage = { logs: LogEntry[]; component?: string; components?: string[]; source?: string; parts?: ElementInfo['parts']; framework?: string; record?: RecordShape; steps?: Step[]; recorder: boolean };
 const shortString = (v: unknown, max = 120) => (typeof v === 'string' && v.length <= max ? v : undefined);
 
 function askRecorder(el: Element | null): Promise<FromPage> {
@@ -19,11 +19,11 @@ function askRecorder(el: Element | null): Promise<FromPage> {
       resolve(r);
     };
     const onMessage = (e: MessageEvent) => {
-      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string; components?: unknown; source?: string; record?: unknown; steps?: unknown } | null;
+      const d = e.data as { darnly?: string; id?: string; logs?: LogEntry[]; component?: string; components?: unknown; source?: string; parts?: unknown; framework?: unknown; record?: unknown; steps?: unknown } | null;
       if (e.source === window && d?.darnly === 'logs' && d.id === id) {
         // The page could send anything here, so keep only short strings.
         const components = Array.isArray(d.components) ? d.components.map((c) => shortString(c, 60)).filter((c): c is string => !!c).slice(-4) : undefined;
-        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: shortString(d.component, 60), components, source: shortString(d.source, 200), record: cleanRecordShape(d.record), steps: recentSteps(cleanSteps(d.steps)), recorder: true });
+        done({ logs: Array.isArray(d.logs) ? d.logs.slice(-200) : [], component: shortString(d.component, 60), components, source: shortString(d.source, 200), parts: cleanParts(d.parts), framework: ['react', 'vue', 'svelte', 'attribute'].find((f) => f === d.framework), record: cleanRecordShape(d.record), steps: recentSteps(cleanSteps(d.steps)), recorder: true });
       }
     };
     addEventListener('message', onMessage);
@@ -32,12 +32,27 @@ function askRecorder(el: Element | null): Promise<FromPage> {
   });
 }
 
+/** The page can send anything: keep at most 4 parts, each a short name and short paths. */
+function cleanParts(v: unknown): ElementInfo['parts'] {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.slice(-4).flatMap((p) => {
+    const o = (p ?? {}) as Record<string, unknown>;
+    const name = shortString(o.name, 60);
+    if (!name) return [];
+    const at = shortString(o.at, 200);
+    const file = shortString(o.file, 200);
+    return [{ name, ...(at ? { at } : {}), ...(file ? { file } : {}) }];
+  });
+  return out.length ? out : undefined;
+}
+
 function redactElement(info: ElementInfo): ElementInfo {
   return {
     ...info,
     text: redactText(info.text),
     html: redactText(info.html),
     labels: info.labels?.map(redactText),
+    container: info.container && { ...info.container, label: info.container.label && redactText(info.container.label) },
     atCursor: info.atCursor && { ...info.atCursor, text: redactText(info.atCursor.text), html: redactText(info.atCursor.html), labels: info.atCursor.labels?.map(redactText) },
   };
 }
@@ -112,6 +127,8 @@ function start(): () => void {
     if (element && fromPage.component) element.component = fromPage.component;
     if (element && fromPage.components?.length) element.components = fromPage.components;
     if (element && fromPage.source) element.source = fromPage.source;
+    if (element && fromPage.parts?.length) element.parts = fromPage.parts;
+    if (element && fromPage.framework) element.framework = fromPage.framework;
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await chrome.runtime.sendMessage({
       type: 'element-picked',

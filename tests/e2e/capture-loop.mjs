@@ -129,6 +129,7 @@ try {
   if (!md.includes('**Expected:** Pay now should be clickable')) fail('note missing');
   if (!(png > 1000)) fail('screenshot missing or empty');
   if (!md.includes('- code: `src/components/PayButton.tsx:12` (start here)')) fail('source file missing');
+  if (!md.includes('- `PayButton`: placed at `src/pages/CheckoutPage.tsx:20`')) fail('where the component is placed missing');
   if (!md.includes('- drawn by: `CheckoutPage` > `PayButton`')) fail('component chain missing');
   if (!md.includes('# Bug on /checkout: PayButton')) fail('heading missing');
   if (!md.includes('"Pay now"') || !md.includes('page route: `/checkout`')) fail('search hints missing');
