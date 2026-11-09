@@ -1,6 +1,6 @@
 import type { Env } from './env';
 import { HN_QUERIES, REDDIT_QUERIES, worthJudging } from './queries';
-import { searchHn, searchReddit, type FoundPost } from './sources';
+import { searchHn, searchReddit, searchesForThisRun, type FoundPost } from './sources';
 import { judge } from './judge';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -40,8 +40,11 @@ export async function judgedToday(env: Env): Promise<number> {
 
 /** Turns an API error into one short line for the inbox page. */
 function short(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err);
-  return msg.replace(/\s+/g, ' ').slice(0, 160);
+  let msg = err instanceof Error ? err.message : String(err);
+  // API errors arrive as "400 {json}": keep just the human message.
+  const m = msg.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (m?.[1]) msg = m[1];
+  return msg.replace(/\s+/g, ' ').slice(0, 200);
 }
 
 export interface RunSummary {
@@ -81,7 +84,7 @@ async function judgeWaiting(env: Env): Promise<{ judged: number; error?: string 
 
 export async function runOnce(env: Env): Promise<RunSummary> {
   const sources: [string, () => Promise<FoundPost[]>][] = [
-    ['reddit', () => searchReddit(env, REDDIT_QUERIES)],
+    ['reddit', () => searchReddit(env, searchesForThisRun(REDDIT_QUERIES, Number(env.REDDIT_SEARCHES_PER_RUN ?? 5)))],
     ['hn', () => searchHn(HN_QUERIES)],
   ];
   const before = await countNew(env);

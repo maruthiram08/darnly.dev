@@ -2,7 +2,7 @@
 
 A small private tool that finds Reddit and Hacker News posts where someone is stuck on a UI bug with an AI coding agent, and drafts a helpful reply for you to post yourself.
 
-- Every hour it runs about 20 Reddit searches and 6 Hacker News searches (edit them in `src/queries.ts`).
+- Every hour it runs 5 of its 20 Reddit searches (they take turns, so each runs every 4 hours) and 6 Hacker News searches (edit them in `src/queries.ts`).
 - A cheap word check drops posts that don't name an AI coding tool **and** something visual, so they never cost a Claude call.
 - Claude scores each remaining post from 0 to 10 and, for a fit of 5 or more, drafts a reply under 90 words. The reply answers the question first and names Darnly only when it truly helps, always as "I built a free tool for this".
 - You see them on a private page: **To reply** (fit 6+), **Maybe** (fit 4-5) and **Done**. Copy the draft, edit it, post it from your own account, then press **I replied**.
@@ -105,6 +105,8 @@ Posts appear under **To reply** when Claude finds a good fit. On a quiet day tha
 
 - **Page says "Set the inbox key first"**: step 4 didn't finish. Run it again, then `npx wrangler deploy`.
 - **Claude: no API key yet**: run step 5 again, then `npx wrangler deploy`.
+- **Claude: failing (This API key is not scoped to a workspace…)**: your key belongs to the whole organization, so Claude needs to know which workspace to bill. In the Claude Console open **Settings > Workspaces**, copy the workspace id (it starts with `wrkspc_`), then run `npx wrangler secret put ANTHROPIC_WORKSPACE_ID` and paste it. No redeploy needed; click **Search now** again.
+- **Reddit: failing (Reddit answered 429)**: Reddit allows only a few searches a minute without an API app. Each run makes 5 of the 20 searches in turn (`REDDIT_SEARCHES_PER_RUN`), so wait a few minutes before clicking **Search now** again. If it keeps failing, add a Reddit API app as described below.
 - **Reddit: failing (Reddit answered 403)**: Reddit sometimes blocks requests from Cloudflare's servers. Hacker News keeps working. To fix Reddit, give the finder its own Reddit API app:
   1. Signed in to Reddit, go to https://www.reddit.com/prefs/apps and click **create another app**.
   2. Name `darnly-thread-finder`, choose **script**, redirect uri `http://localhost`, then **create app**. (If Reddit asks you to register for API access first, fill in its form: personal, non-commercial, read-only search.)

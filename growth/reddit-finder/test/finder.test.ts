@@ -1,6 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseHn, parseRedditAtom, plainText } from '../src/sources';
+import { parseHn, parseRedditAtom, plainText, searchesForThisRun } from '../src/sources';
 import { worthJudging, REDDIT_QUERIES } from '../src/queries';
 import { runOnce } from '../src/run';
 import type { Env } from '../src/env';
@@ -58,6 +58,15 @@ describe('parsing', () => {
     expect(worthJudging('Claude Code moved my navbar padding')).toBe(true);
     expect(worthJudging('Cursor pricing changed again')).toBe(false);
     expect(worthJudging('My CSS grid is broken')).toBe(false);
+  });
+
+  it('takes turns through the Reddit searches, 5 an hour', () => {
+    const all = Array.from({ length: 20 }, (_, i) => `q${i}`);
+    const hour = 3_600_000;
+    expect(searchesForThisRun(all, 5, 0)).toEqual(['q0', 'q1', 'q2', 'q3', 'q4']);
+    expect(searchesForThisRun(all, 5, hour)).toEqual(['q5', 'q6', 'q7', 'q8', 'q9']);
+    expect(searchesForThisRun(all, 5, 4 * hour)).toEqual(['q0', 'q1', 'q2', 'q3', 'q4']);
+    expect(searchesForThisRun(all, 50, 0)).toHaveLength(20);
   });
 
   it('has about 20 Reddit searches', () => expect(REDDIT_QUERIES.length).toBeGreaterThanOrEqual(15));
@@ -150,7 +159,8 @@ describe('inbox', () => {
     expect(res.status).toBe(303);
     const note = decodeURIComponent(new URL(res.headers.get('location') ?? '', BASE).searchParams.get('note') ?? '');
     expect(note).toContain('Found 1 new posts. 1 mention an AI coding tool and something visual. Claude checked 0.');
-    expect(note).toContain('credit balance is too low');
+    expect(note).toContain('Claude failed: Your credit balance is too low');
+    expect(note).not.toContain('invalid_request_error');
     const html = await (await SELF.fetch(`${BASE}/`, { headers: { cookie } })).text();
     expect(html).toContain('Claude: <b>failing</b>');
     expect(html).toContain('credit balance is too low');
