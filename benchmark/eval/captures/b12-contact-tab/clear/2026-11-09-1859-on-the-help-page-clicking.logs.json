@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:36155/help",
+  "entries": [
+    {
+      "t": 1794250736306,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:36155/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "url": "http://localhost:40645/settings",
+  "entries": [
+    {
+      "t": 1794250777534,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:40645/favicon.ico",
+      "source": "browser"
+    },
+    {
+      "t": 1794250778099,
+      "kind": "rejection",
+      "message": "Unhandled promise rejection: Error: POST /api/settings/notifications failed with 404",
+      "stack": "Error: POST /api/settings/notifications failed with 404\n    at postJson (http://localhost:40645/src/lib/api.ts:12:22)\n    at async onSubmit (http://localhost:40645/src/pages/SettingsPage.tsx:97:13)",
+      "source": "page"
+    },
+    {
+      "t": 1794250778099,
+      "kind": "request",
+      "method": "POST",
+      "status": 404,
+      "ms": 11,
+      "url": "http://localhost:40645/api/settings/notifications",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    }
+  ]
+}
