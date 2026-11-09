@@ -1,0 +1,28 @@
+// Darnly thread finder: searches Reddit and Hacker News every hour for people stuck on
+// UI bugs with AI coding agents, asks Claude to score each post and draft a reply,
+// and shows them on a private inbox page. It never posts anything. See README.md.
+{
+  "name": "darnly-thread-finder",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Create with: npx wrangler d1 create darnly-thread-finder, then paste the id it prints here.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "darnly-thread-finder", "database_id": "PASTE-DATABASE-ID-HERE", "migrations_dir": "migrations" }
+  ],
+  // Every hour at minute 23.
+  "triggers": { "crons": ["23 * * * *"] },
+  // Served at https://darnly-thread-finder.<your-subdomain>.workers.dev. The page asks for INBOX_KEY.
+  "workers_dev": true,
+  "keep_vars": true,
+  "vars": {
+    // The Claude model that scores posts and drafts replies.
+    "MODEL": "claude-opus-5-5",
+    // Your Reddit username (without u/), so your own posts are skipped.
+    "REDDIT_USERNAME": "",
+    // Spend caps: Claude looks at no more than this many posts per hourly run, and per day.
+    "MAX_JUDGE_PER_RUN": "6",
+    "MAX_JUDGE_PER_DAY": "30"
+  },
+  "observability": { "enabled": true }
+}
