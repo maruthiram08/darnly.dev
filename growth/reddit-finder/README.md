@@ -2,16 +2,17 @@
 
 A small private tool that finds Reddit and Hacker News posts where someone is stuck on a UI bug with an AI coding agent, and drafts a helpful reply for you to post yourself.
 
-- Every hour it runs 5 of its 20 Reddit searches (they take turns, so each runs every 4 hours) and 6 Hacker News searches (edit them in `src/queries.ts`).
-- A cheap word check drops posts that don't name an AI coding tool **and** something visual, so they never cost a Claude call.
-- Claude scores each remaining post from 0 to 10 and, for a fit of 5 or more, drafts a reply under 90 words. The reply answers the question first and names Darnly only when it truly helps, always as "I built a free tool for this".
-- You see them on a private page: **To reply** (fit 6+), **Maybe** (fit 4-5) and **Done**. Copy the draft, edit it, post it from your own account, then press **I replied**.
+- Every hour it runs 5 of its 18 Reddit searches (they take turns, so each runs every 4 hours) and 8 Hacker News searches (edit them in `src/queries.ts`). Most Reddit searches look inside the AI coding communities (r/ClaudeAI, r/ClaudeCode, r/cursor, r/vibecoding, r/lovable, r/ChatGPTCoding, r/replit).
+- It looks back `LOOKBACK_DAYS` days (30 now, set in `wrangler.jsonc`). A post is only ever checked once.
+- A cheap word check drops posts that don't name an AI coding tool (or come from one of those communities) **and** something visual or a bug, so they never cost a Claude call.
+- Claude scores each remaining post from 0 to 10 and, for a fit of 4 or more, drafts a reply under 90 words. The reply answers the question first and names Darnly only when it truly helps, always as "I built a free tool for this".
+- You see them on a private page: **To reply** (fit 6+), **Maybe** (fit 4-5), **Done**, and **Not a fit** (fit 0-3, with Claude's reason, so you can check it isn't too strict). Copy the draft, edit it, post it from your own account, then press **I replied**.
 - **It never posts anything.** It only reads public search results.
 
 ## What it costs
 
 - Cloudflare: nothing extra (one Worker, one small D1 database, one hourly cron).
-- Claude: Claude looks at no more than 20 posts per hour and 150 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). On Claude Opus 5.5 that's roughly 1 to 2 cents a post. Most days far fewer posts pass the word check, so the real cost is a few cents to a dollar a day. To spend less, set `MODEL` to `claude-haiku-5-5`, which costs well under $1 a month.
+- Claude: Claude looks at no more than 25 posts per hour and 200 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). On Claude Opus 5.5 that's roughly 1 to 2 cents a post. Most days far fewer posts pass the word check, so the real cost is a few cents to a dollar a day. To spend less, set `MODEL` to `claude-haiku-5-5`, which costs well under $1 a month.
 - Set a monthly spend limit in the Claude Console as well (step 5), so the bill can never surprise you.
 
 ## Set it up (about 15 minutes, on your Mac)
@@ -97,7 +98,7 @@ npx wrangler deploy
 2. Press **Search now**, wait a minute, then refresh the page.
 3. Look at the pills at the top:
    - **Reddit: working** and **Hacker News: working** mean the searches ran.
-   - **Claude: N/150 posts checked today** means Claude is scoring posts.
+   - **Claude: N/200 posts checked today** means Claude is scoring posts.
 
 Posts appear under **To reply** when Claude finds a good fit. On a quiet day that may be zero, which is normal. Check **Maybe** too.
 

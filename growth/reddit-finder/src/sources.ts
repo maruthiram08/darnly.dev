@@ -1,4 +1,5 @@
 import type { Env } from './env';
+import type { RedditSearch } from './queries';
 
 export interface FoundPost {
   id: string;
@@ -15,7 +16,13 @@ export interface FoundPost {
 /** Reddit asks every client for a descriptive User-Agent. */
 export const USER_AGENT = 'web:darnly-thread-finder:0.1 (personal read-only search for darnly.dev)';
 
-const WEEK = 7 * 24 * 3600;
+const DAY = 24 * 3600;
+
+/** How far back to look, in days (LOOKBACK_DAYS, default 7). */
+export function lookbackDays(env: Pick<Env, 'LOOKBACK_DAYS'>): number {
+  const n = Number(env.LOOKBACK_DAYS);
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, 30) : 7;
+}
 
 /** Strips HTML tags and decodes the handful of entities Reddit and HN use. */
 export function plainText(html: string): string {
@@ -102,27 +109,31 @@ async function redditToken(env: Env): Promise<string | null> {
 }
 
 /** Runs every Reddit search. Uses the Reddit API when an app is set up, else the public feed. */
-export async function searchReddit(env: Env, queries: string[]): Promise<FoundPost[]> {
+export async function searchReddit(env: Env, searches: RedditSearch[]): Promise<FoundPost[]> {
   const token = await redditToken(env);
+  const days = lookbackDays(env);
   const posts: FoundPost[] = [];
   let failures = 0;
   let lastError = '';
-  for (const q of queries) {
-    const params = new URLSearchParams({ q, sort: 'new', t: 'week', limit: '25', type: 'link' });
+  for (const s of searches) {
+    const params = new URLSearchParams({ q: s.q, sort: 'new', t: days > 7 ? 'month' : 'week', limit: days > 7 ? '100' : '25', type: 'link' });
+    if (s.subs) params.set('restrict_sr', 'on');
+    const path = s.subs ? `/r/${s.subs}/search` : '/search';
     const res = token
-      ? await fetch(`https://oauth.reddit.com/search?${params}&raw_json=1`, { headers: { authorization: `Bearer ${token}`, 'user-agent': USER_AGENT } })
-      : await fetch(`https://www.reddit.com/search.rss?${params}`, { headers: { 'user-agent': USER_AGENT, accept: 'application/atom+xml' } });
+      ? await fetch(`https://oauth.reddit.com${path}?${params}&raw_json=1`, { headers: { authorization: `Bearer ${token}`, 'user-agent': USER_AGENT } })
+      : await fetch(`https://www.reddit.com${path}.rss?${params}`, { headers: { 'user-agent': USER_AGENT, accept: 'application/atom+xml' } });
     if (!res.ok) {
       failures++;
       lastError = `Reddit answered ${res.status}${res.status === 403 || res.status === 429 ? ' (blocked or rate limited)' : ''}`;
       if (res.status === 403 || res.status === 429) break; // blocked or over the limit: the other searches will be too
       continue;
     }
-    posts.push(...(token ? parseRedditJson((await res.json()) as RedditListing, q) : parseRedditAtom(await res.text(), q)));
+    const label = s.subs ? `${s.q} [AI communities]` : s.q;
+    posts.push(...(token ? parseRedditJson((await res.json()) as RedditListing, label) : parseRedditAtom(await res.text(), label)));
   }
   if (failures > 0 && posts.length === 0) throw new Error(lastError);
-  const weekAgo = Date.now() / 1000 - WEEK;
-  return posts.filter((p) => p.postedAt >= weekAgo);
+  const since = Date.now() / 1000 - days * DAY;
+  return posts.filter((p) => p.postedAt >= since);
 }
 
 interface HnHit {
@@ -151,11 +162,11 @@ export function parseHn(body: { hits?: HnHit[] }, query: string): FoundPost[] {
 }
 
 /** Hacker News search through Algolia's free public API (no key needed). */
-export async function searchHn(queries: string[]): Promise<FoundPost[]> {
-  const since = Math.floor(Date.now() / 1000) - WEEK;
+export async function searchHn(queries: string[], days = 7): Promise<FoundPost[]> {
+  const since = Math.floor(Date.now() / 1000) - days * DAY;
   const posts: FoundPost[] = [];
   for (const q of queries) {
-    const params = new URLSearchParams({ query: q, tags: '(story,comment)', numericFilters: `created_at_i>${since}`, hitsPerPage: '20' });
+    const params = new URLSearchParams({ query: q, tags: '(story,comment)', numericFilters: `created_at_i>${since}`, hitsPerPage: days > 7 ? '50' : '20' });
     const res = await fetch(`https://hn.algolia.com/api/v1/search_by_date?${params}`, { headers: { 'user-agent': USER_AGENT } });
     if (!res.ok) throw new Error(`Hacker News search answered ${res.status}`);
     posts.push(...parseHn((await res.json()) as { hits?: HnHit[] }, q));
@@ -165,9 +176,9 @@ export async function searchHn(queries: string[]): Promise<FoundPost[]> {
 
 /**
  * Reddit allows only a few searches a minute without an API app, so each run takes
- * the next few searches in turn. With 20 searches and 5 a run, each one runs every 4 hours.
+ * the next few searches in turn. With 18 searches and 5 a run, each one runs every 4 hours.
  */
-export function searchesForThisRun(all: string[], perRun: number, at = Date.now()): string[] {
+export function searchesForThisRun<T>(all: T[], perRun: number, at = Date.now()): T[] {
   if (perRun >= all.length) return all;
   const groups = Math.ceil(all.length / perRun);
   const g = Math.floor(at / 3_600_000) % groups;

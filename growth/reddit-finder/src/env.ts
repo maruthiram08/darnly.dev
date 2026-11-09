@@ -16,4 +16,6 @@ export interface Env {
   MAX_JUDGE_PER_DAY: string;
   /** How many Reddit searches each run makes. They take turns, so all of them run every few hours without hitting Reddit's limit. */
   REDDIT_SEARCHES_PER_RUN?: string;
+  /** How many days back to search (7 or up to 30). Posts already seen are never checked twice. */
+  LOOKBACK_DAYS?: string;
 }
