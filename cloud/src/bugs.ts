@@ -15,7 +15,12 @@ export const LIMITS = {
 
 export interface BugSummary {
   id: string;
+  /** The AI title when there is one (titles.ts), otherwise the first line of the user's note. */
   title: string;
+  /** The first line of the user's own note, as they typed it. */
+  noteTitle: string;
+  /** One sentence Claude wrote about the bug (null when AI titles are off or not written yet). */
+  aiSummary: string | null;
   pageUrl: string;
   site: string;
   status: 'waiting' | 'fixed';
@@ -50,9 +55,11 @@ interface BugRow {
   question: string | null;
   question_at: number | null;
   project: string | null;
+  ai_title: string | null;
+  ai_summary: string | null;
 }
 
-const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at, project';
+const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at, project, ai_title, ai_summary';
 
 const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, project';
 
@@ -70,7 +77,9 @@ function liveClaim(row: BugRow, now = Date.now()): boolean {
 function summary(row: BugRow): BugSummary {
   return {
     id: row.id,
-    title: row.title,
+    title: row.ai_title || row.title,
+    noteTitle: row.title,
+    aiSummary: row.ai_title ? row.ai_summary : null,
     pageUrl: row.page_url,
     site: row.site,
     status: row.status,
@@ -203,9 +212,14 @@ async function bugByClientId(env: Env, userId: string, clientId: string): Promis
 }
 
 export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<BugSummary> {
+  return (await saveNewBug(env, userId, bug)).bug;
+}
+
+/** Saves a bug. isNew is false when this capture was already saved (a repeated upload). */
+export async function saveNewBug(env: Env, userId: string, bug: NewBug): Promise<{ bug: BugSummary; isNew: boolean }> {
   if (bug.clientId) {
     const seen = await bugByClientId(env, userId, bug.clientId);
-    if (seen) return summary(seen);
+    if (seen) return { bug: summary(seen), isNew: false };
   }
   const now = Date.now();
   const bytes = bug.report.length + (bug.picture?.byteLength ?? 0) + (bug.reference?.byteLength ?? 0) + (bug.steps?.byteLength ?? 0) + (bug.logs?.length ?? 0);
@@ -246,6 +260,8 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     question: null,
     question_at: null,
     project: bug.project ?? null,
+    ai_title: null,
+    ai_summary: null,
   };
   try {
     await env.DB.prepare(
@@ -258,9 +274,9 @@ export async function saveBug(env: Env, userId: string, bug: NewBug): Promise<Bu
     const seen = bug.clientId ? await bugByClientId(env, userId, bug.clientId) : null;
     if (!seen) throw e;
     await env.FILES.delete(FILE_NAMES.map((f) => prefix + f));
-    return summary(seen);
+    return { bug: summary(seen), isNew: false };
   }
-  return summary(row);
+  return { bug: summary(row), isNew: true };
 }
 
 /** A project name as the panel saves it: lowercase letters, digits, dots, dashes and underscores. */

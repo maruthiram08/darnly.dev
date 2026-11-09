@@ -84,3 +84,11 @@ export async function readJson<T>(req: Request, maxBytes = 16_000): Promise<T> {
 export function clip(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
+
+/** Bytes as standard base64 (for images sent to agents and to Claude). */
+export function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}

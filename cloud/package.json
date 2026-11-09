@@ -17,6 +17,7 @@
     "wrangler": "4.151.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.7.0",
     "@cloudflare/workers-oauth-provider": "1.2.2"
   }
 }
