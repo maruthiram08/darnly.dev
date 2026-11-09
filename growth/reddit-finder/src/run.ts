@@ -1,6 +1,6 @@
 import type { Env } from './env';
 import { HN_QUERIES, REDDIT_QUERIES, worthJudging } from './queries';
-import { searchHn, searchReddit, searchesForThisRun, type FoundPost } from './sources';
+import { lookbackDays, searchHn, searchReddit, searchesForThisRun, type FoundPost } from './sources';
 import { judge } from './judge';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -21,7 +21,7 @@ async function save(env: Env, posts: FoundPost[]): Promise<number> {
   );
   const results = await env.DB.batch(
     fresh.map((p) =>
-      stmt.bind(p.id, p.source, p.url, p.title, p.body, p.community, p.author, p.postedAt, now(), p.query, worthJudging(`${p.title}\n${p.body}`) ? 'new' : 'skipped'),
+      stmt.bind(p.id, p.source, p.url, p.title, p.body, p.community, p.author, p.postedAt, now(), p.query, worthJudging(`${p.title}\n${p.body}`, p.community) ? 'new' : 'skipped'),
     ),
   );
   return results.reduce((n, r) => n + (r.meta.changes ?? 0), 0);
@@ -85,7 +85,7 @@ async function judgeWaiting(env: Env): Promise<{ judged: number; error?: string 
 export async function runOnce(env: Env): Promise<RunSummary> {
   const sources: [string, () => Promise<FoundPost[]>][] = [
     ['reddit', () => searchReddit(env, searchesForThisRun(REDDIT_QUERIES, Number(env.REDDIT_SEARCHES_PER_RUN ?? 5)))],
-    ['hn', () => searchHn(HN_QUERIES)],
+    ['hn', () => searchHn(HN_QUERIES, lookbackDays(env))],
   ];
   const before = await countNew(env);
   let found = 0;

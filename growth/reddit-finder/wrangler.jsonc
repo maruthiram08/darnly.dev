@@ -21,11 +21,13 @@
     // Your Reddit username (without u/), so your own posts are skipped.
     "REDDIT_USERNAME": "munta008",
     // Spend caps: Claude looks at no more than this many posts per hourly run, and per day.
-    "MAX_JUDGE_PER_RUN": "20",
-    "MAX_JUDGE_PER_DAY": "150",
-    // Reddit searches per hourly run. They take turns (20 searches, 5 a run = each every 4 hours),
+    "MAX_JUDGE_PER_RUN": "25",
+    "MAX_JUDGE_PER_DAY": "200",
+    // Reddit searches per hourly run. They take turns (18 searches, 5 a run = each every 4 hours),
     // because Reddit answers 429 to more than a few searches a minute without an API app.
-    "REDDIT_SEARCHES_PER_RUN": "5"
+    "REDDIT_SEARCHES_PER_RUN": "5",
+    // How many days back to search: 7 normally, up to 30 for a one-time look back.
+    "LOOKBACK_DAYS": "30"
   },
   "observability": { "enabled": true }
 }

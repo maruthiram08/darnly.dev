@@ -1,6 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseHn, parseRedditAtom, plainText, searchesForThisRun } from '../src/sources';
+import { parseHn, parseRedditAtom, plainText, searchReddit, searchesForThisRun } from '../src/sources';
 import { worthJudging, REDDIT_QUERIES } from '../src/queries';
 import { runOnce } from '../src/run';
 import type { Env } from '../src/env';
@@ -58,10 +58,13 @@ describe('parsing', () => {
     expect(worthJudging('Claude Code moved my navbar padding')).toBe(true);
     expect(worthJudging('Cursor pricing changed again')).toBe(false);
     expect(worthJudging('My CSS grid is broken')).toBe(false);
+    // Inside an AI coding community the tool is implied.
+    expect(worthJudging('My CSS grid is broken', 'ClaudeCode')).toBe(true);
+    expect(worthJudging('Pricing changed again', 'cursor')).toBe(false);
   });
 
   it('takes turns through the Reddit searches, 5 an hour', () => {
-    const all = Array.from({ length: 20 }, (_, i) => `q${i}`);
+    const all: string[] = Array.from({ length: 20 }, (_, i) => `q${i}`);
     const hour = 3_600_000;
     expect(searchesForThisRun(all, 5, 0)).toEqual(['q0', 'q1', 'q2', 'q3', 'q4']);
     expect(searchesForThisRun(all, 5, hour)).toEqual(['q5', 'q6', 'q7', 'q8', 'q9']);
@@ -70,6 +73,21 @@ describe('parsing', () => {
   });
 
   it('has about 20 Reddit searches', () => expect(REDDIT_QUERIES.length).toBeGreaterThanOrEqual(15));
+
+  it('searches the AI coding communities and looks back 30 days', async () => {
+    const urls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      urls.push(String(input instanceof Request ? input.url : input));
+      return new Response(atom([{ id: 't3_a', title: 'Layout broke', body: 'css', sub: 'ClaudeCode', author: 'a', at: now - 20 * 86400 }]));
+    });
+    const posts = await searchReddit({ LOOKBACK_DAYS: '30' } as Env, [{ q: 'css', subs: 'ClaudeAI+ClaudeCode' }, { q: 'cursor css' }]);
+    expect(urls[0]).toMatch(/^https:\/\/www\.reddit\.com\/r\/ClaudeAI\+ClaudeCode\/search\.rss\?.*restrict_sr=on/);
+    expect(urls[0]).toContain('t=month');
+    expect(urls[1]).toMatch(/^https:\/\/www\.reddit\.com\/search\.rss\?/);
+    expect(posts).toHaveLength(2);
+    const week = await searchReddit({} as Env, [{ q: 'css' }]);
+    expect(week).toHaveLength(0); // 20 days old is outside the default week
+  });
 });
 
 describe('inbox', () => {
@@ -88,13 +106,13 @@ describe('inbox', () => {
   it('finds, judges, shows and files posts end to end', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input instanceof Request ? input.url : input);
-      if (url.startsWith('https://www.reddit.com/search.rss')) {
+      if (url.startsWith('https://www.reddit.com/') && url.includes('search.rss')) {
         return new Response(
           atom([
             { id: 't3_fit', title: 'How do I show Claude Code which button is broken?', body: 'It keeps changing the wrong element', sub: 'ClaudeAI', author: 'alex', at: now - 600 },
             { id: 't3_off', title: 'Cursor raised prices', body: 'ugh', sub: 'cursor', author: 'bo', at: now - 600 },
             { id: 't3_mine', title: 'Claude Code css question', body: 'layout', sub: 'ClaudeAI', author: 'Maruthi', at: now - 600 },
-            { id: 't3_old', title: 'Claude Code css question', body: 'layout', sub: 'ClaudeAI', author: 'old', at: now - 30 * 86400 },
+            { id: 't3_old', title: 'Claude Code css question', body: 'layout', sub: 'ClaudeAI', author: 'old', at: now - 45 * 86400 },
           ]),
         );
       }
@@ -120,7 +138,7 @@ describe('inbox', () => {
     expect(html).toContain('How do I show Claude Code which button is broken?');
     expect(html).toContain('Fit 9/10');
     expect(html).toContain('Reddit: <b>working</b>');
-    expect(html).toContain('1/150 posts checked today');
+    expect(html).toContain('1/200 posts checked today');
 
     const done = await SELF.fetch(`${BASE}/post/${encodeURIComponent('reddit:t3_fit')}/replied`, { method: 'POST', headers: { cookie }, body: new URLSearchParams({ tab: 'reply' }), redirect: 'manual' });
     expect(done.headers.get('location')).toBe('/?tab=reply');
@@ -145,7 +163,7 @@ describe('inbox', () => {
   it('shows why Claude failed and runs Search now while the browser waits', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input instanceof Request ? input.url : input);
-      if (url.startsWith('https://www.reddit.com/search.rss')) {
+      if (url.startsWith('https://www.reddit.com/') && url.includes('search.rss')) {
         return new Response(atom([{ id: 't3_err', title: 'Cursor broke my navbar layout', body: 'help', sub: 'cursor', author: 'cy', at: now - 60 }]));
       }
       if (url.startsWith('https://hn.algolia.com/')) return Response.json({ hits: [] });

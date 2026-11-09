@@ -30,6 +30,7 @@ export const TABS = {
   reply: { label: 'To reply', where: `status = 'judged' AND fit >= 6` },
   maybe: { label: 'Maybe', where: `status = 'judged' AND fit BETWEEN 4 AND 5` },
   done: { label: 'Done', where: `status IN ('replied', 'dismissed')` },
+  no: { label: 'Not a fit', where: `status = 'judged' AND fit <= 3` },
 } as const;
 export type Tab = keyof typeof TABS;
 
@@ -132,7 +133,7 @@ const COPY_JS = `<script>document.addEventListener('click',async e=>{const b=e.t
 
 export async function inboxPage(env: Env, tab: Tab, notice?: string): Promise<Response> {
   const [{ results: rows }, { results: runs }, today, counts] = await Promise.all([
-    env.DB.prepare(`SELECT * FROM posts WHERE ${TABS[tab].where} ORDER BY ${tab === 'done' ? 'judged_at DESC' : 'fit DESC, posted_at DESC'} LIMIT 50`).all<Row>(),
+    env.DB.prepare(`SELECT * FROM posts WHERE ${TABS[tab].where} ORDER BY ${tab === 'done' || tab === 'no' ? 'judged_at DESC' : 'fit DESC, posted_at DESC'} LIMIT 50`).all<Row>(),
     env.DB.prepare('SELECT * FROM runs ORDER BY at DESC, rowid DESC LIMIT 20').all<RunRow>(),
     judgedToday(env),
     Promise.all((Object.keys(TABS) as Tab[]).map(async (t) => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM posts WHERE ${TABS[t].where}`).first<{ n: number }>())?.n ?? 0)),
