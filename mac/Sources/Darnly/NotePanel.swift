@@ -1,4 +1,5 @@
 import AppKit
+import DarnlyCore
 
 /// What the user typed, plus an optional picture of what they want.
 struct NoteResult {
@@ -7,6 +8,10 @@ struct NoteResult {
     var reference: Data?
     /// The cloud project the bug goes under (cloud inbox only).
     var project: String?
+    /// "Only this one" / "All like it", if the user picked one.
+    var scope: ChangeScope? = nil
+    /// Spacing / Colour / Size / Text, if the user picked one.
+    var aspect: ChangeAspect? = nil
 }
 
 /// The note box. Pasting or dropping a picture adds it as "what it should look like"; text pastes as text.
@@ -47,6 +52,8 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
     private var textView: NoteTextView?
     private var referenceLabel: NSTextField?
     private var projectField: NSTextField?
+    private var scopeControl: NSSegmentedControl?
+    private var aspectControl: NSSegmentedControl?
     private var reference: Data?
     private var completion: ((NoteResult?) -> Void)?
 
@@ -156,6 +163,15 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         let ref = label("")
         stack.addArrangedSubview(ref)
 
+        // Optional chips, like the extension's: answers "just here, or everywhere?" before the agent asks.
+        let scope = chips(["Only this one", "All like it"], tip: "Optional. Only this one: leave others that share its style alone. All like it: change the shared component or style.")
+        let aspect = chips(["Spacing", "Colour", "Size", "Text"], tip: "Optional. What kind of change you want.")
+        let chipsRow = NSStackView(views: [scope, aspect])
+        chipsRow.spacing = 8
+        stack.addArrangedSubview(chipsRow)
+        scopeControl = scope
+        aspectControl = aspect
+
         if let project {
             // Cloud inbox: the project this bug goes under, guessed once and remembered per app. Editing is optional.
             let field = NSTextField(string: project)
@@ -190,11 +206,36 @@ final class NotePanel: NSObject, NSTextViewDelegate, NSWindowDelegate {
         return stack
     }
 
+    /// A row of toggles where at most one is on (click it again to turn it off).
+    private func chips(_ titles: [String], tip: String) -> NSSegmentedControl {
+        let c = NSSegmentedControl(labels: titles, trackingMode: .selectOne, target: self, action: #selector(chipClicked(_:)))
+        c.selectedSegment = -1
+        c.tag = -1 // the segment that was on before this click
+        c.segmentStyle = .rounded
+        c.controlSize = .small
+        c.font = .systemFont(ofSize: 11)
+        c.toolTip = tip
+        return c
+    }
+
+    @objc private func chipClicked(_ sender: NSSegmentedControl) {
+        // Clicking the chip that is already on turns it off, so none is the default and can come back.
+        if sender.selectedSegment == sender.tag { sender.selectedSegment = -1 }
+        sender.tag = sender.selectedSegment
+    }
+
+    private static func chosen(_ c: NSSegmentedControl?) -> Int? {
+        guard let c, c.selectedSegment >= 0 else { return nil }
+        return c.selectedSegment
+    }
+
     @objc private func saveClicked() { finish(currentResult()) }
     @objc private func cancelClicked() { finish(nil) }
 
     private func currentResult() -> NoteResult {
-        NoteResult(note: textView?.string ?? "", reference: reference, project: projectField?.stringValue)
+        NoteResult(note: textView?.string ?? "", reference: reference, project: projectField?.stringValue,
+                   scope: Self.chosen(scopeControl).map { $0 == 0 ? .this : .all },
+                   aspect: Self.chosen(aspectControl).map { ChangeAspect.allCases[$0] })
     }
 
     private func setReference(_ image: NSImage) {

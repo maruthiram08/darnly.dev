@@ -52,7 +52,8 @@ enum Screenshot {
     }
 
     /// Draws the red box (element) and a ring (where the user clicked). Rects and points are in window points, top-left origin.
-    static func mark(_ image: CGImage, windowSize: CGSize, box: CGRect?, click: CGPoint?) -> Data? {
+    /// With several boxes (Shift+click), each gets its number in a small red tag, matching "Element 1", "Element 2"… in the report.
+    static func mark(_ image: CGImage, windowSize: CGSize, boxes: [CGRect], click: CGPoint?) -> Data? {
         let w = image.width, h = image.height
         guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
@@ -61,10 +62,21 @@ enum Screenshot {
         // CGContext has a bottom-left origin.
         func flip(_ r: CGRect) -> CGRect { CGRect(x: r.minX * sx, y: CGFloat(h) - r.maxY * sy, width: r.width * sx, height: r.height * sy) }
         let red = CGColor(red: 0.88, green: 0.11, blue: 0.28, alpha: 1)
-        if let box {
+        for (i, box) in boxes.enumerated() {
+            let r = flip(box).insetBy(dx: -2 * sx, dy: -2 * sy)
             ctx.setStrokeColor(red)
             ctx.setLineWidth(max(3, 3 * sx))
-            ctx.stroke(flip(box).insetBy(dx: -2 * sx, dy: -2 * sy))
+            ctx.stroke(r)
+            guard boxes.count > 1 else { continue }
+            // The number in a red tag on the box's top-left corner (CG's top is maxY).
+            let text = NSAttributedString(string: "\(i + 1)", attributes: [.font: NSFont.systemFont(ofSize: 12 * sx, weight: .bold), .foregroundColor: NSColor.white])
+            let line = CTLineCreateWithAttributedString(text)
+            let tw = CTLineGetTypographicBounds(line, nil, nil, nil)
+            let tag = CGRect(x: r.minX, y: min(r.maxY, CGFloat(h) - 18 * sy), width: CGFloat(tw) + 10 * sx, height: 18 * sy)
+            ctx.setFillColor(red)
+            ctx.fill(tag)
+            ctx.textPosition = CGPoint(x: tag.minX + 5 * sx, y: tag.minY + 5 * sy)
+            CTLineDraw(line, ctx)
         }
         if let click {
             let r = 9 * sx

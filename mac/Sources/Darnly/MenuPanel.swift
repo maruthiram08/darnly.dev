@@ -5,8 +5,10 @@ import DarnlyCore
 /// What the menu bar panel shows. The app delegate fills it in and owns the real actions.
 final class PanelModel: ObservableObject {
     struct Notice {
+        enum Style { case warning, question }
         var text: String
         var button: String
+        var style = Style.warning
         var action: () -> Void
     }
 
@@ -16,6 +18,8 @@ final class PanelModel: ObservableObject {
     /// Whether the folder's agent already knows about .darnly/inbox (nil: no folder yet).
     @Published var agentReady: Bool?
     @Published var waiting = 0
+    /// Bugs the agent fixed since the user last looked: "Take a look" card until they press Done.
+    @Published var justFixed: [RecentBug] = []
     @Published var recent: [(bug: RecentBug, state: RecentBugs.State)] = []
     /// A message above the Capture button, such as a missing permission or a new version.
     @Published var notice: Notice?
@@ -31,6 +35,7 @@ final class PanelModel: ObservableObject {
     var showHelp: () -> Void = {}
     var showMore: () -> Void = {}
     var quit: () -> Void = {}
+    var dismissFixed: () -> Void = {}
 
     /// The panel with a folder (or the cloud) set up and a few bugs, for `--snapshot`.
     static func sample(cloud: Bool) -> PanelModel {
@@ -41,13 +46,17 @@ final class PanelModel: ObservableObject {
         m.folderName = "my-app"
         m.cloudEmail = cloud ? "you@example.com" : nil
         m.agentReady = true
-        m.waiting = cloud ? 0 : 2
+        m.waiting = cloud ? 1 : 2
         let bugs: [(String, String, TimeInterval, RecentBugs.State)] = [
-            ("Save plan button does nothing", "Maccy", 120, cloud ? .cloud : .waiting),
-            ("Price shows $0 after refresh", "Simulator", 3_000, cloud ? .cloud : .waiting),
+            ("Save plan button does nothing", "Maccy", 120, cloud ? .asked : .waiting),
+            ("Price shows $0 after refresh", "Simulator", 3_000, cloud ? .fixed : .waiting),
             ("Sidebar overlaps the header", "Darnly Notes", 90_000, cloud ? .cloud : .fixed),
         ]
         m.recent = bugs.map { (RecentBug(title: $0.0, app: $0.1, date: base.addingTimeInterval(-$0.2)), $0.3) }
+        if cloud {
+            m.notice = .init(text: "Your agent is waiting for your input: \"Should the button stay blue?\" Return to your agent.", button: "Got it", style: .question) {}
+        }
+        m.justFixed = [m.recent[cloud ? 1 : 2].bug]
         return m
     }
 }
@@ -70,7 +79,7 @@ struct PanelView: View {
 
             if let notice = model.notice {
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color.pink)
+                    Image(systemName: notice.style == .question ? "bubble.left.fill" : "exclamationmark.circle.fill").foregroundStyle(Color.pink)
                     Text(notice.text).font(.callout).foregroundStyle(Color.ink).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
                     Button(notice.button, action: notice.action).controlSize(.small)
@@ -78,6 +87,30 @@ struct PanelView: View {
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color.pink.opacity(0.08)))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.pink.opacity(0.35)))
+            }
+
+            if !model.justFixed.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.green700)
+                        Text(Loop.fixedMessage(model.justFixed)).font(.callout.weight(.medium)).foregroundStyle(Color.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 4)
+                        Button("Done", action: model.dismissFixed).controlSize(.small)
+                    }
+                    if model.justFixed.count > 1 {
+                        ForEach(Array(model.justFixed.prefix(3).enumerated()), id: \.offset) { _, bug in
+                            Button { model.openBug(bug) } label: {
+                                Text("• " + bug.title).font(.caption).foregroundStyle(Color.inkSoft).lineLimit(1)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(bug.file == nil)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.green100.opacity(0.6)))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green700.opacity(0.35)))
             }
 
             Button(action: model.capture) {
@@ -134,7 +167,7 @@ struct PanelView: View {
                 }
             }
 
-            card("Recent bugs", trailing: model.destination == .folder && model.waiting > 0 ? "\(model.waiting) waiting" : nil) {
+            card("Recent bugs", trailing: model.waiting > 0 ? "\(model.waiting) waiting" : nil) {
                 if model.recent.isEmpty {
                     Text("Nothing captured yet. Press ⌥⇧D over any app window, click what's wrong, and say what you expected.")
                         .font(.callout).foregroundStyle(Color.inkSoft)
@@ -187,13 +220,14 @@ struct PanelView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(state == .cloud || state == .missing)
+        .disabled(bug.file == nil || state == .missing)
     }
 
     private func chip(_ state: RecentBugs.State) -> some View {
         let (text, fg, bg): (String, Color, Color) = switch state {
         case .waiting: ("Waiting", Color.skyDeep, Color.wash)
-        case .fixed: ("Fixed", Color(nsColor: NSColor(hex: 0x15803D)), Color(nsColor: NSColor(hex: 0xDCFCE7)))
+        case .asked: ("Asks you", Color.pink, Color.pink.opacity(0.12))
+        case .fixed: ("Fixed", Color.green700, Color.green100)
         case .cloud: ("In cloud", Color.skyDeep, Color.wash)
         case .missing: ("Removed", Color.inkSoft, Color(nsColor: NSColor(hex: 0xF1F5F9)))
         }
@@ -241,4 +275,9 @@ struct CaptureButtonStyle: ButtonStyle {
             .padding(.vertical, 11)
             .background(RoundedRectangle(cornerRadius: 10).fill(configuration.isPressed ? Color.skyDeep : Color.sky))
     }
+}
+
+extension Color {
+    static let green700 = Color(nsColor: NSColor(hex: 0x15803D))
+    static let green100 = Color(nsColor: NSColor(hex: 0xDCFCE7))
 }

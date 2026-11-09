@@ -2,9 +2,11 @@
 
 A menu bar app for bugs that aren't in a browser: Mac apps, the iOS Simulator and the Android Emulator.
 
-Click the Darnly icon in the menu bar for its panel: a Capture button, where bugs go (this Mac or the cloud inbox), and your recent bugs, each marked Waiting until your agent moves it to `.darnly/done`, then Fixed. Right-click the icon for the full menu.
+Click the Darnly icon in the menu bar for its panel: a Capture button, where bugs go (this Mac or the cloud inbox), and your recent bugs, each marked Waiting, Asks you (the agent has a question) or Fixed. Right-click the icon for the full menu.
 
-Press **Option+Shift+D**, click the broken part, type what you expected, press Enter. The report lands in your project's `.darnly/inbox/`, the same folder and format the Chrome extension uses, so your coding agent already knows what to do with it.
+Darnly closes the loop like the Chrome extension: the number beside the menu bar icon is how many bugs are still waiting for your agent; when the agent fixes one (moves it to `.darnly/done`, or calls `mark_fixed` in the cloud), a note says "Your agent fixed … Take a look." and the panel keeps a card until you press Done; when the agent asks a question (a `**Question:**` line, or `ask_user` in the cloud), the panel says "Your agent is waiting for your input". It looks every 15 seconds (the cloud every minute) and remembers what it saw across restarts.
+
+Press **Option+Shift+D**, click the broken part, type what you expected, press Enter. Optionally tap **Only this one** or **All like it**, and **Spacing**, **Colour**, **Size** or **Text**, so the agent doesn't have to ask "just here, or everywhere?". The report lands in your project's `.darnly/inbox/`, the same folder and format the Chrome extension uses, so your coding agent already knows what to do with it.
 
 Agent in the cloud (Claude, Codex or Cursor online)? Choose **In the cloud** on the welcome screen (or **Cloud inbox** in the panel) and sign in with Google once. Captures then go to your private Darnly cloud inbox, the same one the Chrome extension uses, and the agent reads them through the Darnly connector at `https://api.darnly.dev/mcp`. If an upload fails, the bug is saved to the project folder (or `~/Darnly/.darnly/inbox`) instead. The session token is kept in the macOS Keychain.
 
@@ -69,7 +71,7 @@ In cloud mode the note box shows a **Project** name, so an agent asking the clou
 
 ## Keys while picking
 
-Click to capture · ↑ / ↓ make the box bigger or smaller · W captures the whole window · Esc cancels.
+Click to capture · Shift+click marks several elements for one note (numbered red boxes; then click the last one or press Enter) · ↑ / ↓ make the box bigger or smaller · W captures the whole window · Esc cancels.
 
 Menu bar and notch apps work too: open the app's panel first, then press Option+Shift+D. The picker doesn't take focus, so the panel stays open while you pick.
 

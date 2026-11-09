@@ -108,8 +108,9 @@ final class CloudAccount: NSObject, ASWebAuthenticationPresentationContextProvid
 
     // MARK: Upload
 
-    /// Sends one bug to the cloud inbox. Throws CloudError with the server's code.
-    func upload(_ parts: [Cloud.Part]) async throws {
+    /// Sends one bug to the cloud inbox and returns its id. Throws CloudError with the server's code.
+    @discardableResult
+    func upload(_ parts: [Cloud.Part]) async throws -> String? {
         guard let token = Keychain.read() else { throw CloudError(code: "signed_out") }
         let boundary = "darnly-" + UUID().uuidString
         var req = URLRequest(url: base.appendingPathComponent("v1/bugs"))
@@ -120,10 +121,25 @@ final class CloudAccount: NSObject, ASWebAuthenticationPresentationContextProvid
         let body = Cloud.multipart(parts, boundary: boundary)
         let (data, res) = try await URLSession.shared.upload(for: req, from: body)
         let status = (res as? HTTPURLResponse)?.statusCode ?? 0
-        if (200..<300).contains(status) { return }
+        if (200..<300).contains(status) { return Loop.uploadedId(data) }
         let code = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["error"] as? String ?? "http_\(status)"
         if status == 401 { forget() }
         throw CloudError(code: code)
+    }
+}
+
+extension CloudAccount {
+    /// What the cloud inbox says about the user's bugs (fixed, or waiting on an answer), by id. Nil when it can't tell.
+    func statuses() async -> (bugs: [String: Loop.CloudStatus], waiting: Int)? {
+        guard let token = Keychain.read() else { return nil }
+        var c = URLComponents(url: base.appendingPathComponent("v1/bugs"), resolvingAgainstBaseURL: false)!
+        c.queryItems = [URLQueryItem(name: "limit", value: "200")]
+        var req = URLRequest(url: c.url!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "authorization")
+        req.timeoutInterval = 20
+        guard let (data, res) = try? await URLSession.shared.data(for: req), (res as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let bugs = Loop.cloudStatuses(data)
+        return (bugs, bugs.values.filter { !$0.fixed }.count)
     }
 }
 

@@ -329,3 +329,122 @@ final class UpdateCheckTests: XCTestCase {
         XCTAssertFalse(UpdateCheck.isGitHubURL(URL(string: "http://github.com/x")!))
     }
 }
+
+final class LoopTests: XCTestCase {
+    func testReadsTheAgentsQuestion() {
+        XCTAssertEqual(Loop.question(inMarkdown: "# Bug\n\n**Expected:** blue\n**Question:** Which blue, the logo's?\n"), "Which blue, the logo's?")
+        XCTAssertNil(Loop.question(inMarkdown: "**Expected:** blue\n**Fixed:** done"))
+        XCTAssertNil(Loop.question(inMarkdown: "**Question:**   \n"))
+    }
+
+    func testParsesCloudStatusesAndUploadId() {
+        let json = Data("""
+        {"bugs": [
+          {"id": "a", "status": "fixed", "question": null},
+          {"id": "b", "status": "waiting", "question": "Keep the icon?"},
+          {"id": "c", "status": "waiting", "question": ""},
+          {"status": "waiting"}
+        ]}
+        """.utf8)
+        let s = Loop.cloudStatuses(json)
+        XCTAssertEqual(s.count, 3)
+        XCTAssertEqual(s["a"], Loop.CloudStatus(fixed: true))
+        XCTAssertEqual(s["b"], Loop.CloudStatus(fixed: false, question: "Keep the icon?"))
+        XCTAssertEqual(s["c"], Loop.CloudStatus(fixed: false))
+        XCTAssertEqual(Loop.cloudStatuses(Data("nope".utf8)), [:])
+        XCTAssertEqual(Loop.uploadedId(Data(#"{"id":"bug_123","title":"x"}"#.utf8)), "bug_123")
+        XCTAssertNil(Loop.uploadedId(Data("[]".utf8)))
+    }
+
+    func testCloudBugStateFollowsTheServer() {
+        let bug = RecentBug(title: "Save", app: "A", date: Date(), project: "p", cloudId: "b")
+        XCTAssertEqual(RecentBugs.state(of: bug), .cloud)
+        XCTAssertEqual(RecentBugs.state(of: bug, cloud: ["b": .init(fixed: false)]), .waiting)
+        XCTAssertEqual(RecentBugs.state(of: bug, cloud: ["b": .init(fixed: false, question: "Which one?")]), .asked)
+        XCTAssertEqual(RecentBugs.question(of: bug, cloud: ["b": .init(fixed: false, question: "Which one?")]), "Which one?")
+        XCTAssertEqual(RecentBugs.state(of: bug, cloud: ["b": .init(fixed: true)]), .fixed)
+    }
+
+    func testLocalBugAsksThenIsFixed() throws {
+        let fm = FileManager.default
+        let project = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? fm.removeItem(at: project) }
+        let file = try Inbox.save(project: project, id: "2026-11-09-save", markdown: "**Expected:** saves\n**Question:** Save to the cloud too?\n", png: nil, logs: [])
+        let bug = RecentBug(title: "Save", app: "A", date: Date(), file: file.path)
+        XCTAssertEqual(RecentBugs.state(of: bug), .asked)
+        XCTAssertEqual(RecentBugs.question(of: bug), "Save to the cloud too?")
+    }
+
+    func testChangesSinceTheLastLook() {
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let a = RecentBug(title: "A", app: "X", date: t0.addingTimeInterval(-100), file: "/p/.darnly/inbox/a.md")
+        let b = RecentBug(title: "B", app: "X", date: t0.addingTimeInterval(-50), cloudId: "b")
+        let c = RecentBug(title: "C", app: "X", date: t0.addingTimeInterval(30), cloudId: "c") // captured after the last look
+        let old = RecentBug(title: "Old", app: "X", date: t0.addingTimeInterval(-500), cloudId: "old")
+        // First run: nothing counts.
+        XCTAssertEqual(Loop.changes(before: nil, now: [(a, .fixed)]), Loop.Changes())
+        let before = Loop.Seen(at: t0, states: ["file:/p/.darnly/inbox/a.md": "waiting", "cloud:b": "waiting", "cloud:old": "fixed"])
+        let ch = Loop.changes(before: before, now: [(a, .fixed), (b, .asked), (c, .fixed), (old, .fixed)])
+        XCTAssertEqual(ch.fixed.map(\.title), ["A", "C"])
+        XCTAssertEqual(ch.asked.map(\.title), ["B"])
+        // Asked again with the same state: said once only.
+        XCTAssertEqual(Loop.changes(before: Loop.seen([(b, .asked)]), now: [(b, .asked)]).asked, [])
+    }
+
+    func testUnknownCloudStatusKeepsWhatWasSeen() {
+        let b = RecentBug(title: "B", app: "X", date: Date(), cloudId: "b")
+        let before = Loop.Seen(at: Date(), states: ["cloud:b": "waiting"])
+        let kept = Loop.seen([(b, .cloud)], keeping: before)
+        XCTAssertEqual(kept.states["cloud:b"], "waiting")
+        XCTAssertEqual(Loop.changes(before: kept, now: [(b, .fixed)]).fixed.map(\.title), ["B"])
+        XCTAssertEqual(Loop.decodeSeen(Loop.encodeSeen(kept))?.states, kept.states)
+    }
+
+    func testBadgeAndMessages() {
+        XCTAssertEqual(Loop.badge(0), "")
+        XCTAssertEqual(Loop.badge(3), "3")
+        XCTAssertEqual(Loop.badge(250), "99+")
+        let bug = RecentBug(title: "Save plan button", app: "X", date: Date())
+        XCTAssertEqual(Loop.fixedMessage([bug]), "Your agent fixed \"Save plan button\". Take a look.")
+        XCTAssertEqual(Loop.fixedMessage([bug, bug]), "Your agent fixed 2 bugs. Take a look.")
+    }
+}
+
+final class ScopeAndSeveralTests: XCTestCase {
+    func capture() -> NativeCapture {
+        NativeCapture(id: "2026-11-09-tags", note: "Tags should not wrap", platform: .mac, appName: "Notes", windowSize: CGSize(width: 800, height: 600),
+                      capturedAt: Date(timeIntervalSince1970: 1_800_000_000),
+                      element: ElementInfo(role: "AXButton", roleDescription: "button", title: "Save", identifier: "save-button", frame: CGRect(x: 10, y: 20, width: 80, height: 30), labels: ["Save"]))
+    }
+
+    func testOnlyThisOneAndWhatToChange() {
+        var c = capture()
+        c.scope = .this
+        c.aspect = .spacing
+        let md = Report.markdown(c)
+        XCTAssertTrue(md.contains("**Change only this one:**"))
+        XCTAssertTrue(md.contains("**What to change:** spacing (padding, margins, gaps)"))
+        XCTAssertTrue(md.contains("4. Look at another element like it"))
+        // Before the page data, where the agent reads the intent.
+        XCTAssertLessThan(md.range(of: "**Change only this one:**")!.lowerBound, md.range(of: Report.pageDataStart)!.lowerBound)
+        c.scope = .all
+        c.aspect = .text
+        let all = Report.markdown(c)
+        XCTAssertTrue(all.contains("**Change all like it:**"))
+        XCTAssertTrue(all.contains("4. Read its text"))
+        XCTAssertTrue(all.contains("5. Look at a few other elements like it"))
+        XCTAssertFalse(Report.markdown(capture()).contains("**Change"))
+    }
+
+    func testSeveralElementsAreNumbered() {
+        var c = capture()
+        c.also = [ElementInfo(role: "AXStaticText", roleDescription: "text", value: "Draft", identifier: "tag-draft", frame: CGRect(x: 100, y: 20, width: 40, height: 20), labels: ["Draft"])]
+        let md = Report.markdown(c)
+        XCTAssertTrue(md.contains("(the numbered red boxes mark the 2 elements)"))
+        XCTAssertTrue(md.contains("## Element 1 (red box 1)"))
+        XCTAssertTrue(md.contains("## Element 2 (red box 2)"))
+        XCTAssertTrue(md.contains("`save-button`, `tag-draft`"))
+        XCTAssertTrue(md.contains("\"Element 1\" to \"Element 2\""))
+        XCTAssertFalse(md.contains("## Element (the red box)"))
+    }
+}

@@ -15,6 +15,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menu = NSMenu()
     private var update: UpdateCheck.Release?
     private var updateTimer: Timer?
+    private var loopTimer: Timer?
+    private var loopTicks = 0
+    /// The cloud inbox's last answer: each bug's status by id, and how many are waiting (nil: not known).
+    private var cloudStatuses: [String: Loop.CloudStatus] = [:]
+    private var cloudWaiting: Int?
     /// The version macOS reads from Info.plist. Nil under `swift run`, so a dev build never checks for updates.
     private var appVersion: String? { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String }
 
@@ -44,6 +49,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { [weak self] _ in
             self?.checkForUpdate(manual: false)
         }
+        // Closing the loop: look at the inbox every 15 seconds (the cloud every minute) for fixes and questions.
+        checkCloud()
+        loopTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.loopTicks += 1
+            if self.loopTicks % 4 == 0 { self.checkCloud() } else { self.refreshPanel() }
+        }
+    }
+
+    // MARK: Closing the loop (fixed, or the agent is asking)
+
+    /// Asks the cloud inbox which bugs are fixed or waiting on an answer, then updates the panel.
+    private func checkCloud() {
+        guard CloudAccount.shared.isSignedIn else {
+            cloudStatuses = [:]
+            cloudWaiting = nil
+            return refreshPanel()
+        }
+        Task { @MainActor in
+            if let answer = await CloudAccount.shared.statuses() {
+                cloudStatuses = answer.bugs
+                cloudWaiting = answer.waiting
+            }
+            refreshPanel()
+        }
+    }
+
+    private var justFixed: [RecentBug] {
+        get { RecentBugs.decode(UserDefaults.standard.data(forKey: "justFixed")) }
+        set { UserDefaults.standard.set(RecentBugs.encode(newValue), forKey: "justFixed") }
+    }
+
+    /// Compares what the agent did with what the panel saw last time (even before a restart), and says so once.
+    private func noticeChanges(_ states: [(bug: RecentBug, state: RecentBugs.State)]) {
+        let before = Loop.decodeSeen(UserDefaults.standard.data(forKey: "loopSeen"))
+        let changes = Loop.changes(before: before, now: states)
+        UserDefaults.standard.set(Loop.encodeSeen(Loop.seen(states, keeping: before)), forKey: "loopSeen")
+        if !changes.fixed.isEmpty {
+            var list = justFixed
+            for bug in changes.fixed.reversed() where !list.contains(where: { $0.key == bug.key }) { list.insert(bug, at: 0) }
+            justFixed = Array(list.prefix(RecentBugs.limit))
+            if !popover.isShown { notify(Loop.fixedMessage(changes.fixed) + " Click the Darnly icon to see it.") }
+        }
+        if let bug = changes.asked.first, let q = RecentBugs.question(of: bug, cloud: cloudStatuses), !popover.isShown {
+            notify("Your agent is waiting for your input about \"\(bug.title)\": \(q) Return to your agent.")
+        }
+    }
+
+    /// The pink number beside the menu bar icon: bugs still waiting, in the project folder and the cloud inbox.
+    private func showBadge(_ n: Int) {
+        guard let button = statusItem?.button else { return }
+        let text = Loop.badge(n)
+        statusItem.length = text.isEmpty ? NSStatusItem.squareLength : NSStatusItem.variableLength
+        button.imagePosition = text.isEmpty ? .imageOnly : .imageLeading
+        button.attributedTitle = NSAttributedString(string: text, attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .bold), .foregroundColor: Brand.pink, .baselineOffset: 0.5,
+        ])
+        button.toolTip = n > 0 ? "Darnly: \(n) bug\(n == 1 ? "" : "s") waiting for your agent" : "Darnly"
     }
 
     // MARK: Updates (GitHub releases, no packages)
@@ -159,6 +222,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.showHelp = { [weak self] in self?.popover.performClose(nil); self?.showWelcome() }
         panel.showMore = { [weak self] in self?.popover.performClose(nil); self?.showMenu() }
         panel.quit = { NSApp.terminate(nil) }
+        panel.dismissFixed = { [weak self] in
+            self?.justFixed = []
+            self?.refreshPanel()
+        }
     }
 
     @objc private func statusClicked() {
@@ -170,7 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func togglePanel() {
         guard let button = statusItem.button else { return }
         if popover.isShown { return popover.performClose(nil) }
-        refreshPanel()
+        checkCloud()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
     }
@@ -198,12 +265,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.folderName = folder?.lastPathComponent
         panel.cloudEmail = CloudAccount.shared.isSignedIn ? CloudAccount.shared.email : nil
         panel.agentReady = folder.map { AgentSetup.plan(folder: $0, project: $0.lastPathComponent).isEmpty }
-        panel.waiting = folder.map { Inbox.waiting(project: $0) } ?? 0
-        panel.recent = recentBugs.map { ($0, RecentBugs.state(of: $0)) }
+        let folderWaiting = folder.map { Inbox.waiting(project: $0) } ?? 0
+        panel.waiting = Destination.current == .folder ? folderWaiting : cloudWaiting ?? 0
+        showBadge(folderWaiting + (cloudWaiting ?? 0))
+        let states: [(bug: RecentBug, state: RecentBugs.State)] = recentBugs.map { ($0, RecentBugs.state(of: $0, cloud: cloudStatuses)) }
+        panel.recent = states
+        noticeChanges(states)
+        panel.justFixed = justFixed
+        let asked = states.first { $0.1 == .asked }.flatMap { item in RecentBugs.question(of: item.0, cloud: cloudStatuses).map { (item.0, $0) } }
+        let dismissed = UserDefaults.standard.string(forKey: "questionDismissed")
         if !Probe.isTrusted(prompt: false) {
             panel.notice = .init(text: "Allow Accessibility so Darnly knows what you clicked.", button: "Allow") { [weak self] in
                 self?.popover.performClose(nil)
                 self?.openPermissions()
+            }
+        } else if let (bug, q) = asked, dismissed != bug.key + "|" + q {
+            panel.notice = .init(text: "Your agent is waiting for your input: \"\(q)\" Return to your agent.", button: "Got it", style: .question) { [weak self] in
+                UserDefaults.standard.set(bug.key + "|" + q, forKey: "questionDismissed")
+                self?.refreshPanel()
             }
         } else if let update {
             panel.notice = .init(text: "Darnly \(update.version) is available.", button: "Update") { [weak self] in
@@ -254,6 +333,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 Destination.current = .cloud
                 self.notify("Signed in as \(CloudAccount.shared.email ?? "you"). Bugs now go to your Darnly cloud inbox.")
+                self.checkCloud()
             }
             self.rebuildMenu()
             self.welcome.refresh()
@@ -262,6 +342,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func signOutCloud() {
         CloudAccount.shared.signOut()
+        cloudStatuses = [:]
+        cloudWaiting = nil
         Destination.current = .folder
         rebuildMenu()
         welcome.refresh()
@@ -390,6 +472,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         defer { busy = false }
         let window = pick.window
         let element = pick.element.flatMap { Probe.info($0, in: window) }
+        let also = element == nil ? [] : pick.also.compactMap { Probe.info($0, in: window) }
         async let logs = LogCollector.collect(for: window)
         var png: Data?
         var preview: NSImage?
@@ -400,7 +483,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Prefer the picture taken when the hotkey was pressed; it still shows panels that hid since.
                 let image: CGImage
                 if let f = frozen, let cut = Screenshot.crop(f, to: window.frame) { image = cut } else { image = try await Screenshot.capture(window) }
-                png = Screenshot.mark(image, windowSize: window.frame.size, box: element?.frame, click: element != nil ? pick.click : nil)
+                png = Screenshot.mark(image, windowSize: window.frame.size, boxes: element.map { [$0.frame] + also.map(\.frame) } ?? [], click: element != nil ? pick.click : nil)
                 if let png { preview = NSImage(data: png) }
             } catch {
                 NSLog("Darnly: screenshot failed: \(error)")
@@ -408,7 +491,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let bundleId = NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier
         let cloudGuess = Destination.current == .cloud ? cloudProject(for: window.ownerName, bundleId: bundleId) : nil
-        let summary = element.map { "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
+        let summary = element.map { also.isEmpty ? "\($0.roleDescription ?? $0.role) \"\($0.name)\" in \(window.ownerName)" : "\(also.count + 1) elements in \(window.ownerName)" } ?? "Whole window: \(window.ownerName)"
         let result: NoteResult? = await withCheckedContinuation { cont in
             notePanel.show(image: preview, summary: hiddenReason != nil ? summary + " · no picture: this window hides itself from screenshots" : png == nil ? summary + " · no screenshot (allow Screen Recording)" : summary,
                            project: cloudGuess) { cont.resume(returning: $0) }
@@ -418,11 +501,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let collected = await logs
         let now = Date()
         let title = Report.title(note: note, element: element)
-        let capture = NativeCapture(
+        var capture = NativeCapture(
             id: captureId(now, title), note: note, platform: collected.platform, appName: window.ownerName,
             bundleId: collected.bundleId ?? bundleId,
             windowTitle: window.title, device: collected.device, windowSize: window.frame.size, capturedAt: now,
             element: element, logs: collected.logs, logsRead: collected.read, noScreenshotReason: hiddenReason, hasReference: result.reference != nil)
+        capture.scope = result.scope
+        capture.aspect = result.aspect
+        capture.also = also
         var problem = ""
         if Destination.current == .cloud {
             var forCloud = capture
@@ -431,8 +517,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let sendProject { saveCloudProject(sendProject, for: window.ownerName, bundleId: bundleId) }
             let parts = Cloud.uploadParts(title: title, appName: window.ownerName, project: sendProject, markdown: Report.markdown(forCloud), png: png, reference: result.reference)
             do {
-                try await CloudAccount.shared.upload(parts)
-                remember(RecentBug(title: title, app: window.ownerName, date: now, project: ProjectName.clean(sendProject ?? "my-app")))
+                let cloudId = try await CloudAccount.shared.upload(parts)
+                remember(RecentBug(title: title, app: window.ownerName, date: now, project: ProjectName.clean(sendProject ?? "my-app"), cloudId: cloudId))
                 notify("Sent to your Darnly cloud inbox under \(ProjectName.clean(sendProject ?? "my-app")). Tell your agent: fix the bugs in my Darnly inbox")
                 return
             } catch let e as CloudError {
