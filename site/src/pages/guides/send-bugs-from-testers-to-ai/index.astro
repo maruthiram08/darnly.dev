@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'send-bugs-from-testers-to-ai';
@@ -45,6 +46,8 @@ Browser and device:</code></pre>
     <li><strong>Paste it with the screenshot.</strong> Into Claude Code, Codex or Cursor, one bug at a time or as a numbered list.</li>
   </ol>
   <p>The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report an AI agent can fix</a> has a fuller template and examples.</p>
+
+  <GuideCta slug={slug} lead="Want testers to send agent-ready reports?" text="Darnly is a free Chrome extension your testers can use too: one key, click the broken part, say what they expected. Each report has the screenshot, element and errors your agent needs." />
 
   <h2>4. Close the loop</h2>
   <p>When the agent says it's fixed, check it yourself, then tell the person who reported it. A quick "fixed, thanks" makes people far more likely to report the next one.</p>

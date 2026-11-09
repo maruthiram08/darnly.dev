@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'fix-a-bug-on-a-live-site';
@@ -24,6 +25,8 @@ const faq = [
   <h2>1. Capture the bug while you can see it</h2>
   <p>Write down the address, what you clicked, and what you expected. Take a screenshot and mark the broken part. Open the browser console (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on a Mac, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> on Windows), redo the action and copy any red errors. The guide on <a href="/guides/copy-console-errors-for-ai/">copying console errors</a> walks through it.</p>
   <p>Also note the device. A bug on a phone may not show on a laptop. <a href="/tools/browser-info/">What browser am I using?</a> copies your browser, screen size and settings in one go.</p>
+
+  <GuideCta slug={slug} lead="Capture the bug in one key." text="Darnly is a free Chrome extension that does step 1 for you on any page, live or local: a screenshot with the broken part boxed in red, the address, the element and recent errors, saved where Claude Code, Codex or Cursor can read it." />
 
   <h2>2. Check it's not the host</h2>
   <p>Some live-only bugs aren't in your code at all:</p>

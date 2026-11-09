@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-tracebug';
@@ -76,6 +77,8 @@ const faq = [
     <li><strong>One inbox, with fixed and not fixed.</strong> The cloud inbox collects bugs from all your projects, and your agent marks each one fixed when it's done.</li>
     <li><strong>Beyond the browser.</strong> The Mac app captures bugs in Mac apps, the iOS Simulator and the Android Emulator into the same inbox.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using them together</h2>
   <p>To be fair to TraceBug, capturing a bug with it is quick too, with no account. The extra setup is only in connecting its reports to your agent. If you hit a bug that only shows up after a long path, a TraceBug replay is the fuller record; Darnly's Record the steps first button covers the shorter ones. For everyday "this button is in the wrong place" bugs you find while you build, Darnly is quicker to send. The guide on <a href="/guides/write-a-bug-report-for-ai-agents/">writing a bug report for AI agents</a> covers what helps an agent most either way.</p>

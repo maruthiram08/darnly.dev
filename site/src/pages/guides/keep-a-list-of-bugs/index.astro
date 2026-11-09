@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'keep-a-list-of-bugs';
@@ -35,6 +36,8 @@ const faq = [
     <li>Ticked lines show what was done, so you can check the fixes later.</li>
   </ul>
   <p>Keep screenshots in a <code>bugs/</code> folder next to it and mention the file name on the line. If the screenshots show private data, add that folder to <code>.gitignore</code>. The <a href="/tools/gitignore-generator/">.gitignore generator</a> can help, and the <a href="/tools/markdown-preview/">Markdown preview</a> shows how the file looks.</p>
+
+  <GuideCta slug={slug} lead="Want the list to fill itself?" text="Darnly is a free Chrome extension and Mac app. Each bug you capture lands in your project's .darnly/inbox/ folder with a screenshot, the element and recent errors, so your agent works through the list without you typing it up." />
 
   <h2>Option 2: one note for everything</h2>
   <p>If you'd rather have one place, use a single note with a heading per project. Put the project name and address on every bug. When you sit down to fix, copy that project's section into your agent's chat. This is easier to add to from your phone, but the agent can't read it on its own.</p>

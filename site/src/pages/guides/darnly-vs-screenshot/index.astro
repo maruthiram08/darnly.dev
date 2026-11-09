@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-screenshot';
@@ -70,6 +71,8 @@ const faq = [
     <li><strong>You find bugs in batches.</strong> Capture ten while you test, then type <code>/darnly</code> once. Each report gets a Fixed line, and the panel says "Take a look" for each one it fixed.</li>
     <li><strong>Your code is somewhere else.</strong> With the optional cloud inbox, bugs from all your projects wait in one private list that your agent reads over MCP.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>What we learned</h2>
   <p>Most of Darnly's extra cost is its own file moving after a fix, and our benchmark write-up lists making that one step or none as the first thing to change. Until it changes, we'll keep saying it plainly: Darnly makes reporting a bug easier, not cheaper. If that's worth it to you, <a href={storeUrl(`guide-${slug}`)}>add it to Chrome, it's free</a>.</p>

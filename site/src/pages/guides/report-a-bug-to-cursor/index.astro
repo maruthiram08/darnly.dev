@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'report-a-bug-to-cursor';
@@ -38,6 +39,8 @@ The Subscribe button is grey and looks disabled.
 Expected: blue, like the Start trial button above it.
 Fix it only on this page.
 Console: no errors.</code></pre>
+
+  <GuideCta slug={slug} lead="Too many steps for every bug?" text="Darnly is a free Chrome extension that does them in one: press a key, click the broken part, say what you expected. The report lands in your project, and you type /darnly in Cursor to fix it." />
 
   <h2>Tips that help Cursor most</h2>
   <ul>

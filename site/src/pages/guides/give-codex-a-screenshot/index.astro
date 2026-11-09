@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'give-codex-a-screenshot';
@@ -29,6 +30,8 @@ const faq = [
     <li><strong>Write the note.</strong> What page, what you did, what happened, what you expected. Keep it to three or four lines.</li>
   </ol>
   <pre><code>codex --image ~/Desktop/cart.png "On /cart the subtotal stays at $20 when I change the quantity to 3. Expected: $60. Only the cart page."</code></pre>
+
+  <GuideCta slug={slug} lead="Skip the screenshot, save and paste." text="Darnly is a free Chrome extension that saves the screenshot, the element and the errors into your project. Press one key, click the broken part, then tell Codex “fix my Darnly bugs”." />
 
   <h2>Make the picture do more work</h2>
   <ul>

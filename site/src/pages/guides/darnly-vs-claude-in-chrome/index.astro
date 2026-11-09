@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'darnly-vs-claude-in-chrome';
@@ -60,6 +61,8 @@ const faq = [
     <li><strong>You're out of usage.</strong> Capturing doesn't use your plan, so you can keep finding bugs while you wait for your limit to reset.</li>
     <li><strong>You also use Codex or Cursor.</strong> The same inbox works in all of them.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Want to try it on your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent gets the report." />
 
   <h2>Using both</h2>
   <p>Capture bugs with Darnly while you test. Later, start <code>claude --chrome</code> in your project and type <code>/darnly</code>. Claude Code fixes each bug, then uses Claude in Chrome to open the page and check it, following the "How to check it's fixed" section in each report. It ends its note with "(checked in the browser)" when it did. More on this in <a href="/why-darnly/">why Darnly when your agent has a browser</a>.</p>

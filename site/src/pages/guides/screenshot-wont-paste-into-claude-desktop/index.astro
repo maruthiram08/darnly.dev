@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'screenshot-wont-paste-into-claude-desktop';
@@ -37,6 +38,8 @@ const faq = [
 
   <h2>2. Drag the file in, or attach it</h2>
   <p>Already have the screenshot as a file? Drag it from your desktop or Finder onto the chat. Or click <strong>+</strong> in the message box and choose the file. This skips the clipboard completely.</p>
+
+  <GuideCta slug={slug} lead="Rather not paste at all?" text="Darnly is a free Chrome extension and Mac app that captures the bug with the broken part boxed in red, the element and recent errors, and hands it to your agent. Press one key, click, say what you expected." />
 
   <h2>3. On a Mac, let Claude take it</h2>
   <p>The Claude desktop app can capture the screen itself. Double-tap <kbd>Option</kbd> to open quick entry, then drag over the area you want, or click a window to attach all of it.</p>

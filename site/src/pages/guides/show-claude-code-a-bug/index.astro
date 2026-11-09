@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'show-claude-code-a-bug';
@@ -37,6 +38,8 @@ On localhost:3000/settings, I changed my name and clicked Save.
 Nothing happened and the old name came back after a reload.
 Expected: the new name is saved and a "Saved" message shows.
 This is only about the settings page.</code></pre>
+
+  <GuideCta slug={slug} lead="All of that in one key." text="Darnly is a free Chrome extension and Mac app. Press one key, click the broken part, say what you expected. The screenshot, element and errors land in your project, and /darnly in Claude Code fixes them." />
 
   <h2>Why each part matters</h2>
   <p><strong>The marked picture</strong> tells Claude Code which element you mean. A plain screenshot of a whole page is fine for "the logo is huge", but for "this button is grey" the agent has to guess which button.</p>

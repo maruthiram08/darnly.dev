@@ -85,9 +85,9 @@ const jsonLd = JSON.stringify([
     <p class="lede">{lede}</p>
     <p class="date">Updated <time datetime={updated}>{updatedText}</time></p>
 
-    <article class="prose"><slot /></article>
+    <article class="prose" data-cta-at="guide-text"><slot /></article>
 
-    <DarnlyStrip source={source} lead={strip?.lead ?? 'Spot a bug on your site?'} text={strip?.text ?? 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix. Press one key, click the broken part, say what you expected.'} />
+    <DarnlyStrip source={source} at="guide-strip" lead={strip?.lead ?? 'Spot a bug on your site?'} text={strip?.text ?? 'Darnly is a free Chrome extension and Mac app that turns a bug you see on screen into a report your AI coding agent (Claude Code, Codex or Cursor) can fix. Press one key, click the broken part, say what you expected.'} />
 
     <section class="faq" aria-labelledby="faq-h">
       <h2 id="faq-h">Questions</h2>

@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'local-or-global-change';
@@ -44,6 +45,8 @@ const faq = [
 Scope: everywhere. Fix the shared component, not just this page.
 Scope: all buttons like this one, but not the ones in the header.
 Should match: the cards on the home page.</code></pre>
+
+  <GuideCta slug={slug} lead="Answer the scope question in one click." text="Darnly is a free Chrome extension for capturing bugs. When you click the broken part, pick Change only this one or Change all like it, and the scope goes into the report your agent reads." />
 
   <h2>After the fix</h2>
   <p>Open two or three other pages and look. For style changes, a quick look at phone width helps too. The free <a href="/tools/responsive-checker/">responsive checker</a> shows a page at phone, tablet and desktop widths side by side. If a color changed, check it's still readable with the <a href="/tools/contrast-checker/">color contrast checker</a>.</p>

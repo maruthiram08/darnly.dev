@@ -1,10 +1,11 @@
 ---
-// Template for every free tool: tool first, then Darnly, more tools, how it works, FAQ.
+// Template for every free tool: a one-line Darnly note, the tool, then Darnly, more tools, how it works, FAQ.
 import Base from './Base.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import DarnlyStrip from '../components/DarnlyStrip.astro';
 import DarnlyPanel from '../components/DarnlyPanel.astro';
+import DarnlyNote from '../components/DarnlyNote.astro';
 import { TOOLS } from '../data/site';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -68,10 +69,11 @@ const jsonLd = JSON.stringify([
     <a class="crumb" href="/tools/">Free tools</a>
     <h1>{h1}</h1>
     <p class="lede">{lede}</p>
+    <DarnlyNote source={source} />
 
     <section class="tool" aria-label="Tool"><slot /></section>
 
-    <DarnlyStrip source={source} lead={strip?.lead} text={strip?.text} />
+    <DarnlyStrip source={source} lead={strip?.lead} text={strip?.text} at="tool-strip" />
 
     {others.length > 0 && (
       <section class="more" aria-labelledby="more-h">

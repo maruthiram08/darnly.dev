@@ -1,5 +1,6 @@
 ---
 import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
 import { storeUrl } from '../../../data/site';
 
 const slug = 'test-your-vibe-coded-app';
@@ -32,6 +33,8 @@ const faq = [
     <li><strong>Click everything once.</strong> Every button, link and menu on each page.</li>
     <li><strong>Read the words.</strong> Placeholder text like "Lorem ipsum" or "Your tagline here" is easy to miss.</li>
   </ul>
+
+  <GuideCta slug={slug} lead="Found something while you test?" text="Darnly is a free Chrome extension. Press one key, click the broken part, say what you expected, and keep testing. Your agent fixes the whole list afterwards." />
 
   <h2>3. Try to break it</h2>
   <ul>
