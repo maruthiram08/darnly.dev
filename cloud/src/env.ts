@@ -27,4 +27,10 @@ export interface Env {
   /** Day of the month the Cloudflare billing period starts on (Billing > Billable Usage). Default 1. */
   BILLING_DAY?: string;
   WORKER_NAME?: string;
+  /** Anthropic API key for AI bug titles (titles.ts). Set with `wrangler secret put ANTHROPIC_API_KEY`. Without it, bugs keep the note as their title. */
+  ANTHROPIC_API_KEY?: string;
+  /** Only for an org key that isn't scoped to a workspace: the workspace id (wrkspc_...) to bill. */
+  ANTHROPIC_WORKSPACE_ID?: string;
+  /** The on/off switch for AI titles: "on" turns them on; anything else (or missing) means off, and bugs keep the note as their title. Flip it in the dashboard (Settings > Variables). */
+  AI_TITLES?: string;
 }

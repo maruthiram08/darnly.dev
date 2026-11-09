@@ -2,7 +2,7 @@
 // Stateless Streamable HTTP: each POST carries one JSON-RPC message (or a batch) and gets a JSON reply.
 import type { Env } from './env';
 import { claimBug, getBug, getPicture, getReference, getStepsPicture, listBugs, listProjects, markFixed, projectName, setQuestion, type Agent } from './bugs';
-import { HttpError, readText } from './util';
+import { HttpError, readText, toBase64 } from './util';
 
 const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
 const PAGE_DATA_END = '<!-- darnly:page-data:end -->';
@@ -98,11 +98,14 @@ interface RpcRequest {
 
 type Content = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 
-function toBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let s = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
+/**
+ * The AI title and summary, labelled so the agent knows the user didn't write them.
+ * They were written from page data, so they sit inside the page-data markers.
+ */
+function aiLines(bug: { title: string; noteTitle: string; aiSummary: string | null }): string {
+  if (!bug.aiSummary && bug.title === bug.noteTitle) return '';
+  const safe = (t: string) => t.replace(/<!--\s*darnly:page-data:(start|end)\s*-->/gi, '[marker removed]');
+  return `${PAGE_DATA_START}\nAI title: ${safe(bug.title)}\n${bug.aiSummary ? `AI summary: ${safe(bug.aiSummary)}\n` : ''}${PAGE_DATA_END}\n(Darnly wrote these from the note and screenshot to help you start. The user's own words are under **Expected:** in the report below; where they differ, follow the user.)\n\n`;
 }
 
 function ago(ms: number): string {
@@ -151,7 +154,7 @@ async function callTool(env: Env, userId: string, agent: Agent, name: string, ar
       const content: Content[] = [
         {
           type: 'text',
-          text: `Darnly bug id: ${bug.id} (status: ${bug.status}${bug.fixedNote ? `, fixed: ${bug.fixedNote}` : ''})${claim}\nWhen it's fixed, call mark_fixed with id "${bug.id}".\n\n${bug.report}`,
+          text: `Darnly bug id: ${bug.id} (status: ${bug.status}${bug.fixedNote ? `, fixed: ${bug.fixedNote}` : ''})${claim}\nWhen it's fixed, call mark_fixed with id "${bug.id}".\n\n${aiLines(bug)}${bug.report}`,
         },
       ];
       const picture = await getPicture(env, userId, id).catch(() => null);

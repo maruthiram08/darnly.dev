@@ -3,7 +3,8 @@ import type { Env } from './env';
 import { agentFrom, mcpFetch } from './mcp';
 import { exchangeAppCode, oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
-import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getBug, getPicture, listBugs, markFixed, parseUpload, saveBug } from './bugs';
+import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getBug, getPicture, listBugs, markFixed, parseUpload, saveNewBug } from './bugs';
+import { writeTitle } from './titles';
 import { HttpError, json, readJson } from './util';
 import { isPaused, rateLimit } from './limits';
 import { checkSpend } from './spend';
@@ -37,7 +38,7 @@ async function revokeAgents(env: Env, userId: string): Promise<void> {
   await Promise.all(items.map((g) => helpers.revokeGrant(g.id, userId)));
 }
 
-async function route(req: Request, env: Env): Promise<Response> {
+async function route(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   const method = req.method;
@@ -71,7 +72,11 @@ async function route(req: Request, env: Env): Promise<Response> {
   }
   if (path === '/v1/bugs' && method === 'POST') {
     if (await isPaused(env)) throw new HttpError(503, 'uploads_paused');
-    return json(await saveBug(env, user.id, await parseUpload(req)), 201);
+    const upload = await parseUpload(req);
+    const { bug, isNew } = await saveNewBug(env, user.id, upload);
+    // The AI title is written after the answer goes back, so uploads are never slower.
+    if (isNew && ctx) ctx.waitUntil(writeTitle(env, user.id, bug.id, { report: upload.report, picture: upload.picture }));
+    return json(bug, 201);
   }
   if (path === '/v1/bugs' && method === 'GET') {
     const status = url.searchParams.get('status');
@@ -101,7 +106,7 @@ async function route(req: Request, env: Env): Promise<Response> {
 
 /** Everything except /mcp: the extension's API and the agent sign-in pages. */
 const appHandler = {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const signInPage = oauthRoute(req, env);
     if (signInPage) {
       return signInPage.catch((err) => {
@@ -114,7 +119,7 @@ const appHandler = {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
     try {
-      res = await route(req, env);
+      res = await route(req, env, ctx);
     } catch (err) {
       if (err instanceof HttpError) res = json({ error: err.code }, err.status);
       else {
