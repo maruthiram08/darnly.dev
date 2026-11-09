@@ -18,6 +18,9 @@ enum UISnapshot {
         let first = PanelModel()
         first.notice = .init(text: "Allow Accessibility so Darnly knows what you clicked.", button: "Allow") {}
         save(NSHostingView(rootView: PanelView(model: first)), to: folder.appendingPathComponent("panel-first-run.png"))
+        let fixed = PanelModel.sample(cloud: false)
+        fixed.justFixed = [fixed.recent[0].bug, fixed.recent[2].bug]
+        save(NSHostingView(rootView: PanelView(model: fixed)), to: folder.appendingPathComponent("panel-two-fixed.png"))
         let newer = PanelModel.sample(cloud: false)
         newer.notice = .init(text: "Darnly 0.3.3 is available.", button: "Update") {}
         save(NSHostingView(rootView: PanelView(model: newer)), to: folder.appendingPathComponent("panel-update.png"))
@@ -46,6 +49,12 @@ enum UISnapshot {
             save(bar, to: folder.appendingPathComponent("\(name).png"), scale: 4)
         }
         save(NSImageView(image: Brand.logo(size: 64, template: false)), to: folder.appendingPathComponent("logo-colour.png"))
+        // Shift+click on several elements: numbered red boxes on the saved screenshot.
+        if let cg = sampleScreenshot().cgImage(forProposedRect: nil, context: nil, hints: nil),
+           let png = Screenshot.mark(cg, windowSize: CGSize(width: 800, height: 480),
+                                     boxes: [CGRect(x: 600, y: 400, width: 160, height: 44), CGRect(x: 40, y: 136, width: 720, height: 40)], click: nil) {
+            try? png.write(to: folder.appendingPathComponent("several-elements.png"))
+        }
         print("Saved UI pictures to \(folder.path)")
     }
 

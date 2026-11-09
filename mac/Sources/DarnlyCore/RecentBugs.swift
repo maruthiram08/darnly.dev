@@ -9,14 +9,20 @@ public struct RecentBug: Codable, Equatable {
     public var file: String?
     /// The cloud project name, for bugs sent to the cloud inbox.
     public var project: String?
+    /// The cloud inbox's id for the bug, so the panel can ask whether it was fixed (bugs sent before 0.3.3 have none).
+    public var cloudId: String?
 
-    public init(title: String, app: String, date: Date, file: String? = nil, project: String? = nil) {
+    public init(title: String, app: String, date: Date, file: String? = nil, project: String? = nil, cloudId: String? = nil) {
         self.title = title
         self.app = app
         self.date = date
         self.file = file
         self.project = project
+        self.cloudId = cloudId
     }
+
+    /// One key per bug, to remember what the panel last saw.
+    public var key: String { file.map { "file:" + $0 } ?? cloudId.map { "cloud:" + $0 } ?? "old:\(title)@\(date.timeIntervalSince1970)" }
 }
 
 public enum RecentBugs {
@@ -40,24 +46,40 @@ public enum RecentBugs {
         return (try? enc.encode(list)) ?? Data("[]".utf8)
     }
 
-    public enum State: Equatable {
-        /// Still in .darnly/inbox: the agent hasn't fixed it yet.
+    public enum State: String, Equatable {
+        /// Still in .darnly/inbox (or waiting in the cloud): the agent hasn't fixed it yet.
         case waiting
-        /// Moved to .darnly/done by the agent.
+        /// The agent asked the user a question about it and is waiting for the answer.
+        case asked
+        /// Moved to .darnly/done (or marked fixed in the cloud) by the agent.
         case fixed
-        /// Sent to the cloud inbox.
+        /// Sent to the cloud inbox; its status isn't known (signed out, offline, or sent before 0.3.3).
         case cloud
         /// The file is gone (deleted or the folder moved).
         case missing
     }
 
-    public static func state(of bug: RecentBug, fileManager fm: FileManager = .default) -> State {
-        guard let file = bug.file else { return .cloud }
-        if fm.fileExists(atPath: file) { return .waiting }
+    /// The bug's state on disk, or from the cloud inbox's answer when it was sent there.
+    public static func state(of bug: RecentBug, cloud: [String: Loop.CloudStatus] = [:], fileManager fm: FileManager = .default) -> State {
+        guard let file = bug.file else {
+            guard let id = bug.cloudId, let s = cloud[id] else { return .cloud }
+            if s.fixed { return .fixed }
+            return s.question != nil ? .asked : .waiting
+        }
+        if fm.fileExists(atPath: file) {
+            let md = (try? String(contentsOfFile: file, encoding: .utf8)) ?? ""
+            return Loop.question(inMarkdown: md) != nil ? .asked : .waiting
+        }
         let url = URL(fileURLWithPath: file)
         let done = url.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("done", isDirectory: true).appendingPathComponent(url.lastPathComponent)
         return fm.fileExists(atPath: done.path) ? .fixed : .missing
+    }
+
+    /// The agent's question about a bug, if it asked one.
+    public static func question(of bug: RecentBug, cloud: [String: Loop.CloudStatus] = [:]) -> String? {
+        if let file = bug.file { return (try? String(contentsOfFile: file, encoding: .utf8)).flatMap(Loop.question(inMarkdown:)) }
+        return bug.cloudId.flatMap { cloud[$0]?.question }
     }
 }
 
