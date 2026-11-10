@@ -5,7 +5,7 @@ import { storeUrl } from '../../data/site';
 
 const slug = 'changelog';
 const faq = [
-  { q: 'What is the latest version of Darnly?', a: 'The Chrome extension is at 0.3.5 and the Mac app at 0.3.2. Extension 0.3.5 adds Review mode (click what is wrong and say it out loud, one bug per click) and names the look-alike elements your agent should leave alone when you ask to change only one.' },
+  { q: 'What is the latest version of Darnly?', a: 'The Chrome extension is at 0.3.5 and the Mac app at 0.3.3. Extension 0.3.5 adds Review mode (click what is wrong and say it out loud, one bug per click) and names the look-alike elements your agent should leave alone when you ask to change only one.' },
   { q: 'How do I update Darnly?', a: 'Chrome updates extensions by itself, usually within a few hours of a release. To update now, open chrome://extensions, switch on Developer mode, and click Update.' },
   { q: 'Do I need to set up my project again after an update?', a: 'To get the new /darnly command and the Claude Code hook, click Set up this project in the Darnly panel once more. Darnly only adds its own lines and keeps the rest of your files as they are.' },
 ];
@@ -19,11 +19,11 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
   title="What's new in Darnly: release notes"
   description="Release notes for the Darnly Chrome extension and Mac app: the steps that led to a bug, the data behind an element, /darnly, 'Take a look' when a bug is fixed, the cloud inbox and MCP server."
   h1="What's new in Darnly"
-  lede={`Release notes for the Darnly Chrome extension and Mac app, newest first. The extension (0.3.5) lets you talk instead of typing: click what's wrong, say it, and move on to the next one. The Mac app (0.3.2) has a panel like the extension's.`}
+  lede={`Release notes for the Darnly Chrome extension and Mac app, newest first. The extension (0.3.5) lets you talk instead of typing: click what's wrong, say it, and move on to the next one. The Mac app (0.3.3) tells you when your agent fixed a bug or needs your answer.`}
   faq={faq}
   strip={{ lead: 'Not installed yet?', text: 'Darnly is a free Chrome extension. Press Option+Shift+B (Windows is coming soon) on any page, click the broken part, and say what you expected.' }}
 >
-  <p class="latest"><strong>Latest versions:</strong> Chrome extension <strong>0.3.5</strong> (Chrome updates it by itself; a new release can take a few days to reach you) · Darnly for Mac <strong>0.3.2</strong> (click <em>Update available</em> in its menu, or run <code>brew upgrade --cask darnly</code>).</p>
+  <p class="latest"><strong>Latest versions:</strong> Chrome extension <strong>0.3.5</strong> (Chrome updates it by itself; a new release can take a few days to reach you) · Darnly for Mac <strong>0.3.3</strong> (click <em>Update available</em> in its menu, or run <code>brew upgrade --cask darnly</code>).</p>
 
   <h2 id="v0-3-5">Chrome extension 0.3.5: talk while you click, and leave the look-alikes alone</h2>
   <p>From reading thousands of posts by people building with AI agents: the most common complaint was "I asked for one button and it changed them all", and the most common wish was to just say what's wrong while clicking around.</p>
@@ -42,6 +42,17 @@ import FixLoopVideo from '../../components/FixLoopVideo.astro';
     <li><strong>The card it sits in.</strong> Reports name the card, row, section or dialog around the element, with its heading ("Pro plan"). This works on any site, your live one included.</li>
     <li><strong>The window width.</strong> Reports say how wide the window was (phone, tablet or desktop width), and your agent checks its fix at that same width.</li>
     <li><strong>Email addresses hidden.</strong> Email addresses on the page are now hidden in reports, like passwords and tokens.</li>
+  </ul>
+
+  <h2 id="mac-0-3-3">Darnly for Mac 0.3.3: know when your agent is done</h2>
+  <p>The Mac app now closes the loop the way the Chrome extension does: you capture a bug, your agent fixes it, and Darnly tells you.</p>
+  <ul>
+    <li><strong>"Your agent fixed it. Take a look."</strong> When your agent finishes a bug, a note appears under the menu bar icon and the panel keeps a card until you press Done. The icon shows how many bugs are still waiting.</li>
+    <li><strong>"Your agent is waiting for your input."</strong> If your agent has a question about a bug, the panel shows it, so you know to go back to your agent.</li>
+    <li><strong>Cloud bugs show their status.</strong> Bugs sent to the cloud inbox are now marked Waiting, Asks you or Fixed, like bugs saved on this Mac.</li>
+    <li><strong>Change only this one, or all like it.</strong> The same optional chips as the extension, plus Spacing, Colour, Size and Text.</li>
+    <li><strong>Mark several elements for one bug.</strong> Hold <kbd>Shift</kbd> and click each one, then click the last one normally (or press Enter). The screenshot numbers every box.</li>
+    <li><strong>Email addresses hidden</strong> in reports, like passwords and tokens.</li>
   </ul>
 
   <h2 id="v0-3-3">Chrome extension 0.3.3: how you got there, and what data was behind it</h2>
