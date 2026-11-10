@@ -95,3 +95,15 @@ npx wrangler deploy                                                    # puts ap
 ```
 
 The pause ends by itself when the next billing month starts; the domain stays off until you deploy. Storage already saved keeps costing a little after a stop (about $0.015 per GB a month).
+
+## 6. AI bug titles (off until you switch them on)
+
+Claude (Sonnet 5.5) writes a short title and a one-line summary for each new cloud bug, from the note, report and screenshot. About $0.007 a bug. The user's note is never changed. Capped at 100 a day per user and 2,000 a day for everyone (about $14).
+
+To switch on:
+
+1. In the `cloud` folder, run `npx wrangler secret put ANTHROPIC_API_KEY` and paste the key from console.anthropic.com when asked.
+2. If that key isn't scoped to a workspace, run `npx wrangler secret put ANTHROPIC_WORKSPACE_ID` and paste the workspace id (starts `wrkspc_`).
+3. Cloudflare dashboard > Workers & Pages > darnly-cloud > Settings > Variables and Secrets > Add: name `AI_TITLES`, value `on`. Deploy.
+
+To switch off: change `AI_TITLES` to `off` (or delete it). New bugs go back to showing the note as their title straight away; titles already written stay.

@@ -1,6 +1,6 @@
 # Darnly privacy policy
 
-Last updated: 8 November 2026
+Last updated: 9 November 2026
 
 Darnly is a Chrome extension and a Mac app that turn a bug you see on screen into a report your AI coding agent can read. This policy explains what it touches and where that goes.
 
@@ -64,6 +64,8 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 
 **How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.
 
+**AI titles (only when switched on):** when a bug arrives in your cloud inbox, its note, report and screenshot may be sent to Anthropic's Claude API to write a short title and a one-line summary for your bug list. Anthropic handles them for us as a service provider: it doesn't train its models on them, and it doesn't keep them beyond its standard short retention for safety checks. Your own note is never changed. Bugs saved to a project folder or copied to the clipboard are never sent anywhere.
+
 **What we don't do with it:** we don't read your bugs, sell them, use them for advertising, or train AI models on them. We look at stored data only if you ask us to help with a problem, or if the law requires it.
 
 ## The Mac app
@@ -74,8 +76,8 @@ It needs two macOS permissions: Accessibility (to know what you clicked) and Scr
 
 ## What Darnly never does
 
-- It never sends data anywhere unless you turned on the cloud inbox, and then only to your own inbox.
-- It never sells or shares data with third parties, and it has no analytics or tracking.
+- It never sends data anywhere unless you turned on the cloud inbox, and then only to your own inbox (and, when AI titles are on, to Anthropic to write the title, as described above).
+- It never sells your data or shares it with third parties, except the service providers that run the cloud inbox for you (Cloudflare, and Anthropic for AI titles when they're on). It has no analytics or tracking.
 - It never uses data for anything except the bug reports you asked for.
 
 ## Permissions, and why

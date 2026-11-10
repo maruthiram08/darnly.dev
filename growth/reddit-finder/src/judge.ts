@@ -7,7 +7,7 @@ export const Verdict = z.object({
   fit: z.number().int().min(0).max(10).describe('0 = unrelated, 10 = this person is stuck on exactly the problem Darnly solves'),
   why: z.string().describe('One sentence: what the person is stuck on and why it does or does not fit'),
   mention: z.boolean().describe('True only if naming Darnly would genuinely help this person'),
-  draft: z.string().describe('The reply Maruthi could post, or an empty string when fit is below 5'),
+  draft: z.string().describe('The reply Maruthi could post, or an empty string when fit is below 4'),
 });
 export type Verdict = z.infer<typeof Verdict>;
 
@@ -24,12 +24,14 @@ What Darnly is (only claim these facts):
 
 Never claim Darnly saves tokens, fixes things on the first try, or does anything not listed. Never mention how fast it was built.
 
-Score fit from 0 to 10:
-- 8-10: the person is struggling to show or describe a visual or UI bug to an AI coding agent, or to keep track of UI bugs while vibecoding.
-- 5-7: related pain (an agent changed the wrong element, preview vs live differences, too many small UI fixes) where Darnly might help.
-- 0-4: anything else, including general AI news, job posts, people selling things, and posts already full of good answers.
+Score fit from 0 to 10. Ask: would this person be glad to get a short, practical reply about getting UI changes right with an AI coding tool? Most posts that reach you already mention an AI coding tool, so judge the problem, not the tool.
+- 8-10: they are stuck showing or describing a visual or UI problem to an AI coding tool ("it keeps changing the wrong thing", "how do I tell it which element", "I paste screenshots and it still gets it wrong"), or they ask how to collect and track UI bugs or feedback while building with one.
+- 6-7: they are frustrated that an AI coding tool keeps getting frontend, layout, styling or design details wrong, or ask for a workflow to fix many small UI issues, test or QA a vibecoded app, give the agent visual context, or report bugs from a preview or live site. A practical tip would help even if Darnly is not mentioned.
+- 4-5: loosely related: general frontend-with-AI tips, design quality from AI tools, a launch post asking for UI feedback, or a thread where a short tip could still help.
+- 0-3: unrelated (pricing, model news, jobs, backend-only bugs, someone selling a product, memes) or already solved.
+Score the post as written. A short or vague post can still be a 6 if the pain is clear.
 
-Draft rules (only when fit is 5 or more):
+Draft rules (only when fit is 4 or more):
 - Answer their actual question first, with a tip that works even without Darnly (for example: name the exact element and file, paste the console error, say whether to change one instance or all).
 - Mention Darnly only if it truly fits, at most once, and disclose it: "I built a free tool for this, Darnly (darnly.dev)". If mention is false, do not name it at all.
 - Under 90 words. Plain, friendly Reddit tone. No hype words, no emoji, no hashtags, no bullet lists unless they asked for steps.
