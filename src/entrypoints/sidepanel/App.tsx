@@ -127,6 +127,8 @@ export function App() {
   // Review mode (prototype): talk instead of typing, and after each save the next pick starts by itself,
   // so a whole walk through the app is click, talk, click, talk. One report per click.
   const [review, setReviewState] = useState(false);
+  // Bugs saved since review mode last started picking by itself, to show "2 saved" between clicks.
+  const [reviewSaved, setReviewSaved] = useState(0);
   const reviewRef = useRef(false);
   const [listening, setListening] = useState(false);
   const stopTalk = useRef<(() => void) | null>(null);
@@ -142,7 +144,11 @@ export function App() {
     reviewRef.current = on;
     setReviewState(on);
     chrome.storage.local.set({ reviewMode: on }).catch(() => {});
-    if (!on) endTalk();
+    if (!on) return endTalk();
+    // Ask for the microphone now, while setting up, not in the middle of the first bug.
+    navigator.permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then((p) => p.state !== 'granted' && askMic(), () => askMic());
   };
   const endTalk = () => {
     stopTalk.current?.();
@@ -154,7 +160,7 @@ export function App() {
   const [notHearing, setNotHearing] = useState(false);
   const askMic = () => {
     endTalk();
-    setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back and press Talk.');
+    setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back.');
     chrome.tabs.create({ url: chrome.runtime.getURL('/mic.html') }).catch(() => {});
   };
   const startTalk = async () => {
@@ -401,6 +407,9 @@ export function App() {
       } else if (msg.type === 'picker-failed') {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
+      } else if (msg.type === 'mic-allowed') {
+        setMessage('');
+        if (noteRef.current) setTimeout(() => startTalkRef.current(), 300);
       } else if (msg.type === 'steps-updated') {
         refreshRecording();
       } else if (msg.type === 'capture-ready') {
@@ -598,11 +607,13 @@ export function App() {
   // Review mode: once a bug is saved (to the project or the Darnly inbox), start pointing at the next one.
   useEffect(() => {
     if (stage !== 'saved' || !review || message || !(lastFile || sentToCloud)) return;
+    setReviewSaved((n) => n + 1);
     const t = setTimeout(() => startFromPanel(false), 700);
     return () => clearTimeout(t);
   }, [stage, review, message, lastFile, sentToCloud]);
   useEffect(() => {
     if (stage !== 'note') endTalk();
+    if (stage === 'idle') setReviewSaved(0);
   }, [stage]);
   const saveOnce = async () => {
     if (!capture) return;
@@ -875,15 +886,26 @@ export function App() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink opacity-60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
             </span>
-            <div>
-              <p className="font-semibold text-ink">Click the broken part of the page.</p>
-              <p className="text-xs text-ink-soft">Press W for the whole page, Esc to cancel.</p>
+            {review && reviewSaved > 0 ? (
+              <div>
+                <p className="font-semibold text-ink">✓ Saved {plural(reviewSaved, 'bug', 'bugs')}. Click the next thing that's wrong.</p>
+                <p className="text-xs text-ink-soft">Review mode keeps going until you press Done.</p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-ink">Click the broken part of the page.</p>
+                <p className="text-xs text-ink-soft">Press W for the whole page, Esc to cancel.</p>
+              </div>
+            )}
+          </div>
+          {review && reviewSaved > 0 ? (
+            <button className={secondaryCls + ' w-full'} onClick={() => { pickerCommand('cancel'); setReviewSaved(0); }}>Done reviewing</button>
+          ) : (
+            <div className="flex gap-2">
+              <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('whole')}>Whole page</button>
+              <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('cancel')}>Cancel</button>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('whole')}>Whole page</button>
-            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('cancel')}>Cancel</button>
-          </div>
+          )}
         </section>
       )}
 
