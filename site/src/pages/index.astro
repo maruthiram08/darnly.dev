@@ -3,6 +3,7 @@
 import Base from '../layouts/Base.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SetupPrompt from '../components/SetupPrompt.astro';
+import AppIcon from '../components/AppIcon.astro';
 import { MAC_DMG_URL, STORE_URL, TOOLS, storeUrl } from '../data/site';
 import '../styles/home.css';
 
@@ -80,10 +81,10 @@ import HeroLoop from '../components/HeroLoop.astro';
       <div>
         <a class="news" href="/changelog/#v0-3-3"><b>New</b> Your agent sees the steps that led to the bug →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
-        <p class="sub"><strong>Darnly is for when you're not coding.</strong> Point at bugs while you use your app, even when you're out of tokens. Claude Code, Cursor or Codex fixes them all later.</p>
+        <p class="sub"><strong>Darnly is for when you're <em>not coding.</em></strong> Point at bugs while you use your app, even when you're out of tokens. Claude Code, Cursor or Codex fixes them all later.</p>
         <div class="cta cta-hero">
-          <a class="btn btn-primary btn-shimmer" href={storeUrl('home-hero')}>Add to Chrome <span aria-hidden="true">→</span></a>
-          <a class="mac-link" href="#mac"><span>Get the Mac app</span> <small>for native apps</small></a>
+          <a class="btn btn-primary btn-shimmer" href={storeUrl('home-hero')}><AppIcon name="chrome" size={22} />Add to Chrome <span aria-hidden="true">→</span></a>
+          <a class="mac-link" href="#mac"><AppIcon name="apple" size={17} /><span>Get the Mac app</span> <small>for native apps</small></a>
         </div>
         <p class="trust">Free · No account needed · Chrome, Edge, Brave and Arc · <a href="#why">Why Darnly ↓</a></p>
         <div class="on-phone" hidden data-on-phone>
@@ -91,7 +92,7 @@ import HeroLoop from '../components/HeroLoop.astro';
           <button type="button" class="btn btn-ghost" data-send-link>Send me the link</button>
         </div>
         <div class="agents" aria-label="Works with">
-          <span class="agents-label">Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a href="/setup/#other-agents">Windsurf</a><a href="/setup/#other-agents">Antigravity</a><a href="/guides/report-a-bug-to-lovable/">Lovable</a><a href="/guides/report-a-bug-to-bolt/">Bolt</a><a href="/guides/report-a-bug-to-v0/">v0</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
+          <span class="agents-label">Works with</span><a href="/setup/#claude-code"><AppIcon name="claude" />Claude Code</a><a href="/setup/#codex"><AppIcon name="codex" />Codex</a><a href="/setup/#cursor"><AppIcon name="cursor" />Cursor</a><a href="/setup/#other-agents"><AppIcon name="windsurf" />Windsurf</a><a href="/setup/#other-agents"><AppIcon name="antigravity" />Antigravity</a><a href="/guides/report-a-bug-to-lovable/"><AppIcon name="lovable" />Lovable</a><a href="/guides/report-a-bug-to-bolt/"><AppIcon name="bolt" />Bolt</a><a href="/guides/report-a-bug-to-v0/"><AppIcon name="v0" />v0</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
       </div>
       <HeroLoop />
