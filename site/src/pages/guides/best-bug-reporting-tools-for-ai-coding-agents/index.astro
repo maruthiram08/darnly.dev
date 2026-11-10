@@ -1,0 +1,101 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'best-bug-reporting-tools-for-ai-coding-agents';
+const faq = [
+  { q: 'What is the best free tool for showing Claude Code a UI bug?', a: 'For one bug, a plain screenshot with one clear sentence works well and costs nothing. For many bugs found while testing, a free capture tool helps: Darnly saves each one into your project for the agent, MarkAgent copies a ready prompt to paste, and TraceBug records a full session with a generated test.' },
+  { q: 'Do I need a bug reporting tool if my agent can open a browser?', a: 'Not always. Claude in Chrome and Chrome DevTools MCP let the agent look at the page itself while you are in a session, which is best for checking its own work. A capture tool is for the bugs you notice when you are not in a session, like while using or testing your app.' },
+  { q: 'Which tools have an MCP server for AI agents?', a: 'Darnly, Jam, Marker.io and TraceBug each list an MCP server that lets an agent read bug reports. Chrome DevTools MCP is an MCP server for driving a browser rather than for bug reports.' },
+  { q: 'Which tool is best for bugs from clients or testers?', a: 'Marker.io (a website widget anyone can use without an account) and Jam (recording links with nothing to install) are built for bugs from other people. Darnly and MarkAgent need the reporter to install a Chrome extension.' },
+  { q: 'Does a bug report tool make the AI fix more bugs?', a: 'Not by itself, in our tests. In a 30-bug test, Claude fixed almost every bug whether it got text, a screenshot or a Darnly report. What a tool changes is how quickly you can capture bugs and whether the agent gets errors, the exact element and a way to check its fix.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-10"
+  title="Best bug reporting tools for AI coding agents (2026)"
+  description="Nine ways to hand a UI bug to Claude Code, Cursor or Codex, compared honestly: Darnly, Jam, Marker.io, TraceBug, MarkAgent, Claude in Chrome, DevTools MCP, Cursor Design Mode and a plain screenshot."
+  h1="Best bug reporting tools for AI coding agents in 2026"
+  lede="The best bug reporting tool for an AI coding agent depends on who finds the bug: if you find it yourself while testing, use a quick capture tool like Darnly, MarkAgent or TraceBug; if clients or teammates find it, use Marker.io or Jam; and if the agent should look for itself during a session, use Claude in Chrome or Chrome DevTools MCP."
+  faq={faq}
+  sources={[
+    { name: 'Jam pricing', url: 'https://jam.dev/pricing' },
+    { name: 'Jam docs: Jam MCP', url: 'https://jam.dev/docs/debug-a-jam/mcp' },
+    { name: 'Marker.io pricing', url: 'https://marker.io/pricing' },
+    { name: 'Marker.io MCP', url: 'https://marker.io/marker-mcp' },
+    { name: 'TraceBug pricing', url: 'https://tracebug.dev/pricing' },
+    { name: 'TraceBug docs: MCP server', url: 'https://tracebug.dev/docs/mcp' },
+    { name: 'MarkAgent home page', url: 'https://markagent.avibebuilder.com/' },
+    { name: 'Use Claude Code with Chrome (Anthropic docs)', url: 'https://code.claude.com/docs/en/chrome' },
+    { name: 'ChromeDevTools/chrome-devtools-mcp on GitHub', url: 'https://github.com/ChromeDevTools/chrome-devtools-mcp' },
+    { name: 'Cursor: a visual editor for the Cursor Browser', url: 'https://cursor.com/blog/browser-visual-editor' },
+  ]}
+>
+  <p>We make Darnly, so read this list with that in mind. We've tried to be fair: each tool below is the best pick for someone, and Darnly isn't the best pick for most of the cases here. Facts about other tools come from their own pages, checked between 3 and 8 November 2026.</p>
+
+  <h2>The short list</h2>
+  <div class="table"><table>
+    <thead><tr><th>Tool</th><th>Best for</th><th>Price</th><th>Agent access</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#darnly">Darnly</a></td><td>Bugs you find yourself while testing, kept as a list your agent works through</td><td>Free</td><td>Files in your project, or MCP</td></tr>
+      <tr><td><a href="#jam">Jam</a></td><td>Bugs that need a video, and bugs from teammates or customers</td><td>Free plan (30 Jams a month), Team $14 per creator a month</td><td>MCP</td></tr>
+      <tr><td><a href="#marker-io">Marker.io</a></td><td>Feedback from clients through a widget on your site</td><td>From $39 a month, 15-day trial</td><td>MCP</td></tr>
+      <tr><td><a href="#tracebug">TraceBug</a></td><td>The most evidence per bug: replay, network, repro steps, a generated test</td><td>Free, open source</td><td>MCP</td></tr>
+      <tr><td><a href="#markagent">MarkAgent</a></td><td>Marking elements and copying a ready prompt to paste</td><td>Free</td><td>Copy and paste</td></tr>
+      <tr><td><a href="#claude-in-chrome">Claude in Chrome</a></td><td>Claude Code checking its own work in your browser</td><td>Needs a paid Claude plan</td><td>Built in</td></tr>
+      <tr><td><a href="#devtools-mcp">Chrome DevTools MCP</a></td><td>Any agent driving its own Chrome to look for problems</td><td>Free, open source</td><td>MCP</td></tr>
+      <tr><td><a href="#cursor-design-mode">Cursor Design Mode</a></td><td>Pointing at an element and changing it right away inside Cursor</td><td>Part of Cursor</td><td>Built in</td></tr>
+      <tr><td><a href="#screenshot">A plain screenshot</a></td><td>One visual bug, right now</td><td>Free</td><td>Paste</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="darnly">1. Darnly</h2>
+  <p>A free Chrome extension and Mac app. Press one key, click the broken part, type what you expected. Each bug is saved in your project's <code>.darnly/inbox/</code> (or an optional cloud inbox) with a screenshot boxed in red, the element, the file that drew it on a local project, recent errors and requests, and the steps that led to it. You can say "Change only this one" or "Change all like it". Then say "fix my Darnly bugs": the agent works through the list, checks each fix in a browser when it can, and marks it fixed with a note.</p>
+  <p><strong>Pick it if</strong> you build alone with Claude Code, Codex or Cursor and find bugs in batches while you use your own app. <strong>Skip it if</strong> you need video, bugs come from clients, or you track work in Jira or Linear. It has no tracker integrations.</p>
+
+  <h2 id="jam">2. Jam</h2>
+  <p>A screen recorder for software teams. A Jam holds a video or screenshot, console logs, network requests, user events and an AI summary. Recording Links let anyone record a bug with nothing to install, and Jam MCP lets Claude Code, Cursor and Codex read a Jam. The free plan allows 30 Jams a month. More in <a href="/guides/darnly-vs-jam/">Darnly vs Jam</a>.</p>
+  <p><strong>Pick it if</strong> bugs need a recording, or they come from teammates, QA or customers.</p>
+
+  <h2 id="marker-io">3. Marker.io</h2>
+  <p>A paid feedback tool for teams and agencies. A widget on your site lets clients report bugs without an account, and reports go to Jira, Linear, Trello, GitHub and more. It has its own MCP server. Plans start at $39 a month billed yearly. More in <a href="/guides/darnly-vs-marker-io/">Darnly vs Marker.io</a>.</p>
+  <p><strong>Pick it if</strong> clients or a team send you feedback and you already use a tracker.</p>
+
+  <h2 id="tracebug">4. TraceBug</h2>
+  <p>A free, open-source browser extension that records a lot per bug: session replay, network calls, repro steps and a generated Playwright test, with an MCP server and export to GitHub or Jira. It also runs in Firefox. More in <a href="/guides/darnly-vs-tracebug/">Darnly vs TraceBug</a>.</p>
+  <p><strong>Pick it if</strong> you want the fullest record of each bug, or a test that fails until it's fixed.</p>
+
+  <h2 id="markagent">5. MarkAgent</h2>
+  <p>A free Chrome extension that runs entirely on your machine. Mark elements, add a note, and it copies markdown (page, element, React component and file in dev mode, screenshot) to paste into your agent. Journey mode records your clicks as numbered steps. There's no inbox or MCP: you paste each report yourself.</p>
+  <p><strong>Pick it if</strong> you like pasting a prompt straight into the chat and want nothing stored anywhere.</p>
+
+  <h2 id="claude-in-chrome">6. Claude in Chrome</h2>
+  <p>Lets Claude Code open and drive your Chrome during a session: read the page, click, and check its own fix. It needs a paid Claude plan, and each browser step uses your plan's usage. More in <a href="/guides/darnly-vs-claude-in-chrome/">Darnly vs Claude in Chrome</a>.</p>
+  <p><strong>Pick it if</strong> you're in a Claude Code session and want the agent to look for itself.</p>
+
+  <h2 id="devtools-mcp">7. Chrome DevTools MCP</h2>
+  <p>An open-source MCP server from the Chrome team that lets any agent open its own Chrome, read the console and network, and take screenshots. More in <a href="/guides/darnly-vs-chrome-devtools-mcp/">Darnly vs Chrome DevTools MCP</a>.</p>
+  <p><strong>Pick it if</strong> you use Cursor, Codex or another agent and want it to inspect the page itself.</p>
+
+  <h2 id="cursor-design-mode">8. Cursor Design Mode</h2>
+  <p>Cursor's visual editor lets you point at an element in Cursor's own browser and have the agent change it right away. More in <a href="/guides/darnly-vs-cursor-design-mode/">Darnly vs Cursor Design Mode</a>.</p>
+  <p><strong>Pick it if</strong> you work in Cursor and want live tweaks while you build.</p>
+
+  <h2 id="screenshot">9. A plain screenshot</h2>
+  <p>Take a screenshot, paste it into the chat, and write one sentence on what you expected. In our test this fixed visual bugs as often as a Darnly report and cost less. It falls short when the cause is an error you can't see, or when you have ten bugs to describe. More in <a href="/guides/darnly-vs-screenshot/">Darnly vs a plain screenshot</a> and <a href="/guides/show-claude-code-a-bug/">how to show Claude Code a bug</a>.</p>
+  <p><strong>Pick it if</strong> it's one visual bug and you're already in the chat.</p>
+
+  <h2>How to choose</h2>
+  <ul>
+    <li><strong>Who finds the bug?</strong> You: Darnly, MarkAgent, TraceBug or a screenshot. Clients or a team: Marker.io or Jam. The agent itself: Claude in Chrome or Chrome DevTools MCP.</li>
+    <li><strong>One bug or many?</strong> For one, paste a screenshot. For a testing session with ten, a capture tool with an inbox saves the retyping.</li>
+    <li><strong>Do you need video?</strong> Only Jam and TraceBug record.</li>
+    <li><strong>Does it need to reach a tracker?</strong> Marker.io, Jam and TraceBug export to trackers. Darnly and MarkAgent don't.</li>
+  </ul>
+  <p>Many people use two: an agent browser to check fixes during a session, and a capture tool for what they notice the rest of the time.</p>
+
+  <GuideCta slug={slug} lead="Find bugs in batches while you test?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent works through the list." />
+  <p>Want to try it? <a href={storeUrl(`guide-${slug}`)}>Add Darnly to Chrome</a>.</p>
+</GuidePage>
