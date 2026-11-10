@@ -215,6 +215,12 @@ try {
       if (name.endsWith('.md')) await w.write((await f.text()).replace(/^\*\*Question:\*\*.*\n/m, '').replace(/^(\*\*Expected:\*\*.*)$/m, '$1\n**Fixed:** made Pay now clickable in src/components/PayButton.tsx'));
       else await w.write(f);
       await w.close();
+      // Proof of fix: the agent's screenshot of the fixed page, saved next to the bug.
+      if (/^[^.]+\.png$/.test(name)) {
+        const after = await (await done.getFileHandle(name.replace(/\.png$/, '.after.png'), { create: true })).createWritable();
+        await after.write(f);
+        await after.close();
+      }
       await inbox.removeEntry(name);
     }
   });
@@ -230,6 +236,54 @@ try {
   // The bug was on localhost, so reloading shows the fix (a live site would say to deploy instead).
   if (!(await panel.getByRole('button', { name: 'Reload the page' }).count())) fail('reload button missing for a localhost bug');
   if (await panel.getByText('Deploy it to see it').count()) fail('deploy hint shown for a localhost bug');
+  // Proof of fix: the card shows the bug as captured next to the agent's After picture.
+  await panel.getByText('After (from your agent)').first().waitFor({ timeout: 5000 }).catch(() => fail('after picture missing on the fixed card'));
+  if (!(await panel.locator('img[alt^="Before"]').count())) fail('before picture missing on the fixed card');
+  if (process.env.DARNLY_SHOTS) await panel.setViewportSize({ width: 400, height: 900 }), await panel.screenshot({ path: path.join(process.env.DARNLY_SHOTS, 'proof-of-fix.png'), fullPage: true });
+  // Not fixed after all: Reopen sends it back to the inbox, without the Fixed line or the After picture.
+  await panel.getByRole('button', { name: 'Not fixed? Reopen' }).first().click();
+  await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 7000 }).catch(() => fail('reopened bug is not waiting'));
+  {
+    const back = await panel.evaluate(async () => {
+      const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly');
+      const list = async (d) => {
+        const out = {};
+        for await (const [name, h] of (await root.getDirectoryHandle(d)).entries()) out[name] = name.endsWith('.md') ? await (await h.getFile()).text() : '';
+        return out;
+      };
+      return { inbox: await list('inbox'), done: await list('done') };
+    });
+    const names = Object.keys(back.inbox);
+    if (Object.keys(back.done).length) fail('reopen left files in done: ' + Object.keys(back.done).join(','));
+    if (names.some((n) => n.endsWith('.after.png'))) fail('reopen kept the After picture');
+    if (!names.some((n) => /^[^.]+\.png$/.test(n))) fail('reopen lost the screenshot');
+    const md = Object.entries(back.inbox).find(([n]) => n.endsWith('.md'))?.[1] ?? '';
+    if (/^\*\*Fixed:\*\*/m.test(md)) fail('reopen kept the Fixed line');
+    if (!md.includes('**Expected:**')) fail('reopened report lost its note');
+  }
+  // Won't fix: the agent closes it without a change and says why. Grey, never shown as fixed.
+  await panel.goto(`chrome-extension://${id}/keepalive.html`);
+  await panel.evaluate(async () => {
+    const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('.darnly');
+    const inbox = await root.getDirectoryHandle('inbox');
+    const done = await root.getDirectoryHandle('done', { create: true });
+    const names = [];
+    for await (const [name] of inbox.entries()) names.push(name);
+    for (const name of names) {
+      const f = await (await inbox.getFileHandle(name)).getFile();
+      const w = await (await done.getFileHandle(name, { create: true })).createWritable();
+      if (name.endsWith('.md')) await w.write((await f.text()).replace(/^(\*\*Expected:\*\*.*)$/m, "$1\n**Won't fix:** Not a bug: Pay now stays disabled until the form is valid"));
+      else await w.write(f);
+      await w.close();
+      await inbox.removeEntry(name);
+    }
+  });
+  await panel.goto(`chrome-extension://${id}/sidepanel.html`);
+  await panel.getByText("0 waiting, 0 fixed, 1 won't fix").waitFor({ timeout: 7000 }).catch(() => fail("won't-fix bug not counted"));
+  await panel.getByText('1 bug not changed. Take a look.').waitFor({ timeout: 3000 }).catch(() => fail("won't-fix nudge missing"));
+  await panel.getByText("Your agent didn't change this: Not a bug: Pay now stays disabled until the form is valid").first().waitFor({ timeout: 3000 }).catch(() => fail("won't-fix reason missing"));
+  if (!(await panel.getByText("Won't fix", { exact: true }).count())) fail("won't-fix tag missing");
+  if (process.env.DARNLY_SHOTS) await panel.setViewportSize({ width: 400, height: 900 }), await panel.screenshot({ path: path.join(process.env.DARNLY_SHOTS, 'wont-fix.png'), fullPage: true });
   // Sprint 4: picking a big container still records the card under the cursor.
   const framesUrl = url.replace('/checkout', '/frames');
   await page.goto(framesUrl);

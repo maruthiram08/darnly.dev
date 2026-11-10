@@ -137,7 +137,7 @@ try {
     const client = new Client({ name: 'e2e-agent', version: '1.0.0' });
     await client.connect(new StreamableHTTPClientTransport(new URL(`${cloud}/mcp`), { requestInit: { headers: { authorization: `Bearer ${agentToken}` } } }));
     const tools = (await client.listTools()).tools.map((t) => t.name).join(',');
-    if (tools !== 'list_bugs,get_bug,mark_fixed,ask_user') fail('MCP tools wrong: ' + tools);
+    if (tools !== 'list_bugs,get_bug,mark_fixed,mark_wont_fix,ask_user') fail('MCP tools wrong: ' + tools);
     const listed = await client.callTool({ name: 'list_bugs', arguments: {} });
     const mineOnly = await client.callTool({ name: 'list_bugs', arguments: { project: 'checkout' } });
     if (!mineOnly.content[0].text.includes(bug.id)) fail('list_bugs with project missed the bug');
@@ -154,11 +154,28 @@ try {
     await panel.getByText('Your agent is waiting for your input. Return to your agent.').waitFor({ timeout: 12000 }).catch(() => fail('waiting-for-input notice missing'));
     await panel.getByText('Should it open in a new tab?').waitFor({ timeout: 3000 }).catch(() => fail('agent question missing'));
     await panel.goto(panelUrl.replace('sidepanel.html', 'keepalive.html'));
-    await client.callTool({ name: 'mark_fixed', arguments: { id: bug.id, note: 'wired Pay now to openPaymentForm()' } });
-    await client.close();
+    const fixed = await client.callTool({ name: 'mark_fixed', arguments: { id: bug.id, note: 'wired Pay now to openPaymentForm()' } });
+    // Proof of fix: the agent uploads its screenshot of the fixed page with the one-time link, like `curl --data-binary @after.png`.
+    const link = /'(http[^']+\/v1\/after\/[A-Za-z0-9_-]+)'/.exec(fixed.content[0].text)?.[1];
+    if (!link) fail('mark_fixed gave no upload link');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+    const put = await fetch(link, { method: 'PUT', headers: { 'content-type': 'image/png' }, body: png });
+    if (put.status !== 200) fail('after upload failed: ' + put.status);
     await panel.goto(panelUrl);
     await panel.getByText('1 bug fixed. Take a look.').waitFor({ timeout: 12000 }).catch(() => fail('fixed nudge missing'));
-    await panel.getByText('wired Pay now to openPaymentForm()').waitFor({ timeout: 3000 }).catch(() => fail('fix note missing'));
+    await panel.getByText('wired Pay now to openPaymentForm()').first().waitFor({ timeout: 3000 }).catch(() => fail('fix note missing'));
+    await panel.getByText('After (from your agent)').first().waitFor({ timeout: 5000 }).catch(() => fail('after picture missing in the panel'));
+    // Reopen sends it back to the agent; then the agent closes it as won't fix with a reason.
+    await panel.getByRole('button', { name: 'Not fixed? Reopen' }).first().click();
+    await panel.getByText('1 waiting, 0 fixed').waitFor({ timeout: 10000 }).catch(() => fail('reopened cloud bug not waiting'));
+    const again = await client.callTool({ name: 'list_bugs', arguments: {} });
+    if (!again.content[0].text.includes(bug.id)) fail('reopened bug not listed for the agent');
+    await panel.goto(panelUrl.replace('sidepanel.html', 'keepalive.html'));
+    await client.callTool({ name: 'mark_wont_fix', arguments: { id: bug.id, reason: 'Not a bug: the payment form opens after the card check' } });
+    await client.close();
+    await panel.goto(panelUrl);
+    await panel.getByText("0 waiting, 0 fixed, 1 won't fix").waitFor({ timeout: 12000 }).catch(() => fail("won't-fix not shown"));
+    await panel.getByText("Your agent didn't change this: Not a bug: the payment form opens after the card check").first().waitFor({ timeout: 3000 }).catch(() => fail("won't-fix reason missing"));
   }
 
   // Delete everything: two steps.

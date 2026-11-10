@@ -3,7 +3,7 @@ import type { Env } from './env';
 import { agentFrom, mcpFetch } from './mcp';
 import { exchangeAppCode, oauthRoute } from './oauth';
 import { deleteAllSessions, deleteExpiredSessions, requireUser, signIn, signOut } from './auth';
-import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getBug, getPicture, listBugs, markFixed, parseUpload, saveNewBug } from './bugs';
+import { cleanup, deleteAccount, deleteAllBugs, deleteBug, getAfter, getBug, getPicture, listBugs, listStatus, markFixed, parseUpload, reopenBug, saveAfter, saveNewBug } from './bugs';
 import { writeTitle } from './titles';
 import { HttpError, json, readJson } from './util';
 import { isPaused, rateLimit } from './limits';
@@ -55,6 +55,14 @@ async function route(req: Request, env: Env, ctx?: ExecutionContext): Promise<Re
     return json({ ok: true });
   }
 
+  // The agent's After picture: the one-time link from mark_fixed is the only sign-in it needs.
+  const after = /^\/v1\/after\/([A-Za-z0-9_-]+)$/.exec(path);
+  if (after && (method === 'PUT' || method === 'POST')) {
+    if (await isPaused(env)) throw new HttpError(503, 'uploads_paused');
+    const bug = await saveAfter(env, after[1]!, req);
+    return json({ ok: true, id: bug.id, message: 'Saved. The user sees this picture next to the bug in Darnly.' });
+  }
+
   const user = await requireUser(env, req);
 
   if (path === '/v1/me' && method === 'GET') return json({ email: user.email });
@@ -79,13 +87,12 @@ async function route(req: Request, env: Env, ctx?: ExecutionContext): Promise<Re
     return json(bug, 201);
   }
   if (path === '/v1/bugs' && method === 'GET') {
-    const status = url.searchParams.get('status');
-    const pick = status === 'waiting' || status === 'fixed' ? status : 'all';
+    const pick = listStatus(url.searchParams.get('status'), 'all');
     return json({ bugs: await listBugs(env, user.id, pick, Number(url.searchParams.get('limit') ?? 100), url.searchParams.get('project') ?? undefined) });
   }
   if (path === '/v1/bugs' && method === 'DELETE') return json({ deleted: await deleteAllBugs(env, user.id) });
 
-  const m = /^\/v1\/bugs\/(b_[a-z0-9]{16})(\/picture|\/fixed)?$/.exec(path);
+  const m = /^\/v1\/bugs\/(b_[a-z0-9]{16})(\/picture|\/after|\/fixed|\/reopen)?$/.exec(path);
   if (m) {
     const [, id, sub] = m as unknown as [string, string, string | undefined];
     if (!sub && method === 'GET') return json(await getBug(env, user.id, id));
@@ -96,6 +103,10 @@ async function route(req: Request, env: Env, ctx?: ExecutionContext): Promise<Re
     if (sub === '/picture' && method === 'GET') {
       return new Response(await getPicture(env, user.id, id), { headers: { 'content-type': 'image/png', 'cache-control': 'private, max-age=300' } });
     }
+    if (sub === '/after' && method === 'GET') {
+      return new Response(await getAfter(env, user.id, id), { headers: { 'content-type': 'image/png', 'cache-control': 'private, max-age=300' } });
+    }
+    if (sub === '/reopen' && method === 'POST') return json(await reopenBug(env, user.id, id));
     if (sub === '/fixed' && method === 'POST') {
       const body = await readJson<{ note?: unknown }>(req);
       return json(await markFixed(env, user.id, id, body.note));
@@ -168,8 +179,9 @@ function oauthProvider(env: Env): OAuthProvider<Env> {
 
 /** Uploads, sign-ins and agent registration get a tighter per-IP limit than everything else. */
 function isWrite(req: Request, path: string): boolean {
+  if (req.method === 'PUT' && path.startsWith('/v1/after/')) return true;
   if (req.method !== 'POST') return false;
-  return path === '/v1/bugs' || path === '/v1/auth/google' || path === '/v1/auth/app/exchange' || path === '/register' || path === '/token' || path === '/authorize';
+  return path.startsWith('/v1/after/') || path === '/v1/bugs' || path === '/v1/auth/google' || path === '/v1/auth/app/exchange' || path === '/register' || path === '/token' || path === '/authorize';
 }
 
 export default {

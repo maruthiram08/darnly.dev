@@ -394,6 +394,13 @@ function verifyLines(c: CaptureInput): string[] {
     'After fixing, check it yourself if you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright or similar):',
     ...steps,
     `If it still looks wrong, fix it again. If you can't open a browser, say so instead of guessing. End ${where} with "(checked in the browser)" when you did.`,
+    ...(c.forPaste
+      ? []
+      : [
+          c.forCloud
+            ? 'If you saved a screenshot of the fixed page as a PNG, upload it with the link `mark_fixed` gives you: Darnly shows it to the user next to this bug.'
+            : `If you saved a screenshot of the fixed page, put it in ${DONE_FOLDER}/ as \`${c.id}.after.png\`: Darnly shows it to the user next to this bug.`,
+        ]),
     '',
   ];
 }

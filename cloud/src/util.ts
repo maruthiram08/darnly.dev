@@ -46,9 +46,14 @@ export async function sha256(text: string): Promise<string> {
  * A declared Content-Length over the limit is refused before anything is read.
  */
 export async function readText(req: Request, maxBytes: number): Promise<string> {
+  return new TextDecoder().decode(await readBytes(req, maxBytes));
+}
+
+/** Reads a request body as bytes, with the same size limit rules as readText. */
+export async function readBytes(req: Request, maxBytes: number): Promise<Uint8Array> {
   const declared = Number(req.headers.get('content-length') ?? NaN);
   if (Number.isFinite(declared) && declared > maxBytes) throw new HttpError(413, 'too_large');
-  if (!req.body) return '';
+  if (!req.body) return new Uint8Array(0);
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -68,7 +73,7 @@ export async function readText(req: Request, maxBytes: number): Promise<string> 
     all.set(c, at);
     at += c.byteLength;
   }
-  return new TextDecoder().decode(all);
+  return all;
 }
 
 export async function readJson<T>(req: Request, maxBytes = 16_000): Promise<T> {

@@ -1,6 +1,6 @@
 # Darnly privacy policy
 
-Last updated: 9 November 2026
+Last updated: 10 November 2026
 
 Darnly is a Chrome extension and a Mac app that turn a bug you see on screen into a report your AI coding agent can read. This policy explains what it touches and where that goes.
 
@@ -60,9 +60,9 @@ Darnly keeps the link to your project folder, your settings and (if you use the 
 
 **Where it lives:** on Cloudflare, which runs Darnly cloud for us (a database for the bug list, file storage for screenshots and reports). Data is encrypted at rest by Cloudflare.
 
-**Who can see it:** only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them, mark them fixed with a one-line note, and save one short question it asked you about a bug (so the panel can tell you it is waiting; the question is cleared once the bug is fixed). It can't see anyone else's bugs.
+**Who can see it:** only you, and the coding agents you connect yourself. To connect an agent, you add Darnly as a connector in that agent and approve it on a Darnly page that names the app asking. An agent can list your bugs, read them, mark them fixed with a one-line note (or close one without a fix, with a one-line reason), and save one short question it asked you about a bug (so the panel can tell you it is waiting; the question is cleared once the bug is fixed). It can't see anyone else's bugs.
 
-**How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent.
+**How long it's kept:** a bug you've marked fixed is deleted 30 days after it was fixed. Waiting bugs stay until they're fixed or you delete them. "Delete all my cloud bugs" in the panel deletes them straight away. Deleting your account deletes every bug and disconnects every agent. When an agent marks a bug fixed, it can also upload one screenshot it took of the fixed page, so you can see it next to the bug. Darnly stores it with that bug, only you and your connected agents can see it, and it is deleted with the bug (by you, when you reopen the bug, or 30 days after the bug is closed). Darnly doesn't hide secrets in that screenshot, because your agent takes it, not Darnly.
 
 **AI titles (only when switched on):** when a bug arrives in your cloud inbox, its note, report and screenshot may be sent to Anthropic's Claude API to write a short title and a one-line summary for your bug list. Anthropic handles them for us as a service provider: it doesn't train its models on them, and it doesn't keep them beyond its standard short retention for safety checks. Your own note is never changed. Bugs saved to a project folder or copied to the clipboard are never sent anywhere.
 

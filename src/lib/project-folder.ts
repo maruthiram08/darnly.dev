@@ -231,8 +231,12 @@ export interface CaptureSummary {
   title: string;
   status: 'waiting' | 'fixed';
   modified: number;
-  /** The agent's one line on what it changed (the **Fixed:** line), when it wrote one. */
+  /** The agent's one line on what it changed (the **Fixed:** line), or why it didn't (the **Won't fix:** line). */
   fixedNote?: string;
+  /** How a closed bug was closed: fixed (the default), or won't fix with a reason in fixedNote. */
+  outcome?: 'fixed' | 'wont_fix';
+  /** True when the agent added a screenshot of the fixed page (<id>.after.png). */
+  hasAfter?: boolean;
   /** The agent's question when it is waiting for the user (the **Question:** line), on bugs still waiting. */
   question?: string;
   /** The page the bug was captured on. */
@@ -249,18 +253,60 @@ export async function listCaptures(root: FileSystemDirectoryHandle): Promise<Cap
     } catch {
       continue;
     }
-    for await (const [name, handle] of (dir as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) {
+    const entries: [string, FileSystemHandle][] = [];
+    for await (const e of (dir as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) entries.push(e);
+    const names = new Set(entries.map(([n]) => n));
+    for (const [name, handle] of entries) {
       if (handle.kind !== 'file' || !name.endsWith('.md')) continue;
       const file = await (handle as FileSystemFileHandle).getFile();
       const text = await file.slice(0, 4000).text();
       // The note (under "Expected") names a bug best; older files had it as the heading.
       const expected = text.match(/^\*\*Expected:\*\* (.+)$/m)?.[1];
       const title = (expected && expected !== '(no note given)' ? expected : undefined) ?? text.match(/^# (.+)$/m)?.[1] ?? name;
-      const fixedNote = text.match(/^\*\*Fixed:\*\* (.+)$/m)?.[1]?.slice(0, 200);
+      const wontFix = status === 'fixed' ? text.match(WONT_FIX_LINE)?.[1]?.slice(0, 200) : undefined;
+      const fixedNote = wontFix ?? text.match(/^\*\*Fixed:\*\* (.+)$/m)?.[1]?.slice(0, 200);
+      const id = name.replace(/\.md$/, '');
       const question = status === 'waiting' ? text.match(/^\*\*Question:\*\* (.+)$/m)?.[1]?.slice(0, 200) : undefined;
       const pageUrl = text.match(/^url: (.+)$/m)?.[1]?.trim().replace(/^"(.*)"$/, '$1');
-      out.push({ id: name.replace(/\.md$/, ''), title, status, modified: file.lastModified, fixedNote, question, pageUrl });
+      const closed = status === 'fixed' ? { outcome: wontFix ? ('wont_fix' as const) : ('fixed' as const), hasAfter: !wontFix && names.has(`${id}.after.png`) } : {};
+      out.push({ id, title, status, modified: file.lastModified, fixedNote, question, pageUrl, ...closed });
     }
   }
   return out.sort((a, b) => b.modified - a.modified);
+}
+
+/** The agent's line when it closed a bug without a fix. Straight or curly apostrophe, any case. */
+const WONT_FIX_LINE = /^\*\*Won['’]t fix:\*\* (.+)$/im;
+
+/** A bug's screenshot (before) or the agent's screenshot of the fixed page (after), if it is there. */
+export async function capturePicture(root: FileSystemDirectoryHandle, id: string, status: 'waiting' | 'fixed', which: 'before' | 'after'): Promise<Blob | null> {
+  try {
+    const dir = await dirAt(root, [ROOT_FOLDER, status === 'fixed' ? 'done' : 'inbox'], false);
+    return await (await dir.getFileHandle(which === 'after' ? `${id}.after.png` : `${id}.png`)).getFile();
+  } catch {
+    return null;
+  }
+}
+
+/** The report as it goes back to the inbox: without the agent's Fixed, Won't fix or Working lines. */
+export function reopenedReport(md: string): string {
+  return md.replace(/^\*\*(Fixed|Won['’]t fix|Working on it):\*\* .*(\r?\n)?/gim, '');
+}
+
+/** Sends a closed bug back to .darnly/inbox for the agent. Its After picture is dropped, since it no longer shows a fix. */
+export async function reopenCapture(root: FileSystemDirectoryHandle, id: string): Promise<void> {
+  const done = await dirAt(root, [ROOT_FOLDER, 'done'], false);
+  const inbox = await dirAt(root, [ROOT_FOLDER, 'inbox'], true);
+  const names: string[] = [];
+  for await (const [name] of (done as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()) {
+    if (name === `${id}.md` || name.startsWith(`${id}.`)) names.push(name);
+  }
+  if (!names.includes(`${id}.md`)) throw new Error('bug_not_found');
+  for (const n of names) {
+    if (n !== `${id}.after.png`) {
+      const file = await (await done.getFileHandle(n)).getFile();
+      await writeFile(inbox, n, n.endsWith('.md') ? reopenedReport(await file.text()) : file);
+    }
+  }
+  for (const n of names) await done.removeEntry(n);
 }
