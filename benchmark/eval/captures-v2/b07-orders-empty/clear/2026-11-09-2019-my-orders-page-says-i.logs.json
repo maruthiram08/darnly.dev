@@ -1,0 +1,34 @@
+{
+  "url": "http://localhost:39205/orders",
+  "entries": [
+    {
+      "t": 1794255546362,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:39205/favicon.ico",
+      "source": "browser"
+    },
+    {
+      "t": 1794255546366,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "ms": 10,
+      "url": "http://localhost:39205/api/order",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    },
+    {
+      "t": 1794255546366,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "ms": 8,
+      "url": "http://localhost:39205/api/order",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    }
+  ]
+}

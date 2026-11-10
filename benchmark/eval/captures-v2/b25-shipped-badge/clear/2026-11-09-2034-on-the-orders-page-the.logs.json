@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:44039/orders",
+  "entries": [
+    {
+      "t": 1794256456303,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:44039/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

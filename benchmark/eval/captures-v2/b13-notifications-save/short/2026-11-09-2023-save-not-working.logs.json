@@ -1,0 +1,22 @@
+{
+  "url": "http://localhost:41385/settings",
+  "entries": [
+    {
+      "t": 1794255774050,
+      "kind": "rejection",
+      "message": "Unhandled promise rejection: Error: POST /api/settings/notifications failed with 404",
+      "stack": "Error: POST /api/settings/notifications failed with 404\n    at postJson (http://localhost:41385/src/lib/api.ts:12:22)\n    at async onSubmit (http://localhost:41385/src/pages/SettingsPage.tsx:97:13)",
+      "source": "page"
+    },
+    {
+      "t": 1794255774051,
+      "kind": "request",
+      "method": "POST",
+      "status": 404,
+      "ms": 11,
+      "url": "http://localhost:41385/api/settings/notifications",
+      "snippet": "{\"error\":\"not found\"}",
+      "source": "page"
+    }
+  ]
+}
