@@ -148,13 +148,33 @@ export function App() {
     stopTalk.current?.();
     stopTalk.current = null;
     setListening(false);
+    setNotHearing(false);
   };
-  const startTalk = () => {
+  const heard = useRef(false);
+  const [notHearing, setNotHearing] = useState(false);
+  const askMic = () => {
+    endTalk();
+    setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back and press Talk.');
+    chrome.tabs.create({ url: chrome.runtime.getURL('/mic.html') }).catch(() => {});
+  };
+  const startTalk = async () => {
     if (stopTalk.current || !canTalk()) return;
+    // The side panel can't show Chrome's microphone prompt (it just hears nothing), so ask in a tab first.
+    const mic = await navigator.permissions.query({ name: 'microphone' as PermissionName }).then((p) => p.state, () => 'prompt');
+    if (mic !== 'granted') return askMic();
+    setMessage('');
     setListening(true);
+    heard.current = false;
+    setNotHearing(false);
+    const quiet = setTimeout(() => !heard.current && setNotHearing(true), 7000);
     stopTalk.current = listen({
-      onText: (t) => setNote(t),
+      onText: (t) => {
+        heard.current = true;
+        setNotHearing(false);
+        setNote(t);
+      },
       onDone: (t) => {
+        clearTimeout(quiet);
         stopTalk.current = null;
         setListening(false);
         setNote(t);
@@ -162,11 +182,13 @@ export function App() {
         if (reviewRef.current) setTimeout(() => saveRef.current(), 80);
       },
       onError: (err) => {
+        clearTimeout(quiet);
         stopTalk.current = null;
         setListening(false);
         if (err === 'not-allowed' || err === 'service-not-allowed') {
-          setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back.');
-          chrome.tabs.create({ url: chrome.runtime.getURL('/mic.html') }).catch(() => {});
+          askMic();
+        } else if (err === 'audio-capture') {
+          setMessage('No microphone found. On a Mac, check System Settings > Privacy & Security > Microphone and turn on Google Chrome. Or type the note.');
         } else if (err !== 'unsupported') {
           setMessage(`Couldn't hear you (${err}). Type the note instead.`);
         }
@@ -504,10 +526,27 @@ export function App() {
     await pickerCommand('whole');
   };
 
-  const startFromPanel = async () => {
-    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
+  // On a live site, Chrome lets the panel start picking only once the user allows Darnly there (asked once, on this click).
+  const allowThisSite = async (): Promise<boolean> => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    let origin = site.origin;
+    try {
+      if (tab?.url && /^https?:/.test(tab.url)) origin = new URL(tab.url).origin;
+    } catch {
+      /* keep the last known site */
+    }
+    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+    return chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+  };
+  const startFromPanel = async (fromClick = true) => {
+    setMessage('');
+    if (fromClick && !(await allowThisSite())) {
+      setMessage(`Click "Allow" when Chrome asks, so Darnly can start on this site from here. Or press ${shortcut ?? 'the Darnly shortcut'} on the page.`);
+      return;
+    }
+    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' }).catch(() => null);
     if (r?.ok) setStage('picking');
-    else setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page instead. This button only works on localhost.`);
+    else setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page instead.`);
   };
 
   const build = (c: PendingCapture) => {
@@ -559,7 +598,7 @@ export function App() {
   // Review mode: once a bug is saved (to the project or the Darnly inbox), start pointing at the next one.
   useEffect(() => {
     if (stage !== 'saved' || !review || message || !(lastFile || sentToCloud)) return;
-    const t = setTimeout(() => startFromPanel(), 700);
+    const t = setTimeout(() => startFromPanel(false), 700);
     return () => clearTimeout(t);
   }, [stage, review, message, lastFile, sentToCloud]);
   useEffect(() => {
@@ -769,9 +808,9 @@ export function App() {
             </div>
           )}
           {recordingSteps == null && (
-            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={() => startFromPanel()}>
               <Icon name="target" className="h-4 w-4" />
-              Capture a bug
+              {review ? 'Start review' : 'Capture a bug'}
             </button>
           )}
           {recordingSteps == null ? (
@@ -796,7 +835,7 @@ export function App() {
                 Done, describe the bug
               </button>
               <p className="text-center text-xs text-ink-soft">
-                <button className={linkCls} onClick={startFromPanel} title="Point at the broken part, then describe it">Point at the broken part first</button>
+                <button className={linkCls} onClick={() => startFromPanel()} title="Point at the broken part, then describe it">Point at the broken part first</button>
                 {' · '}
                 <button className={linkCls} onClick={stopRecording}>Cancel recording</button>
               </p>
@@ -808,7 +847,11 @@ export function App() {
               <span>
                 <span className="font-semibold text-ink">Review mode: talk while you click</span> <span className="rounded bg-wash px-1 text-[10px] font-bold uppercase text-sky">try it</span>
                 <br />
-                Click the broken part, say what you expected, pause. Darnly saves it and you click the next one. Esc on the page stops.
+                {review ? (
+                  <>Press <b>Start review</b>, click the first thing that's wrong, then say out loud what you want. Pause, and Darnly saves it and lets you click the next one. Esc on the page stops.</>
+                ) : (
+                  <>Talk instead of typing, one bug per click, without stopping between them.</>
+                )}
               </span>
             </label>
           )}
@@ -871,6 +914,18 @@ export function App() {
               </Chip>
             )}
           </div>
+          {listening && (
+            <div className="rounded-xl border border-pink/30 bg-pink/5 p-2.5 text-sm">
+              <p className="font-semibold text-ink">● Talk now</p>
+              <p className="text-xs text-ink-soft">
+                {notHearing
+                  ? "Not hearing anything yet. Check that Chrome can use your microphone (Mac: System Settings > Privacy & Security > Microphone), or type the note instead."
+                  : review
+                  ? 'Say what is wrong or what you want, e.g. "make this orange like the button". Pause for 2 seconds when done: Darnly saves it and you click the next thing.'
+                  : 'Say what is wrong or what you want. Pause when done, then press Save.'}
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <label className="block font-semibold" htmlFor="note">What did you expect?</label>
@@ -881,7 +936,7 @@ export function App() {
                   onClick={() => (listening ? endTalk() : startTalk())}
                   title={review ? 'Talk, then pause: Darnly saves it and starts the next one' : 'Say it instead of typing'}
                 >
-                  {listening ? '● Listening… (click to stop)' : '🎤 Talk'}
+                  {listening ? 'Stop' : '🎤 Talk'}
                 </button>
               )}
             </div>
@@ -976,7 +1031,7 @@ export function App() {
             )}
             <button className={secondaryCls + ' flex-1'} onClick={() => copyDetails(lastPaste)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
           </div>
-          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={() => startFromPanel()}>
             <Icon name="target" className="h-4 w-4" />
             Capture another
           </button>
