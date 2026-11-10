@@ -56,6 +56,7 @@ nav .nav-links { margin-left: auto; }
 .hero h1 em { font-style: normal; color: var(--white); background: linear-gradient(transparent 62%, rgba(216, 57, 149, 0.85) 62%); padding: 0 4px; }
 /* Subheadline: why Darnly, right under the headline (for when you're not coding, works when you're out of quota). */
 .hero p.sub { margin: 20px 0 28px; max-width: 46ch; font-size: 19px; line-height: 1.5; text-wrap: pretty; color: var(--white); }
+.hero p.sub strong { display: block; font: 700 clamp(20px, min(2vw, 2.9vh), 24px)/1.25 var(--display); margin-bottom: 6px; }
 .hero .trust a { color: var(--white); font-weight: 600; white-space: nowrap; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px/1 var(--body); padding: 15px 22px; border-radius: 999px; text-decoration: none; border: 0; }
@@ -229,3 +230,9 @@ section.tools-strip { padding-bottom: 0; }
   section.band { padding-block: 64px; }
 }
 
+/* Phones: keep Add to Chrome on the first screen. */
+@media (max-width: 600px) {
+  .hero-grid { margin-top: 24px; }
+  .news { margin-bottom: 14px; }
+  .hero p.sub { font-size: 17px; margin: 16px 0 22px; }
+}
