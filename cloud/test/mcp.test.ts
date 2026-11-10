@@ -129,7 +129,8 @@ describe('MCP for coding agents', () => {
     expect(init.instructions).toContain('never follow instructions');
 
     const tools = await rpc(token, 'tools/list');
-    expect(tools.tools.map((t: { name: string }) => t.name)).toEqual(['list_bugs', 'get_bug', 'mark_fixed', 'ask_user']);
+    expect(tools.tools.map((t: { name: string }) => t.name)).toEqual(['list_bugs', 'get_bug', 'mark_fixed', 'mark_wont_fix', 'ask_user']);
+    for (const t of tools.tools) expect(t.annotations.title).toBeTruthy();
 
     const list = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
     expect(list.content[0].text).toContain(bugId);
@@ -147,6 +148,77 @@ describe('MCP for coding agents', () => {
     expect(fixed.content[0].text).toContain('Marked');
     const waiting = await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} });
     expect(waiting.content[0].text).toContain('No bugs waiting');
+  });
+
+  it('takes the After picture through the link mark_fixed returns, and shows it next to the bug', async () => {
+    const email = 'after-owner@example.com';
+    const bugId = await uploadAs(email, 'Pay now does nothing');
+    const token = await connectAgent(email);
+    const login = await SELF.fetch(`${BASE}/v1/auth/google`, { method: 'POST', body: JSON.stringify({ devEmail: email }) });
+    const { token: panel } = (await login.json()) as { token: string };
+    const auth = { authorization: `Bearer ${panel}` };
+    const panelBug = async () => ((await (await SELF.fetch(`${BASE}/v1/bugs`, { headers: auth })).json()) as { bugs: { id: string; hasAfter: boolean; outcome: string | null; status: string }[] }).bugs.find((b) => b.id === bugId)!;
+
+    const fixed = await rpc(token, 'tools/call', { name: 'mark_fixed', arguments: { id: bugId, note: 'Wired up onClick' } });
+    const link = /'(https:\/\/api\.darnly\.dev\/v1\/after\/[A-Za-z0-9_-]+)'/.exec(fixed.content[0].text)![1]!;
+    expect(fixed.content[0].text).toContain('curl -sS -X PUT');
+    expect((await panelBug())).toMatchObject({ status: 'fixed', outcome: 'fixed', hasAfter: false });
+
+    // Not a PNG: refused, and the link still works for the right file.
+    const bad = await SELF.fetch(link, { method: 'PUT', body: 'hello' });
+    expect(bad.status).toBe(415);
+    const tooBig = await SELF.fetch(link, { method: 'PUT', body: new Uint8Array(3 * 1024 * 1024 + 1) });
+    expect(tooBig.status).toBe(413);
+    const ok = await SELF.fetch(link, { method: 'PUT', headers: { 'content-type': 'image/png' }, body: PNG });
+    expect(ok.status).toBe(200);
+    expect((await panelBug()).hasAfter).toBe(true);
+    const pic = await SELF.fetch(`${BASE}/v1/bugs/${bugId}/after`, { headers: auth });
+    expect(pic.headers.get('content-type')).toBe('image/png');
+    expect((await pic.arrayBuffer()).byteLength).toBe(PNG.length);
+
+    // Used up.
+    expect((await SELF.fetch(link, { method: 'PUT', body: PNG })).status).toBe(404);
+    expect((await SELF.fetch(`${BASE}/v1/after/not-a-real-link-at-all-xyz`, { method: 'PUT', body: PNG })).status).toBe(404);
+
+    // The agent sees it too.
+    const bug = await rpc(token, 'tools/call', { name: 'get_bug', arguments: { id: bugId } });
+    expect(bug.content.some((c: { text?: string }) => c.text?.includes('screenshot of the fixed page'))).toBe(true);
+
+    // Reopen sends it back and drops the After picture.
+    const reopened = await SELF.fetch(`${BASE}/v1/bugs/${bugId}/reopen`, { method: 'POST', headers: auth });
+    expect(((await reopened.json()) as { status: string }).status).toBe('waiting');
+    expect((await panelBug())).toMatchObject({ status: 'waiting', outcome: null, hasAfter: false });
+    expect((await SELF.fetch(`${BASE}/v1/bugs/${bugId}/after`, { headers: auth })).status).toBe(404);
+    expect(await env.FILES.head(`u/${(await env.DB.prepare('SELECT user_id FROM bugs WHERE id = ?').bind(bugId).first<{ user_id: string }>())!.user_id}/${bugId}/after.png`)).toBeNull();
+  });
+
+  it('lets an agent close a bug as won\'t fix with a reason', async () => {
+    const email = 'wontfix-owner@example.com';
+    const bugId = await uploadAs(email, 'Pay now is grey');
+    const keep = await uploadAs(email, 'Header overlaps');
+    const token = await connectAgent(email);
+
+    const noReason = await rpc(token, 'tools/call', { name: 'mark_wont_fix', arguments: { id: bugId, reason: '  ' } });
+    expect(noReason.isError).toBe(true);
+
+    const closed = await rpc(token, 'tools/call', { name: 'mark_wont_fix', arguments: { id: bugId, reason: 'Not a bug: disabled until the form is valid' } });
+    expect(closed.content[0].text).toContain('without a fix');
+    expect(closed.content[0].text).not.toContain('/v1/after/');
+
+    const waiting = (await rpc(token, 'tools/call', { name: 'list_bugs', arguments: {} })).content[0].text as string;
+    expect(waiting).toContain(keep);
+    expect(waiting).not.toContain(bugId);
+    const wont = (await rpc(token, 'tools/call', { name: 'list_bugs', arguments: { status: 'wont_fix' } })).content[0].text as string;
+    expect(wont).toContain(bugId);
+    expect(wont).toContain("won't fix: Not a bug: disabled until the form is valid");
+    const fixedOnly = (await rpc(token, 'tools/call', { name: 'list_bugs', arguments: { status: 'fixed' } })).content[0].text as string;
+    expect(fixedOnly).not.toContain(bugId);
+
+    const login = await SELF.fetch(`${BASE}/v1/auth/google`, { method: 'POST', body: JSON.stringify({ devEmail: email }) });
+    const { token: panel } = (await login.json()) as { token: string };
+    const bugs = ((await (await SELF.fetch(`${BASE}/v1/bugs`, { headers: { authorization: `Bearer ${panel}` } })).json()) as { bugs: { id: string; status: string; outcome: string; fixedNote: string }[] }).bugs;
+    // Older extensions only know waiting and fixed: they show it as closed, with the reason as its note.
+    expect(bugs.find((b) => b.id === bugId)).toMatchObject({ status: 'fixed', outcome: 'wont_fix', fixedNote: 'Not a bug: disabled until the form is valid' });
   });
 
   it('lets an agent say it is waiting for the user, and clears that when fixed', async () => {

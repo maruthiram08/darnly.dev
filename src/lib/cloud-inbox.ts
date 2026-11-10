@@ -20,6 +20,10 @@ export interface CloudBug {
   site: string;
   status: 'waiting' | 'fixed';
   fixedNote: string | null;
+  /** How a closed bug was closed (older servers leave it out: then it was fixed). */
+  outcome?: 'fixed' | 'wont_fix' | null;
+  /** True when the agent uploaded a screenshot of the fixed page. */
+  hasAfter?: boolean;
   createdAt: number;
   fixedAt: number | null;
   /** What the agent asked the user and is waiting on (older servers leave it out). */
@@ -175,4 +179,16 @@ export async function deleteCloudBug(s: CloudSession, id: string): Promise<void>
 
 export async function deleteAllCloudBugs(s: CloudSession): Promise<number> {
   return (await call<{ deleted: number }>('/v1/bugs', { method: 'DELETE', token: s.token })).deleted;
+}
+
+/** A bug's screenshot (before), or the agent's screenshot of the fixed page (after). Null when there is none. */
+export async function cloudPicture(s: CloudSession, id: string, which: 'before' | 'after'): Promise<Blob | null> {
+  const res = await fetch(`${await cloudUrl()}/v1/bugs/${encodeURIComponent(id)}/${which === 'after' ? 'after' : 'picture'}`, { headers: { authorization: `Bearer ${s.token}` } });
+  if (!res.ok) return null;
+  return res.blob();
+}
+
+/** Sends a closed bug back to the inbox, so the agent picks it up again. */
+export async function reopenCloudBug(s: CloudSession, id: string): Promise<CloudBug> {
+  return call<CloudBug>(`/v1/bugs/${encodeURIComponent(id)}/reopen`, { method: 'POST', token: s.token });
 }

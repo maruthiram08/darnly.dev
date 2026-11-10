@@ -1,5 +1,5 @@
 import type { Env } from './env';
-import { HttpError, clip, newId } from './util';
+import { HttpError, clip, newId, newToken, readBytes, sha256 } from './util';
 import { CAPS, countUpload, deleteOldUsage } from './limits';
 
 export const LIMITS = {
@@ -10,6 +10,10 @@ export const LIMITS = {
   waiting: 500,
   fixedNote: 500,
   question: 500,
+  /** The agent's screenshot of the fixed page. */
+  afterBytes: 3 * 1024 * 1024,
+  /** How long the upload link from mark_fixed works. */
+  afterLinkSeconds: 15 * 60,
   keepFixedDays: 30,
 };
 
@@ -24,7 +28,12 @@ export interface BugSummary {
   pageUrl: string;
   site: string;
   status: 'waiting' | 'fixed';
+  /** How a closed bug was closed: fixed, or won't fix (the reason is in fixedNote). Null while waiting. */
+  outcome: 'fixed' | 'wont_fix' | null;
+  /** The agent's note when fixed, or its reason when it closed the bug without a fix. */
   fixedNote: string | null;
+  /** True when the agent uploaded a screenshot of the fixed page (GET /v1/bugs/:id/after). */
+  hasAfter: boolean;
   hasLogs: boolean;
   createdAt: number;
   fixedAt: number | null;
@@ -57,9 +66,11 @@ interface BugRow {
   project: string | null;
   ai_title: string | null;
   ai_summary: string | null;
+  outcome: string | null;
+  after_at: number | null;
 }
 
-const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at, project, ai_title, ai_summary';
+const COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, claimed_by, claimed_name, claimed_at, question, question_at, project, ai_title, ai_summary, outcome, after_at';
 
 const INSERT_COLUMNS = 'id, title, page_url, site, status, fixed_note, has_logs, files_prefix, created_at, fixed_at, project';
 
@@ -83,7 +94,9 @@ function summary(row: BugRow): BugSummary {
     pageUrl: row.page_url,
     site: row.site,
     status: row.status,
+    outcome: row.status === 'fixed' ? (row.outcome === 'wont_fix' ? 'wont_fix' : 'fixed') : null,
     fixedNote: row.fixed_note,
+    hasAfter: row.status === 'fixed' && !!row.after_at,
     hasLogs: row.has_logs === 1,
     createdAt: row.created_at,
     fixedAt: row.fixed_at,
@@ -113,7 +126,7 @@ export function siteOf(pageUrl: string): string {
 }
 
 /** Every file a bug can have in R2, so deleting a bug removes them all. */
-const FILE_NAMES = ['report.md', 'picture.png', 'reference.png', 'steps.jpg', 'logs.json'];
+const FILE_NAMES = ['report.md', 'picture.png', 'reference.png', 'steps.jpg', 'logs.json', 'after.png'];
 
 export interface NewBug {
   title: string;
@@ -262,6 +275,8 @@ export async function saveNewBug(env: Env, userId: string, bug: NewBug): Promise
     project: bug.project ?? null,
     ai_title: null,
     ai_summary: null,
+    outcome: null,
+    after_at: null,
   };
   try {
     await env.DB.prepare(
@@ -286,6 +301,13 @@ export function projectName(v: unknown): string | undefined {
   return n || undefined;
 }
 
+/** Which bugs to list: waiting, fixed, won't fix, closed (fixed or won't fix), or all. */
+export type ListStatus = 'waiting' | 'fixed' | 'wont_fix' | 'closed' | 'all';
+
+export function listStatus(v: unknown, fallback: ListStatus): ListStatus {
+  return v === 'waiting' || v === 'fixed' || v === 'wont_fix' || v === 'closed' || v === 'all' ? v : fallback;
+}
+
 /**
  * The user's bugs, newest first. With a project, only that project's bugs, plus older bugs saved before
  * projects had names whose site contains the name (so "counterdraft" still finds www.counterdraft.com bugs).
@@ -293,17 +315,17 @@ export function projectName(v: unknown): string | undefined {
 export async function listBugs(
   env: Env,
   userId: string,
-  status: 'waiting' | 'fixed' | 'all' = 'all',
+  status: ListStatus = 'all',
   limit = 100,
   project?: string,
 ): Promise<BugSummary[]> {
   const n = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 100;
   const where = ['user_id = ?'];
   const args: unknown[] = [userId];
-  if (status !== 'all') {
-    where.push('status = ?');
-    args.push(status);
-  }
+  if (status === 'waiting') where.push("status = 'waiting'");
+  else if (status === 'closed') where.push("status = 'fixed'");
+  else if (status === 'fixed') where.push("status = 'fixed' AND (outcome IS NULL OR outcome = 'fixed')");
+  else if (status === 'wont_fix') where.push("status = 'fixed' AND outcome = 'wont_fix'");
   const p = projectName(project);
   if (p) {
     where.push("(project = ? OR (project IS NULL AND site LIKE ? ESCAPE '\\'))");
@@ -383,13 +405,88 @@ export async function claimBug(env: Env, userId: string, bugId: string, agent: A
 }
 
 export async function markFixed(env: Env, userId: string, bugId: string, note: unknown): Promise<BugSummary> {
+  return closeBug(env, userId, bugId, 'fixed', clip(note, LIMITS.fixedNote) || null);
+}
+
+/** Closes a bug without a code change. The reason is required: the user sees it in Darnly and can reopen the bug. */
+export async function markWontFix(env: Env, userId: string, bugId: string, reason: unknown): Promise<BugSummary> {
+  const why = clip(reason, LIMITS.fixedNote);
+  if (!why) throw new HttpError(400, 'reason_required');
+  return closeBug(env, userId, bugId, 'wont_fix', why);
+}
+
+async function closeBug(env: Env, userId: string, bugId: string, outcome: 'fixed' | 'wont_fix', note: string | null): Promise<BugSummary> {
   const row = await ownBug(env, userId, bugId);
-  const fixedNote = clip(note, LIMITS.fixedNote) || null;
   const now = Date.now();
-  await env.DB.prepare("UPDATE bugs SET status = 'fixed', fixed_note = ?, fixed_at = ?, claimed_by = NULL, claimed_name = NULL, claimed_at = NULL, question = NULL, question_at = NULL WHERE id = ? AND user_id = ?")
-    .bind(fixedNote, now, bugId, userId)
+  await env.DB.prepare(
+    "UPDATE bugs SET status = 'fixed', outcome = ?, fixed_note = ?, fixed_at = ?, claimed_by = NULL, claimed_name = NULL, claimed_at = NULL, question = NULL, question_at = NULL WHERE id = ? AND user_id = ?",
+  )
+    .bind(outcome, note, now, bugId, userId)
     .run();
-  return summary({ ...row, status: 'fixed', fixed_note: fixedNote, fixed_at: now, claimed_by: null, claimed_name: null, claimed_at: null, question: null, question_at: null });
+  // A won't-fix bug has no fixed page to show.
+  if (outcome === 'wont_fix' && row.after_at) await dropAfter(env, userId, row);
+  return summary({ ...row, status: 'fixed', outcome, fixed_note: note, fixed_at: now, claimed_by: null, claimed_name: null, claimed_at: null, question: null, question_at: null, after_at: outcome === 'wont_fix' ? null : row.after_at });
+}
+
+/** Sends a closed bug back to the inbox (the user pressed Reopen). Its old After picture is dropped, since it no longer shows a fix. */
+export async function reopenBug(env: Env, userId: string, bugId: string): Promise<BugSummary> {
+  const row = await ownBug(env, userId, bugId);
+  if (row.status === 'waiting') return summary(row);
+  await env.DB.prepare("UPDATE bugs SET status = 'waiting', outcome = NULL, fixed_note = NULL, fixed_at = NULL WHERE id = ? AND user_id = ?").bind(bugId, userId).run();
+  if (row.after_at) await dropAfter(env, userId, row);
+  return summary({ ...row, status: 'waiting', outcome: null, fixed_note: null, fixed_at: null, after_at: null });
+}
+
+async function dropAfter(env: Env, userId: string, row: BugRow): Promise<void> {
+  const key = row.files_prefix + 'after.png';
+  const old = await env.FILES.head(key);
+  await env.FILES.delete(key);
+  await env.DB.prepare('UPDATE bugs SET after_at = NULL, bytes = MAX(0, bytes - ?) WHERE id = ? AND user_id = ?').bind(old?.size ?? 0, row.id, userId).run();
+}
+
+const afterKey = async (token: string) => `after:${await sha256(token)}`;
+
+/**
+ * A one-time link the agent can PUT a PNG of the fixed page to, without signing in (its shell has no Darnly token).
+ * Only a hash of the token is kept, in KV, for 15 minutes.
+ */
+export async function afterLink(env: Env, userId: string, bugId: string): Promise<string> {
+  const token = newToken();
+  await env.OAUTH_KV.put(await afterKey(token), JSON.stringify({ userId, bugId }), { expirationTtl: LIMITS.afterLinkSeconds });
+  return `${(env.PUBLIC_URL || 'https://api.darnly.dev').replace(/\/+$/, '')}/v1/after/${token}`;
+}
+
+/** Saves the agent's After picture through an upload link. The link works once. */
+export async function saveAfter(env: Env, token: string, req: Request): Promise<BugSummary> {
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) throw new HttpError(404, 'link_not_found');
+  const key = await afterKey(token);
+  const raw = await env.OAUTH_KV.get(key);
+  if (!raw) throw new HttpError(404, 'link_expired');
+  const { userId, bugId } = JSON.parse(raw) as { userId: string; bugId: string };
+  const bytes = await readBytes(req, LIMITS.afterBytes);
+  const head = bytes.subarray(0, 4);
+  if (!(head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47)) throw new HttpError(415, 'after_not_png');
+  const row = await ownBug(env, userId, bugId);
+  if (row.status !== 'fixed' || row.outcome === 'wont_fix') throw new HttpError(409, 'bug_not_fixed');
+  const stored = await env.DB.prepare('SELECT SUM(bytes) AS stored FROM bugs WHERE user_id = ?').bind(userId).first<{ stored: number | null }>();
+  if ((stored?.stored ?? 0) + bytes.byteLength > CAPS.userStoredBytes) throw new HttpError(429, 'storage_full');
+  await countUpload(env, userId, bytes.byteLength);
+  const fileKey = row.files_prefix + 'after.png';
+  const old = row.after_at ? await env.FILES.head(fileKey) : null;
+  await env.FILES.put(fileKey, bytes, { httpMetadata: { contentType: 'image/png' } });
+  // Used up only once a picture is saved, so an agent that sent the wrong file can try again with the same link.
+  await env.OAUTH_KV.delete(key);
+  const now = Date.now();
+  await env.DB.prepare('UPDATE bugs SET after_at = ?, bytes = MAX(0, bytes - ?) + ? WHERE id = ? AND user_id = ?').bind(now, old?.size ?? 0, bytes.byteLength, bugId, userId).run();
+  return summary({ ...row, after_at: now });
+}
+
+/** The agent's screenshot of the fixed page. */
+export async function getAfter(env: Env, userId: string, bugId: string): Promise<ArrayBuffer> {
+  const row = await ownBug(env, userId, bugId);
+  const obj = row.after_at ? await env.FILES.get(row.files_prefix + 'after.png') : null;
+  if (!obj) throw new HttpError(404, 'not_found');
+  return obj.arrayBuffer();
 }
 
 /**

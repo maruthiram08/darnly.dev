@@ -7,12 +7,12 @@ import { markScreenshot, referencePng, stepsSheet } from '@/lib/screenshot';
 import { cleanSteps, stepText, type Step } from '@/lib/steps';
 import { mergeLogs, type LogEntry } from '@/lib/logs';
 import type { RecordShape } from '@/lib/record-shape';
-import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
+import { capturePicture, chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, reopenCapture, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { reportOpen } from '@/lib/open-count';
-import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
+import { CloudError, cloudPicture, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, reopenCloudBug, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
 
 
 interface PendingCapture {
@@ -396,6 +396,32 @@ export function App() {
     }
   };
 
+  // A closed bug the user wants another go at: back to the inbox, so the agent picks it up again.
+  const [openBug, setOpenBug] = useState<string | null>(null);
+  const reopenOne = async (c: CaptureSummary) => {
+    try {
+      if (folder) {
+        if (!(await ensureAccess(folder))) return setMessage('Darnly needs "Allow" to change your project.');
+        await reopenCapture(folder, c.id);
+        await refreshProject(folder);
+      } else if (session) {
+        await reopenCloudBug(session, c.id);
+        await refreshCloud(session);
+      }
+      setJustFixed((prev) => prev.filter((x) => x.id !== c.id));
+      setOpenBug(null);
+      setMessage(`Reopened. Tell your agent: ${folder ? `"fix the bugs in ${INBOX_FOLDER}"` : '"fix my Darnly bugs"'}`);
+    } catch (e) {
+      setMessage(`Couldn't reopen that bug: ${cloudReason(e)}`);
+    }
+  };
+  // Before and After pictures for a closed bug, from the project folder or the cloud.
+  const pictureOf = useCallback(
+    (c: CaptureSummary, which: 'before' | 'after'): Promise<Blob | null> =>
+      folder ? capturePicture(folder, c.id, c.status, which) : session ? cloudPicture(session, c.id, which) : Promise.resolve(null),
+    [folder, session],
+  );
+
   // This site's bugs go to the cloud inbox from now on (sign-in, or the signed-in inbox, shows next).
   const useCloud = async () => {
     setMessage('');
@@ -618,7 +644,10 @@ export function App() {
   const shown = folder ? captures : session ? cloudBugs : [];
 
   const waiting = shown.filter((c) => c.status === 'waiting').length;
-  const fixedCount = shown.filter((c) => c.status === 'fixed').length;
+  const fixedCount = shown.filter((c) => c.status === 'fixed' && c.outcome !== 'wont_fix').length;
+  const wontFixCount = shown.filter((c) => c.status === 'fixed' && c.outcome === 'wont_fix').length;
+  const justFixedCount = justFixed.filter((c) => c.outcome !== 'wont_fix').length;
+  const justWontFix = justFixed.length - justFixedCount;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
   return (
@@ -943,32 +972,42 @@ export function App() {
       )}
 
       {justFixed.length > 0 && (
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-emerald-950">
+        <section className={`rounded-2xl border p-3.5 ${justFixedCount ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-line bg-white text-ink'}`}>
           <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><Icon name="check" className="h-3 w-3" /></span>
-            <p className="font-semibold">{justFixed.length === 1 ? '1 bug fixed' : `${justFixed.length} bugs fixed`}. Take a look.</p>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-white ${justFixedCount ? 'bg-emerald-500' : 'bg-slate-400'}`}><Icon name="check" className="h-3 w-3" /></span>
+            <p className="font-semibold">
+              {[justFixedCount ? plural(justFixedCount, 'bug fixed', 'bugs fixed') : '', justWontFix ? `${plural(justWontFix, 'bug', 'bugs')} not changed` : ''].filter(Boolean).join(', ')}. Take a look.
+            </p>
           </div>
-          <ul className="mt-2 space-y-1.5 pl-7">
+          <ul className="mt-2 space-y-2 pl-7">
             {justFixed.slice(0, 5).map((c) => (
               <li key={c.id} className="text-xs">
                 <span className="font-medium">{c.title}</span>
-                {c.fixedNote && <span className="block text-emerald-800">{c.fixedNote}</span>}
+                {c.outcome === 'wont_fix' ? (
+                  <span className="block text-ink-soft">Your agent didn&apos;t change this: {c.fixedNote || 'no reason given'}</span>
+                ) : (
+                  c.fixedNote && <span className="block text-emerald-800">{c.fixedNote}</span>
+                )}
+                {c.hasAfter && <BeforeAfter bug={c} load={pictureOf} />}
+                <button className={`mt-1 underline ${justFixedCount ? 'text-emerald-800' : 'text-sky'}`} onClick={() => reopenOne(c)} title="Sends it back to your agent">
+                  {c.outcome === 'wont_fix' ? 'Reopen' : 'Not fixed? Reopen'}
+                </button>
               </li>
             ))}
           </ul>
           {/* Reloading only shows the fix on a dev server; a live site changes once the user deploys. */}
-          {justFixed.some((c) => !isLocalPage(c.pageUrl)) && (
+          {justFixedCount > 0 && justFixed.some((c) => c.outcome !== 'wont_fix' && !isLocalPage(c.pageUrl)) && (
             <p className="mt-2 pl-7 text-xs text-emerald-800">
               {justFixed.every((c) => !isLocalPage(c.pageUrl)) ? 'The fix is in your code. Deploy it to see it on your live site, or check it on your local copy.' : 'Fixes for live sites show there after you deploy.'}
             </p>
           )}
           <div className="mt-2.5 flex gap-2">
-            {justFixed.some((c) => isLocalPage(c.pageUrl)) ? (
+            {justFixed.some((c) => c.outcome !== 'wont_fix' && isLocalPage(c.pageUrl)) ? (
               <button className="flex-1 rounded-xl bg-emerald-600 py-1.5 font-medium text-white hover:bg-emerald-700" onClick={() => chrome.tabs.reload().catch(() => {})}>Reload the page</button>
             ) : (
               <span className="flex-1" />
             )}
-            <button className="rounded-xl px-3 font-medium text-emerald-800" onClick={() => setJustFixed(() => [])}>Done</button>
+            <button className={`rounded-xl px-3 font-medium ${justFixedCount ? 'text-emerald-800' : 'text-ink-soft'}`} onClick={() => setJustFixed(() => [])}>Done</button>
           </div>
         </section>
       )}
@@ -977,13 +1016,25 @@ export function App() {
         <section className={cardCls + ' !p-0'}>
           <div className="flex items-baseline justify-between px-3.5 pb-1 pt-3">
             <p className="font-semibold">Captured bugs</p>
-            <p className="text-xs text-ink-soft">{waiting} waiting, {fixedCount} fixed</p>
+            <p className="text-xs text-ink-soft">{waiting} waiting, {fixedCount} fixed{wontFixCount ? `, ${wontFixCount} won't fix` : ''}</p>
           </div>
           <ul className="divide-y divide-line/70 px-1.5 pb-1.5">
             {shown.slice(0, 20).map((c) => (
-              <li key={c.status + c.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-2">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? 'bg-emerald-500' : c.question ? 'bg-pink' : 'bg-amber-400'}`} />
-                <span className={`min-w-0 flex-1 truncate ${c.status === 'fixed' ? 'text-ink-soft line-through decoration-ink-soft/40' : ''}`} title={c.fixedNote ? `${c.title}\nFixed: ${c.fixedNote}` : c.title}>{c.title}</span>
+              <li key={c.status + c.id} className="group rounded-lg px-2 py-2">
+                <div className="flex items-center gap-2.5">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'fixed' ? (c.outcome === 'wont_fix' ? 'bg-slate-400' : 'bg-emerald-500') : c.question ? 'bg-pink' : 'bg-amber-400'}`} />
+                {c.status === 'fixed' ? (
+                  <button
+                    className={`min-w-0 flex-1 truncate text-left text-ink-soft ${c.outcome === 'wont_fix' ? '' : 'line-through decoration-ink-soft/40'}`}
+                    title={c.fixedNote ? `${c.title}\n${c.outcome === 'wont_fix' ? "Won't fix" : 'Fixed'}: ${c.fixedNote}` : c.title}
+                    aria-expanded={openBug === c.id}
+                    onClick={() => setOpenBug((o) => (o === c.id ? null : c.id))}
+                  >
+                    {c.title}
+                  </button>
+                ) : (
+                  <span className="min-w-0 flex-1 truncate" title={c.title}>{c.title}</span>
+                )}
                 {confirmBug === c.status + c.id ? (
                   <span className="shrink-0 text-xs text-ink-soft">
                     Delete? <button className="font-semibold text-rose-700 underline" onClick={() => deleteOne(c)}>Yes</button>{' '}
@@ -991,9 +1042,21 @@ export function App() {
                   </span>
                 ) : (
                   <>
-                    <StatusTag status={c.status === 'fixed' ? 'fixed' : c.question ? 'question' : 'waiting'} />
+                    <StatusTag status={c.status === 'fixed' ? (c.outcome === 'wont_fix' ? 'wontfix' : 'fixed') : c.question ? 'question' : 'waiting'} />
                     <button className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-ink-soft/50 hover:bg-rose-50 hover:text-rose-700 group-hover:text-ink-soft" aria-label={`Delete ${c.title}`} title="Delete this bug" onClick={() => setConfirmBug(c.status + c.id)}>×</button>
                   </>
+                )}
+                </div>
+                {c.status === 'fixed' && openBug === c.id && (
+                  <div className="mt-1.5 pl-[18px] text-xs">
+                    <p className={c.outcome === 'wont_fix' ? 'text-ink-soft' : 'text-emerald-800'}>
+                      {c.outcome === 'wont_fix' ? `Your agent didn't change this: ${c.fixedNote || 'no reason given'}` : c.fixedNote || 'Fixed (no note).'}
+                    </p>
+                    {c.hasAfter && <BeforeAfter bug={c} load={pictureOf} />}
+                    <button className="mt-1 text-sky underline" onClick={() => reopenOne(c)} title="Sends it back to your agent">
+                      {c.outcome === 'wont_fix' ? 'Reopen' : 'Not fixed? Reopen'}
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
@@ -1052,7 +1115,8 @@ const secondaryCls = 'rounded-xl border border-line bg-white py-2 font-medium te
 const linkCls = 'font-medium text-sky underline-offset-2 hover:underline';
 
 function toSummary(b: CloudBug): CaptureSummary {
-  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined, pageUrl: b.pageUrl || undefined };
+  const closed = b.status === 'fixed' ? { outcome: b.outcome === 'wont_fix' ? ('wont_fix' as const) : ('fixed' as const), hasAfter: !!b.hasAfter } : {};
+  return { id: b.id, title: b.title, status: b.status, modified: b.fixedAt ?? b.createdAt, fixedNote: b.fixedNote ?? undefined, question: b.question ?? undefined, pageUrl: b.pageUrl || undefined, ...closed };
 }
 
 /** "⌥⇧B" or "Alt+Shift+B" as separate keys. */
@@ -1212,9 +1276,55 @@ function Chip({ children, tone = 'plain', title }: { children: ReactNode; tone?:
   );
 }
 
-function StatusTag({ status }: { status: 'fixed' | 'question' | 'waiting' }) {
+/** The bug as captured next to the agent's screenshot of the fixed page. Click one to see it full width. */
+function BeforeAfter({ bug, load }: { bug: CaptureSummary; load: (c: CaptureSummary, which: 'before' | 'after') => Promise<Blob | null> }) {
+  const [urls, setUrls] = useState<{ before?: string; after?: string }>({});
+  const [big, setBig] = useState<'before' | 'after' | null>(null);
+  useEffect(() => {
+    let live = true;
+    const made: string[] = [];
+    Promise.all([load(bug, 'before').catch(() => null), load(bug, 'after').catch(() => null)]).then(([b, a]) => {
+      if (!live) return;
+      const url = (x: Blob | null) => {
+        if (!x) return undefined;
+        const u = URL.createObjectURL(x);
+        made.push(u);
+        return u;
+      };
+      setUrls({ before: url(b), after: url(a) });
+    });
+    return () => {
+      live = false;
+      made.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [bug.id, bug.status, load]);
+  if (!urls.after) return null;
+  const pics = (['before', 'after'] as const).filter((w) => urls[w]);
+  return (
+    <div className="mt-1.5">
+      {big ? (
+        <button className="block w-full" onClick={() => setBig(null)} title="Show both">
+          <img src={urls[big]} alt={big === 'after' ? 'After: your agent’s screenshot of the fix' : 'Before: the bug as you captured it'} className="w-full rounded-lg border border-line" />
+          <span className="mt-0.5 block text-[10px] text-ink-soft">{big === 'after' ? 'After (from your agent)' : 'Before'} · click to go back</span>
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-1.5">
+          {pics.map((w) => (
+            <button key={w} className="block text-left" onClick={() => setBig(w)} title="Click to see it bigger">
+              <img src={urls[w]} alt={w === 'after' ? 'After: your agent’s screenshot of the fix' : 'Before: the bug as you captured it'} className="aspect-[3/2] w-full rounded-lg border border-line bg-wash object-contain" />
+              <span className="mt-0.5 block text-[10px] text-ink-soft">{w === 'after' ? 'After (from your agent)' : 'Before'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusTag({ status }: { status: 'fixed' | 'wontfix' | 'question' | 'waiting' }) {
   const look = {
     fixed: ['Fixed', 'bg-emerald-50 text-emerald-700'],
+    wontfix: ["Won't fix", 'bg-slate-100 text-slate-600'],
     question: ['Needs you', 'bg-pink/10 text-pink'],
     waiting: ['Waiting', 'bg-amber-50 text-amber-700'],
   }[status];
