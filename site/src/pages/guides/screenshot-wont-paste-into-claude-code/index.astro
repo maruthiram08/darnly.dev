@@ -8,6 +8,7 @@ const faq = [
   { q: 'Why does Cmd+V not paste an image into Claude Code on my Mac?', a: 'In the Claude Code terminal app, the image paste key is Ctrl+V. Cmd+V only pastes images in iTerm2. In the macOS Terminal app, Cmd+V pastes text, so try Ctrl+V.' },
   { q: 'What is the image paste key for Claude Code on Windows?', a: 'Alt+V. Windows Terminal uses Ctrl+V for its own text paste, so Claude Code binds image paste to Alt+V on Windows. On WSL both Ctrl+V and Alt+V are bound.' },
   { q: 'Claude Code says "No image found in clipboard". What now?', a: 'Save the screenshot as a PNG file and type its path in your message, or drag the file into the window. Several open GitHub issues show this message even when an image is on the clipboard, so the file route is the reliable one.' },
+  { q: 'Why can\'t I paste a screenshot into Claude Code over SSH?', a: 'Claude Code runs on the remote machine, so it reads that machine\'s clipboard, and a headless server has none. Your screenshot is on your own computer. Copy the file to the server (scp, or drag it into the VS Code Remote-SSH file explorer) and type its path, or send bugs through an inbox the agent can fetch from the server, like Darnly\'s cloud inbox.' },
   { q: 'Can I paste images into Claude Code in VS Code?', a: 'In the Claude Code extension panel, yes: paste the image into the prompt box. In the VS Code integrated terminal, image paste is less reliable, so save the screenshot to a file and give Claude Code the path.' },
   { q: 'Cursor took the image but the agent ignores it. Why?', a: 'Check the model. Cursor staff confirmed a case where a text-only model got no picture at all. Switch to a model that reads images, such as Claude, GPT or Gemini.' },
 ];
@@ -15,7 +16,7 @@ const faq = [
 <GuidePage
   slug={slug}
   title="Screenshot won't paste into Claude Code or Cursor? Fixes"
-  description="Screenshot won't paste into Claude Code or Cursor? The right key for Mac, Windows, WSL and VS Code, and the file path fallback that always works."
+  description="Screenshot won't paste into Claude Code or Cursor? The right key for Mac, Windows, WSL and VS Code, what to do over SSH, and the file path fallback that always works."
   h1="Screenshot won't paste into Claude Code or Cursor? Fixes that work"
   lede="If a screenshot won't paste into Claude Code, you are probably using the wrong key for your terminal (Ctrl+V on macOS, Alt+V on Windows), and if the right key still fails, save the screenshot as a file and type its path in your message, which works everywhere."
   faq={faq}
@@ -73,6 +74,14 @@ const faq = [
     <li><strong>Bind the key yourself if needed.</strong> Run <code>/keybindings</code> and map a key to <code>chat:imagePaste</code> in the <code>Chat</code> context.</li>
     <li><strong>Know why it can still fail.</strong> Commenters on the WSL issues traced it to the image format: Windows hands the image to Linux as BMP, and Claude Code's check or conversion can drop it without a clear error.</li>
     <li><strong>Use a Linux path.</strong> Your Windows files are under <code>/mnt/c/</code>. A screenshot at <code>C:\Users\sam\Pictures\shot.png</code> is <code>/mnt/c/Users/sam/Pictures/shot.png</code> inside WSL. Easier still: save the screenshot into the project folder.</li>
+  </ul>
+
+  <h2>Over SSH, or on a remote server</h2>
+  <p>This one isn't a wrong key. When you run Claude Code on another machine over SSH, Claude Code reads <em>that</em> machine's clipboard. A server with no screen has no clipboard at all, so <kbd>Ctrl</kbd>+<kbd>V</kbd> does nothing, while your screenshot sits on your own computer.</p>
+  <ul>
+    <li><strong>Copy the file across, then give the path.</strong> From your own computer: <code>scp ~/Desktop/shot.png you@server:~/myapp/shot.png</code>. Then in Claude Code: "look at shot.png".</li>
+    <li><strong>VS Code Remote-SSH:</strong> drag the screenshot from your computer into the file explorer of the remote window. VS Code uploads it into the project, and you can mention it by name.</li>
+    <li><strong>Use an inbox the agent can fetch.</strong> Instead of moving pictures around, let the agent pull bugs over the internet. Darnly's cloud inbox does this: you capture on your computer, and Claude Code on the server fetches the screenshot and report through Darnly's MCP server (<a href="/setup/">setup</a>).</li>
   </ul>
 
   <h2>VS Code</h2>
