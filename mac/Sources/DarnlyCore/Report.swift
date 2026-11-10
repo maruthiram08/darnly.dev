@@ -218,10 +218,11 @@ public enum Report {
         lines += [pageDataEnd, ""]
         lines += [
             "## How to fix",
+            noteLine,
             "If the note is vague or compares to something else (\"like the other screens\"), look at that part of the code first and match it. If it is still unclear, ask the user one short question before changing anything.",
             c.forCloud
-                ? "Find the code with the hints above, fix it so the expected behaviour happens, then call the Darnly `mark_fixed` tool with this bug's id and one line on what you changed."
-                : "Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with \(c.id) to \(doneFolder)/.",
+                ? "Find the code with the hints above, fix what the note complains about, then call the Darnly `mark_fixed` tool with this bug's id and one line on what you changed."
+                : "Find the code with the hints above, fix what the note complains about, then move this file and the other files that start with \(c.id) to \(doneFolder)/.",
             "",
         ]
         lines += verify(c)
@@ -271,6 +272,12 @@ public enum Report {
         return names.isEmpty ? nil : names.map { ".\($0)" }.joined()
     }
 
+    /// The **Expected** line holds the user's own words, which often describe the problem rather than the goal (same as the extension's NOTE_LINE).
+    static let noteLine = "The **Expected** line is the user's own words. People often write what is wrong (\"the bar stays white in dark mode\") rather than what they want: read it with the screenshot and fix what is wrong. Never keep the broken look because the note describes it."
+
+    static let complaintGone = "check that what the user's note complains about is gone (the note may say what they want, or what was wrong)."
+    static let checkComplaintGone = "3. Check that what the user's note complains about is gone (the note may say what they want, or what was wrong)."
+
     /// "How to check it's fixed": the agent confirms the fix itself when it has a browser or can take a screenshot.
     static func verify(_ c: NativeCapture) -> [String] {
         let wrote = c.forCloud ? "your `mark_fixed` note" : "your **Fixed:** line"
@@ -282,7 +289,7 @@ public enum Report {
                 "After fixing, check it yourself if you can open a browser (Claude in Chrome, the Chrome DevTools MCP, Playwright or similar):",
                 "1. Open `\(u)`\(local ? " (start the dev server first if it isn't running)" : "") in a window about \(Int(c.windowSize.width))x\(Int(c.windowSize.height)).",
                 c.element == nil ? "2. Look at the whole visible page." : c.also.isEmpty ? "2. Find the element by its HTML id, classes or text under \"Element\" above." : "2. Find each marked element by its HTML id, classes or text under \"Element 1\" to \"Element \(c.also.count + 1)\" above.",
-                "3. Check that the **Expected** line is now true." + before,
+                checkComplaintGone + before,
             ]
         } else {
             let shot: String
@@ -295,7 +302,7 @@ public enum Report {
                 "After fixing, check it yourself if you can run the app:",
                 "1. Rebuild and run it, and open the same screen\(c.device.map { " on \(oneLine($0, max: 60))" } ?? "").",
                 "2. Take a screenshot with \(shot) and look at it.",
-                (c.element == nil ? "3. Check that the **Expected** line is now true." : c.also.isEmpty ? "3. Find the element (its accessibility id or text under \"Element\" above) and check that the **Expected** line is now true." : "3. Find each marked element (\"Element 1\" to \"Element \(c.also.count + 1)\" above) and check that the **Expected** line is now true.") + before,
+                (c.element == nil ? checkComplaintGone : c.also.isEmpty ? "3. Find the element (its accessibility id or text under \"Element\" above) and " + complaintGone : "3. Find each marked element (\"Element 1\" to \"Element \(c.also.count + 1)\" above) and " + complaintGone) + before,
             ]
         }
         if c.element != nil {
