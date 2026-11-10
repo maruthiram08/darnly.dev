@@ -82,17 +82,17 @@ import HeroLoop from '../components/HeroLoop.astro';
       <div>
         <a class="news" href="/changelog/#v0-3-3"><b>New</b> Your agent sees the steps that led to the bug →</a>
         <h1>Spot a bug. <em>Point at it.</em> Your agent fixes it.</h1>
-        <p class="lede">A dead button, a broken mobile layout, an error on your live site: Darnly hands Claude Code, Cursor or Codex the screenshot, the exact element and the recent errors.</p>
+        <p class="sub">Your agent's browser is for when you're coding. <span>Darnly is for when you're not.</span></p>
+        <p class="lede">Spot a dead button, a broken mobile layout or an error on your live site, even after you hit your usage limit.<span class="lede-more"> Later, Claude Code, Cursor or Codex gets the screenshot, the exact element and the recent errors.</span></p>
         <div class="cta cta-labelled">
           <div class="cta-item"><a class="btn btn-primary btn-shimmer" href={storeUrl('home-hero')}>Add to Chrome</a><small>For web apps: localhost or live</small></div>
           <div class="cta-item"><a class="btn btn-ghost" href="#mac">Get the Mac app</a><small>For native apps: Mac, iOS, Android</small></div>
         </div>
-        <p class="trust">Free · No account needed · Chrome, Edge, Brave and Arc</p>
+        <p class="trust">Free · No account needed · Chrome, Edge, Brave and Arc · <a href="#why">Why Darnly ↓</a></p>
         <div class="on-phone" hidden data-on-phone>
           <p><strong>On your phone?</strong> Darnly runs in Chrome on your computer. Send yourself the link and install it there.</p>
           <button type="button" class="btn btn-ghost" data-send-link>Send me the link</button>
         </div>
-        <p class="vs-agent"><strong>Doesn't my agent's browser do this?</strong> Your agent's browser is for when you're coding. Darnly is for when you're not: you spot bugs as you use your app, and any agent fixes them later. <a href="#why">Why Darnly ↓</a></p>
         <div class="agents" aria-label="Works with">
           <span>Works with</span><a href="/setup/#claude-code">Claude Code</a><a href="/setup/#codex">Codex</a><a href="/setup/#cursor">Cursor</a><a href="/setup/#other-agents">Windsurf</a><a href="/setup/#other-agents">Antigravity</a><a href="/guides/report-a-bug-to-lovable/">Lovable</a><a href="/guides/report-a-bug-to-bolt/">Bolt</a><a href="/guides/report-a-bug-to-v0/">v0</a><a class="agents-setup" href="#setup">How to set it up ↓</a>
         </div>
@@ -103,7 +103,33 @@ import HeroLoop from '../components/HeroLoop.astro';
 </header>
 
 <main>
-  <section class="band" id="how">
+  <section class="band" id="why" aria-labelledby="why-h">
+    <div class="wrap">
+      <span class="eyebrow">Why Darnly</span>
+      <h2 id="why-h">Your agent can open a browser. Why use Darnly?</h2>
+      <p class="intro">Claude in Chrome, Cursor and Codex can open your app, inside a session, once you describe the bug. Darnly is for the rest of the time: spot bugs while you use or test your app, a few seconds each, and let any agent fix them all later.</p>
+      <div class="loop">
+        <div class="step">
+          <span class="n">Any agent</span>
+          <h3>Switch agents, keep your list</h3>
+          <p>The same key and the same inbox in Claude Code, Codex and Cursor. Change agents whenever you like. Your bugs come with you.</p>
+        </div>
+        <div class="step">
+          <span class="n">No session</span>
+          <h3>Spot it now, fix it later</h3>
+          <p>No chat to open, nothing to type out. Point at the bug, add one line, keep testing. Fix the whole list in one go.</p>
+        </div>
+        <div class="step">
+          <span class="n">No quota</span>
+          <h3>Out of usage? Keep going</h3>
+          <p>Capturing a bug makes no AI calls. Keep finding bugs while your limit resets, and your agent fixes them when it's back.</p>
+        </div>
+      </div>
+      <a class="all-tools" href="/why-darnly/">Why Darnly when your agent has a browser →</a>
+    </div>
+  </section>
+
+  <section class="band" id="how" style="padding-top: 0">
     <div class="wrap">
       <span class="eyebrow">How it works</span>
       <h2>No screenshots to drag. No explaining twice.</h2>
@@ -144,32 +170,6 @@ import HeroLoop from '../components/HeroLoop.astro';
         </div>
       </div>
       <FixLoopVideo />
-    </div>
-  </section>
-
-  <section class="band" id="why" style="padding-top: 0" aria-labelledby="why-h">
-    <div class="wrap">
-      <span class="eyebrow">Your agent has a browser?</span>
-      <h2 id="why-h">Your agent's browser is for when you're coding. Darnly is for when you're not.</h2>
-      <p class="intro">Claude in Chrome, Cursor and Codex can open your app, inside a session, once you describe the bug. Darnly is for the rest of the time: spot bugs while you use or test your app, a few seconds each, and let any agent fix them all later.</p>
-      <div class="loop">
-        <div class="step">
-          <span class="n">Any agent</span>
-          <h3>Switch agents, keep your list</h3>
-          <p>The same key and the same inbox in Claude Code, Codex and Cursor. Change agents whenever you like. Your bugs come with you.</p>
-        </div>
-        <div class="step">
-          <span class="n">No session</span>
-          <h3>Spot it now, fix it later</h3>
-          <p>No chat to open, nothing to type out. Point at the bug, add one line, keep testing. Fix the whole list in one go.</p>
-        </div>
-        <div class="step">
-          <span class="n">No quota</span>
-          <h3>Out of usage? Keep going</h3>
-          <p>Capturing a bug makes no AI calls. Keep finding bugs while your limit resets, and your agent fixes them when it's back.</p>
-        </div>
-      </div>
-      <a class="all-tools" href="/why-darnly/">Why Darnly when your agent has a browser →</a>
     </div>
   </section>
 
