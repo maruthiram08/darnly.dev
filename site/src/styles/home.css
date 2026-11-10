@@ -162,7 +162,7 @@ section.tools-strip { padding-bottom: 0; }
 .report li code { font: 0.9em var(--mono); }
 /* Mac demo clip above the install card. */
 .mac-video { margin: 40px auto 0; max-width: 900px; }
-.mac-video video { display: block; width: 100%; height: auto; aspect-ratio: 1280 / 832; border-radius: 14px; background: #a9c4f0; border: 1px solid var(--line); }
+.mac-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 14px; background: #a9c4f0; border: 1px solid var(--line); }
 .mac-video figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); text-align: center; }
 /* Mac install card: the two ways to install, side by side, so the brew command isn't buried in a paragraph. */
 .mac-install { display: grid; grid-template-columns: 1fr auto 1fr; gap: 28px; align-items: start; margin-top: 48px; padding: 32px; border-radius: 20px; background: var(--wash); border: 1px solid var(--line); }
