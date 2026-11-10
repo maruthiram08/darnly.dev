@@ -27,7 +27,13 @@ export interface ElementInfo {
   /** More elements the user marked for the same note (Shift+click), boxes 2, 3 and on. */
   also?: ElementInfo[];
   /** Other elements on the page that look made the same way (same tag and classes), so the agent knows whether a change is local or global. */
-  similar?: { selector: string; count: number };
+  similar?: { selector: string; count: number; examples?: SimilarExample[] };
+}
+
+/** One look-alike on the page: what it says and the card or section it sits in, so the agent can tell which ones to leave alone. */
+export interface SimilarExample {
+  text?: string;
+  inside?: string;
 }
 
 /** The ~20 computed styles that explain most visual bugs. */
@@ -193,11 +199,33 @@ export function similarElements(el: Element): ElementInfo['similar'] {
   if (!classes.length) return undefined;
   const selector = `${el.tagName.toLowerCase()}.${classes.map(cssEscape).join('.')}`;
   try {
-    const count = el.ownerDocument.querySelectorAll(selector).length - 1;
-    return count > 0 ? { selector, count } : undefined;
+    const others = Array.from(el.ownerDocument.querySelectorAll(selector)).filter((x) => x !== el);
+    if (!others.length) return undefined;
+    const examples = lookAlikes(others);
+    return { selector, count: others.length, ...(examples.length ? { examples } : {}) };
   } catch {
     return undefined;
   }
+}
+
+/** Up to 4 look-alikes the user can see, each with its text and the card around it ("Get started" in "Free plan"). */
+function lookAlikes(others: Element[], max = 4): SimilarExample[] {
+  const out: SimilarExample[] = [];
+  const seen = new Set<string>();
+  for (const x of others) {
+    if (out.length >= max) break;
+    const r = x.getBoundingClientRect();
+    const hidden = r.width === 0 && r.height === 0 && x.ownerDocument.defaultView?.getComputedStyle(x).display === 'none';
+    if (hidden) continue;
+    const text = visibleText(x).slice(0, 60) || undefined;
+    const inside = containerOf(x)?.label;
+    if (!text && !inside) continue;
+    const key = `${text}|${inside}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...(text ? { text } : {}), ...(inside ? { inside } : {}) });
+  }
+  return out;
 }
 
 const CONTAINER_TAGS = new Set(['SECTION', 'ARTICLE', 'LI', 'FORM', 'DIALOG', 'ASIDE', 'NAV', 'HEADER', 'FOOTER', 'TR', 'FIELDSET', 'FIGURE', 'TABLE']);

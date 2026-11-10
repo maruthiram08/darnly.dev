@@ -118,7 +118,7 @@ describe('similarElements', () => {
   it('counts other elements with the same tag and classes', async () => {
     const { similarElements } = await import('./element-info');
     document.body.insertAdjacentHTML('beforeend', '<button class="btn btn-primary">A</button><button class="btn btn-primary">B</button>');
-    expect(similarElements(document.querySelector('button')!)).toEqual({ selector: 'button.btn', count: 2 });
+    expect(similarElements(document.querySelector('button')!)).toMatchObject({ selector: 'button.btn', count: 2 });
     expect(similarElements(document.querySelector('.card')!)).toBeUndefined(); // the only one
     expect(similarElements(document.querySelector('li')!)).toBeUndefined(); // no classes
   });
@@ -139,5 +139,21 @@ describe('containerOf', () => {
   it('stops at main and finds nothing for a plain page', () => {
     document.body.innerHTML = `<main><div><span>Hi</span></div></main>`;
     expect(containerOf(document.querySelector('span')!)).toBeUndefined();
+  });
+});
+
+describe('similarElements: look-alikes by name', () => {
+  it('names the other matches by text and the card they sit in', async () => {
+    const { similarElements } = await import('./element-info');
+    document.body.innerHTML =
+      '<section class="plan-card"><h3>Free plan</h3><a class="cta-btn">Get started</a></section>' +
+      '<section class="plan-card"><h3>Pro plan</h3><a class="cta-btn">Upgrade</a></section>' +
+      '<section class="plan-card"><h3>Team plan</h3><a class="cta-btn">Upgrade</a></section>';
+    const s = similarElements(document.querySelectorAll('a.cta-btn')[1]!);
+    expect(s).toMatchObject({ selector: 'a.cta-btn', count: 2 });
+    expect(s?.examples).toEqual([
+      { text: 'Get started', inside: 'Free plan' },
+      { text: 'Upgrade', inside: 'Team plan' },
+    ]);
   });
 });

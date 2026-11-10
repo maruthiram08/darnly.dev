@@ -228,6 +228,22 @@ describe('captureMarkdown: check the fix and change only this', () => {
     expect(md).not.toContain('**Change only this one:**');
   });
 
+  it('names the look-alikes to keep the same, or to change too', () => {
+    const withEx = { ...element, similar: { selector: 'h2.card-title', count: 5, examples: [{ text: 'Features', inside: 'Pro plan' }, { text: 'FAQ' }] } };
+    const md = captureMarkdown({ ...base, element: withEx, scope: 'this' });
+    const start = md.indexOf('<!-- darnly:page-data:start -->');
+    const end = md.indexOf('<!-- darnly:page-data:end -->');
+    const at = md.indexOf('## Keep these the same');
+    expect(at).toBeGreaterThan(start);
+    expect(at).toBeLessThan(end);
+    expect(md).toContain('- "Features" in "Pro plan"\n- "FAQ"\n- and 3 more matching `h2.card-title`');
+    expect(md).toContain('(the ones under "Keep these the same")');
+    const all = captureMarkdown({ ...base, element: withEx, scope: 'all' });
+    expect(all).toContain('## These should change too');
+    expect(captureMarkdown({ ...base, element: withEx })).toContain('## Look-alikes on this page');
+    expect(captureMarkdown({ ...base, element, scope: 'this' })).not.toContain('Keep these the same');
+  });
+
   it('writes the user\'s scope and the current values of what to change', () => {
     const md = captureMarkdown({ ...base, element, scope: 'this', aspect: 'size' });
     expect(md).toContain('**Change only this one:**');

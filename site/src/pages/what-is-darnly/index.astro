@@ -11,6 +11,7 @@ const faq = [
   { q: 'How much does Darnly cost?', a: 'Nothing. The Chrome extension, the Mac app and the optional cloud inbox are free.' },
   { q: 'Which AI coding agents does Darnly work with?', a: 'Claude Code, Codex and Cursor read Darnly\'s reports from your project folder. Agents that can add MCP connectors can also read the optional cloud inbox at https://api.darnly.dev/mcp, and in the Claude app Darnly is in the connector directory. <a href="/setup/">Setup steps for each agent</a>.' },
   { q: 'Does Darnly send my data anywhere?', a: 'Not by default. Reports stay on your computer as files in your project or text you choose to paste. Only the optional cloud inbox sends bugs to your private Darnly inbox.' },
+  { q: 'How does Darnly stop my agent changing more than I asked?', a: 'Each report says "Change only this one" or "Change all like it", so the agent knows whether to change that element alone or the shared style, instead of guessing and rewriting more than you asked.' },
   { q: 'How do I tell my agent to fix my Darnly bugs?', a: 'Type /darnly in Claude Code or Cursor, or say "fix my Darnly bugs" in Codex. One command fixes the bugs in your project folder and your cloud inbox, and the Darnly panel then says what got fixed.' },
   { q: 'Can I use Darnly on several projects?', a: 'Yes. Darnly remembers a project folder or the cloud inbox for each site, asks the first time it sees a new site, and lets you switch with change in the panel. In the cloud, each bug carries its project name, so your agent only fetches its own project\'s bugs.' },
   { q: 'Does Darnly save tokens?', a: 'No. In our own benchmark, Darnly reports cost about 1.6 times as much per bug as a pasted screenshot, and both fixed every bug. Darnly saves you effort, not tokens.' },
@@ -18,7 +19,7 @@ const faq = [
 ---
 <GuidePage
   slug={slug}
-  updated="2026-11-08"
+  updated="2026-11-10"
   path="/what-is-darnly/"
   crumb={null}
   title="What is Darnly? Bug reports for AI coding agents"
@@ -37,6 +38,9 @@ const faq = [
 
   <h2>What is in a Darnly report?</h2>
   <p>A screenshot with the broken part boxed in red, the element you clicked (selector, text, HTML and styles), the file that drew it on a local project, the page address, your note, and console errors and failed requests from the last 60 seconds. It also lists the steps that led to the bug (what you clicked and where you typed, never what you typed), the shape of the data behind the element (field names and lengths, never the values), any slow requests, and steps for your agent to check its own fix in a browser.</p>
+
+  <h2>How does Darnly stop my agent changing more than I asked?</h2>
+  <p>Each report says "Change only this one" or "Change all like it". "Make this button blue" is the classic case: without that line the agent has to guess whether you meant one button or every button, and it often changes the shared component, or more. With it, the agent knows to change that element alone, or the shared style on purpose.</p>
 
   <h2>Where do the reports go?</h2>
   <p>Into <code>.darnly/inbox/</code> in your project as a markdown file and a PNG, with an AGENTS.md note and a skill that tell your agent to look there, so you just type <code>/darnly</code> in Claude Code or Cursor (or say "fix my Darnly bugs" in Codex).</p>

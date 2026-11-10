@@ -10,6 +10,7 @@ import type { RecordShape } from '@/lib/record-shape';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
+import { canTalk, listen } from '@/lib/talk';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { reportOpen } from '@/lib/open-count';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
@@ -123,6 +124,84 @@ export function App() {
   // Chrome leaves the shortcut empty when another extension already uses the same keys.
   const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  // Review mode (prototype): talk instead of typing, and after each save the next pick starts by itself,
+  // so a whole walk through the app is click, talk, click, talk. One report per click.
+  const [review, setReviewState] = useState(false);
+  // Bugs saved since review mode last started picking by itself, to show "2 saved" between clicks.
+  const [reviewSaved, setReviewSaved] = useState(0);
+  const reviewRef = useRef(false);
+  const [listening, setListening] = useState(false);
+  const stopTalk = useRef<(() => void) | null>(null);
+  const saveRef = useRef<() => void>(() => {});
+  const startTalkRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    chrome.storage.local.get('reviewMode').then((r) => {
+      reviewRef.current = r.reviewMode === true;
+      setReviewState(reviewRef.current);
+    }, () => {});
+  }, []);
+  const setReview = (on: boolean) => {
+    reviewRef.current = on;
+    setReviewState(on);
+    chrome.storage.local.set({ reviewMode: on }).catch(() => {});
+    if (!on) return endTalk();
+    // Ask for the microphone now, while setting up, not in the middle of the first bug.
+    navigator.permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then((p) => p.state !== 'granted' && askMic(), () => askMic());
+  };
+  const endTalk = () => {
+    stopTalk.current?.();
+    stopTalk.current = null;
+    setListening(false);
+    setNotHearing(false);
+  };
+  const heard = useRef(false);
+  const [notHearing, setNotHearing] = useState(false);
+  const askMic = () => {
+    endTalk();
+    setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back.');
+    chrome.tabs.create({ url: chrome.runtime.getURL('/mic.html') }).catch(() => {});
+  };
+  const startTalk = async () => {
+    if (stopTalk.current || !canTalk()) return;
+    // The side panel can't show Chrome's microphone prompt (it just hears nothing), so ask in a tab first.
+    const mic = await navigator.permissions.query({ name: 'microphone' as PermissionName }).then((p) => p.state, () => 'prompt');
+    if (mic !== 'granted') return askMic();
+    setMessage('');
+    setListening(true);
+    heard.current = false;
+    setNotHearing(false);
+    const quiet = setTimeout(() => !heard.current && setNotHearing(true), 7000);
+    stopTalk.current = listen({
+      onText: (t) => {
+        heard.current = true;
+        setNotHearing(false);
+        setNote(t);
+      },
+      onDone: (t) => {
+        clearTimeout(quiet);
+        stopTalk.current = null;
+        setListening(false);
+        setNote(t);
+        // Saved on the next tick, once the note above is in the state the save reads.
+        if (reviewRef.current) setTimeout(() => saveRef.current(), 80);
+      },
+      onError: (err) => {
+        clearTimeout(quiet);
+        stopTalk.current = null;
+        setListening(false);
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          askMic();
+        } else if (err === 'audio-capture') {
+          setMessage('No microphone found. On a Mac, check System Settings > Privacy & Security > Microphone and turn on Google Chrome. Or type the note.');
+        } else if (err !== 'unsupported') {
+          setMessage(`Couldn't hear you (${err}). Type the note instead.`);
+        }
+      },
+    });
+  };
+  startTalkRef.current = startTalk;
   // First run: is the code on this computer (link a folder) or in the cloud (copy bugs into the agent)?
   const [cloud, setCloud] = useState<boolean | null>(null);
   useEffect(() => {
@@ -328,6 +407,9 @@ export function App() {
       } else if (msg.type === 'picker-failed') {
         setStage('idle');
         setMessage(`Couldn't start on this page: ${msg.error}. Chrome pages and the Web Store can't be captured.`);
+      } else if (msg.type === 'mic-allowed') {
+        setMessage('');
+        if (noteRef.current) setTimeout(() => startTalkRef.current(), 300);
       } else if (msg.type === 'steps-updated') {
         refreshRecording();
       } else if (msg.type === 'capture-ready') {
@@ -351,6 +433,7 @@ export function App() {
         clearReference();
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
+        if (reviewRef.current) setTimeout(() => startTalkRef.current(), 120);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
@@ -452,10 +535,27 @@ export function App() {
     await pickerCommand('whole');
   };
 
-  const startFromPanel = async () => {
-    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' });
+  // On a live site, Chrome lets the panel start picking only once the user allows Darnly there (asked once, on this click).
+  const allowThisSite = async (): Promise<boolean> => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => [] as chrome.tabs.Tab[]);
+    let origin = site.origin;
+    try {
+      if (tab?.url && /^https?:/.test(tab.url)) origin = new URL(tab.url).origin;
+    } catch {
+      /* keep the last known site */
+    }
+    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+    return chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+  };
+  const startFromPanel = async (fromClick = true) => {
+    setMessage('');
+    if (fromClick && !(await allowThisSite())) {
+      setMessage(`Click "Allow" when Chrome asks, so Darnly can start on this site from here. Or press ${shortcut ?? 'the Darnly shortcut'} on the page.`);
+      return;
+    }
+    const r = await chrome.runtime.sendMessage({ type: 'start-picker-from-panel' }).catch(() => null);
     if (r?.ok) setStage('picking');
-    else setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page instead. This button only works on localhost.`);
+    else setMessage(`Press ${shortcut ?? 'the Darnly shortcut'} on the page instead.`);
   };
 
   const build = (c: PendingCapture) => {
@@ -503,6 +603,18 @@ export function App() {
       setSaving(false);
     }
   };
+  saveRef.current = save;
+  // Review mode: once a bug is saved (to the project or the Darnly inbox), start pointing at the next one.
+  useEffect(() => {
+    if (stage !== 'saved' || !review || message || !(lastFile || sentToCloud)) return;
+    setReviewSaved((n) => n + 1);
+    const t = setTimeout(() => startFromPanel(false), 700);
+    return () => clearTimeout(t);
+  }, [stage, review, message, lastFile, sentToCloud]);
+  useEffect(() => {
+    if (stage !== 'note') endTalk();
+    if (stage === 'idle') setReviewSaved(0);
+  }, [stage]);
   const saveOnce = async () => {
     if (!capture) return;
     const { id, markdown, paste, cloud: cloudReport } = build(capture);
@@ -707,9 +819,9 @@ export function App() {
             </div>
           )}
           {recordingSteps == null && (
-            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+            <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={() => startFromPanel()}>
               <Icon name="target" className="h-4 w-4" />
-              Capture a bug
+              {review ? 'Start review' : 'Capture a bug'}
             </button>
           )}
           {recordingSteps == null ? (
@@ -734,11 +846,25 @@ export function App() {
                 Done, describe the bug
               </button>
               <p className="text-center text-xs text-ink-soft">
-                <button className={linkCls} onClick={startFromPanel} title="Point at the broken part, then describe it">Point at the broken part first</button>
+                <button className={linkCls} onClick={() => startFromPanel()} title="Point at the broken part, then describe it">Point at the broken part first</button>
                 {' · '}
                 <button className={linkCls} onClick={stopRecording}>Cancel recording</button>
               </p>
             </div>
+          )}
+          {canTalk() && recordingSteps == null && (
+            <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-line p-2.5 text-xs text-ink-soft" title="Prototype. Chrome turns what you say into text with its speech service.">
+              <input type="checkbox" className="mt-0.5" checked={review} onChange={(e) => setReview(e.target.checked)} />
+              <span>
+                <span className="font-semibold text-ink">Review mode: talk while you click</span> <span className="rounded bg-wash px-1 text-[10px] font-bold uppercase text-sky">try it</span>
+                <br />
+                {review ? (
+                  <>Press <b>Start review</b>, click the first thing that's wrong, then say out loud what you want. Pause, and Darnly saves it and lets you click the next one. Esc on the page stops.</>
+                ) : (
+                  <>Talk instead of typing, one bug per click, without stopping between them.</>
+                )}
+              </span>
+            </label>
           )}
           {shown.length === 0 && (
             <ol className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
@@ -760,15 +886,26 @@ export function App() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink opacity-60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink" />
             </span>
-            <div>
-              <p className="font-semibold text-ink">Click the broken part of the page.</p>
-              <p className="text-xs text-ink-soft">Press W for the whole page, Esc to cancel.</p>
+            {review && reviewSaved > 0 ? (
+              <div>
+                <p className="font-semibold text-ink">✓ Saved {plural(reviewSaved, 'bug', 'bugs')}. Click the next thing that's wrong.</p>
+                <p className="text-xs text-ink-soft">Review mode keeps going until you press Done.</p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-ink">Click the broken part of the page.</p>
+                <p className="text-xs text-ink-soft">Press W for the whole page, Esc to cancel.</p>
+              </div>
+            )}
+          </div>
+          {review && reviewSaved > 0 ? (
+            <button className={secondaryCls + ' w-full'} onClick={() => { pickerCommand('cancel'); setReviewSaved(0); }}>Done reviewing</button>
+          ) : (
+            <div className="flex gap-2">
+              <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('whole')}>Whole page</button>
+              <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('cancel')}>Cancel</button>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('whole')}>Whole page</button>
-            <button className={secondaryCls + ' flex-1'} onClick={() => pickerCommand('cancel')}>Cancel</button>
-          </div>
+          )}
         </section>
       )}
 
@@ -799,15 +936,43 @@ export function App() {
               </Chip>
             )}
           </div>
+          {listening && (
+            <div className="rounded-xl border border-pink/30 bg-pink/5 p-2.5 text-sm">
+              <p className="font-semibold text-ink">● Talk now</p>
+              <p className="text-xs text-ink-soft">
+                {notHearing
+                  ? "Not hearing anything yet. Check that Chrome can use your microphone (Mac: System Settings > Privacy & Security > Microphone), or type the note instead."
+                  : review
+                  ? 'Say what is wrong or what you want, e.g. "make this orange like the button". Pause for 2 seconds when done: Darnly saves it and you click the next thing.'
+                  : 'Say what is wrong or what you want. Pause when done, then press Save.'}
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
-            <label className="block font-semibold" htmlFor="note">What did you expect?</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="block font-semibold" htmlFor="note">What did you expect?</label>
+              {canTalk() && (
+                <button
+                  type="button"
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${listening ? 'bg-pink text-white' : 'border border-line text-ink-soft hover:text-ink'}`}
+                  onClick={() => (listening ? endTalk() : startTalk())}
+                  title={review ? 'Talk, then pause: Darnly saves it and starts the next one' : 'Say it instead of typing'}
+                >
+                  {listening ? 'Stop' : '🎤 Talk'}
+                </button>
+              )}
+            </div>
             <textarea
               id="note"
               ref={noteRef}
               className="w-full rounded-xl border border-line bg-white p-2.5 outline-none placeholder:text-ink-soft/60 focus:border-sky focus:ring-2 focus:ring-sky/20"
               rows={3}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => {
+                // Typing takes over from talking.
+                if (stopTalk.current) endTalk();
+                setNote(e.target.value);
+              }}
               onPaste={(e) => {
                 // A picture on the clipboard (and no text) is a picture of what it should look like.
                 const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
@@ -888,7 +1053,7 @@ export function App() {
             )}
             <button className={secondaryCls + ' flex-1'} onClick={() => copyDetails(lastPaste)}>2. Copy details{copied.details ? ' ✓' : ''}</button>
           </div>
-          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={startFromPanel}>
+          <button className={primaryCls + ' flex items-center justify-center gap-2'} onClick={() => startFromPanel()}>
             <Icon name="target" className="h-4 w-4" />
             Capture another
           </button>

@@ -41,6 +41,10 @@ Reports can list what you did before the bug, so your agent can repeat it:
 
 A step says what you clicked, which field you typed in, which option you chose and which page you opened. **Darnly never records what you type**, only where. A step's screenshot shows the screen like the main screenshot does; a step is left without a screenshot while a card number field on the page is filled in.
 
+## Talking instead of typing (optional)
+
+If you press **Talk** or turn on **Review mode** in the Darnly panel, Darnly listens to your microphone only while you describe a bug, and uses Chrome's built-in speech recognition to turn what you say into the note. Chrome sends that audio to its speech service (run by Google) to do this. Darnly never records or keeps the audio; only the text note goes into the report. Chrome asks you once before Darnly can use the microphone, and you can remove that in Chrome's settings at any time.
+
 ## What Darnly hides
 
 Before anything is saved, Darnly removes things that look like secrets: passwords and card numbers (also blurred in the screenshot), auth headers, cookies, request and response bodies beyond a short error snippet, tokens, API keys, email addresses and secret-looking query parameters. These are replaced with `[hidden]`. Data responses are never copied into the report: only the shape of one record, as described above.

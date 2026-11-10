@@ -167,6 +167,7 @@ export function captureMarkdown(c: CaptureInput): string {
       ...codeBlock(el.html, 'html'),
       '',
     );
+    lines.push(...lookAlikeLines(el.similar, c.scope));
     lines.push(...codePlaceLines(el, marks > 1 ? 1 : undefined));
     if (el.atCursor) {
       const a = el.atCursor;
@@ -231,6 +232,28 @@ export function captureMarkdown(c: CaptureInput): string {
     ...verifyLines(c),
   );
   return lines.join('\n');
+}
+
+/**
+ * The look-alikes by name, so "change only this one" has a concrete list to leave alone ("Get started" in "Free plan"),
+ * and "change all like it" a list that should change too. Page text, so it sits inside the page data.
+ */
+function lookAlikeLines(similar: ElementInfo['similar'], scope: ChangeScope | undefined): string[] {
+  const ex = similar?.examples ?? [];
+  if (!similar || !ex.length) return [];
+  const more = similar.count - ex.length;
+  const heading =
+    scope === 'this'
+      ? '## Keep these the same (they look like it, the user wants only the red box changed)'
+      : scope === 'all'
+      ? '## These should change too (the user said change all like it)'
+      : '## Look-alikes on this page';
+  return [
+    heading,
+    ...ex.map((e) => `- ${e.text ? `"${e.text}"` : `\`${similar.selector}\``}${e.inside ? ` in "${e.inside}"` : ''}`),
+    ...(more > 0 ? [`- and ${more} more matching \`${similar.selector}\``] : []),
+    '',
+  ];
 }
 
 /** The **Expected** line holds the user's own words, which often describe the problem rather than the goal. */
@@ -384,9 +407,9 @@ function verifyLines(c: CaptureInput): string[] {
     steps.push(`${steps.length + 1}. Read its text: it should now say what the note asks for.`);
   }
   if (el?.similar && c.scope === 'this') {
-    steps.push(`${steps.length + 1}. Look at one of the other elements that match the "similar" selector: it should look exactly as before.`);
+    steps.push(`${steps.length + 1}. Look at one of the other elements that match the "similar" selector${el.similar.examples?.length ? ' (the ones under "Keep these the same")' : ''}: it should look exactly as before.`);
   } else if (el?.similar && c.scope === 'all') {
-    steps.push(`${steps.length + 1}. Look at a few of the other elements that match the "similar" selector: they should have changed too.`);
+    steps.push(`${steps.length + 1}. Look at a few of the other elements that match the "similar" selector${el.similar.examples?.length ? ' (the ones under "These should change too")' : ''}: they should have changed too.`);
   }
   const where = c.forCloud ? 'your `mark_fixed` note' : c.forPaste ? 'your reply' : 'your **Fixed:** line';
   return [
