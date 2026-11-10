@@ -344,7 +344,7 @@ function changeLines(c: CaptureInput): string[] {
   const out: string[] = [];
   if (c.scope === 'this') {
     out.push(
-      '**Change only this one:** the user wants this element changed and nothing else. Leave other elements that share its component, classes or styles as they are. If the style comes from a shared class, component or design token, override it for this one (a prop, a variant or one extra class) instead of editing the shared one.',
+      '**Change only this one:** the user wants this element changed and nothing else. Leave other elements that share its component, classes or styles as they are. If the style comes from a shared class, component or design token, override it for this one (a prop, a variant or one extra class) instead of editing the shared one. Before you edit, write one line naming the file and the exact element you will change, by its position when others look alike ("the button in the second .pricing-card"). Before you finish, read your diff: it should change this element only.',
       '',
     );
   } else if (c.scope === 'all') {

@@ -249,7 +249,7 @@ public enum Report {
         var out: [String] = []
         switch c.scope {
         case .this?:
-            out += ["**Change only this one:** the user wants this element changed and nothing else. Leave other elements that share its view, component, style or modifiers as they are. If the look comes from a shared component, style or design token, override it for this one (a parameter, a variant or one extra modifier) instead of editing the shared one.", ""]
+            out += ["**Change only this one:** the user wants this element changed and nothing else. Leave other elements that share its view, component, style or modifiers as they are. If the look comes from a shared component, style or design token, override it for this one (a parameter, a variant or one extra modifier) instead of editing the shared one. Before you edit, write one line naming the file and the exact element you will change, by its position when others look alike (\"the button in the second card\"). Before you finish, read your diff: it should change this element only.", ""]
         case .all?:
             out += ["**Change all like it:** the user wants every element like this one changed the same way. Change the shared view, component, style or design token, not just this one place.", ""]
         case nil:
