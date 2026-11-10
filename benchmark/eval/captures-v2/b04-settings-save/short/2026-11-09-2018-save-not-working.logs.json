@@ -1,0 +1,12 @@
+{
+  "url": "http://localhost:42791/settings",
+  "entries": [
+    {
+      "t": 1794255490911,
+      "kind": "rejection",
+      "message": "Unhandled promise rejection: TypeError: Cannot read properties of undefined (reading 'trim')",
+      "stack": "TypeError: Cannot read properties of undefined (reading 'trim')\n    at onSubmit (http://localhost:42791/src/pages/SettingsPage.tsx:33:51)\n    at executeDispatch (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:14738:11)\n    at runWithFiberInDEV (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:1131:72)\n    at processDispatchQueue (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:14774:37)\n    at http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:15168:11\n    at batchedUpdates$1 (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:2767:42)\n    at dispatchEventForPluginEventSystem (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:14879:9)\n    at dispatchEvent (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:18442:13)\n    at dispatchDiscreteEvent (http://localhost:42791/node_modules/.vite/deps/react-dom_client.js?v=94b0736f:18423:62)",
+      "source": "page"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:42155/",
+  "entries": [
+    {
+      "t": 1794250602057,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:42155/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

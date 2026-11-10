@@ -608,4 +608,5 @@ export const GUIDES: Item[] = [
   { slug: 'report-a-bug-to-bolt', name: 'How to report a bug to Bolt', blurb: 'Attach a marked screenshot within Bolt\u2019s limits, plus the page, what you expected and the errors.' },
   { slug: 'report-a-bug-to-v0', name: 'How to report a bug to v0', blurb: 'Paste a marked screenshot into v0 and point it at the one component to fix.' },
   { slug: 'screenshot-wont-paste-into-codex', name: 'Screenshot won\u2019t paste into Codex CLI?', blurb: 'Ctrl+V on a Mac, drag and drop on Wayland, and codex --image, which always works.' },  { slug: 'screenshot-wont-paste-into-claude-desktop', name: 'Screenshot won\u2019t paste into the Claude desktop app?', blurb: 'Copy it instead of saving it, drag the file in, or let quick entry capture it.' },
+  { slug: 'best-bug-reporting-tools-for-ai-coding-agents', name: 'Best bug reporting tools for AI coding agents (2026)', blurb: 'Nine ways to hand a UI bug to Claude Code, Cursor or Codex, and who each one is for.' },
 ];

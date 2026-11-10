@@ -348,7 +348,7 @@ describe('window width', () => {
   it('says the width plainly in the report body, outside the page data, and asks for the fix to be checked at it', () => {
     const md = captureMarkdown({ ...base, viewport: { width: 390, height: 844 } });
     expect(md).toContain('**Window:** 390x844 CSS pixels (phone width).');
-    expect(md).toContain('check your fix at 390px wide');
+    expect(md).toContain('Check your fix at 390px wide');
     expect(md.indexOf('**Window:**')).toBeLessThan(md.indexOf('<!-- darnly:page-data:start -->'));
     expect(md).toContain('with the page (viewport) set to 390x844');
     expect(md).toContain('viewport: 390x844');
@@ -385,5 +385,37 @@ describe('several marked elements', () => {
     expect(md).toContain('## Element (the red box)');
     expect(md).toContain('(the red box marks the element)');
     expect(md).not.toContain('Several elements');
+  });
+});
+
+describe('what the eval taught us', () => {
+  const logo = {
+    selector: 'a.logo', tag: 'a', text: 'Pebble', html: '<a class="logo">Pebble</a>',
+    styles: { display: 'block', visibility: 'visible', opacity: '1', position: 'static', 'z-index': 'auto', color: 'rgb(232, 234, 237)' },
+    rect: { x: 24, y: 14, width: 68, height: 30 },
+    container: { selector: 'header.site-header', tag: 'header', rect: { x: 0, y: 0, width: 1280, height: 58 }, styles: { 'background-color': 'rgb(246, 247, 249)' } },
+  };
+
+  it('says the note may describe the problem, and checks that the complaint is gone', () => {
+    const md = captureMarkdown({ ...base, note: 'In dark mode the bar stays light grey' });
+    expect(md).toContain("The **Expected** line is the user's own words.");
+    expect(md).toContain('Never keep the broken look because the note describes it.');
+    expect(md).toContain("3. Check that what the user's note complains about is gone");
+    expect(md).not.toContain('the **Expected** line is now true');
+  });
+
+  it('says when the click landed inside a bigger part, with its size and colours', () => {
+    const md = captureMarkdown({ ...base, element: logo });
+    expect(md).toContain('(the header around it on the page; 1280x58; background-color: rgb(246, 247, 249))');
+    expect(md).toContain('fix the header around it, not the element in the box');
+    expect(md).toContain('or on the header around it if that is what the note is about');
+    expect(captureMarkdown({ ...base, element: { ...logo, container: undefined } })).not.toContain('sits inside a bigger');
+  });
+
+  it('leaves out what says nothing: default styles and a lone "opened this page" step', () => {
+    const md = captureMarkdown({ ...base, element: logo, steps: [{ kind: 'page', url: base.url, t: 0 }] });
+    expect(md).toContain('- styles: display: block; color: rgb(232, 234, 237)');
+    expect(md).not.toContain('visibility: visible');
+    expect(md).not.toContain('## Steps before this');
   });
 });

@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:44353/products/p3",
+  "entries": [
+    {
+      "t": 1794256698417,
+      "kind": "request",
+      "method": "GET",
+      "status": 404,
+      "resourceType": "image",
+      "url": "http://localhost:44353/favicon.ico",
+      "source": "browser"
+    }
+  ]
+}

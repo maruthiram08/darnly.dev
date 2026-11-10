@@ -49,6 +49,14 @@ export const ASPECT_STYLES: Record<ChangeAspect, { label: string; styles: string
   text: { label: 'the words (copy)', styles: [] },
 };
 
+/** Values that say nothing (every element has them), left out of the styles line to keep the report short. */
+const DEFAULT_STYLES: Record<string, string> = { visibility: 'visible', opacity: '1', 'pointer-events': 'auto', position: 'static', 'z-index': 'auto' };
+
+/** The styles line: the summary styles that aren't at their default. */
+function styleSummary(styles: Record<string, string>): string {
+  return STYLE_SUMMARY.filter((k) => styles[k] && styles[k] !== DEFAULT_STYLES[k]).map((k) => `${k}: ${styles[k]}`).join('; ');
+}
+
 const STYLE_SUMMARY = ['display', 'visibility', 'opacity', 'pointer-events', 'position', 'z-index', 'width', 'height', 'color', 'background-color', 'font-size'];
 
 export const PAGE_DATA_START = '<!-- darnly:page-data:start -->';
@@ -141,7 +149,7 @@ export function captureMarkdown(c: CaptureInput): string {
   lines.push(...stepLines(c));
   const el = c.element;
   if (el) {
-    const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
+    const styles = styleSummary(el.styles);
     lines.push(
       marks > 1 ? '## Element 1 (red box 1)' : '## Element (the red box)',
       `- selector: \`${el.selector}\``,
@@ -153,7 +161,7 @@ export function captureMarkdown(c: CaptureInput): string {
       ...(c.aspect && ASPECT_STYLES[c.aspect].styles.length
         ? [`- current ${c.aspect} (before the fix): ${ASPECT_STYLES[c.aspect].styles.map((k) => `${k}: ${el.styles[k] ?? '?'}`).join('; ')}`]
         : []),
-      ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page)`] : []),
+      ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page${boxFacts(el.container)})`] : []),
       ...(el.similar ? [`- similar: ${el.similar.count} other element${el.similar.count === 1 ? '' : 's'} on this page match \`${el.similar.selector}\``] : []),
       '',
       ...codeBlock(el.html, 'html'),
@@ -203,12 +211,14 @@ export function captureMarkdown(c: CaptureInput): string {
   lines.push(PAGE_DATA_END, '');
   lines.push(
     '## How to fix',
+    NOTE_LINE,
+    ...(el?.container && !el.atCursor ? [insideLine(el.container)] : []),
     'If the note is vague or compares to something else ("like the other pages", "like the Beliefs pills"), look at that part of the code first and match it. If it is still unclear, ask the user one short question before changing anything.',
     c.forCloud
-      ? 'Find the code with the hints above, fix it so the expected behaviour happens, then call the Darnly `mark_fixed` tool with this bug\'s id and one line on what you changed.'
+      ? 'Find the code with the hints above, fix what the note complains about, then call the Darnly `mark_fixed` tool with this bug\'s id and one line on what you changed.'
       : c.forPaste
-      ? 'Find the code with the hints above and fix it so the expected behaviour happens.'
-      : `Find the code with the hints above, fix it so the expected behaviour happens, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
+      ? 'Find the code with the hints above and fix what the note complains about.'
+      : `Find the code with the hints above, fix what the note complains about, then move this file and the other files that start with ${c.id} to ${DONE_FOLDER}/.`,
     ...(c.record && c.element
       ? ['If the bug may depend on data, compare "The data behind this element" with what your code expects (empty, missing or old-format fields, long text, many items), and test with a record shaped like it, not a fresh one.']
       : []),
@@ -246,9 +256,34 @@ function lookAlikeLines(similar: ElementInfo['similar'], scope: ChangeScope | un
   ];
 }
 
+/** The **Expected** line holds the user's own words, which often describe the problem rather than the goal. */
+export const NOTE_LINE =
+  'The **Expected** line is the user\'s own words. People often write what is wrong ("the bar stays white in dark mode") rather than what they want: read it with the screenshot and fix what is wrong. Never keep the broken look because the note describes it.';
+
+function safeTag(tag: string): string {
+  return tag.replace(/[^a-z0-9-]/gi, '').slice(0, 20) || 'element';
+}
+
+/** The click landed on something inside a bigger part (a logo in the header, a word in a card): the note may be about that part. */
+function insideLine(box: NonNullable<ElementInfo['container']>): string {
+  const tag = safeTag(box.tag);
+  return `The red box is what the user clicked, and it sits inside a bigger ${tag} (see "inside" above). People often click on something inside the part they mean. If the note is about a bigger area (a bar, card, section, background or the whole ${tag}), fix the ${tag} around it, not the element in the box.`;
+}
+
+/** The size and colours of the part around the element, so the agent can tell which one the note is about. */
+function boxFacts(box: NonNullable<ElementInfo['container']>): string {
+  const bits = [
+    ...(box.rect ? [`${Math.round(box.rect.width)}x${Math.round(box.rect.height)}`] : []),
+    ...CONTAINER_STYLES.filter((k) => box.styles?.[k]).map((k) => `${k}: ${String(box.styles![k]).slice(0, 80)}`),
+  ];
+  return bits.length ? `; ${bits.join('; ')}` : '';
+}
+
+const CONTAINER_STYLES = ['background-color', 'color', 'border-color'];
+
 /** One more element the user marked (Shift+click): the same facts as the main one, shorter. */
 function alsoLines(el: ElementInfo, n: number): string[] {
-  const styles = STYLE_SUMMARY.filter((k) => el.styles[k]).map((k) => `${k}: ${el.styles[k]}`).join('; ');
+  const styles = styleSummary(el.styles);
   return [
     `## Element ${n} (red box ${n})`,
     `- selector: \`${el.selector}\``,
@@ -257,7 +292,7 @@ function alsoLines(el: ElementInfo, n: number): string[] {
     ...(el.components?.length ? [`- drawn by: ${el.components.filter((x) => componentName(x)).map((x) => `\`${x}\``).join(' > ')}`] : []),
     `- size: ${Math.round(el.rect.width)}x${Math.round(el.rect.height)} at (${Math.round(el.rect.x)}, ${Math.round(el.rect.y)})`,
     `- styles: ${styles}`,
-    ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page)`] : []),
+    ...(el.container ? [`- inside: \`${el.container.selector}\`${el.container.label ? ` "${el.container.label}"` : ''} (the ${el.container.tag} around it on the page${boxFacts(el.container)})`] : []),
     ...(el.similar ? [`- similar: ${el.similar.count} other element${el.similar.count === 1 ? '' : 's'} on this page match \`${el.similar.selector}\``] : []),
     '',
     ...codeBlock(el.html, 'html'),
@@ -273,7 +308,8 @@ function codePath(p: string): string {
 
 /** The components around the element, outermost first, with where each is placed (React, Svelte 5) and defined (Vue, Svelte). */
 function codePlaceLines(el: ElementInfo, n?: number): string[] {
-  const parts = (el.parts ?? []).filter((p) => componentName(p.name) && (p.at || p.file));
+  // The innermost few: the outer ones (providers, App) are the same for every bug.
+  const parts = (el.parts ?? []).filter((p) => componentName(p.name) && (p.at || p.file)).slice(-3);
   if (!parts.length) return [];
   const from = el.framework === 'vue' ? 'Vue' : el.framework === 'svelte' ? 'Svelte' : 'React';
   return [
@@ -300,7 +336,7 @@ export function widthKind(width: number): 'phone' | 'tablet' | 'desktop' {
 function windowLine(v: CaptureInput['viewport']): string {
   const w = Math.round(v.width);
   const h = Math.round(v.height);
-  return `**Window:** ${w}x${h} CSS pixels (${widthKind(w)} width). The bug was seen at this width: look at the page and check your fix at ${w}px wide, because layout bugs often show only at some widths.`;
+  return `**Window:** ${w}x${h} CSS pixels (${widthKind(w)} width). Check your fix at ${w}px wide: layout bugs often show only at some widths.`;
 }
 
 /** The user's "change only this one / all like it" and "what to change" choices. Fixed wording only: no page text. */
@@ -325,6 +361,8 @@ function changeLines(c: CaptureInput): string[] {
 function stepLines(c: CaptureInput): string[] {
   const steps = c.steps ?? [];
   if (!steps.length) return [];
+  // "Opened /" alone, kept automatically, only repeats the URL above.
+  if (!c.stepsRecorded && steps.length === 1 && steps[0]!.kind === 'page') return [];
   const pic = !c.stepsPicture || c.forPaste
     ? []
     : [`Pictures of the steps: ${c.forCloud ? 'the steps picture returned with this bug' : `${INBOX_FOLDER}/${c.id}.steps.jpg`} (numbered to match the list, each taken just after its step; up to the last 12)`];
@@ -361,7 +399,7 @@ function verifyLines(c: CaptureInput): string[] {
       : el
       ? `2. Find the element by the selector under "Element" above${el.atCursor ? ' (or the one under "Exactly under the cursor")' : ''}.`
       : '2. Look at the whole visible page.',
-    '3. Check that the **Expected** line is now true. The screenshot shows how it looked before.',
+    `3. Check that what the user's note complains about is gone${el?.container && !el.atCursor ? ` (on the element, or on the ${safeTag(el.container.tag)} around it if that is what the note is about)` : ''}. The note may say what they want, or what was wrong. The screenshot shows how it looked before.`,
   ];
   if (el && c.aspect && ASPECT_STYLES[c.aspect].styles.length) {
     steps.push(`${steps.length + 1}. Read its computed ${c.aspect} styles and compare them with the "current ${c.aspect}" values above: they should have changed the way the note says.`);

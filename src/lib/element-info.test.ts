@@ -133,7 +133,7 @@ describe('containerOf', () => {
       (e as HTMLElement).getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, right: w, bottom: h, width: w, height: h, toJSON() {} }) as DOMRect;
     }
     const c = containerOf(document.querySelector('button')!);
-    expect(c).toEqual({ selector: 'article.plan-card', tag: 'article', label: 'Pro plan' });
+    expect(c).toMatchObject({ selector: 'article.plan-card', tag: 'article', label: 'Pro plan', rect: { width: 300, height: 400 } });
   });
 
   it('stops at main and finds nothing for a plain page', () => {

@@ -17,7 +17,7 @@ export interface ElementInfo {
   /** Which dev info the names came from. */
   framework?: string;
   /** The card, row, section or dialog the element sits in, so the agent knows which use of a shared component it is. */
-  container?: { selector: string; tag: string; label?: string };
+  container?: { selector: string; tag: string; label?: string; rect?: ElementInfo['rect']; styles?: Record<string, string> };
   /** Short visible labels inside it ("Voice Tone"), good strings to search the code for. */
   labels?: string[];
   /** Where the user clicked, in CSS pixels. */
@@ -258,7 +258,20 @@ export function containerOf(el: Element): ElementInfo['container'] {
       stableClasses(node).some((c) => CONTAINER_CLASS.test(c));
     if (!looksLike) continue;
     const label = containerLabel(node);
-    return { selector: selectorFor(node), tag: node.tagName.toLowerCase(), ...(label ? { label } : {}) };
+    const r = node.getBoundingClientRect();
+    const cs = doc.defaultView?.getComputedStyle(node);
+    const styles: Record<string, string> = {};
+    for (const k of ['background-color', 'color', 'border-color']) {
+      const v = cs?.getPropertyValue(k);
+      if (v) styles[k] = v;
+    }
+    return {
+      selector: selectorFor(node),
+      tag: node.tagName.toLowerCase(),
+      ...(label ? { label } : {}),
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      ...(Object.keys(styles).length ? { styles } : {}),
+    };
   }
   return undefined;
 }

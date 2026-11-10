@@ -1,0 +1,14 @@
+{
+  "name": "darnly-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node validate.mjs",
+    "capture": "node capture.mjs",
+    "run": "node run.mjs",
+    "summary": "node summarize.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.7.0"
+  }
+}
