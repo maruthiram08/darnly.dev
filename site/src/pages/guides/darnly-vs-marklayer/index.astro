@@ -1,0 +1,66 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-marklayer';
+const faq = [
+  { q: 'Is MarkLayer free?', a: 'Yes. MarkLayer\'s home page says it is 100% free, with no paid plan listed. Annotations are cleaned up 90 days after their last activity, and uploads are limited to 25 MB.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension and the Mac app are free, with no monthly limit on bugs.' },
+  { q: 'Do both work with Claude Code and Cursor?', a: 'Yes. MarkLayer has an MCP server that lets an agent watch a review link, reply to comments and resolve them. Darnly saves bugs as files the agent reads with no setup, and has an optional MCP server at api.darnly.dev/mcp that is listed in Claude\'s connector directory.' },
+  { q: 'Does MarkLayer capture console errors?', a: 'Its home page doesn\'t mention console errors or network requests. It records the element\'s CSS selector, the browser, OS and viewport, and its element inspector copies computed styles and the React or Vue component. Darnly saves recent console errors and failed or slow requests with each bug.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-10"
+  title="MarkLayer alternative for AI agents: Darnly vs MarkLayer"
+  description="MarkLayer is a free review link others can annotate and your agent can resolve. Darnly saves your own bugs, with errors, as files in your project. When each one fits."
+  h1="Darnly vs MarkLayer"
+  lede="MarkLayer is a free web app and Chrome extension for annotating a live page and sharing it as a link that anyone can comment on and an AI agent can resolve, while Darnly is a free Chrome extension and Mac app that saves the bugs you find yourself, with errors and the steps that led there, as files in your project for your agent to fix and check."
+  faq={faq}
+  sources={[
+    { name: 'MarkLayer home page', url: 'https://marklayer.app/' },
+    { name: 'MarkLayer guide: Claude Code visual feedback', url: 'https://marklayer.app/guides/claude-code-visual-feedback' },
+  ]}
+>
+  <p>Both tools are free and both let Claude Code or Cursor work through what you marked and report back. They start from different places. MarkLayer's facts here come from its own pages, checked on 10 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick MarkLayer</strong> if other people need to comment too: you share one link, viewers need no account or extension, and you get pens, arrows and pins, plus PDFs and images.</li>
+    <li><strong>Pick Darnly</strong> if you're the one finding bugs as you use your app, including on localhost and behind a login, and you want each bug to carry the console errors, requests and steps, saved in your project with nothing to share.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>MarkLayer</th></tr></thead>
+    <tbody>
+      <tr><td>Price</td><td>Free</td><td>Free</td></tr>
+      <tr><td>How you capture</td><td>One key in your normal browser, click the broken element, type what you expected</td><td>Paste a URL into the web app, or use the extension for pages it can't embed, then annotate with 16 tools</td></tr>
+      <tr><td>What it keeps</td><td>Screenshot with the element boxed, selector, HTML and styles, the file that drew it on a local project, console errors, failed and slow requests, the steps that led there</td><td>Comment tied to a CSS selector, browser, OS and viewport, status, replies; inspector copies styles and the React or Vue component</td></tr>
+      <tr><td>Where it goes</td><td>Files in <code>.darnly/inbox/</code> in your project, or a private cloud inbox</td><td>A shareable link</td></tr>
+      <tr><td>Agent</td><td>Reads the files with no setup, or the MCP server; marks each bug fixed with a note and checks the fix in a browser when it can</td><td>MCP server with 12 tools to watch, reply, resolve or dismiss comments</td></tr>
+      <tr><td>Other people</td><td>Each reporter installs the extension</td><td>Anyone with the link, no account</td></tr>
+      <tr><td>Beyond the browser</td><td>Mac app for Mac apps, iOS Simulator and Android Emulator</td><td>PDFs and images</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where MarkLayer is the better pick</h2>
+  <ul>
+    <li><strong>Reviews with other people.</strong> A client or teammate opens the link and comments. Darnly has no shared review link.</li>
+    <li><strong>Drawing.</strong> Pens, arrows, shapes and threaded replies. Darnly boxes one element and takes one sentence.</li>
+    <li><strong>Files.</strong> MarkLayer annotates PDFs and images too.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>The invisible part of the bug.</strong> A button that does nothing usually fails with an error you can't see. Darnly saves recent console errors and failed requests with every bug.</li>
+    <li><strong>Your real app, as you use it.</strong> Press a key on any page in your normal Chrome, localhost included, without opening it in another tool.</li>
+    <li><strong>Bugs live with the code.</strong> Each one is a markdown file and a PNG in your project, so the agent reads them with nothing to connect, and nothing expires.</li>
+    <li><strong>Scope and checking.</strong> "Change only this one" or "Change all like it" tells the agent how far to go, and each report says how to check the fix.</li>
+  </ul>
+
+  <GuideCta slug={slug} lead="Find bugs while you use your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent fixes and checks it." />
+  <p>See every option side by side in <a href="/guides/best-bug-reporting-tools-for-ai-coding-agents/">the best bug reporting tools for AI coding agents</a>, or <a href={storeUrl(`guide-${slug}`)}>add Darnly to Chrome</a>.</p>
+</GuidePage>

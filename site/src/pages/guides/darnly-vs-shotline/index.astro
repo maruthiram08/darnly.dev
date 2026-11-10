@@ -1,0 +1,63 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-shotline';
+const faq = [
+  { q: 'Is Shotline free?', a: 'Shotline has a Free plan with one project, one canvas and one member. Pro is $19 a month billed yearly, or $25 month to month, with a 14-day trial and no card needed.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension and the Mac app are free, with no monthly limit on bugs.' },
+  { q: 'Does Shotline work on localhost?', a: 'Shotline turns a reachable URL into a canvas, so its page says localhost needs a tunnel such as ngrok first. Darnly runs in your own browser, so localhost works as is.' },
+  { q: 'Can the agent close the loop in both?', a: 'Yes. In Shotline the agent resolves a pin, posts a fix summary and recaptures a before and after screenshot. In Darnly the agent marks the bug fixed with a note on what changed, and each report says how to check the fix in a browser.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-10"
+  title="Shotline alternative for solo builders: Darnly vs Shotline"
+  description="Shotline turns client feedback on a shared link into pins your agent resolves with proof. Darnly saves the bugs you find yourself, free, into your project. When each one fits."
+  h1="Darnly vs Shotline"
+  lede="Shotline is a client feedback tool where people comment on a shared link and an AI agent resolves each pin with a before and after screenshot, while Darnly is a free Chrome extension and Mac app for the bugs you find yourself, saved with errors and steps into your project for your agent to fix and check."
+  faq={faq}
+  sources={[
+    { name: 'Shotline home page and pricing', url: 'https://tryshotline.com/' },
+  ]}
+>
+  <p>Both tools are built for AI coding agents and both close the loop: the agent reports what it fixed. Shotline is built around clients; Darnly is built around you testing your own app. Shotline's facts come from its own site, checked on 10 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick Shotline</strong> if clients review your work: they comment on a link with no install or account, and they approve fixes in a portal. It also reviews images, PDFs, video and audio.</li>
+    <li><strong>Pick Darnly</strong> if you find the bugs yourself, want it free with no project limit, work on localhost, or want bugs saved in your project with no account.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Shotline</th></tr></thead>
+    <tbody>
+      <tr><td>Price</td><td>Free</td><td>Free (1 project, 1 canvas, 1 member); Pro $19 a month billed yearly</td></tr>
+      <tr><td>Who reports</td><td>You, with the extension or Mac app</td><td>Clients and guests, by link</td></tr>
+      <tr><td>Localhost</td><td>Works as is</td><td>Needs a tunnel such as ngrok</td></tr>
+      <tr><td>What a bug keeps</td><td>Screenshot with the element boxed, selector, HTML and styles, file that drew it on a local project, console errors, failed and slow requests, the steps that led there</td><td>Selector, viewport, screenshot, console errors, and where available the component path and network activity</td></tr>
+      <tr><td>Agent</td><td>Reads project files with no setup, or the MCP server; marks each bug fixed with a note</td><td>MCP server; resolves pins with a fix summary and a before and after recapture</td></tr>
+      <tr><td>Account</td><td>None, unless you use the cloud inbox</td><td>Needed for you; not for clients</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where Shotline is the better pick</h2>
+  <ul>
+    <li><strong>Client work.</strong> Guests comment with nothing to install, and approve fixes. Darnly has no client portal.</li>
+    <li><strong>Proof.</strong> The agent's before and after screenshot is built in.</li>
+    <li><strong>More than web pages.</strong> Images, PDFs, video and audio.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>Free for real use.</strong> No project or canvas limit.</li>
+    <li><strong>Your own testing, anywhere.</strong> One key in your normal browser, localhost and logged-in pages included, plus a Mac app for native apps and simulators.</li>
+    <li><strong>The steps and the scope.</strong> Each bug keeps what you did before it, and "Change only this one" or "Change all like it" tells the agent how far to go.</li>
+  </ul>
+
+  <GuideCta slug={slug} lead="Testing your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent fixes and checks it." />
+  <p>See every option side by side in <a href="/guides/best-bug-reporting-tools-for-ai-coding-agents/">the best bug reporting tools for AI coding agents</a>, or <a href={storeUrl(`guide-${slug}`)}>add Darnly to Chrome</a>.</p>
+</GuidePage>
