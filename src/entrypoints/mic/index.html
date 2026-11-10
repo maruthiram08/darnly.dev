@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Darnly: allow the microphone</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; color: #111827; background: #f8fafc; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 16px; box-sizing: border-box; }
+      main { max-width: 26rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
+      h1 { font-size: 18px; margin: 0 0 8px; }
+      p { margin: 0 0 12px; color: #4b5563; }
+      .ok { color: #047857; font-weight: 600; }
+      .bad { color: #b91c1c; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Let Darnly hear you</h1>
+      <p>To talk instead of typing, Chrome needs to let Darnly use your microphone. Click <b>Allow</b> in the box Chrome shows at the top.</p>
+      <p>Darnly only listens while you are describing a bug, and Chrome turns what you say into text.</p>
+      <p id="status">Waiting for your answer…</p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

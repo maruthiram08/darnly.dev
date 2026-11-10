@@ -10,6 +10,7 @@ import type { RecordShape } from '@/lib/record-shape';
 import { chooseCloudFor, chooseFolderFor, deleteCapture, ensureAccess, folderAccess, listCaptures, originOf, recentFolders, targetFor, readProjectFile, saveFolder, writeProjectFile, writeToProject, type CaptureSummary } from '@/lib/project-folder';
 import { CURSOR_COMMAND_PATH, HOOK_MARK, planSetup, type PlannedChange } from '@/lib/agent-setup';
 import { cloudProjectName, saveCloudProjectName } from '@/lib/project-name';
+import { canTalk, listen } from '@/lib/talk';
 import { checkFixes, isLocalPage, loadJustFixed, mergeFixed, saveJustFixed } from '@/lib/fix-watch';
 import { reportOpen } from '@/lib/open-count';
 import { CloudError, deleteAllCloudBugs, deleteCloudBug, listCloudBugs, loadSession, mcpUrl, signInWithGoogle, signOut, signOutEverywhere, uploadBug, type CloudBug, type CloudSession } from '@/lib/cloud-inbox';
@@ -123,6 +124,56 @@ export function App() {
   // Chrome leaves the shortcut empty when another extension already uses the same keys.
   const [shortcut, setShortcut] = useState<string | null>('⌥⇧B');
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  // Review mode (prototype): talk instead of typing, and after each save the next pick starts by itself,
+  // so a whole walk through the app is click, talk, click, talk. One report per click.
+  const [review, setReviewState] = useState(false);
+  const reviewRef = useRef(false);
+  const [listening, setListening] = useState(false);
+  const stopTalk = useRef<(() => void) | null>(null);
+  const saveRef = useRef<() => void>(() => {});
+  const startTalkRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    chrome.storage.local.get('reviewMode').then((r) => {
+      reviewRef.current = r.reviewMode === true;
+      setReviewState(reviewRef.current);
+    }, () => {});
+  }, []);
+  const setReview = (on: boolean) => {
+    reviewRef.current = on;
+    setReviewState(on);
+    chrome.storage.local.set({ reviewMode: on }).catch(() => {});
+    if (!on) endTalk();
+  };
+  const endTalk = () => {
+    stopTalk.current?.();
+    stopTalk.current = null;
+    setListening(false);
+  };
+  const startTalk = () => {
+    if (stopTalk.current || !canTalk()) return;
+    setListening(true);
+    stopTalk.current = listen({
+      onText: (t) => setNote(t),
+      onDone: (t) => {
+        stopTalk.current = null;
+        setListening(false);
+        setNote(t);
+        // Saved on the next tick, once the note above is in the state the save reads.
+        if (reviewRef.current) setTimeout(() => saveRef.current(), 80);
+      },
+      onError: (err) => {
+        stopTalk.current = null;
+        setListening(false);
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          setMessage('Darnly needs your microphone once. Click Allow in the tab that just opened, then come back.');
+          chrome.tabs.create({ url: chrome.runtime.getURL('/mic.html') }).catch(() => {});
+        } else if (err !== 'unsupported') {
+          setMessage(`Couldn't hear you (${err}). Type the note instead.`);
+        }
+      },
+    });
+  };
+  startTalkRef.current = startTalk;
   // First run: is the code on this computer (link a folder) or in the cloud (copy bugs into the agent)?
   const [cloud, setCloud] = useState<boolean | null>(null);
   useEffect(() => {
@@ -351,6 +402,7 @@ export function App() {
         clearReference();
         setStage('note');
         setTimeout(() => noteRef.current?.focus(), 50);
+        if (reviewRef.current) setTimeout(() => startTalkRef.current(), 120);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
@@ -503,6 +555,16 @@ export function App() {
       setSaving(false);
     }
   };
+  saveRef.current = save;
+  // Review mode: once a bug is saved (to the project or the Darnly inbox), start pointing at the next one.
+  useEffect(() => {
+    if (stage !== 'saved' || !review || message || !(lastFile || sentToCloud)) return;
+    const t = setTimeout(() => startFromPanel(), 700);
+    return () => clearTimeout(t);
+  }, [stage, review, message, lastFile, sentToCloud]);
+  useEffect(() => {
+    if (stage !== 'note') endTalk();
+  }, [stage]);
   const saveOnce = async () => {
     if (!capture) return;
     const { id, markdown, paste, cloud: cloudReport } = build(capture);
@@ -740,6 +802,16 @@ export function App() {
               </p>
             </div>
           )}
+          {canTalk() && recordingSteps == null && (
+            <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-line p-2.5 text-xs text-ink-soft" title="Prototype. Chrome turns what you say into text with its speech service.">
+              <input type="checkbox" className="mt-0.5" checked={review} onChange={(e) => setReview(e.target.checked)} />
+              <span>
+                <span className="font-semibold text-ink">Review mode: talk while you click</span> <span className="rounded bg-wash px-1 text-[10px] font-bold uppercase text-sky">try it</span>
+                <br />
+                Click the broken part, say what you expected, pause. Darnly saves it and you click the next one. Esc on the page stops.
+              </span>
+            </label>
+          )}
           {shown.length === 0 && (
             <ol className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-soft">
               {['Click the broken part and say what you expected.', 'Darnly hands your agent the picture, the element and the errors.', 'You see here when your agent has fixed it.'].map((t, i) => (
@@ -800,14 +872,30 @@ export function App() {
             )}
           </div>
           <div className="space-y-1.5">
-            <label className="block font-semibold" htmlFor="note">What did you expect?</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="block font-semibold" htmlFor="note">What did you expect?</label>
+              {canTalk() && (
+                <button
+                  type="button"
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${listening ? 'bg-pink text-white' : 'border border-line text-ink-soft hover:text-ink'}`}
+                  onClick={() => (listening ? endTalk() : startTalk())}
+                  title={review ? 'Talk, then pause: Darnly saves it and starts the next one' : 'Say it instead of typing'}
+                >
+                  {listening ? '● Listening… (click to stop)' : '🎤 Talk'}
+                </button>
+              )}
+            </div>
             <textarea
               id="note"
               ref={noteRef}
               className="w-full rounded-xl border border-line bg-white p-2.5 outline-none placeholder:text-ink-soft/60 focus:border-sky focus:ring-2 focus:ring-sky/20"
               rows={3}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => {
+                // Typing takes over from talking.
+                if (stopTalk.current) endTalk();
+                setNote(e.target.value);
+              }}
               onPaste={(e) => {
                 // A picture on the clipboard (and no text) is a picture of what it should look like.
                 const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
