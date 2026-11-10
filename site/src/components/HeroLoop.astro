@@ -3,7 +3,7 @@
 // 1. You point at the broken part. 2. Darnly hands your agent the context. 3. Your agent fixes it and tells you.
 // Drawn in HTML so it stays sharp. Plays once on load (CSS only); with reduced motion it shows the final state.
 ---
-<div class="loop-scene" role="img" aria-label="The Darnly loop: you point at a broken Save plan button, Darnly hands your coding agent the screenshot, element, file and error, and the agent fixes it and tells you 1 bug fixed.">
+<div class="loop-scene" role="img" aria-label="The Darnly loop: you point at a broken Save plan button, Darnly hands your coding agent the screenshot, element, file, console error and your note, and the agent fixes it and tells you 1 bug fixed.">
   <div class="ls-browser ls-s1">
     <span class="ls-step"><b>1</b> You point at it</span>
     <div class="ls-bar"><i></i><i></i><i></i><span>acme-planner.app/plan</span></div>
@@ -21,12 +21,13 @@
 
   <div class="ls-handoff ls-s2">
     <span class="ls-step"><b>2</b> Darnly hands your agent the context</span>
-    <div class="ls-chips">
-      <span>📷 Screenshot</span>
-      <span>&lt;button&gt; PlanBar.tsx:42</span>
-      <span>⚠ 1 console error</span>
-      <span>“should save my week”</span>
-    </div>
+    <ul class="ls-ctx">
+      <li><span class="ls-i ls-ok-i">✓</span>Screenshot attached</li>
+      <li><span class="ls-i">&lt;/&gt;</span>Element: <code>button.save-plan</code></li>
+      <li><span class="ls-i">▤</span>File: <code>PlanBar.tsx:42</code></li>
+      <li><span class="ls-i ls-err-i">!</span>Console: <code>1 error</code></li>
+      <li class="ls-wide"><span class="ls-i">“</span>“Save plan should save my week”</li>
+    </ul>
   </div>
 
   <div class="ls-term ls-s3">
@@ -69,10 +70,15 @@
   .ls-cursor { position: absolute; width: 22px; height: 22px; left: 60px; top: 20px; }
   .ls-note { margin: 14px 0 0; font-size: 13px; color: var(--ink-soft); font-style: italic; }
 
-  /* 2. Handoff: the context Darnly sends */
-  .ls-handoff { position: relative; z-index: 3; align-self: center; width: 88%; margin: 2px 0 0; padding: 20px 14px 14px; border-radius: 14px; background: var(--pink); box-shadow: 0 18px 44px rgba(120, 20, 80, 0.4); transform: rotate(1deg); }
-  .ls-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ls-chips span { font: 500 11.5px/1.3 var(--mono); color: var(--ink); background: var(--white); padding: 5px 9px; border-radius: 7px; white-space: nowrap; }
+  /* 2. Handoff: the context Darnly sends, as a labeled list */
+  .ls-handoff { position: relative; z-index: 3; align-self: center; width: 88%; margin: 2px 0 0; padding: 22px 16px 14px; border-radius: 14px; background: #FDEEF6; border: 2px solid var(--pink); box-shadow: 0 18px 44px rgba(120, 20, 80, 0.35); transform: rotate(1deg); }
+  .ls-ctx { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px 14px; }
+  .ls-ctx li { display: flex; align-items: center; gap: 8px; min-width: 0; font: 500 12.5px/1.3 var(--body); color: var(--ink); white-space: nowrap; }
+  .ls-ctx li.ls-wide { grid-column: 1 / -1; font-style: italic; }
+  .ls-ctx code { font: 600 11.5px/1.3 var(--mono); overflow: hidden; text-overflow: ellipsis; }
+  .ls-i { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--white); color: var(--ink); font: 700 10px/1 var(--mono); box-shadow: 0 1px 3px rgba(11, 34, 48, 0.12); }
+  .ls-ok-i { background: #079455; color: #fff; border-radius: 50%; }
+  .ls-err-i { background: #E11D48; color: #fff; border-radius: 50%; }
 
   /* 3. Agent terminal */
   .ls-term { position: relative; align-self: flex-end; width: 90%; margin-top: 40px; background: #0B2230; color: #DCEBF2; border-radius: 14px; box-shadow: 0 26px 70px rgba(11, 34, 48, 0.45); transform: rotate(-0.5deg); }
