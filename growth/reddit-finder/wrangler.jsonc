@@ -17,7 +17,7 @@
   "keep_vars": true,
   "vars": {
     // The Claude model that scores posts and drafts replies.
-    "MODEL": "claude-opus-5-5",
+    "MODEL": "claude-haiku-5-5",
     // Your Reddit username (without u/), so your own posts are skipped.
     "REDDIT_USERNAME": "munta008",
     // Spend caps: Claude looks at no more than this many posts per hourly run, and per day.
