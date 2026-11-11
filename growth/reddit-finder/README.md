@@ -12,7 +12,7 @@ A small private tool that finds Reddit and Hacker News posts where someone is st
 ## What it costs
 
 - Cloudflare: nothing extra (one Worker, one small D1 database, one hourly cron).
-- Claude: Claude looks at no more than 25 posts per hour and 200 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). On Claude Opus 5.5 that's roughly 1 to 2 cents a post. Most days far fewer posts pass the word check, so the real cost is a few cents to a dollar a day. To spend less, set `MODEL` to `claude-haiku-5-5`, which costs well under $1 a month.
+- Claude: Claude looks at no more than 25 posts per hour and 200 per day (`MAX_JUDGE_PER_RUN` and `MAX_JUDGE_PER_DAY` in `wrangler.jsonc`). It uses Claude Haiku 5.5 (`MODEL`), which costs a small fraction of a cent per post, so even a busy month stays around $1 to $3. For sharper drafts, set `MODEL` to `claude-opus-5-5` (roughly 40 times the price).
 - Set a monthly spend limit in the Claude Console as well (step 5), so the bill can never surprise you.
 
 ## Set it up (about 15 minutes, on your Mac)

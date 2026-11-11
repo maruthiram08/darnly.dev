@@ -44,11 +44,14 @@ export async function judge(env: Env, post: { title: string; body: string; commu
     apiKey: env.ANTHROPIC_API_KEY,
     defaultHeaders: env.ANTHROPIC_WORKSPACE_ID ? { 'anthropic-workspace-id': env.ANTHROPIC_WORKSPACE_ID } : undefined,
   });
+  // Server-side refusal fallbacks exist for Opus and Sonnet, not for Haiku.
+  const fallback: { betas?: Anthropic.Beta.AnthropicBeta[]; fallbacks?: 'default' } = env.MODEL.startsWith('claude-haiku')
+    ? {}
+    : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' };
   const response = await client.beta.messages.parse({
     model: env.MODEL,
     max_tokens: 4000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
+    ...fallback,
     output_config: { effort: 'low', format: betaZodOutputFormat(Verdict) },
     system: SYSTEM,
     messages: [

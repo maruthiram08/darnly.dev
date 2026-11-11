@@ -132,6 +132,11 @@ describe('inbox', () => {
     ]);
     // Exactly one Claude call: the off-topic post was filtered by the word check, Maruthi's own and old posts dropped.
     expect(fetchSpy.mock.calls.filter(([i]) => String(i instanceof Request ? i.url : i).includes('anthropic')).length).toBe(1);
+    // Haiku has no server-side refusal fallback, so the request must not ask for one.
+    const [, init] = fetchSpy.mock.calls.find(([i]) => String(i instanceof Request ? i.url : i).includes('anthropic'))!;
+    const sent = JSON.parse(String((init as RequestInit).body));
+    expect(sent.model).toBe('claude-haiku-5-5');
+    expect(sent.fallbacks).toBeUndefined();
 
     const cookie = await login();
     const html = await (await SELF.fetch(`${BASE}/`, { headers: { cookie } })).text();
