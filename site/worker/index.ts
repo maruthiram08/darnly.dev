@@ -150,6 +150,7 @@ import { takeShots } from './shots';
 import { checkSlop, mainScripts } from './slop';
 import { checkDomain, HOST_HEADERS, type DnsResult, type HopResult } from './domain';
 import { posthogProxy } from './posthog';
+import { sendLink, type Mailer } from './sendlink';
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
@@ -168,6 +169,10 @@ interface Env {
   SHOT_LIMIT_ALL?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   ASSET_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   ALLOW_LOCAL?: string; // only set in local dev (.dev.vars) to test against localhost
+  // "Email me the link" for phone visitors: Cloudflare Email Service, and its own limits.
+  EMAIL?: Mailer;
+  MAIL_LIMIT?: RateLimit;
+  MAIL_LIMIT_ALL?: RateLimit;
 }
 
 const MAX_BYTES = 1_000_000;
@@ -179,6 +184,7 @@ export default {
   async fetch(req: Request, env: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname.startsWith('/ingest/')) return posthogProxy(req, url);
+    if (url.pathname === '/api/send-link') return sendLinkApi(req, env);
     if (url.pathname === '/api/og') return og(req, url, env, ctx);
     if (url.pathname === '/api/fonts') return fontsApi(req, url, env, ctx);
     if (url.pathname === '/api/frame') return frameApi(req, url, env, ctx);
@@ -220,6 +226,21 @@ export default {
 };
 
 type RateLimit = { limit(o: { key: string }): Promise<{ success: boolean }> };
+
+// /api/send-link: one email with the Add to Chrome link, for phone visitors (see sendlink.ts).
+// Repeat sends to the same address are stopped for a day by a hash kept in the cache.
+function sendLinkApi(req: Request, env: Env): Promise<Response> {
+  const key = (hash: string) => new Request(`https://darnly.dev/__send-link/${hash}`);
+  const cache = (globalThis as unknown as { caches?: { default: Cache } }).caches?.default;
+  return sendLink(req, {
+    mailer: env.EMAIL,
+    limit: env.MAIL_LIMIT,
+    limitAll: env.MAIL_LIMIT_ALL,
+    seen: async (hash) => !!(cache && (await cache.match(key(hash)))),
+    remember: async (hash) => { await cache?.put(key(hash), new Response('1', { headers: { 'cache-control': 'max-age=86400' } })); },
+    allowLocal: env.ALLOW_LOCAL === '1',
+  });
+}
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 type Page = { target: URL; finalUrl: string; status: number; html: string; headers: Headers };
 

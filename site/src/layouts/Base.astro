@@ -5,6 +5,7 @@ import '../styles/fonts.css';
 import '../styles/base.css';
 import { CF_ANALYTICS_TOKEN, POSTHOG_KEY } from '../data/analytics';
 import PostHog from '../components/PostHog.astro';
+import PhoneLink from '../components/PhoneLink.astro';
 
 interface Props {
   title: string;
@@ -60,6 +61,7 @@ const cfBeacon = CF_ANALYTICS_TOKEN ? JSON.stringify({ token: CF_ANALYTICS_TOKEN
 </head>
 <body>
 <slot />
+<PhoneLink />
 {POSTHOG_KEY && <PostHog />}
 </body>
 </html>

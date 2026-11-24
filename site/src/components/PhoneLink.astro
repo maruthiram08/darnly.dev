@@ -1,0 +1,229 @@
+---
+// Phones can't install Chrome extensions. On a phone this adds:
+// - a bar at the bottom of the page ("On your phone? Get the link for your computer"), except on
+//   the free tools themselves, which work on phones;
+// - a sheet that emails the visitor the Add to Chrome link (POST /api/send-link, see
+//   worker/sendlink.ts), with "Share the link" (the phone's share sheet, or copy) as the other way;
+// - every Add to Chrome button opens that sheet instead of the store page, which can't install anything on a phone.
+// Anything with data-send-link (the hero's "Send me the link") opens it too.
+// Events go to PostHog through the darnly:track event (PostHog.astro): phone_link_shown,
+// phone_link_open {trigger}, phone_link_email {result}, phone_link_share {result}, phone_link_dismiss.
+// The email address is never sent to PostHog (replays hide typed text too).
+import { STORE_URL } from '../data/site';
+const toolPage = /^\/tools\/[^/]+\/$/.test(Astro.url.pathname) && Astro.url.pathname !== '/tools/';
+---
+<div class="pl-bar" hidden data-pl-bar data-tool-page={toolPage ? '1' : undefined}>
+  <button type="button" class="pl-bar-open" data-pl-open="bar">
+    <span class="pl-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/></svg>
+    </span>
+    <span class="pl-bar-text"><strong>On your phone?</strong><span>Get the link for your computer →</span></span>
+  </button>
+  <button type="button" class="pl-x" aria-label="Hide" data-pl-dismiss>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<dialog class="pl-sheet" aria-labelledby="pl-title" data-pl-sheet>
+  <button type="button" class="pl-x pl-close" aria-label="Close" data-pl-close>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div data-pl-ask>
+    <p class="pl-eyebrow">On your phone?</p>
+    <h2 id="pl-title">Darnly runs in Chrome on your computer.</h2>
+    <p class="pl-lede">Send yourself the link and add it when you’re back at your desk. Free, no account.</p>
+    <form class="pl-form" novalidate data-pl-form>
+      <label class="pl-sr" for="pl-email">Your email</label>
+      <input id="pl-email" type="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com" required maxlength="254">
+      <!-- Hidden from people; bots fill it in. -->
+      <input class="pl-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button type="submit" class="pl-btn pl-primary" data-pl-submit>Email me the link</button>
+      <p class="pl-msg" role="status" aria-live="polite" data-pl-msg></p>
+    </form>
+    <div class="pl-or" aria-hidden="true"><span>or</span></div>
+    <button type="button" class="pl-btn pl-outline" data-pl-share>Share the link</button>
+    <p class="pl-fine">We only use your email to send this one link, then forget it. <a href="/privacy.html#email-me-the-link">Privacy</a></p>
+  </div>
+  <div class="pl-done" hidden data-pl-done>
+    <span class="pl-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </span>
+    <h2>Sent. Check your email on your computer.</h2>
+    <p class="pl-lede">It has the Add to Chrome button and three short steps. Not there in a minute? Look in spam, or share the link instead.</p>
+    <button type="button" class="pl-btn pl-outline" data-pl-share>Share the link</button>
+  </div>
+  <p class="pl-store"><a href={`${STORE_URL}?utm_source=phone-sheet`} data-pl-store>Open the Chrome Web Store page anyway</a></p>
+</dialog>
+
+<style is:global>
+  .pl-bar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 8px; border-radius: 18px; background: var(--ink); color: var(--white); box-shadow: 0 12px 32px rgba(11, 34, 48, 0.32), 0 0 0 1px rgba(252, 255, 255, 0.08) inset; animation: pl-up .35s ease-out both; }
+  .pl-bar[hidden] { display: none; }
+  @keyframes pl-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .pl-bar { animation: none; } }
+  .pl-bar-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 12px; }
+  .pl-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--sky); color: var(--white); }
+  .pl-bar-text { display: grid; gap: 1px; min-width: 0; font-size: 14px; line-height: 1.3; }
+  .pl-bar-text strong { font: 700 16px/1.2 var(--display); }
+  .pl-bar-text span { color: rgba(252, 255, 255, 0.8); }
+  .pl-x { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: inherit; opacity: .75; cursor: pointer; }
+  .pl-x:hover { opacity: 1; }
+  body.pl-has-bar { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+
+  .pl-sheet { width: min(440px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; margin: auto; padding: 28px 22px 18px; border: 0; border-radius: 24px; background: var(--white); color: var(--ink); box-shadow: 0 24px 60px rgba(11, 34, 48, 0.35); }
+  .pl-sheet::backdrop { background: rgba(11, 34, 48, 0.55); backdrop-filter: blur(2px); }
+  .pl-sheet[open] { animation: pl-in .25s ease-out; }
+  @keyframes pl-in { from { transform: translateY(16px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .pl-sheet[open] { animation: none; } }
+  .pl-close { position: absolute; top: 10px; right: 10px; color: var(--ink-soft); }
+  .pl-eyebrow { margin: 0 0 10px; font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--sky); }
+  .pl-sheet h2 { margin: 0 32px 10px 0; font: 800 26px/1.1 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+  .pl-lede { margin: 0 0 20px; font-size: 16px; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
+  .pl-form { display: grid; gap: 10px; }
+  .pl-form input[type="email"] { width: 100%; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--wash); color: var(--ink); font: 16px/1.2 var(--body); }
+  .pl-form input[type="email"]:focus { outline: none; border-color: var(--sky); background: var(--white); box-shadow: 0 0 0 4px rgba(5, 147, 198, 0.15); }
+  .pl-form input[aria-invalid="true"] { border-color: var(--pink); }
+  .pl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pl-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 15px 20px; border-radius: 999px; font: 600 16px/1 var(--body); cursor: pointer; }
+  .pl-primary { border: 0; background: var(--ink); color: var(--white); box-shadow: 0 8px 20px rgba(11, 34, 48, 0.18); }
+  .pl-primary:hover { background: var(--sky); }
+  .pl-primary[disabled] { opacity: .7; cursor: progress; }
+  .pl-outline { border: 1.5px solid var(--ink); background: var(--white); color: var(--ink); }
+  .pl-msg { margin: 0; min-height: 0; font-size: 14px; line-height: 1.4; color: var(--pink); }
+  .pl-msg:empty { display: none; }
+  .pl-or { display: flex; align-items: center; gap: 12px; margin: 16px 0; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+  .pl-or::before, .pl-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .pl-fine { margin: 14px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-soft); text-align: center; }
+  .pl-fine a, .pl-store a { color: var(--ink-soft); }
+  .pl-check { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 14px; border-radius: 50%; background: var(--sky); color: var(--white); }
+  .pl-store { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; text-align: center; }
+</style>
+
+<script>
+  const phone = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const bar = document.querySelector<HTMLElement>('[data-pl-bar]');
+  const sheet = document.querySelector<HTMLDialogElement>('[data-pl-sheet]');
+
+  const track = (event: string, props: Record<string, string> = {}) =>
+    document.dispatchEvent(new CustomEvent('darnly:track', { detail: { event, props: { path: location.pathname, ...props } } }));
+
+  // Remembered per browser: the bar stays hidden for 7 days after closing it, 30 after a send.
+  const KEY = 'darnly-phone-link';
+  const hiddenUntil = () => { try { return Number(localStorage.getItem(KEY)) || 0; } catch { return 0; } };
+  const hideFor = (days: number) => { try { localStorage.setItem(KEY, String(Date.now() + days * 864e5)); } catch { /* storage blocked */ } };
+
+  if (phone && bar && sheet) {
+    const showBar = () => {
+      if (bar.dataset.toolPage || hiddenUntil() > Date.now() || sheet.open) return;
+      if (!bar.hidden) return;
+      bar.hidden = false;
+      document.body.classList.add('pl-has-bar');
+      track('phone_link_shown');
+    };
+    const hideBar = () => { bar.hidden = true; document.body.classList.remove('pl-has-bar'); };
+
+    // On the home page the hero already has "Send me the link": show the bar once that has scrolled away.
+    const heroBox = document.querySelector<HTMLElement>('[data-on-phone]');
+    if (heroBox) {
+      heroBox.hidden = false;
+      const check = () => { if (heroBox.getBoundingClientRect().bottom < 0) { showBar(); removeEventListener('scroll', check); } };
+      addEventListener('scroll', check, { passive: true });
+    } else {
+      setTimeout(showBar, 1500);
+    }
+
+    const open = (trigger: string) => {
+      if (sheet.open) return;
+      sheet.showModal();
+      track('phone_link_open', { trigger });
+    };
+
+    bar.querySelector('[data-pl-open]')?.addEventListener('click', () => open('bar'));
+    bar.querySelector('[data-pl-dismiss]')?.addEventListener('click', () => { hideBar(); hideFor(7); track('phone_link_dismiss'); });
+    sheet.querySelector('[data-pl-close]')?.addEventListener('click', () => sheet.close());
+    // A tap on the dimmed area outside the card closes it.
+    sheet.addEventListener('click', (e) => {
+      const r = sheet.getBoundingClientRect();
+      if (e.target === sheet && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) sheet.close();
+    });
+
+    // Add to Chrome buttons and "Send me the link" open the sheet on phones.
+    document.addEventListener('click', (e) => {
+      const el = (e.target as Element | null)?.closest?.('a, button');
+      if (!el || sheet.contains(el)) return;
+      if (el.hasAttribute('data-send-link')) { e.preventDefault(); open('hero'); return; }
+      if (el instanceof HTMLAnchorElement && el.href.includes('chromewebstore.google.com/detail/darnly')) { e.preventDefault(); open('store_button'); }
+    });
+
+    // Email me the link.
+    const form = sheet.querySelector<HTMLFormElement>('[data-pl-form]')!;
+    const input = form.querySelector<HTMLInputElement>('input[type="email"]')!;
+    const submit = form.querySelector<HTMLButtonElement>('[data-pl-submit]')!;
+    const msg = form.querySelector<HTMLElement>('[data-pl-msg]')!;
+    const ask = sheet.querySelector<HTMLElement>('[data-pl-ask]')!;
+    const done = sheet.querySelector<HTMLElement>('[data-pl-done]')!;
+    const say = (text: string) => { msg.textContent = text; };
+    input.addEventListener('input', () => { input.removeAttribute('aria-invalid'); say(''); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = input.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        input.setAttribute('aria-invalid', 'true');
+        say('That email address doesn’t look right.');
+        track('phone_link_email', { result: 'invalid' });
+        input.focus();
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = 'Sending…';
+      say('');
+      let result = 'error';
+      try {
+        const res = await fetch('/api/send-link', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email, website: (form.elements.namedItem('website') as HTMLInputElement).value, page: location.pathname }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { sent?: boolean; error?: string };
+        if (res.ok && data.sent) {
+          result = 'sent';
+          ask.hidden = true;
+          done.hidden = false;
+          input.value = '';
+          hideBar();
+          hideFor(30);
+        } else {
+          result = res.status === 429 ? 'limited' : res.status === 503 ? 'off' : 'error';
+          say(data.error || 'Couldn’t send right now. Share the link instead.');
+        }
+      } catch {
+        say('No connection. Share the link instead.');
+      }
+      submit.disabled = false;
+      submit.textContent = 'Email me the link';
+      track('phone_link_email', { result });
+    });
+
+    // Share the link: the phone's share sheet, or copy it.
+    const shareUrl = 'https://darnly.dev/?utm_source=phone-share';
+    for (const btn of sheet.querySelectorAll<HTMLButtonElement>('[data-pl-share]')) {
+      btn.addEventListener('click', async () => {
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: 'Darnly', text: 'Darnly: spot a bug, point at it, your agent fixes it. Add it to Chrome on my computer.', url: shareUrl });
+            track('phone_link_share', { result: 'shared' });
+            return;
+          }
+          await navigator.clipboard.writeText(shareUrl);
+          btn.textContent = 'Link copied ✓';
+          track('phone_link_share', { result: 'copied' });
+        } catch {
+          track('phone_link_share', { result: 'cancelled' });
+        }
+      });
+    }
+
+    sheet.querySelector('[data-pl-store]')?.addEventListener('click', () => track('phone_link_open_store'));
+  }
+</script>

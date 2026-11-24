@@ -393,23 +393,7 @@ No errors in the app's log in the last 60 seconds.</pre>
   </section>
 </main>
 
-<script>
-  // Phones can't install Chrome extensions: offer to send the link to the visitor's computer instead.
-  const phone = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const box = document.querySelector<HTMLElement>('[data-on-phone]');
-  const btn = document.querySelector<HTMLButtonElement>('[data-send-link]');
-  if (phone && box && btn) {
-    box.hidden = false;
-    const url = 'https://darnly.dev/?utm_source=phone-share';
-    btn.addEventListener('click', async () => {
-      try {
-        if (navigator.share) { await navigator.share({ title: 'Darnly', text: 'Install Darnly on my computer', url }); return; }
-        await navigator.clipboard.writeText(url);
-        btn.textContent = 'Link copied ✓';
-      } catch { /* share sheet closed */ }
-    });
-  }
-</script>
+<!-- On phones, the hero's "Send me the link" opens the email-me-the-link sheet (components/PhoneLink.astro). -->
 
 
 <SiteFooter />
