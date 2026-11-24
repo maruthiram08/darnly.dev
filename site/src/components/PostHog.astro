@@ -7,7 +7,8 @@
 //   on darnly.dev (the Worker passes it to PostHog). So it doesn't slow the first paint, the
 //   CSP stays 'self', and ad blockers that block posthog.com don't hide visitors.
 // - Only runs on darnly.dev itself, not on localhost or pull request previews.
-// - Named events for the clicks that matter: cta_click { cta: chrome_store | mac_download | brew_copy, location, path, page_type }.
+// - Named events for the clicks that matter: cta_click { cta: chrome_store | mac_download | brew_copy, location, path, page_type, phone }.
+// - Phone visitors (PhoneLink.astro): phone_link_shown, phone_link_open {trigger}, phone_link_email {result}, phone_link_share {result}, phone_link_dismiss, phone_link_open_store.
 ---
 <script>
   import { POSTHOG_KEY, POSTHOG_REGION } from '../data/analytics';
@@ -31,6 +32,7 @@
     const where = (el: Element) => el.closest('[data-cta-at]')?.getAttribute('data-cta-at') || el.closest('section[id], header, footer, nav')?.id || el.closest('header, footer, nav')?.tagName.toLowerCase() || '';
 
     // Which kind of page drove the click, for the funnel: home, guide, tool, tools-hub or other.
+    const phone = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     const pageType = () => {
       const p = location.pathname;
       if (p === '/') return 'home';
@@ -48,8 +50,15 @@
       if (href.includes('chromewebstore.google.com/detail/darnly')) cta = 'chrome_store';
       else if (href.endsWith('/Darnly.dmg')) cta = 'mac_download';
       else if (el.hasAttribute('data-copy-brew')) cta = 'brew_copy';
-      if (cta) send('cta_click', { cta, location: where(el), path: location.pathname, page_type: pageType() });
+      // On phones, Add to Chrome opens the "email me the link" sheet instead (PhoneLink.astro): phone=yes tells those apart.
+      if (cta) send('cta_click', { cta, location: where(el), path: location.pathname, page_type: pageType(), phone: phone ? 'yes' : 'no' });
     }, { capture: true });
+
+    // Events from other parts of the site (PhoneLink.astro: phone_link_*), sent with the page type added.
+    document.addEventListener('darnly:track', (e) => {
+      const { event, props } = (e as CustomEvent<{ event: string; props?: Props }>).detail || {};
+      if (event) send(event, { ...props, page_type: pageType() });
+    });
 
     const start = () => {
       import('posthog-js').then(({ default: posthog }) => {

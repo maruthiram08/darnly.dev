@@ -28,8 +28,14 @@
     // The API tester has its own limit of 20 requests a minute.
     { "name": "API_LIMIT", "namespace_id": "4870", "simple": { "limit": 20, "period": 60 } },
     // ...and 300 a minute for all visitors together, so nobody can send a flood through darnly.dev by switching IPs.
-    { "name": "API_LIMIT_ALL", "namespace_id": "4871", "simple": { "limit": 300, "period": 60 } }
+    { "name": "API_LIMIT_ALL", "namespace_id": "4871", "simple": { "limit": 300, "period": 60 } },
+    // "Email me the link" on phones: 3 emails a minute per visitor, 30 a minute for the whole site.
+    { "name": "MAIL_LIMIT", "namespace_id": "4880", "simple": { "limit": 3, "period": 60 } },
+    { "name": "MAIL_LIMIT_ALL", "namespace_id": "4881", "simple": { "limit": 30, "period": 60 } }
   ],
+  // Cloudflare Email Service, for /api/send-link (one email with the Add to Chrome link, from hello@darnly.dev).
+  // Needs darnly.dev onboarded under Compute > Email Service > Email Sending; until then sends fail and the page offers Share instead.
+  "send_email": [{ "name": "EMAIL" }],
   // Cloudflare's headless browser, used only by /api/shots for the responsive checker.
   "browser": { "binding": "BROWSER" },
   "observability": { "enabled": true },
