@@ -608,7 +608,9 @@ export const GUIDES: Item[] = [
   { slug: 'report-a-bug-to-bolt', name: 'How to report a bug to Bolt', blurb: 'Attach a marked screenshot within Bolt\u2019s limits, plus the page, what you expected and the errors.' },
   { slug: 'report-a-bug-to-v0', name: 'How to report a bug to v0', blurb: 'Paste a marked screenshot into v0 and point it at the one component to fix.' },
   { slug: 'screenshot-wont-paste-into-codex', name: 'Screenshot won\u2019t paste into Codex CLI?', blurb: 'Ctrl+V on a Mac, drag and drop on Wayland, and codex --image, which always works.' },  { slug: 'screenshot-wont-paste-into-claude-desktop', name: 'Screenshot won\u2019t paste into the Claude desktop app?', blurb: 'Copy it instead of saving it, drag the file in, or let quick entry capture it.' },
-  { slug: 'best-bug-reporting-tools-for-ai-coding-agents', name: 'Best bug reporting tools for AI coding agents (2026)', blurb: '14 ways to hand a UI bug to Claude Code, Cursor or Codex, and who each one is for.' },
+  { slug: 'best-bug-reporting-tools-for-ai-coding-agents', name: 'Best bug reporting tools for AI coding agents (2026)', blurb: '15 ways to hand a UI bug to Claude Code, Cursor or Codex, and who each one is for.' },
   { slug: 'darnly-vs-marklayer', name: 'Darnly vs MarkLayer', blurb: 'A free review link others annotate and your agent resolves, or your own bugs saved with errors in your project.' },
   { slug: 'darnly-vs-shotline', name: 'Darnly vs Shotline', blurb: 'Client pins your agent resolves with proof, or the bugs you find yourself, free, on localhost too.' },
+  { slug: 'darnly-vs-vibe-annotations', name: 'Darnly vs Vibe Annotations', blurb: 'Pins on localhost an agent watches as you go, or a bug inbox with errors from any site and the Mac app.' },
+  { slug: 'give-ai-agent-screenshot-and-console-errors', name: 'Give your AI agent a screenshot and the console errors', blurb: 'By hand, by letting the agent read the browser, or in one key with Darnly.' },
 ];

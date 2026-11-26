@@ -1,0 +1,48 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'give-ai-agent-screenshot-and-console-errors';
+const faq = [
+  { q: 'Can Claude Code read my browser console by itself?', a: 'Yes, if you connect a browser tool such as Claude in Chrome or Chrome DevTools MCP during a session. The agent then opens the page and reads the console itself. That works when you are in a session together; for bugs you notice at other times, save the screenshot and errors so they are waiting for the agent later.' },
+  { q: 'Should I send the whole console log?', a: 'No. Clear the console, redo the one action that breaks, and send only the new red lines. Old warnings and other tabs\' noise make the agent chase the wrong thing. Remove tokens, emails and keys before you paste.' },
+  { q: 'Is a screenshot alone enough?', a: 'For a purely visual bug (wrong colour, bad spacing), a screenshot and one sentence usually is. For a button that does nothing or a page that fails to load, the cause is usually in the console or a failed request, which a screenshot can\'t show.' },
+  { q: 'Does Darnly work with Cursor and Codex too?', a: 'Yes. Darnly saves each bug as a markdown file and a PNG in your project, so Claude Code, Cursor and Codex can all read it, and its MCP server works with any agent that supports MCP.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-26"
+  title="Give your AI agent a screenshot and the console errors, in one report"
+  description="Three ways to give Claude Code, Cursor or Codex a bug screenshot plus the console errors: by hand, by letting the agent open the browser, or in one key with Darnly."
+  h1="How to give your AI coding agent a screenshot and the console errors"
+  lede="To give your AI coding agent a screenshot of a bug with the console errors, put three things in one message: a screenshot with the broken part marked, the red console lines from the moment it broke, and the page address with what you expected; do it by hand, let the agent read the browser itself with Claude in Chrome or Chrome DevTools MCP, or capture all of it in one key with Darnly."
+  faq={faq}
+  sources={[
+    { name: 'Chrome DevTools: Console overview', url: 'https://developer.chrome.com/docs/devtools/console' },
+    { name: 'Use Claude Code with Chrome (Anthropic docs)', url: 'https://code.claude.com/docs/en/chrome' },
+    { name: 'ChromeDevTools/chrome-devtools-mcp on GitHub', url: 'https://github.com/ChromeDevTools/chrome-devtools-mcp' },
+  ]}
+>
+  <p>A screenshot shows what's wrong. The console shows why. Your agent needs both, plus where it happened and what you expected, in one place.</p>
+
+  <h2>1. By hand (free, works with any agent)</h2>
+  <ol>
+    <li><strong>Open the console:</strong> <code>Cmd + Option + J</code> on a Mac, <code>Ctrl + Shift + J</code> on Windows. Click the clear button.</li>
+    <li><strong>Redo the bug</strong>, so only the new errors show.</li>
+    <li><strong>Copy the red lines as text</strong> (right-click, Copy), not as a picture. Remove any tokens, emails or keys.</li>
+    <li><strong>Take a screenshot</strong> and mark the broken part.</li>
+    <li><strong>Paste both into the agent's chat</strong> with the page address and one sentence: "When I click Save, nothing happens. I expected it to save and show a message."</li>
+  </ol>
+  <p>Paste trouble? See <a href="/guides/screenshot-wont-paste-into-claude-code/">screenshot won't paste into Claude Code or Cursor</a>. More on step 3 in <a href="/guides/copy-console-errors-for-ai/">how to copy console errors for your AI agent</a>.</p>
+
+  <h2>2. Let the agent read the browser</h2>
+  <p>Connect Claude in Chrome (Claude Code) or Chrome DevTools MCP (any MCP agent), and the agent can open the page, take its own screenshot and read the console. This is best while you're in a session together and the bug is easy to reproduce. It's less good for a bug you saw an hour ago, one that needs your logged-in state, or ten small things you noticed while using your app. More in <a href="/guides/darnly-vs-chrome-devtools-mcp/">Darnly vs Chrome DevTools MCP</a>.</p>
+
+  <h2>3. In one key with Darnly</h2>
+  <p>Darnly is a free Chrome extension that does step 1 for you. Press one key, click the broken part, and type what you expected. It saves one report with the screenshot (that part boxed in red), the element, the console errors and failed requests from the last 60 seconds, the steps that led there, and the page address, as files in your project or in a cloud inbox your agent reads over MCP. Collect as many as you find, then tell Claude Code, Cursor or Codex "fix my Darnly bugs": it works through the list and marks each one fixed with a note on what changed.</p>
+
+  <GuideCta slug={slug} lead="Tired of copying errors by hand?" text="Darnly is free in Chrome. One key saves the screenshot, the errors and what you expected, ready for your agent." />
+  <p>Comparing tools? See <a href="/guides/best-bug-reporting-tools-for-ai-coding-agents/">the best tools to report UI bugs to Claude Code, Cursor and Codex</a>, or <a href={storeUrl(`guide-${slug}`)}>add Darnly to Chrome</a>.</p>
+</GuidePage>
