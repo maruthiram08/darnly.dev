@@ -1,0 +1,65 @@
+---
+import GuidePage from '../../../layouts/GuidePage.astro';
+import GuideCta from '../../../components/GuideCta.astro';
+import { storeUrl } from '../../../data/site';
+
+const slug = 'darnly-vs-vibe-annotations';
+const faq = [
+  { q: 'Is Vibe Annotations free?', a: 'Yes. Its site says it is completely free and source-available, with no subscription or paid features. Its Chrome Web Store listing shows about 2,000 users and a 5.0 rating.' },
+  { q: 'Is Darnly free?', a: 'Yes. The Darnly Chrome extension and the Mac app are free, with no monthly limit on bugs.' },
+  { q: 'Does Vibe Annotations work on live sites?', a: 'It turns on by itself for localhost, local development domains and file pages. Public sites need a per-site opt-in, which its listing calls a beta. Darnly works on any page you open in Chrome, localhost or live, including pages behind a login.' },
+  { q: 'Can I use both?', a: 'Yes. Vibe Annotations suits a live design session on localhost, where the agent picks up pins as you drop them. Darnly suits the bugs you find while using or testing your app, kept as a list with their errors for the agent to work through later.' },
+];
+---
+<GuidePage
+  slug={slug}
+  updated="2026-11-26"
+  title="Vibe Annotations alternative: Darnly vs Vibe Annotations"
+  description="Vibe Annotations pins design tweaks on localhost for an agent watching as you go. Darnly keeps a bug inbox, with errors and steps, from any site. When each one fits."
+  h1="Darnly vs Vibe Annotations"
+  lede="Vibe Annotations is a free, source-available Chrome extension with a local MCP server for pinning design feedback on localhost while your agent watches and applies it, while Darnly is a free Chrome extension and Mac app that saves the bugs you find on any site, with console errors, failed requests and the steps that led there, as a list your agent works through and marks fixed."
+  faq={faq}
+  sources={[
+    { name: 'Vibe Annotations home page', url: 'https://www.vibe-annotations.com/' },
+    { name: 'Vibe Annotations on the Chrome Web Store', url: 'https://chromewebstore.google.com/detail/vibe-annotations-visual-f/gkofobaeeepjopdpahbicefmljcmpeof' },
+  ]}
+>
+  <p>Both tools are free, both let you click an element and say what's wrong, and both hand it to Claude Code, Cursor or Codex. They suit different moments. Facts about Vibe Annotations come from its site and store listing, checked on 26 November 2026.</p>
+
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Pick Vibe Annotations</strong> if you're polishing how a local app looks and want the agent to pick up each pin as you drop it, try CSS changes in a side panel first, or attach reference images.</li>
+    <li><strong>Pick Darnly</strong> if you find bugs while using or testing your app, on localhost or the live site, and want each one saved with the errors and steps behind it, as a list your agent fixes, checks and marks done.</li>
+  </ul>
+
+  <h2>Side by side</h2>
+  <div class="table"><table>
+    <thead><tr><th></th><th>Darnly</th><th>Vibe Annotations</th></tr></thead>
+    <tbody>
+      <tr><td>Price</td><td>Free</td><td>Free, source-available</td></tr>
+      <tr><td>Where it works</td><td>Any page in Chrome, localhost or live, logged in or not; Mac app for native apps and simulators</td><td>Localhost and local domains; public sites by per-site opt-in (beta)</td></tr>
+      <tr><td>What it keeps</td><td>Screenshot with the element boxed, selector, HTML and styles, the component and file on a local project, console errors, failed and slow requests, the steps that led there</td><td>Selector, React or Vue component and source file, viewport, screenshot, optional CSS edits and reference images</td></tr>
+      <tr><td>How the agent gets it</td><td>Files in <code>.darnly/inbox/</code> the agent reads with no setup, or a cloud inbox over MCP</td><td>Copy and paste, or a local MCP server you start with npx; watch mode picks up new pins</td></tr>
+      <tr><td>After the fix</td><td>The agent marks each bug fixed with a note, and each report says how to check the fix</td><td>Resolved pins are deleted to start the next round</td></tr>
+      <tr><td>Account</td><td>None, unless you use the cloud inbox</td><td>None</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Where Vibe Annotations is the better pick</h2>
+  <ul>
+    <li><strong>Live design sessions.</strong> Watch mode lets the agent apply pins while you keep pinning. Darnly is built for a list you hand over later.</li>
+    <li><strong>Trying CSS before asking.</strong> Its side panel previews font, colour and spacing changes on the page.</li>
+    <li><strong>Reference images.</strong> Attach a picture of how it should look.</li>
+  </ul>
+
+  <h2>Where Darnly is the better pick</h2>
+  <ul>
+    <li><strong>Bugs you can't see.</strong> A button that does nothing usually fails with a console error or a failed request. Darnly saves both with every bug.</li>
+    <li><strong>The live site.</strong> Capture on production or behind a login as easily as on localhost.</li>
+    <li><strong>A list that outlasts the session.</strong> Bugs wait as files in your project or in the cloud inbox until your agent gets to them, with nothing to keep running.</li>
+    <li><strong>Closing the loop.</strong> The agent marks each bug fixed with a note on what changed, and you see it in the Darnly panel.</li>
+  </ul>
+
+  <GuideCta slug={slug} lead="Find bugs while you use your own app?" text="Darnly is free in Chrome. Press one key, click the broken part, say what you expected, and your agent fixes and checks it." />
+  <p>See every option side by side in <a href="/guides/best-bug-reporting-tools-for-ai-coding-agents/">the best bug reporting tools for AI coding agents</a>, or <a href={storeUrl(`guide-${slug}`)}>add Darnly to Chrome</a>.</p>
+</GuidePage>
